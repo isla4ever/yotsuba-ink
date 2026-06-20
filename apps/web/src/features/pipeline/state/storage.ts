@@ -1,5 +1,5 @@
-import type { CanvasLayout, WorkflowDefinition } from '../types/workflow';
-import { applyQualityMode } from '../utils/workflow';
+import type { CanvasLayout, WorkflowDefinition } from '../contracts';
+import { applyQualityMode } from '../lib/workflow';
 
 export const canvasLayoutStorageKey = 'novel-workflow-canvas-layout';
 export const qualityModeStorageKey = 'novel-workflow-quality-mode';

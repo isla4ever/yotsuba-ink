@@ -1,0 +1,10 @@
+{
+  "id": "prompt-cover",
+  "name": "封面 Prompt",
+  "stage_type": "cover_image",
+  "content": "根据小说信息和梗概生成封面提示词。",
+  "variables": [
+    "cover_style",
+    "aspect_ratio"
+  ]
+}

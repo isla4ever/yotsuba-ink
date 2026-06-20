@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from novel_workflow.api.state import list_provider_profiles
+from novel_workflow.api.bootstrap import list_provider_profiles
 from novel_workflow.providers.registry import ProviderRegistry
 from novel_workflow.workflows.schemas import ProviderProfile
 

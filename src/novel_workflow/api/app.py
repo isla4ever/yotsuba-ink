@@ -5,19 +5,9 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from novel_workflow.api.reference_context import (
-    append_rag_event as _append_rag_event,
-    compact as _compact,
-    enrich_reference_summary as _enrich_reference_summary,
-    merged_reference_summary as _merged_reference_summary,
-    rag_blocking_issue as _rag_blocking_issue,
-    string_list as _string_list,
-    summary_from_knowledge_results as _summary_from_knowledge_results,
-    summary_from_search_results as _summary_from_search_results,
-    summary_from_urls as _summary_from_urls,
-)
+from novel_workflow.api.bootstrap import init_app_state
 from novel_workflow.api.routes import knowledge_router, prompts_router, providers_router, references_router, runs_router, workflow_router
-from novel_workflow.api.state import init_app_state, seed_defaults as _seed_defaults
+from novel_workflow.references.context_injection import enrich_reference_summary as _enrich_reference_summary
 
 
 def create_app() -> FastAPI:

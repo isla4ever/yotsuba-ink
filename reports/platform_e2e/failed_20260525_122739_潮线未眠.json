@@ -1,6 +1,0 @@
-{
-  "status": "failed",
-  "title": "潮线未眠",
-  "error": "backend code=500 message=细纲生成格式错误：未返回章节列表结构，请重试 path=/front/detailOutline",
-  "failed_at": "2026-05-25T12:27:39"
-}

@@ -1,0 +1,10 @@
+{
+  "id": "prompt-outline",
+  "name": "分卷大纲 Prompt",
+  "stage_type": "outline",
+  "content": "基于梗概、角色弧和未回收伏笔，生成卷级目标、卷冲突、章节范围和伏笔分布，避免与世界观硬设定冲突。",
+  "variables": [
+    "volume_count",
+    "chapters_per_volume"
+  ]
+}

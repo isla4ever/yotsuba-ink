@@ -1,6 +1,0 @@
-{
-  "status": "failed",
-  "title": "潮雾归档",
-  "error": "POST /front/getText failed: [WinError 10054] 远程主机强迫关闭了一个现有的连接。",
-  "failed_at": "2026-05-15T01:10:13"
-}

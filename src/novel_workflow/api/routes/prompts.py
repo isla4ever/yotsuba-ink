@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from novel_workflow.api.state import list_prompt_templates
+from novel_workflow.api.bootstrap import list_prompt_templates
 from novel_workflow.workflows.schemas import PromptTemplate
 
 

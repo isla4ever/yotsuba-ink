@@ -1,4 +1,4 @@
-import type { RunEvent } from '../types/workflow';
+import type { RunEvent } from '../contracts';
 
 export async function consumeEventStream(response: Response, onEvent: (event: RunEvent) => void) {
   if (!response.body) return;

@@ -1,56 +1,58 @@
-# Ponytail-Inspired Engineering Rules
+# Ponytail 风格工程规则
 
-This repository adopts Ponytail as a repository-level engineering discipline rather than an application dependency.
+本仓库把 Ponytail 当作仓库级工程纪律来使用，而不是应用运行时依赖。
 
-## Why
+## 为什么这样做
 
-Ponytail is valuable here as a review posture:
+Ponytail 在这里真正有价值的地方，是一种工程评审姿态：
 
-- question whether the feature should exist before writing it
-- prefer simpler primitives over new abstraction layers
-- reduce unnecessary code volume
-- keep interfaces explicit and easy to audit
+- 写代码前先判断这个功能是否真的值得存在
+- 优先使用更简单的原语，而不是急着叠新抽象
+- 控制无意义的代码体积增长
+- 让接口显式、可读、可审查
 
-What we do **not** do:
+我们明确 **不做** 这些事：
 
-- ship Ponytail as a runtime dependency
-- couple product code to a specific AI coding plugin
-- require contributors to install a plugin before contributing
+- 不把 Ponytail 作为运行时依赖打进产品
+- 不让产品代码和某个 AI 插件强耦合
+- 不要求协作者必须先安装某个插件才能参与开发
 
-## Rules we apply here
+## 本仓库采用的具体规则
 
-### 1. Solve the real product problem
+### 1. 先解决真实产品问题
 
-If a requested change adds noise, cognitive load, or maintenance cost without improving the novel-creation flow, push back and refine it.
+如果一个需求只会增加噪音、认知负担或维护成本，而不能改善小说生产链路，就不应该直接照做，而是应该先收敛问题本身。
 
-### 2. Prefer stable seams
+### 2. 优先稳定边界
 
-- stage contracts
-- event schemas
-- API routers
-- typed UI state
-- Story Bible update boundaries
+优先保护这些边界：
 
-Avoid hidden coupling across planning UI, run-time UI, and model adapter code.
+- 阶段合同
+- 事件 schema
+- API 路由边界
+- 带类型的 UI 状态
+- Story Bible 更新边界
 
-### 3. Keep abstractions earned
+避免让规划态 UI、运行态 UI 和模型适配代码形成隐式耦合。
 
-Add a helper, hook, or service only when it:
+### 3. 抽象必须是“挣来的”
 
-- removes repeated logic
-- creates a real domain boundary
-- improves testability or replacement
+只有在下面情况出现时，才值得新增 helper、hook 或 service：
 
-### 4. Make fallback paths real
+- 真正去掉了重复逻辑
+- 真正建立了领域边界
+- 真正提高了可测试性或可替换性
 
-The project should still run in demo mode without paid provider credentials.
+### 4. fallback 不是摆设
 
-### 5. Measure honestly
+即使没有付费模型凭据，项目也应该仍然能以演示模式启动和走通。
 
-Token, cost, cache, and quality telemetry should be explicit about what is:
+### 5. 度量必须诚实
 
-- estimated
-- observed
-- unavailable
+Token、成本、缓存、质量相关指标，都要明确区分：
 
-We prefer an honest approximation over a fake exact number.
+- 哪些是估算值
+- 哪些是实际观测值
+- 哪些当前不可得
+
+宁可给用户一个诚实的近似值，也不要伪造一个看起来很精确的数字。

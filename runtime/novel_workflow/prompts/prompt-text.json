@@ -1,0 +1,10 @@
+{
+  "id": "prompt-text",
+  "name": "正文 Prompt",
+  "stage_type": "chapter_text",
+  "content": "逐章按细纲、上一章摘要、人物状态、世界观硬设定和未回收伏笔生成正文，保持动机、信息差、节奏和语言质感一致。",
+  "variables": [
+    "chapter_words",
+    "pov"
+  ]
+}

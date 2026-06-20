@@ -1,30 +1,33 @@
 # Copilot Instructions
 
-This repository is an open-source long-form fiction orchestration framework. Optimize for maintainability and product coherence, not just feature throughput.
+This repository is the open-source `Novel Workflow` product. Optimize for structural consistency and maintainability before feature sprawl.
 
-## Engineering defaults
+## Frontend Rules
 
-- Prefer existing repo patterns over introducing a new framework or helper layer.
-- Keep files small and responsibility-focused.
-- Do not append new product logic to:
-  - `src/novel_workflow/workflows/runner.py`
-  - `src/novel_workflow/api/app.py`
-  - `apps/web/src/App.tsx`
-  - `apps/web/src/features/pipeline/components/StageRunWorkbench.tsx`
-  unless the file remains a thin facade.
-- Preserve mock/demo fallback behavior when online providers are unavailable.
+- `apps/web/src/features/pipeline` must use one structure only:
+  - `layout/`
+  - `planning/`
+  - `brief/`
+  - `running/`
+  - `settings/`
+  - `state/`
+  - `services/`
+  - `contracts/`
+  - `lib/`
+- Do not reintroduce mixed top-level buckets such as `components/`, `panels/`, `dialogs/`, or `screens/`.
+- Keep screens thin, services IO-only, state files React-only, and lib files pure.
 
-## Product defaults
+## Backend Rules
 
-- Story Brief approval is the main human gate.
-- Wiki / Story Bible is the runtime fact layer, not a decorative info panel.
-- Quality gate is a decision layer: `pass`, `revise`, or `block`.
-- Token/cost feedback should be informative and honest; do not fake precision.
-- Structured outputs should be preferred over unstructured text when practical.
+- `src/novel_workflow/api` is a thin adapter layer only.
+- Keep business logic out of `api/routes`.
+- Reference merging belongs in `references/`.
+- Orchestration belongs in `orchestration/` or workflow-domain modules.
+- Quality logic belongs in `quality/`.
 
-## UI defaults
+## General Rules
 
-- Planning/configuration and running/workbench modes should stay visually distinct.
-- Primary workflow controls first, diagnostics second, ambient effects last.
-- Avoid oversized cards and duplicated controls.
-- Dense interfaces should still preserve scanning rhythm and readable spacing.
+- Prefer existing repo boundaries over new abstractions.
+- Avoid god files; keep most files near `200-250` lines and heavy files under `300`.
+- Preserve API paths, current product semantics, and demo fallback behavior unless the task explicitly changes them.
+- Prefer structured contracts over loose stringly-typed payloads.

@@ -39,7 +39,10 @@ tmp/
 *.pid
 swanlog/
 wandb/
-runtime/
+runtime/novel_workflow/runs/
+runtime/novel_workflow/wiki/
+runtime/novel_workflow/references/
+runtime/novel_workflow/knowledge/
 
 # Frontend
 apps/web/node_modules/
@@ -49,17 +52,9 @@ apps/web/dist/
 .DS_Store
 Thumbs.db
 
-# Data: keep only current novel-chain training assets when explicitly added.
-data/*.jsonl
-!data/info_recommend_sft_deepseek_1000.jsonl
-!data/summary_sft_deepseek_1000_hq_correction_v5_mix1000.jsonl
-!data/outline_sft_deepseek_1000_hq_long_v2.jsonl
-!data/detail_outline_sft_deepseek_1000_hq.jsonl
-!data/text_first_500_sft.jsonl
-!data/text_non_first_clean_v2_sft.jsonl
-!data/novel_task_structured_from_zh_corpus_1500.jsonl
-!data/novel_task_structured_auto_750.jsonl
-!data/novel_task_structured_template.jsonl
+# Local product data
+data/novel_wiki/users/
+data/novel_wiki/projects/
 
 # One-off thesis/copyright and obsolete demo assets
 reports/thesis_*/

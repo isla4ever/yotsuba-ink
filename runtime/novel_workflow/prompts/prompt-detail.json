@@ -1,0 +1,10 @@
+{
+  "id": "prompt-detail",
+  "name": "章节细纲 Prompt",
+  "stage_type": "detail_outline",
+  "content": "按目标章节数逐章输出目标、承接、核心冲突、人物变化、伏笔推进、信息差和章末钩子。",
+  "variables": [
+    "chapter_count",
+    "must_include"
+  ]
+}

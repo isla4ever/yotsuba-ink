@@ -4,10 +4,10 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request
 
-from novel_workflow.api.helpers import run_state_or_404
-from novel_workflow.api.reference_context import enrich_reference_summary, rag_blocking_issue
-from novel_workflow.api.state import list_provider_profiles
-from novel_workflow.api.streaming import sse_payload, stream_response, stream_runner_events
+from novel_workflow.api.bootstrap import list_provider_profiles
+from novel_workflow.api.dependencies import run_state_or_404
+from novel_workflow.api.sse import sse_payload, stream_response, stream_runner_events
+from novel_workflow.references.context_injection import enrich_reference_summary, rag_blocking_issue
 from novel_workflow.workflows.runner import NovelWorkflowRunner
 from novel_workflow.workflows.schemas import ArtifactApprovalRequest, BriefRegenerateRequest, NovelRunState, ProviderProfile, RunRequest, WorkflowDefinition
 

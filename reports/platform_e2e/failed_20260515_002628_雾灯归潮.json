@@ -1,6 +1,0 @@
-{
-  "status": "failed",
-  "title": "雾灯归潮",
-  "error": "POST /front/getText failed: [WinError 10054] 远程主机强迫关闭了一个现有的连接。",
-  "failed_at": "2026-05-15T00:26:28"
-}

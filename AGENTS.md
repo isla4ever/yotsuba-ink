@@ -1,41 +1,59 @@
 # AGENTS
 
-This repository uses a Ponytail-style engineering discipline for both humans and AI coding agents.
+This repository follows a repo-specific engineering guardrail set for `Novel Workflow`.
 
-## Product Focus
+## Product Scope
 
-- The primary open-source product is `Novel Workflow`.
-- Training, evaluation, and experimental assets exist, but they are secondary.
-- Do not add product logic to legacy training paths unless the change explicitly belongs there.
+- Keep the repository focused on the Novel Workflow product.
+- Do not reintroduce training assets, vendor snapshots, or historical report logic into the main product tree.
 
-## Coding Rules
+## Frontend Structure
 
-- Start with the smallest correct change.
-- Reuse standard library, platform features, and existing local helpers before adding dependencies.
-- New abstractions must remove real duplication or isolate a domain boundary.
-- Avoid god files. Product logic, UI composition, adapters, and experiments must not be mixed in one file.
-- Default to structured data and typed contracts over ad hoc string parsing.
-- Preserve local demo paths when real API keys or external services are unavailable.
+`apps/web/src/features/pipeline` uses one directory system only:
 
-## File Size Guidelines
+- `layout/`
+- `planning/`
+- `brief/`
+- `running/`
+- `settings/`
+- `state/`
+- `services/`
+- `contracts/`
+- `lib/`
 
-- Normal source files should stay under `200-250` lines.
-- Domain orchestrators and schema modules may grow to `300` lines when justified.
-- If a file grows beyond that, split by responsibility before adding more features.
+Do not keep parallel top-level buckets like `components/`, `panels/`, `dialogs/`, `screens/`, or other temporary taxonomy folders after refactors.
 
-## Novel Workflow Domain Boundaries
+## Backend Structure
 
-- `orchestration/`: run coordination, stage transitions, pause/approval flow.
-- `quality/`: checks, reports, revision directives, blocking decisions.
-- `story_bible/` or runtime memory layers: canonical facts and continuity writeback.
-- `usage/`: token, latency, cost, cache-awareness, stage usage summaries.
-- `output_contracts/`: stage output schemas and normalization/repair hooks.
-- `apps/web/src/features/pipeline`: planning UI, stage workbench UI, shared state and services.
+`src/novel_workflow/api` is an adapter layer only:
 
-## Review Checklist
+- `app.py`
+- `bootstrap.py`
+- `dependencies.py`
+- `sse.py`
+- `routes/`
+- `run.py`
 
-- Does this change strengthen the main novel-production workflow?
-- Does it preserve clear product hierarchy: creation path first, diagnostics second, decoration last?
-- Is the change observable in tests or obvious behavior, not just in code structure?
-- Did we keep the implementation provider-agnostic where possible?
-- Did we avoid inventing knobs that add complexity without improving control?
+Reference aggregation, orchestration, quality logic, and persistence rules belong in domain packages, not in route files.
+
+## Naming And Boundaries
+
+- React components: `PascalCase.tsx`
+- React hooks: `useXxx.ts`
+- TS IO adapters: `xxxApi.ts`, `xxxStream.ts`
+- Python modules: `snake_case.py`
+- One file, one primary responsibility
+- Pure helpers must not live inside component files when they can be extracted cleanly
+
+## Size Guardrails
+
+- Normal source files should stay around `200-250` lines.
+- Heavy modules may reach `300` lines when justified.
+- Split files by responsibility before adding more behavior past that range.
+
+## Working Rules
+
+- Start with the smallest correct change inside an existing boundary.
+- Reuse local helpers and standard/platform capabilities before adding abstractions.
+- Preserve API behavior and product semantics unless the task explicitly changes them.
+- Keep demo and mock flows working when real providers are unavailable.

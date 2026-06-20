@@ -1,6 +1,0 @@
-{
-  "status": "failed",
-  "title": "潮线证词E2E投稿",
-  "error": "backend code=500 message=创作模型正在重组设定，请稍后重试 path=/front/template",
-  "failed_at": "2026-05-20T23:06:52"
-}

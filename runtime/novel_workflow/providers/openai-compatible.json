@@ -1,0 +1,9 @@
+{
+  "id": "openai-compatible",
+  "name": "OpenAI Compatible",
+  "kind": "openai-compatible",
+  "base_url": "",
+  "api_key_env": "NOVEL_LLM_API_KEY",
+  "default_model": "gpt-4.1-mini",
+  "enabled": true
+}

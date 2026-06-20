@@ -1,0 +1,10 @@
+{
+  "id": "prompt-summary",
+  "name": "梗概 Prompt",
+  "stage_type": "summary",
+  "content": "基于已定稿 Story Brief、世界观硬设定、人物种子和 Wiki 约束，生成全书梗概、主线、角色弧、长线伏笔和结局方向。",
+  "variables": [
+    "target_words",
+    "structure"
+  ]
+}
