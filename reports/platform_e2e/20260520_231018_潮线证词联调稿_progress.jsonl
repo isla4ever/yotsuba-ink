@@ -1,0 +1,20 @@
+{"time": "2026-05-20T23:10:18", "event": "stage_start", "stage": "info_recommend"}
+{"time": "2026-05-20T23:13:16", "event": "stage_done", "stage": "info_recommend", "elapsed_seconds": 177.94}
+{"time": "2026-05-20T23:13:16", "event": "stage_start", "stage": "create_novel"}
+{"time": "2026-05-20T23:13:16", "event": "stage_done", "stage": "create_novel", "elapsed_seconds": 0.08}
+{"time": "2026-05-20T23:13:16", "event": "novel_created", "novel_id": 136}
+{"time": "2026-05-20T23:13:16", "event": "stage_start", "stage": "novel_info_after_create"}
+{"time": "2026-05-20T23:13:16", "event": "stage_done", "stage": "novel_info_after_create", "elapsed_seconds": 0.03}
+{"time": "2026-05-20T23:13:16", "event": "stage_start", "stage": "persist_topology"}
+{"time": "2026-05-20T23:13:17", "event": "stage_done", "stage": "persist_topology", "elapsed_seconds": 0.35}
+{"time": "2026-05-20T23:13:17", "event": "stage_start", "stage": "summary"}
+{"time": "2026-05-20T23:14:51", "event": "stage_done", "stage": "summary", "elapsed_seconds": 94.16}
+{"time": "2026-05-20T23:14:51", "event": "stage_start", "stage": "finalize_summary"}
+{"time": "2026-05-20T23:14:51", "event": "stage_done", "stage": "finalize_summary", "elapsed_seconds": 0.01}
+{"time": "2026-05-20T23:14:51", "event": "stage_start", "stage": "outline"}
+{"time": "2026-05-20T23:17:00", "event": "stage_done", "stage": "outline", "elapsed_seconds": 129.71}
+{"time": "2026-05-20T23:17:00", "event": "stage_start", "stage": "finalize_outline"}
+{"time": "2026-05-20T23:17:00", "event": "stage_done", "stage": "finalize_outline", "elapsed_seconds": 0.01}
+{"time": "2026-05-20T23:17:00", "event": "stage_start", "stage": "detail_outline_v1"}
+{"time": "2026-05-20T23:17:26", "event": "stage_done", "stage": "detail_outline_v1", "elapsed_seconds": 25.13}
+{"time": "2026-05-20T23:17:26", "event": "stage_start", "stage": "text_chapter_1"}

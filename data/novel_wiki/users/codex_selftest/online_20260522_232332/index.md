@@ -1,0 +1,13 @@
+# 小说 Wiki 索引
+- [[entities/characters/林叙白]]：人物 林叙白
+- [[entities/characters/程见深]]：人物 程见深
+- [[entities/characters/乔鸣潮]]：人物 乔鸣潮
+- [[entities/characters/许照临]]：人物 许照临
+- [[entities/characters/周叙川]]：人物 周叙川
+- [[relations/林叙白__程见深]]：林叙白 与 程见深 的 ally 关系
+- [[relations/乔鸣潮__程见深]]：乔鸣潮 与 程见深 的 ally 关系
+- [[relations/许照临__林叙白]]：许照临 与 林叙白 的 ally 关系
+- [[relations/许照临__程见深]]：许照临 与 程见深 的 ally 关系
+- [[relations/周叙川__林叙白]]：周叙川 与 林叙白 的 ally 关系
+- [[relations/周叙川__乔鸣潮]]：周叙川 与 乔鸣潮 的 ally 关系
+- [[canon/static_topology]]：静态人物关系拓扑

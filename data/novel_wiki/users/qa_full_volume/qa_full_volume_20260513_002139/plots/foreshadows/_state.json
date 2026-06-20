@@ -1,0 +1,389 @@
+{
+  "updated_at": "2026-05-12T16:37:38Z",
+  "items": [
+    {
+      "id": "ead2314e8f86",
+      "text": "灯下余波：仿佛刚刚从密封容器中取出。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "灯下余波",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "灯下余波：仿佛刚刚从密封容器中取出。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:37:38Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "16d3461fc03a",
+      "text": "许知衡想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "旧案重启异讯",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "旧案重启异讯",
+          "event": "touch",
+          "text": "许知衡想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+          "updated_at": "2026-05-12T16:30:20Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "动接收压力",
+          "event": "touch",
+          "text": "临时清出的安全屋里，空气里还残留着旧码头的霉味和金属锈蚀的气息，原本还能维持的紧绷平静，在这一刻被彻底撕开了一道口子，闻简坐在角落那张略显陈旧的折叠桌旁，手指无意识地摩挲着一枚磨损严重的港务徽章，她面前的全息投影屏上，正跳动着几行红色的警告代码——那是刚刚从许知衡那里同步过来的最新数据，这段记录的时间戳不对，闻简的声音",
+          "updated_at": "2026-05-12T16:31:47Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:30:20Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "3f7201984e0a",
+      "text": "许知衡知道自己已经没有退回局外的余地，闻简也明白稳住局面的代价只会越来越高，至于陆晚汀，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "旧案重启异讯",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "旧案重启异讯",
+          "event": "touch",
+          "text": "许知衡知道自己已经没有退回局外的余地，闻简也明白稳住局面的代价只会越来越高，至于陆晚汀，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+          "updated_at": "2026-05-12T16:30:20Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "为了掩盖真相旧案",
+          "event": "touch",
+          "text": "旧码头的一角，灯火昏黄，像一只半死不活的萤火虫，微弱的光晕勉强照亮了堆积如山、锈迹斑斑的废旧缆绳和扭曲的铁架，空气中弥漫着咸涩的海水味、腐烂的木头气，以及一种说不清的金属锈蚀气息，那是旧港区特有的味道，也是某种即将崩塌的前兆，陆晚汀蹲在那艘搁浅的小舢板旁，手里握着电钻，正专注地打磨船体上一个凸出的焊疤，金属摩擦发出的“",
+          "updated_at": "2026-05-12T16:36:09Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:30:20Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "782604eb3c66",
+      "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "旧案重启异讯",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "旧案重启异讯",
+          "event": "touch",
+          "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+          "updated_at": "2026-05-12T16:30:20Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:30:20Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "8dcffb885ca5",
+      "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "旧案重启异讯",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "旧案重启异讯",
+          "event": "touch",
+          "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+          "updated_at": "2026-05-12T16:30:20Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:30:20Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "9f7e83b009e4",
+      "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "旧案重启异讯",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "旧案重启异讯",
+          "event": "touch",
+          "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+          "updated_at": "2026-05-12T16:30:20Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:30:20Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "a2cd35c06573",
+      "text": "当他们以为这一轮判断已经足够靠近真相时，停顿背后压着人人都知道来不及后退的沉重。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "旧案重启异讯",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "旧案重启异讯",
+          "event": "touch",
+          "text": "当他们以为这一轮判断已经足够靠近真相时，停顿背后压着人人都知道来不及后退的沉重。",
+          "updated_at": "2026-05-12T16:30:20Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:30:20Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "0b5519a0a2c8",
+      "text": "等灯光重新暗下去，陆晚汀终于把这一章真正的结论压在心里：眼前的线索可以继续追，但他们之间的缝隙也会被一起带进下一步。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "先追哪一条线",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "先追哪一条线",
+          "event": "touch",
+          "text": "等灯光重新暗下去，陆晚汀终于把这一章真正的结论压在心里：眼前的线索可以继续追，但他们之间的缝隙也会被一起带进下一步。",
+          "updated_at": "2026-05-12T16:33:11Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "雾钟号失录",
+          "event": "touch",
+          "text": "旧码头的一角灯火昏黄，像是一只半死不活的萤火虫，勉强照亮了堆积如山的废旧缆绳和生锈的铁架，陆晚汀蹲在一艘搁浅的小艇旁，手里拿着电钻，专注地打磨着船体上一个凸起的焊疤，金属摩擦发出细微的滋滋声，混着远处海风穿过空荡栈桥的呜咽，构成了这间修理馆唯一的背景音，只有雾夜才能解吗，陆晚汀没抬头，声音有些哑，他停下手中的动作，从怀",
+          "updated_at": "2026-05-12T16:34:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "等灯光重新暗下去，闻简终于把这一章真正的结论压在心里：眼前的线索可以继续追，但他们之间的缝隙也会被一起带进下一步。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:33:11Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "2295222857b8",
+      "text": "陈砚舟护住的是可控的秩序，许知衡护住的是自己仍不愿完全交出的判断，而他自己护住的，则是那条不能再被别人替他解释的真相。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "先追哪一条线",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "先追哪一条线",
+          "event": "touch",
+          "text": "陈砚舟护住的是可控的秩序，许知衡护住的是自己仍不愿完全交出的判断，而他自己护住的，则是那条不能再被别人替他解释的真相。",
+          "updated_at": "2026-05-12T16:33:11Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "陆晚汀护住的是可控的秩序，陈砚舟护住的是自己仍不愿完全交出的判断，而他自己护住的，则是那条不能再被别人替他解释的真相。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:33:11Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "8d3484e188c8",
+      "text": "这一章真正落下来的，不是答案，而是更明确的行动代价。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "先追哪一条线",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "先追哪一条线",
+          "event": "touch",
+          "text": "这一章真正落下来的，不是答案，而是更明确的行动代价。",
+          "updated_at": "2026-05-12T16:33:11Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "这一章真正落下来的，不是答案，而是更明确的行动代价。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:33:11Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "90c2d5aa4ce1",
+      "text": "这些立场暂时还能并排放在同一张桌上，可谁都知道，一旦下一条线索继续往深处走，它们迟早会互相撞开。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "先追哪一条线",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "先追哪一条线",
+          "event": "touch",
+          "text": "这些立场暂时还能并排放在同一张桌上，可谁都知道，一旦下一条线索继续往深处走，它们迟早会互相撞开。",
+          "updated_at": "2026-05-12T16:33:11Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "这些立场暂时还能并排放在同一张桌上，可谁都知道，一旦下一条线索继续往深处走，它们迟早会互相撞开。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:33:11Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "a2592179d84a",
+      "text": "许知衡也被卷进这个判断里，他看见的不是单一线索，而是几个人立场开始偏移的前兆。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "先追哪一条线",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "先追哪一条线",
+          "event": "touch",
+          "text": "许知衡也被卷进这个判断里，他看见的不是单一线索，而是几个人立场开始偏移的前兆。",
+          "updated_at": "2026-05-12T16:33:11Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "陈砚舟也被卷进这个判断里，他看见的不是单一线索，而是几个人立场开始偏移的前兆。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:33:11Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    },
+    {
+      "id": "c3f775a7c0ed",
+      "text": "陆晚汀把已经确认的线索重新放回顺序里，发现真正改变局面的不是某一个证据，而是证据出现后每个人都下意识护住了不同的东西。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "先追哪一条线",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "先追哪一条线",
+          "event": "touch",
+          "text": "陆晚汀把已经确认的线索重新放回顺序里，发现真正改变局面的不是某一个证据，而是证据出现后每个人都下意识护住了不同的东西。",
+          "updated_at": "2026-05-12T16:33:11Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "灯下余波",
+          "event": "touch",
+          "text": "闻简把已经确认的线索重新放回顺序里，发现真正改变局面的不是某一个证据，而是证据出现后每个人都下意识护住了不同的东西。",
+          "updated_at": "2026-05-12T16:37:38Z"
+        }
+      ],
+      "created_at": "2026-05-12T16:33:11Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "灯下余波",
+      "updated_at": "2026-05-12T16:37:38Z"
+    }
+  ]
+}

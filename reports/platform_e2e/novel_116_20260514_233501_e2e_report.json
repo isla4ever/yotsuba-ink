@@ -1,0 +1,482 @@
+{
+  "title": "潮线未眠",
+  "started_at": "2026-05-14T23:35:01",
+  "backend": "http://127.0.0.1:8090",
+  "progress_log": "reports\\platform_e2e\\20260514_233501_潮线未眠_progress.jsonl",
+  "durations": {
+    "info_recommend": 87.63,
+    "create_novel": 0.09,
+    "persist_topology": 0.05,
+    "summary": 106.19,
+    "finalize_summary": 0.02,
+    "outline": 144.9,
+    "finalize_outline": 0.01,
+    "detail_outline_v1": 13.05,
+    "detail_outline_v2": 17.07,
+    "detail_outline_v3": 16.14,
+    "detail_outline_v4": 14.28,
+    "text_chapter_1": 171.71,
+    "continuity_after_chapter_1": 0.07,
+    "text_chapter_4": 192.76,
+    "continuity_after_chapter_4": 0.08,
+    "text_chapter_7": 217.14,
+    "continuity_after_chapter_7": 0.07,
+    "text_chapter_10": 178.97,
+    "continuity_after_chapter_10": 0.09,
+    "wiki_status": 0.03,
+    "wiki_documents": 0.04
+  },
+  "stages": {
+    "info_recommend": {
+      "character_count": 18,
+      "characters": [
+        "**林沉**：前刑侦支队档案员，性格隐忍克制，目标是在父亲失踪案中找出真相。关系 Anchor：与林父为父子/旧知；隶属旧港警备组。",
+        "与陈默为旧识；与苏青为同事。",
+        "**陈默**：地下情报贩子，表面玩世不恭，实则背负沉重罪孽，目标是洗白过去或彻底消失。关系 Anchors：与赵铁柱为敌对背景交集（旧港黑市）；与林沉为旧知（曾合作过）。",
+        "**赵铁**：码头搬运工，沉默寡言，对码头规矩了如指掌，目标是保护家人不被牵连。关系 anchors：与陈无为盟友；与赵大伟为旧友。",
+        "赵大**伟**：黑帮头目，控制着旧港的非法交易网络，目标是垄断资源并清除异己。关系 anchor：与苏红为敌对阵营；与陈有为敌对。",
+        "**苏青**：法医，冷静理性，目标是通过尸检数据还原案发真相。",
+        "关系 anchor: 与林默为同事；与张医生为旧相识。",
+        "**张医生**：私立诊所医生，表面唯利是图，实则有秘密过往，目标是保住自己的诊所和秘密。关系 anchos: 与李教授为敌对方；与王律师为旧怨。",
+        "**李教授**：退休教授，曾是旧港建设的关键人物，因涉及非法土地交易而失踪，目标是掩盖罪行。关系 anchor: 与前妻为夫妻；与刘书记为旧交。",
+        "**刘书记**：地方官员，表面正直，实则与黑帮勾结，目标是维护自己的政治地位。关系 anhcor: 赵铁为旧部；与吴局长为上下级。",
+        "**吴局长**：警局现任局长，雷厉风行，目标是将案件查清并平息舆论。关系 ancors: 林沉为上司；与周警官为下属。",
+        "**周警官**：年轻刑警，热血冲动，目标是为死者讨回公道。关系anchors: 王律师为好友；与郑检察官为同事关系。",
+        "**郑检察官**：检察院检察官，公正无私，目标是确保司法公正。关系anchor: 周警官为上司。",
+        "故事背",
+        "景：",
+        "旧港是一座被潮汐反复侵蚀的沿海旧城区，这里的时间仿佛凝固在八十年代的混凝土与锈蚀的铁轨之间。每当退潮时，裸露的礁石上便会浮现出无数隐秘的刻痕，那是当年非法倾倒的工业废料留下的印记，也是无数秘密的藏身处。城市上空常年笼罩着一层灰蒙蒙的海雾，将高楼大厦的轮廓模糊不清，只有偶尔传来的汽笛声和海浪拍打堤岸的声音，提醒着人们这座城市从未真正平静过。",
+        "在这个世界里，法律与秩序往往被潜藏在暗处的利益网络所扭曲。旧港的黑市交易猖獗，从走私货物到人体器官，各种非法活动如同暗流般涌动。警方与黑恶势力之间存在着微妙的平衡，双方都在小心翼翼地维持着现状，生怕打破脆弱的和平。然而，这种平衡总是建立在沙滩之上，随时可能因为一次意外而崩塌。",
+        "林沉的父亲失踪的案子，就像一块巨石投入平静的湖面，激起了层层涟漪。随着调查的深入，他发现父亲的失踪并非偶然，而是整个旧港黑暗网络中的一环。每一个线索都指向一个令人毛骨悚然的真相，而那个真相的背后，似乎隐藏着足以颠覆整个城市的秘密。"
+      ],
+      "background_chars": 0,
+      "introduction_chars": 687,
+      "topology_quality": {
+        "character_count": 0,
+        "edge_count": 0,
+        "static_edge_count": 0,
+        "relation_type_count": 0,
+        "coverage_ratio": 0.0,
+        "score": 29,
+        "level": "risk",
+        "warnings": [
+          "核心人物数量偏少，建议至少包含主角、对手、盟友、灰度角色和剧情支点。"
+        ]
+      }
+    },
+    "persist_topology": {
+      "topology": {
+        "user_id": "1",
+        "novel_id": "116",
+        "title": "潮线未眠",
+        "nodes": [],
+        "edges": [],
+        "source": "info_recommend",
+        "stage_policy": "static_initial_topology",
+        "quality": {
+          "character_count": 0,
+          "edge_count": 0,
+          "static_edge_count": 0,
+          "relation_type_count": 0,
+          "coverage_ratio": 0.0,
+          "score": 29,
+          "level": "risk",
+          "warnings": [
+            "核心人物数量偏少，建议至少包含主角、对手、盟友、灰度角色和剧情支点。"
+          ]
+        },
+        "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+      },
+      "wiki_status": {
+        "novel_id": 116,
+        "user_id": 1,
+        "counts": {
+          "topology_nodes": 0,
+          "topology_edges": 0
+        },
+        "topology": {
+          "user_id": "1",
+          "novel_id": "116",
+          "title": "潮线未眠",
+          "nodes": [],
+          "edges": [],
+          "source": "info_recommend",
+          "stage_policy": "static_initial_topology",
+          "quality": {
+            "character_count": 0,
+            "edge_count": 0,
+            "static_edge_count": 0,
+            "relation_type_count": 0,
+            "coverage_ratio": 0.0,
+            "score": 29,
+            "level": "risk",
+            "warnings": [
+              "核心人物数量偏少，建议至少包含主角、对手、盟友、灰度角色和剧情支点。"
+            ]
+          },
+          "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+        },
+        "topology_updated_at": "2026-05-14 23:36:30"
+      }
+    },
+    "summary": {
+      "items": 1,
+      "word_count": 518,
+      "preview": "他在初期试图通过常规手段查案却屡屡碰壁，中期被迫脱离体制独立调查，利用档案知识串联断裂的线索，后期为保全证据不惜牺牲个人安全，其隐忍克制的性格使其在关键时刻能做出最冷静的牺牲抉择，她起初对林沉的执着持怀疑态度，但在发现案件背后涉及高层腐败后，从单纯的技术分析转向配合行动，其专业视角不断推动剧情向深层黑幕发展，他最初因利益交换与林沈达成短暂同盟，他因自身罪孽感而立场摇摆，最终在关键时刻背叛或牺牲，成为推动局势转折的关键变量。"
+    },
+    "outline": {
+      "items": 4,
+      "volumes": [
+        {
+          "volume": 1,
+          "title": "第1卷",
+          "minChapter": 1,
+          "maxChapter": 3,
+          "characters": [
+            "凌乱的",
+            "充满荆",
+            "头发",
+            "利益格",
+            "安慰",
+            "却隐藏"
+          ]
+        },
+        {
+          "volume": 2,
+          "title": "第2卷",
+          "minChapter": 4,
+          "maxChapter": 6,
+          "characters": [
+            "凌乱的",
+            "充满荆",
+            "头发",
+            "利益格",
+            "安慰",
+            "却隐藏"
+          ]
+        },
+        {
+          "volume": 3,
+          "title": "第3卷",
+          "minChapter": 7,
+          "maxChapter": 9,
+          "characters": [
+            "凌乱的",
+            "充满荆",
+            "头发",
+            "利益格",
+            "安慰",
+            "却隐藏"
+          ]
+        },
+        {
+          "volume": 4,
+          "title": "第4卷",
+          "minChapter": 10,
+          "maxChapter": 12,
+          "characters": [
+            "凌乱的",
+            "充满荆",
+            "头发",
+            "利益格",
+            "安慰",
+            "却隐藏"
+          ]
+        }
+      ]
+    },
+    "detail_outline_v1": {
+      "items": 1,
+      "chapters": [
+        {
+          "sort": 1,
+          "title": "雨夜旧港听潮音",
+          "content_chars": 116
+        }
+      ]
+    },
+    "detail_outline_v2": {
+      "items": 1,
+      "chapters": [
+        {
+          "sort": 4,
+          "title": "雨夜码头听潮声",
+          "content_chars": 137
+        }
+      ]
+    },
+    "detail_outline_v3": {
+      "items": 1,
+      "chapters": [
+        {
+          "sort": 7,
+          "title": "磁带里的惊雷",
+          "content_chars": 153
+        }
+      ]
+    },
+    "detail_outline_v4": {
+      "items": 1,
+      "chapters": [
+        {
+          "sort": 10,
+          "title": "旧码头发低语",
+          "content_chars": 129
+        }
+      ]
+    },
+    "chapters_planned": {
+      "total": 4,
+      "to_generate": 4,
+      "chapters": [
+        {
+          "id": 415,
+          "sort": 1,
+          "title": "雨夜旧港听潮音",
+          "volume": null
+        },
+        {
+          "id": 416,
+          "sort": 4,
+          "title": "雨夜码头听潮声",
+          "volume": null
+        },
+        {
+          "id": 417,
+          "sort": 7,
+          "title": "磁带里的惊雷",
+          "volume": null
+        },
+        {
+          "id": 418,
+          "sort": 10,
+          "title": "旧码头发低语",
+          "volume": null
+        }
+      ]
+    },
+    "generated_chapters": [
+      {
+        "id": 415,
+        "sort": 1,
+        "title": "雨夜旧港听潮音",
+        "word_count": 1970,
+        "preview": "海风带着浓重的咸腥味，像一把生锈的锉刀，狠狠刮过旧港码头斑驳的铁皮屋顶。\n\n林沉站在码头尽头发警戒线外，黑色的风衣下摆被狂浪拍打的泡沫打湿，贴在腿侧。他手里死死攥着一枚银色的纽扣，那是他失踪三年的父亲留下的唯一实物——一枚刻着“沉”字的旧式纽扣。除此之外，还有一盘老旧的磁带，此刻正被他的体温捂得滚烫。\n\n“林沉！站住！”\n\n一声暴喝穿透雨幕，几个身穿迷彩服的便衣警察从集装箱后冲了出来，手电筒的光束在他脸上乱晃。林沉没有动，只是将磁带塞进贴身的口袋，眼神冷得像这漫天的暴雨。\n\n“又是你？”领头发便衣队长把枪口抵在林沉肩头，“吴局让你去查那艘‘黑鲨号’货轮的走私账目，怎么现在变成私闯民宅了？”\n\n“吴局？”林沉嘴角扯出一丝极淡的嘲讽，“他上个月刚调离，听说现在是个‘顾问’。”\n\n“少废话！”队长不耐烦地推搡着他，“拿着盘录音带来见吴局，这是命令！”\n\n林沉没反驳。他知道，只要那盘磁带还在自己手里，这盘子里记录的一切——关于父亲失踪前夜的对话，关于那个代号“老鬼”的地下情报贩子的名字——都会成为悬在头发的达摩克利斯之剑。吴局长雷厉风行却深谙官场生存之道，他绝不会允许这种可能动摇根基的证据流出，哪怕是一点点火星。\n\n“滚回去。”队长挥手示意手下围上来。\n\n就在众人逼近的瞬间，一道黑影如鬼魅般从旁边的废弃仓库窜出，动作快得不合常理。那人穿着件沾满油污的工装，脸上戴着鸭舌帽，遮住了大半面容。他一把拽住林沉的胳膊，力道大得惊人，直接将两人拖进了仓库深处的阴影里。\n\n“别喊，再喊我就把你扔进海里喂鲨鱼！”那人低吼道，声音沙哑却透着股狠劲。\n\n林尘被甩在满是灰尘的水泥地上，膝盖磕破了皮，渗出血珠"
+      },
+      {
+        "id": 416,
+        "sort": 4,
+        "title": "雨夜码头听潮声",
+        "word_count": 2599,
+        "preview": "海雾像是一层厚重的湿棉被，死死裹住了旧港。空气里弥漫着腐烂海藻、柴油废气和某种说不清的腥甜味道，这是这片海域独有的呼吸。林沉把录音带塞进风衣内侧口袋，指尖还残留着刚才撕碎那几张伪造证件时的触感——粗糙、冰冷，带着油墨未干的滞涩感。\n\n他刚解决完那群试图拦住他的混混，身上几道抓痕在昏黄的路灯下显得格外刺眼。那些混混显然没打算善罢甘休，刚才的打斗让他不得不暴露了身份，现在整条街都被封锁了，但他没时间管这些。他的目光穿过迷蒙的雾气，死死锁定了码头发处的集装箱阴影。那里，是他今晚唯一的希望。\n\n“陈默。”他低声念了一遍这个名字，声音在空旷的码头回荡，瞬间被海浪声吞没。\n\n陈默不是那种会轻易露面的人。作为地下情报贩子的他，习惯了在暗处观察，用那双玩世不躬的眼睛看穿人心。林沉记得他们最后一次见面，是在三个月前的一场暴雨夜，陈默把一份关于“李教授”失踪前夜的详细记录递给当时还在局里的林沉，然后转身消失在茫茫雨幕中，只留下一句意味深长的：“有些门，推开了就再也关不上了，但也别指望门后只有光。”\n\n此刻，林沉需要的就是这份“光”之外的真相。\n\n他拖着疲惫的身体，一步步走向那片阴影。脚下的积水倒映着他惨白的脸，眼神却锐利如刀。就在距离那排集装箱还有十米远的时候，一阵急促的脚步声打破了寂静。\n\n“站住！警察！”\n\n一个粗犷的声音从侧后方传来，紧接着是枪栓上膛的脆响。林沉猛地回头，只见几个穿着黑色战术背心、戴着鸭舌帽的男人正围着一个瘦小的身影。那人浑身湿透，怀里死死抱着一个像是麻袋的东西，双手抱头，瑟瑟发抖。\n\n“放开他！”林沉厉喝一声，身形如电般掠出。\n\n然而动作太快，对方显然早有准备。两名黑衣人几"
+      },
+      {
+        "id": 417,
+        "sort": 7,
+        "title": "磁带里的惊雷",
+        "word_count": 2524,
+        "preview": "海风像一把生锈的钝刀，反复刮擦着旧港码头发驳的混凝土墙，发出令人牙酸的摩擦声，林沉站在集装箱堆叠成的临时掩体后，雨水顺着他额角的伤口蜿蜒而下，混着脸上的泥污，分不清哪部分是血，哪部分是雨，刚才那群混混已经被赶跑了，领头发那几个虽然狼狈地逃窜，但赵大伟那个老东西确实被堵在了死角，林沉看着被围困在角落里的赵大伟，对方正死死抓着地面，指甲抠进了满是碎石的缝隙里，那双浑浊的眼睛里此刻只剩下了绝望和一丝不易察觉的警惕，林沉低声说道，声音沙哑得像吞了炭火，他手里还握着那盘录音带，金属外壳在昏暗的光线下泛着冷冽的寒意，就在这时，一部老旧的诺基亚手机突然在他手边震动了一下，屏幕亮起微弱的绿光，上面显示着一个从未见过的陌生号码，林沉心头一跳，手指刚触碰到接听键，耳边便传来了一个经过变声器处理的低沉男声：“想活命就听我说完，你父亲没死，但他现在不在我们手里，也不在那片区域，林沉的手指僵在半空，呼吸瞬间凝固，他原本以为这只是一个普通的试探，或者又是那些黑帮在虚张声势，但“不在我们手里”这句话，像是一根刺，狠狠扎进了他心底最柔软的角落，父亲失踪的第三天，他以为是被逼得走投无路才离家出走，没想到……，林沉尽量让声音听起来平静，尽管他的心脏正在胸腔里疯狂撞击，我要听什么，电话那头沉默了两秒，随即传来一阵电流杂音，像是有人故意在干扰信号，你是个聪明人，也是个笨蛋，你太执着于那个录音带了，你以为那是你父亲留给你的念想，那是杀猪刀，如果你继续跟着那条线索走，下一个倒下的就是你，我不怕死，林沉冷冷地打断了对方的话，目光扫向远处正在收拾残局的几个混混，但我父亲很怕死，就像我刚才说的，他不在了，对方的声音忽然变得尖锐"
+      },
+      {
+        "id": 418,
+        "sort": 10,
+        "title": "旧码头发低语",
+        "word_count": 2346,
+        "preview": "雨像无数条冰冷的鞭子，抽打着旧港斑驳的砖墙，发出沉闷的声响。林沉在昏暗的出租屋里蜷缩成一团，身上盖着那床早已洗得发白的旧棉被，呼吸急促而紊乱。耳边似乎还回荡着父亲临终前那句低语：“别信那个‘陈’字，那是诱饵……\"\n\n他猛地睁开眼，死死盯着床头柜上那盘刻满划痕的录音带。这是父亲留下的最后指引，也是他现在唯一的救命稻草。如果父亲没死，那么关于“陈”字的线索，是否指向了某个能帮他洗清冤屈的关键人物？还是说，这只是赵大伟设下的连环陷阱，为了引他入瓮？\n\n“必须去确认。”林沉低声呢喃，手指颤抖着抚过磁带边缘，“只要见到陈默，就能知道真假。”\n\n第二天清晨，暴雨初歇，天空呈现出一种压抑的灰蓝色。林沉换上了一件洗得发旧的灰色夹克，手里紧紧攥着那盘录音带，径直走向了旧港码头发处那片被遗忘的角落。这里是当年他和父亲经常出没的地方，如今却杂草丛生，废弃的集装箱像巨兽般横七竖八地堆砌在一起。\n\n刚走到码头发缘，一阵嘈杂的脚步声便打破了寂静。几个穿着黑色雨衣的身影迅速散开，像幽灵一样穿梭在集装箱之间。林沉的心跳瞬间漏了一拍——是陈默。\n\n那人果然出现了，正蹲在一辆报废的卡车旁，手里把玩着一个生锈的铁环，脸上挂着那副惯有的玩世不敬的笑容。看到林沉，陈默的动作微微一顿，随即站起身，拍了拍手上的灰尘，眼神中闪过一丝复杂的情绪。\n\n“哟，这不是林大侦探吗？”陈默的声音有些沙哑，带着几分调侃，“怎么，带着你的宝贝录音带来给老子听故事了？”\n\n“陈默，”林沉没有笑，目光锐利地盯着他，“我想知道，你父亲当年到底看到了什么？还有，那个‘陈'字，是不是真的？”\n\n陈默脸上的笑容僵住了片刻，随即收敛起来。他转过身，背对着"
+      }
+    ],
+    "continuity_snapshots": [
+      {
+        "chapter_sort": 1,
+        "score": 61,
+        "level": "risk",
+        "finding_count": 3,
+        "latest_chapter_quality": {
+          "title": "第 1 卷第 1 章质检报告",
+          "relative_path": "reports/chapters/volume-01-chapter-001-quality.md",
+          "updated_at": "2026-05-14T15:44:33Z",
+          "snippet": "# 第 1 卷第 1 章质检报告。- 章节：雨夜旧港听潮音。- [warning] 正文对本章细纲关键点覆盖不足。建议：回到正文生成前先补细纲，或重生成正文时明确要求承接本章目标、冲突、伏笔推进和章末钩子。"
+        }
+      },
+      {
+        "chapter_sort": 4,
+        "score": 53,
+        "level": "risk",
+        "finding_count": 4,
+        "latest_chapter_quality": {
+          "title": "第 2 卷第 4 章质检报告",
+          "relative_path": "reports/chapters/volume-02-chapter-004-quality.md",
+          "updated_at": "2026-05-14T15:47:46Z",
+          "snippet": "# 第 2 卷第 4 章质检报告。- 章节：雨夜码头听潮声。- [warning] 正文对本章细纲关键点覆盖不足。建议：回到正文生成前先补细纲，或重生成正文时明确要求承接本章目标、冲突、伏笔推进和章末钩子。"
+        }
+      },
+      {
+        "chapter_sort": 7,
+        "score": 53,
+        "level": "risk",
+        "finding_count": 4,
+        "latest_chapter_quality": {
+          "title": "第 3 卷第 7 章质检报告",
+          "relative_path": "reports/chapters/volume-03-chapter-007-quality.md",
+          "updated_at": "2026-05-14T15:51:23Z",
+          "snippet": "# 第 3 卷第 7 章质检报告。- [warning] 正文对本章细纲关键点覆盖不足。建议：回到正文生成前先补细纲，或重生成正文时明确要求承接本章目标、冲突、伏笔推进和章末钩子。- [info] 章末牵引偏弱。建议：增加一个新线索、新代价、新决定或关系压力，把读者自然推向下一章。"
+        }
+      },
+      {
+        "chapter_sort": 10,
+        "score": 53,
+        "level": "risk",
+        "finding_count": 4,
+        "latest_chapter_quality": {
+          "title": "第 4 卷第 10 章质检报告",
+          "relative_path": "reports/chapters/volume-04-chapter-010-quality.md",
+          "updated_at": "2026-05-14T15:54:22Z",
+          "snippet": "# 第 4 卷第 10 章质检报告。- [warning] 正文对本章细纲关键点覆盖不足。建议：回到正文生成前先补细纲，或重生成正文时明确要求承接本章目标、冲突、伏笔推进和章末钩子。"
+        }
+      }
+    ],
+    "wiki_status": {
+      "user_id": 1,
+      "novel_id": 116,
+      "wiki_root": "C:\\Users\\wxwhs\\Desktop\\nanochat-dgxspark-rl-main\\data\\novel_wiki\\users\\1\\116",
+      "counts": {
+        "documents": 0,
+        "words": 0,
+        "characters": 0,
+        "relations": 0,
+        "topology_nodes": 0,
+        "topology_edges": 0,
+        "chapter_summaries": 4,
+        "chapter_events": 4,
+        "character_state_ledgers": 4,
+        "foreshadow_ledgers": 4,
+        "foreshadow_states": 23,
+        "timeline_ledgers": 4,
+        "chapter_quality_reports": 4
+      },
+      "documents": [],
+      "latest_document": null,
+      "latest_chapter": {
+        "title": "旧码头发低语",
+        "relative_path": "chapters/summaries/volume-04-chapter-010.md",
+        "updated_at": "2026-05-14T15:54:22Z",
+        "snippet": "林沉在旧港码头与陈默会面，得知父亲失踪案与码头庄家赵大伟有关，随后遭赵大伟手下追杀，最终逃脱并消失在夜色中。- 林沉：身心受创，背负父亲遗言与录音带，决心追查真相，处于逃亡状态。- 陈默：作为中间人提供关键信息，警告林沉赵大伟的危险，随后逃离现场。- 赵大伟：旧港码头庄家，视林沉父亲为棋子，意图清除威胁，性格冷酷。- "
+      },
+      "latest_continuity_report": {
+        "title": "小说连续性体检报告",
+        "relative_path": "reports/_continuity_report.md",
+        "updated_at": "2026-05-14T15:54:22Z",
+        "snippet": "- 检查时间：2026-05-14T15:54:22Z。- [warning] 当前小说还没有上传世界观/设定资料。建议：至少上传世界观、阵营、地点、规则、术语表等稳定设定。- [info] 知识库资料总字数偏少，后续长篇生成时可用约束有限。建议：补充核心舞台、势力结构、能力规则、禁忌、历史事件。- [critical"
+      },
+      "latest_chapter_quality": {
+        "title": "第 4 卷第 10 章质检报告",
+        "relative_path": "reports/chapters/volume-04-chapter-010-quality.md",
+        "updated_at": "2026-05-14T15:54:22Z",
+        "snippet": "# 第 4 卷第 10 章质检报告。- [warning] 正文对本章细纲关键点覆盖不足。建议：回到正文生成前先补细纲，或重生成正文时明确要求承接本章目标、冲突、伏笔推进和章末钩子。"
+      },
+      "foreshadow_state_counts": {
+        "open": 7,
+        "strengthened": 1,
+        "partially_resolved": 15,
+        "resolved": 0
+      },
+      "updated_at": "2026-05-14T15:54:22Z",
+      "topology": {
+        "user_id": "1",
+        "novel_id": "116",
+        "title": "潮线未眠",
+        "nodes": [],
+        "edges": [],
+        "source": "info_recommend",
+        "stage_policy": "static_initial_topology",
+        "quality": {
+          "character_count": 0,
+          "edge_count": 0,
+          "static_edge_count": 0,
+          "relation_type_count": 0,
+          "coverage_ratio": 0.0,
+          "score": 29,
+          "level": "risk",
+          "warnings": [
+            "核心人物数量偏少，建议至少包含主角、对手、盟友、灰度角色和剧情支点。"
+          ]
+        },
+        "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+      },
+      "topology_updated_at": "2026-05-14 23:36:30"
+    },
+    "wiki_documents": {
+      "user_id": 1,
+      "novel_id": 116,
+      "wiki_root": "C:\\Users\\wxwhs\\Desktop\\nanochat-dgxspark-rl-main\\data\\novel_wiki\\users\\1\\116",
+      "counts": {
+        "documents": 0,
+        "words": 0,
+        "characters": 0,
+        "relations": 0,
+        "topology_nodes": 0,
+        "topology_edges": 0,
+        "chapter_summaries": 4,
+        "chapter_events": 4,
+        "character_state_ledgers": 4,
+        "foreshadow_ledgers": 4,
+        "foreshadow_states": 23,
+        "timeline_ledgers": 4,
+        "chapter_quality_reports": 4
+      },
+      "documents": [],
+      "latest_document": null,
+      "latest_chapter": {
+        "title": "旧码头发低语",
+        "relative_path": "chapters/summaries/volume-04-chapter-010.md",
+        "updated_at": "2026-05-14T15:54:22Z",
+        "snippet": "林沉在旧港码头与陈默会面，得知父亲失踪案与码头庄家赵大伟有关，随后遭赵大伟手下追杀，最终逃脱并消失在夜色中。- 林沉：身心受创，背负父亲遗言与录音带，决心追查真相，处于逃亡状态。- 陈默：作为中间人提供关键信息，警告林沉赵大伟的危险，随后逃离现场。- 赵大伟：旧港码头庄家，视林沉父亲为棋子，意图清除威胁，性格冷酷。- "
+      },
+      "latest_continuity_report": {
+        "title": "小说连续性体检报告",
+        "relative_path": "reports/_continuity_report.md",
+        "updated_at": "2026-05-14T15:54:22Z",
+        "snippet": "- 检查时间：2026-05-14T15:54:22Z。- [warning] 当前小说还没有上传世界观/设定资料。建议：至少上传世界观、阵营、地点、规则、术语表等稳定设定。- [info] 知识库资料总字数偏少，后续长篇生成时可用约束有限。建议：补充核心舞台、势力结构、能力规则、禁忌、历史事件。- [critical"
+      },
+      "latest_chapter_quality": {
+        "title": "第 4 卷第 10 章质检报告",
+        "relative_path": "reports/chapters/volume-04-chapter-010-quality.md",
+        "updated_at": "2026-05-14T15:54:22Z",
+        "snippet": "# 第 4 卷第 10 章质检报告。- [warning] 正文对本章细纲关键点覆盖不足。建议：回到正文生成前先补细纲，或重生成正文时明确要求承接本章目标、冲突、伏笔推进和章末钩子。"
+      },
+      "foreshadow_state_counts": {
+        "open": 7,
+        "strengthened": 1,
+        "partially_resolved": 15,
+        "resolved": 0
+      },
+      "updated_at": "2026-05-14T15:54:22Z",
+      "topology": {
+        "user_id": "1",
+        "novel_id": "116",
+        "title": "潮线未眠",
+        "nodes": [],
+        "edges": [],
+        "source": "info_recommend",
+        "stage_policy": "static_initial_topology",
+        "quality": {
+          "character_count": 0,
+          "edge_count": 0,
+          "static_edge_count": 0,
+          "relation_type_count": 0,
+          "coverage_ratio": 0.0,
+          "score": 29,
+          "level": "risk",
+          "warnings": [
+            "核心人物数量偏少，建议至少包含主角、对手、盟友、灰度角色和剧情支点。"
+          ]
+        },
+        "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+      },
+      "topology_updated_at": "2026-05-14 23:36:30"
+    }
+  },
+  "novel_id": 116,
+  "finished_at": "2026-05-14T23:54:22",
+  "status": "ok"
+}

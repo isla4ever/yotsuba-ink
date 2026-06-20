@@ -1,0 +1,46 @@
+---
+type: "continuity_report"
+score: 0
+level: "risk"
+checked_at: "2026-05-09T11:20:44Z"
+---
+
+# 小说连续性体检报告
+
+- 分数：0
+- 等级：risk
+- 检查时间：2026-05-09T11:20:44Z
+
+## 问题清单
+- [info] 知识库资料总字数偏少，后续长篇生成时可用约束有限。 建议：补充核心舞台、势力结构、能力规则、禁忌、历史事件。
+- [warning] Wiki 内链不存在：entities/characters/擦着石砖。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/砚原本只。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/脚步还。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/那不。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/而像。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/情已经不。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/这件事不。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/上来的不。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/也正因。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/就绝不只。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/一反应不。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/可越。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/个人站在。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/带着试探。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/这正。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/就不再只。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/来的不只。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/主要人物。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/他们的行。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+- [warning] Wiki 内链不存在：entities/characters/人物站位。（chapters/summaries/chapter-001.md） 建议：修复链接或补建对应页面。
+
+## 未回收伏笔候选
+- 第 1 章 [partially_resolved] 顾沉砚原本只是沿着最寻常的一条检查路线往前走，可当他真正看见2.核心冲突：围绕“救局vs追真相”、“信息核验vs资源调度”、“试探人心vs利益偏移”展开时，脚步还是不由得慢了一瞬。
+- 第 1 章 [partially_resolved] 救局追真相证据：1.关系恒定：顾沉林既白（旧识/盟友/防备）、林陆（家族/旧怨）、沈顾（旧识）、边陆（家族牵连）、陆顾（师承）等静态关系不变。
+- 第 1 章 [strengthened] 顾沉砚知道自己已经没有退回局外的余地，林既白也明白稳住局面的代价只会越来越高，至于陆照野，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。
+- 第 1 章 [strengthened] 他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。
+- 第 1 章 [strengthened] 也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。
+- 第 1 章 [strengthened] 主要人物和他们的行为':{'顾沉砚':'太医院旧案牵连者，围绕核心异常、人物站位和第一轮代价展开。
+- 第 1 章 [strengthened] 如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。
+- 第 1 章 [strengthened] 顾沉砚想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。
+- 第 1 章 [strengthened] 当他们以为这一轮判断已经足够靠近真相时，直接输出小说正文。

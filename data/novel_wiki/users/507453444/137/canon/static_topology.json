@@ -1,0 +1,122 @@
+{
+  "user_id": "507453444",
+  "novel_id": "137",
+  "title": "回声雾港-八万联调-20260523_001129",
+  "nodes": [
+    {
+      "id": "林深",
+      "label": "林深",
+      "type": "character",
+      "role": "protagonist",
+      "summary": "声纹分析师/冷静执着/拼凑失踪案中残留的声纹频率，寻找失联的亲人/与主线是核心调查者。关系锚点：与方清如是母子。"
+    },
+    {
+      "id": "方清如",
+      "label": "方清如",
+      "type": "character",
+      "role": "family",
+      "summary": "前旧港海员会秘书/记忆力衰退却保留关键线索/在遗忘边缘保护一份旧声纹档案/与主线是知情者。关系锚点：与林深是母子。"
+    },
+    {
+      "id": "池鸣",
+      "label": "池鸣",
+      "type": "character",
+      "role": "character",
+      "summary": "旧港码头酒馆老板/表面圆滑实则重情/藏匿多名失踪者遗留物品，暗中观察来往者/与主线是旧物保管人与交集点。关系锚点：与方清如是邻里旧识。"
+    },
+    {
+      "id": "林逾",
+      "label": "林逾",
+      "type": "character",
+      "role": "family",
+      "summary": "音乐学院录音系学生/叛逆却拥有绝对音感/无意录下关键频率片段，成为追踪线索/与主线是助力与风险。关系锚点：与林深是姐弟。"
+    },
+    {
+      "id": "沈叙",
+      "label": "沈叙",
+      "type": "character",
+      "role": "character",
+      "summary": "市档案馆编目员/寡言细致/长期接触旧港纸质档案，发现文书与声纹记录间的矛盾/与主线是间接合作者。关系锚点：与林深是同事。"
+    },
+    {
+      "id": "贺兰石",
+      "label": "贺兰石",
+      "type": "character",
+      "role": "character",
+      "summary": "旧港退休灯塔管理员/独居排外/掌握上世纪最后一次信号异常时的个人记录/与主线是隐藏旧事知情者。关系锚点：与方清如有背景交集。"
+    },
+    {
+      "id": "顾衍",
+      "label": "顾衍",
+      "type": "character",
+      "role": "character",
+      "summary": "雾港新城开发办项目主管/精明务实/推动旧港改造，对历史痕迹持剔除态度/与主线是现实压力来源与利益冲突方。关系锚点：与池鸣有利益冲突。"
+    }
+  ],
+  "edges": [
+    {
+      "source": "林深",
+      "target": "方清如",
+      "relation_type": "family",
+      "label": "母子",
+      "evidence": "声纹分析师/冷静执着/拼凑失踪案中残留的声纹频率，寻找失联的亲人/与主线是核心调查者。关系锚点：与方清如是母子。",
+      "confidence": 0.9
+    },
+    {
+      "source": "池鸣",
+      "target": "方清如",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "旧港码头酒馆老板/表面圆滑实则重情/藏匿多名失踪者遗留物品，暗中观察来往者/与主线是旧物保管人与交集点。关系锚点：与方清如是邻里旧识。",
+      "confidence": 0.68
+    },
+    {
+      "source": "林逾",
+      "target": "林深",
+      "relation_type": "family",
+      "label": "姐弟",
+      "evidence": "音乐学院录音系学生/叛逆却拥有绝对音感/无意录下关键频率片段，成为追踪线索/与主线是助力与风险。关系锚点：与林深是姐弟。",
+      "confidence": 0.9
+    },
+    {
+      "source": "沈叙",
+      "target": "林深",
+      "relation_type": "faction",
+      "label": "同事",
+      "evidence": "市档案馆编目员/寡言细致/长期接触旧港纸质档案，发现文书与声纹记录间的矛盾/与主线是间接合作者。关系锚点：与林深是同事。",
+      "confidence": 0.9
+    },
+    {
+      "source": "贺兰石",
+      "target": "方清如",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "旧港退休灯塔管理员/独居排外/掌握上世纪最后一次信号异常时的个人记录/与主线是隐藏旧事知情者。关系锚点：与方清如有背景交集。",
+      "confidence": 0.9
+    },
+    {
+      "source": "顾衍",
+      "target": "池鸣",
+      "relation_type": "connection",
+      "label": "主线交集",
+      "evidence": "雾港新城开发办项目主管/精明务实/推动旧港改造，对历史痕迹持剔除态度/与主线是现实压力来源与利益冲突方。关系锚点：与池鸣有利益冲突。",
+      "confidence": 0.68
+    }
+  ],
+  "source": "info_recommend",
+  "stage_policy": "static_initial_topology",
+  "quality": {
+    "character_count": 7,
+    "edge_count": 6,
+    "static_edge_count": 5,
+    "relation_type_count": 3,
+    "coverage_ratio": 1.0,
+    "score": 77,
+    "level": "watch",
+    "warnings": [
+      "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+      "存在泛化主线交集边，建议改为更明确的静态关系。"
+    ]
+  },
+  "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+}

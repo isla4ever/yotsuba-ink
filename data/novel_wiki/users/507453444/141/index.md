@@ -1,0 +1,87 @@
+# 小说 Wiki 索引
+- [[sources/回声雾港世界观设定]]：回声雾港世界观设定（worldbuilding）
+- [[entities/characters/林听]]：人物 林听
+- [[entities/characters/陈序]]：人物 陈序
+- [[entities/characters/苏红]]：人物 苏红
+- [[entities/characters/吴海]]：人物 吴海
+- [[entities/characters/雷正]]：人物 雷正
+- [[entities/characters/莫声]]：人物 莫声
+- [[entities/characters/叶晚]]：人物 叶晚
+- [[entities/characters/顾言]]：人物 顾言
+- [[relations/林听__苏红]]：林听 与 苏红 的 family 关系
+- [[relations/陈序__林听]]：陈序 与 林听 的 faction 关系
+- [[relations/苏红__林听]]：苏红 与 林听 的 connection 关系
+- [[relations/吴海__苏红]]：吴海 与 苏红 的 background 关系
+- [[relations/雷正__林听]]：雷正 与 林听 的 faction 关系
+- [[relations/莫声__陈序]]：莫声 与 陈序 的 connection 关系
+- [[relations/叶晚__吴海]]：叶晚 与 吴海 的 background 关系
+- [[relations/顾言__林听]]：顾言 与 林听 的 connection 关系
+- [[canon/static_topology]]：静态人物关系拓扑
+- [[reports/_continuity_report]]：小说连续性体检报告
+- [[ledgers/character_states/volume-01-chapter-001]]：第 1 卷第 1 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：初现暗门 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：初现暗门 已发生事实
+- [[ledgers/character_states/volume-01-chapter-002]]：第 1 卷第 2 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-002]]：第 1 卷第 2 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-002]]：第 1 卷第 2 章时间线账本
+- [[reports/chapters/volume-01-chapter-002-quality]]：第 1 卷第 2 章质检报告
+- [[chapters/summaries/volume-01-chapter-002]]：追索裂缝 摘要
+- [[chapters/canon_events/volume-01-chapter-002]]：追索裂缝 已发生事实
+- [[ledgers/character_states/volume-01-chapter-003]]：第 1 卷第 3 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-003]]：第 1 卷第 3 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-003]]：第 1 卷第 3 章时间线账本
+- [[reports/chapters/volume-01-chapter-003-quality]]：第 1 卷第 3 章质检报告
+- [[chapters/summaries/volume-01-chapter-003]]：反证底层 摘要
+- [[chapters/canon_events/volume-01-chapter-003]]：反证底层 已发生事实
+- [[ledgers/character_states/volume-01-chapter-004]]：第 1 卷第 4 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-004]]：第 1 卷第 4 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-004]]：第 1 卷第 4 章时间线账本
+- [[reports/chapters/volume-01-chapter-004-quality]]：第 1 卷第 4 章质检报告
+- [[chapters/summaries/volume-01-chapter-004]]：逼问雾潮 摘要
+- [[chapters/canon_events/volume-01-chapter-004]]：逼问雾潮 已发生事实
+- [[ledgers/character_states/volume-01-chapter-005]]：第 1 卷第 5 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-005]]：第 1 卷第 5 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-005]]：第 1 卷第 5 章时间线账本
+- [[reports/chapters/volume-01-chapter-005-quality]]：第 1 卷第 5 章质检报告
+- [[chapters/summaries/volume-01-chapter-005]]：潜入筛网 摘要
+- [[chapters/canon_events/volume-01-chapter-005]]：潜入筛网 已发生事实
+- [[ledgers/character_states/volume-01-chapter-006]]：第 1 卷第 6 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-006]]：第 1 卷第 6 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-006]]：第 1 卷第 6 章时间线账本
+- [[reports/chapters/volume-01-chapter-006-quality]]：第 1 卷第 6 章质检报告
+- [[chapters/summaries/volume-01-chapter-006]]：失控日志 摘要
+- [[chapters/canon_events/volume-01-chapter-006]]：失控日志 已发生事实
+- [[ledgers/character_states/volume-02-chapter-007]]：第 2 卷第 7 章人物状态账本
+- [[ledgers/foreshadows/volume-02-chapter-007]]：第 2 卷第 7 章伏笔账本
+- [[ledgers/timeline/volume-02-chapter-007]]：第 2 卷第 7 章时间线账本
+- [[reports/chapters/volume-02-chapter-007-quality]]：第 2 卷第 7 章质检报告
+- [[chapters/summaries/volume-02-chapter-007]]：追索底层 摘要
+- [[chapters/canon_events/volume-02-chapter-007]]：追索底层 已发生事实
+- [[ledgers/character_states/volume-02-chapter-008]]：第 2 卷第 8 章人物状态账本
+- [[ledgers/foreshadows/volume-02-chapter-008]]：第 2 卷第 8 章伏笔账本
+- [[ledgers/timeline/volume-02-chapter-008]]：第 2 卷第 8 章时间线账本
+- [[reports/chapters/volume-02-chapter-008-quality]]：第 2 卷第 8 章质检报告
+- [[chapters/summaries/volume-02-chapter-008]]：反证雾潮 摘要
+- [[chapters/canon_events/volume-02-chapter-008]]：反证雾潮 已发生事实
+- [[ledgers/character_states/volume-02-chapter-009]]：第 2 卷第 9 章人物状态账本
+- [[ledgers/foreshadows/volume-02-chapter-009]]：第 2 卷第 9 章伏笔账本
+- [[ledgers/timeline/volume-02-chapter-009]]：第 2 卷第 9 章时间线账本
+- [[reports/chapters/volume-02-chapter-009-quality]]：第 2 卷第 9 章质检报告
+- [[chapters/summaries/volume-02-chapter-009]]：逼问筛网 摘要
+- [[chapters/canon_events/volume-02-chapter-009]]：逼问筛网 已发生事实
+- [[ledgers/character_states/volume-02-chapter-010]]：第 2 卷第 10 章人物状态账本
+- [[ledgers/foreshadows/volume-02-chapter-010]]：第 2 卷第 10 章伏笔账本
+- [[ledgers/timeline/volume-02-chapter-010]]：第 2 卷第 10 章时间线账本
+- [[reports/chapters/volume-02-chapter-010-quality]]：第 2 卷第 10 章质检报告
+- [[chapters/summaries/volume-02-chapter-010]]：潜入日志 摘要
+- [[chapters/canon_events/volume-02-chapter-010]]：潜入日志 已发生事实
+- [[ledgers/character_states/volume-02-chapter-011]]：第 2 卷第 11 章人物状态账本
+- [[ledgers/foreshadows/volume-02-chapter-011]]：第 2 卷第 11 章伏笔账本
+- [[ledgers/timeline/volume-02-chapter-011]]：第 2 卷第 11 章时间线账本
+- [[reports/chapters/volume-02-chapter-011-quality]]：第 2 卷第 11 章质检报告
+- [[chapters/summaries/volume-02-chapter-011]]：失控锚点 摘要
+- [[chapters/canon_events/volume-02-chapter-011]]：失控锚点 已发生事实

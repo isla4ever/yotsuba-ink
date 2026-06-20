@@ -1,0 +1,26 @@
+# 小说 Wiki 索引
+- [[sources/云崖医馆札记世界观种子]]：云崖医馆札记世界观种子（text）
+- [[ledgers/character_states/chapter-001]]：第 1 章人物状态账本
+- [[ledgers/foreshadows/chapter-001]]：第 1 章伏笔账本
+- [[ledgers/timeline/chapter-001]]：第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/chapter-001-quality]]：第 1 章质检报告
+- [[chapters/summaries/chapter-001]]：救局追真相证据 摘要
+- [[chapters/canon_events/chapter-001]]：救局追真相证据 已发生事实
+- [[reports/_continuity_report]]：小说连续性体检报告
+- [[sources/云崖医馆札记世界观种子-da4973]]：云崖医馆札记世界观种子（text）
+- [[entities/characters/顾沉砚]]：人物 顾沉砚
+- [[entities/characters/林既白]]：人物 林既白
+- [[entities/characters/陆照野]]：人物 陆照野
+- [[entities/characters/沈青萝]]：人物 沈青萝
+- [[relations/林既白__陆照野]]：林既白 与 陆照野 的 connection 关系
+- [[relations/顾沉砚__林既白]]：顾沉砚 与 林既白 的 ally 关系
+- [[relations/林既白__顾沉砚]]：林既白 与 顾沉砚 的 family 关系
+- [[relations/沈青萝__顾沉砚]]：沈青萝 与 顾沉砚 的 ally 关系
+- [[relations/沈青萝__林既白]]：沈青萝 与 林既白 的 ally 关系
+- [[relations/陆照野__顾沉砚]]：陆照野 与 顾沉砚 的 family 关系
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：破局者试探 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：破局者试探 已发生事实

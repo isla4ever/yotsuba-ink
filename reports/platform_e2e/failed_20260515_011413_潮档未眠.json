@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "title": "潮档未眠",
+  "error": "GET /front/getCompletionsSummary failed: [WinError 10054] 远程主机强迫关闭了一个现有的连接。",
+  "failed_at": "2026-05-15T01:14:13"
+}

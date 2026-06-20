@@ -1,0 +1,759 @@
+{
+  "title": "潮声档案",
+  "user_id": 1,
+  "timings": {
+    "info_recommend": 70.10755610466003,
+    "create_novel": 0.0731801986694336,
+    "topology": 0.05776047706604004,
+    "wiki_seed": 0.0690622329711914,
+    "summary": 117.00301575660706
+  },
+  "quality_snapshots": [],
+  "chapters": [],
+  "info_recommend": {
+    "characters": [
+      "林溯：沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。",
+      "陈默：地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。",
+      "苏晚：档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。",
+      "赵建国：退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。",
+      "周子轩：旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。",
+      "王立：开发商代表，性格贪婪激进，目标不惜一切代价完成拆迁指标。关系 Ancher：周子贤的上司/盟友。",
+      "刘阿婆：社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。",
+      "小满：林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。",
+      "人物关系：林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲。",
+      "故事：",
+      "这座沿海旧城的呼吸，似乎早已与那台巨大的停摆汽笛同频共振。曾经喧嚣的旧港，如今只剩下一片被钢筋水泥切割得支离破碎的废墟，海风里混杂着咸腥的油漆味和腐烂的木屑气。在这里，“潮汐档案库”并非简单的数据仓库，而是这座城市集体记忆的神经中枢，它记录着每一次退潮时露出的暗流，也封存着那些被刻意抹去的惊涛骇浪。",
+      "城市正在经历一场剧烈的阵痛，所谓的“旧改”计划如同潮水般涌来，要将这片承载了半世纪记忆的港湾夷为平地，取而代之的是光鲜亮丽的商业综合体。然而，在这推土机的轰鸣声中，一段关于十年前连环失踪案的录音磁带，正像一颗生锈的钉子，死死楔入城市的肌理。每当涨潮时分，档案馆深处总会传出诡异的低频嗡鸣，仿佛某种古老的海兽正在苏醒，提醒着所有人：有些潮水退去后，留下的不仅仅是沙滩，还有无法被淹没的冤魂。"
+    ],
+    "background": "",
+    "introduction": "旧港区的黄昏总是来得特别慢，夕阳把斑驳的集装箱染成病态的紫红色，像极了陈默那张永远挂着笑意的脸。林溯站在满是灰尘的档案馆门口，手里攥着那张泛黄的入职通知书，那是他父亲当年留下的唯一遗物。父亲也是测绘员吗？不，父亲是失踪人口。\n\n就在三天前，一段从未公开过的录音磁带在地下拍卖会上流出，里面清晰地传来一个女人的哭喊声和码头工人的低语：“潮来了，别信上面的话。”林溯决定深入调查，却发现这声音竟与他侄女小满失踪时的录音有着惊人的相似。小满才十二岁，却在那场突如其来的海难中凭空消失，而官方给出的“意外事故”报告，被层层掩盖得密不透风。\n\n为了揭开真相，林溯不得不与地下情报网接触，面对的是那个在阴影中穿梭的陈默。陈默告诉他，磁带背后牵扯着一个足以颠覆整个旧港区利益格局的秘密——那些失踪的人，根本不是死于海难，而是被秘密转移到了某个废弃的地下仓库，成为了某种仪式的祭品。\n\n随着调查的深入，林叔发现周子軒和王立正是幕后推手之一。他们急需这段录音来证明旧港的“历史污点”，从而为即将开始的拆迁扫清障碍，甚至不惜牺牲无辜者的生命来换取项目的顺利推进。林叔面临着两难选择：是继续追查下去，让自己陷入万劫不复的境地，还是选择沉默，让小满的命运继续被埋没在历史的尘埃里？\n\n更可怕的是，每当夜深人静，档案馆的墙壁便会渗出海水般的凉意，那些被遗忘的名字似乎都在黑暗中低语，试图唤醒沉睡的记忆。林漱知道，这场关于真相的博弈，注定是一场没有赢家的战争。而当他最终找到那个地下仓库时，等待他的不仅是残酷的真相，还有那个早已在多年前就死去的自己。",
+    "topology": {
+      "user_id": "default",
+      "novel_id": "default",
+      "title": "潮声档案",
+      "nodes": [
+        {
+          "id": "林溯",
+          "label": "林溯",
+          "type": "character",
+          "role": "character",
+          "summary": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。"
+        },
+        {
+          "id": "陈默",
+          "label": "陈默",
+          "type": "character",
+          "role": "character",
+          "summary": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。"
+        },
+        {
+          "id": "苏晚",
+          "label": "苏晚",
+          "type": "character",
+          "role": "character",
+          "summary": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。"
+        },
+        {
+          "id": "赵建国",
+          "label": "赵建国",
+          "type": "character",
+          "role": "character",
+          "summary": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。"
+        },
+        {
+          "id": "周子轩",
+          "label": "周子轩",
+          "type": "character",
+          "role": "ally",
+          "summary": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。"
+        },
+        {
+          "id": "王立",
+          "label": "王立",
+          "type": "character",
+          "role": "ally",
+          "summary": "开发商代表，性格贪婪激进，目标不惜一切代价完成拆迁指标。关系 Ancher：周子贤的上司/盟友。"
+        },
+        {
+          "id": "刘阿婆",
+          "label": "刘阿婆",
+          "type": "character",
+          "role": "character",
+          "summary": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。"
+        },
+        {
+          "id": "小满",
+          "label": "小满",
+          "type": "character",
+          "role": "character",
+          "summary": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。"
+        },
+        {
+          "id": "人物关系",
+          "label": "人物关系",
+          "type": "character",
+          "role": "antagonist",
+          "summary": "林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲。"
+        }
+      ],
+      "edges": [
+        {
+          "source": "人物关系",
+          "target": "小满",
+          "relation_type": "family",
+          "label": "血亲",
+          "evidence": "人物关系：林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲",
+          "confidence": 0.88
+        },
+        {
+          "source": "林溯",
+          "target": "陈默",
+          "relation_type": "background",
+          "label": "旧识",
+          "evidence": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。",
+          "confidence": 0.9
+        },
+        {
+          "source": "陈默",
+          "target": "林溯",
+          "relation_type": "connection",
+          "label": "主线交集",
+          "evidence": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。",
+          "confidence": 0.68
+        },
+        {
+          "source": "苏晚",
+          "target": "赵建国",
+          "relation_type": "mentor",
+          "label": "同门",
+          "evidence": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。",
+          "confidence": 0.9
+        },
+        {
+          "source": "赵建国",
+          "target": "苏晚",
+          "relation_type": "connection",
+          "label": "主线交集",
+          "evidence": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。",
+          "confidence": 0.68
+        },
+        {
+          "source": "周子轩",
+          "target": "王立",
+          "relation_type": "ally",
+          "label": "盟友/同伴",
+          "evidence": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。",
+          "confidence": 0.68
+        },
+        {
+          "source": "刘阿婆",
+          "target": "赵建国",
+          "relation_type": "connection",
+          "label": "主线交集",
+          "evidence": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。",
+          "confidence": 0.68
+        },
+        {
+          "source": "小满",
+          "target": "林溯",
+          "relation_type": "family",
+          "label": "家族/血缘",
+          "evidence": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。",
+          "confidence": 0.68
+        }
+      ],
+      "source": "info_recommend",
+      "stage_policy": "static_initial_topology",
+      "quality": {
+        "character_count": 9,
+        "edge_count": 8,
+        "static_edge_count": 5,
+        "relation_type_count": 4,
+        "coverage_ratio": 1.0,
+        "score": 77,
+        "level": "watch",
+        "warnings": [
+          "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+          "存在泛化主线交集边，建议改为更明确的静态关系。"
+        ]
+      },
+      "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+    },
+    "quality": {
+      "character_count": 9,
+      "edge_count": 8,
+      "static_edge_count": 5,
+      "relation_type_count": 4,
+      "coverage_ratio": 1.0,
+      "score": 77,
+      "level": "watch",
+      "warnings": [
+        "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+        "存在泛化主线交集边，建议改为更明确的静态关系。"
+      ]
+    }
+  },
+  "novel_id": 114,
+  "topology_result": {
+    "topology": {
+      "user_id": "1",
+      "novel_id": "114",
+      "title": "潮声档案",
+      "nodes": [
+        {
+          "id": "林溯",
+          "label": "林溯",
+          "type": "character",
+          "role": "character",
+          "summary": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。"
+        },
+        {
+          "id": "陈默",
+          "label": "陈默",
+          "type": "character",
+          "role": "character",
+          "summary": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。"
+        },
+        {
+          "id": "苏晚",
+          "label": "苏晚",
+          "type": "character",
+          "role": "character",
+          "summary": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。"
+        },
+        {
+          "id": "赵建国",
+          "label": "赵建国",
+          "type": "character",
+          "role": "character",
+          "summary": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。"
+        },
+        {
+          "id": "周子轩",
+          "label": "周子轩",
+          "type": "character",
+          "role": "ally",
+          "summary": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。"
+        },
+        {
+          "id": "王立",
+          "label": "王立",
+          "type": "character",
+          "role": "ally",
+          "summary": "开发商代表，性格贪婪激进，目标不惜一切代价完成拆迁指标。关系 Ancher：周子贤的上司/盟友。"
+        },
+        {
+          "id": "刘阿婆",
+          "label": "刘阿婆",
+          "type": "character",
+          "role": "character",
+          "summary": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。"
+        },
+        {
+          "id": "小满",
+          "label": "小满",
+          "type": "character",
+          "role": "character",
+          "summary": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。"
+        },
+        {
+          "id": "人物关系",
+          "label": "人物关系",
+          "type": "character",
+          "role": "antagonist",
+          "summary": "林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲。"
+        }
+      ],
+      "edges": [
+        {
+          "source": "人物关系",
+          "target": "小满",
+          "relation_type": "family",
+          "label": "血亲",
+          "evidence": "人物关系：林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲",
+          "confidence": 0.88
+        },
+        {
+          "source": "林溯",
+          "target": "陈默",
+          "relation_type": "background",
+          "label": "旧识",
+          "evidence": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。",
+          "confidence": 0.9
+        },
+        {
+          "source": "陈默",
+          "target": "林溯",
+          "relation_type": "connection",
+          "label": "主线交集",
+          "evidence": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。",
+          "confidence": 0.68
+        },
+        {
+          "source": "苏晚",
+          "target": "赵建国",
+          "relation_type": "mentor",
+          "label": "同门",
+          "evidence": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。",
+          "confidence": 0.9
+        },
+        {
+          "source": "赵建国",
+          "target": "苏晚",
+          "relation_type": "connection",
+          "label": "主线交集",
+          "evidence": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。",
+          "confidence": 0.68
+        },
+        {
+          "source": "周子轩",
+          "target": "王立",
+          "relation_type": "ally",
+          "label": "盟友/同伴",
+          "evidence": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。",
+          "confidence": 0.68
+        },
+        {
+          "source": "刘阿婆",
+          "target": "赵建国",
+          "relation_type": "connection",
+          "label": "主线交集",
+          "evidence": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。",
+          "confidence": 0.68
+        },
+        {
+          "source": "小满",
+          "target": "林溯",
+          "relation_type": "family",
+          "label": "家族/血缘",
+          "evidence": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。",
+          "confidence": 0.68
+        }
+      ],
+      "source": "info_recommend",
+      "stage_policy": "static_initial_topology",
+      "quality": {
+        "character_count": 9,
+        "edge_count": 8,
+        "static_edge_count": 5,
+        "relation_type_count": 4,
+        "coverage_ratio": 1.0,
+        "score": 77,
+        "level": "watch",
+        "warnings": [
+          "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+          "存在泛化主线交集边，建议改为更明确的静态关系。"
+        ]
+      },
+      "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+    },
+    "wiki_status": {
+      "novel_id": 114,
+      "user_id": 1,
+      "counts": {
+        "topology_nodes": 9,
+        "topology_edges": 8
+      },
+      "topology": {
+        "user_id": "1",
+        "novel_id": "114",
+        "title": "潮声档案",
+        "nodes": [
+          {
+            "id": "林溯",
+            "label": "林溯",
+            "type": "character",
+            "role": "character",
+            "summary": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。"
+          },
+          {
+            "id": "陈默",
+            "label": "陈默",
+            "type": "character",
+            "role": "character",
+            "summary": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。"
+          },
+          {
+            "id": "苏晚",
+            "label": "苏晚",
+            "type": "character",
+            "role": "character",
+            "summary": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。"
+          },
+          {
+            "id": "赵建国",
+            "label": "赵建国",
+            "type": "character",
+            "role": "character",
+            "summary": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。"
+          },
+          {
+            "id": "周子轩",
+            "label": "周子轩",
+            "type": "character",
+            "role": "ally",
+            "summary": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。"
+          },
+          {
+            "id": "王立",
+            "label": "王立",
+            "type": "character",
+            "role": "ally",
+            "summary": "开发商代表，性格贪婪激进，目标不惜一切代价完成拆迁指标。关系 Ancher：周子贤的上司/盟友。"
+          },
+          {
+            "id": "刘阿婆",
+            "label": "刘阿婆",
+            "type": "character",
+            "role": "character",
+            "summary": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。"
+          },
+          {
+            "id": "小满",
+            "label": "小满",
+            "type": "character",
+            "role": "character",
+            "summary": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。"
+          },
+          {
+            "id": "人物关系",
+            "label": "人物关系",
+            "type": "character",
+            "role": "antagonist",
+            "summary": "林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲。"
+          }
+        ],
+        "edges": [
+          {
+            "source": "人物关系",
+            "target": "小满",
+            "relation_type": "family",
+            "label": "血亲",
+            "evidence": "人物关系：林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲",
+            "confidence": 0.88
+          },
+          {
+            "source": "林溯",
+            "target": "陈默",
+            "relation_type": "background",
+            "label": "旧识",
+            "evidence": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。",
+            "confidence": 0.9
+          },
+          {
+            "source": "陈默",
+            "target": "林溯",
+            "relation_type": "connection",
+            "label": "主线交集",
+            "evidence": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。",
+            "confidence": 0.68
+          },
+          {
+            "source": "苏晚",
+            "target": "赵建国",
+            "relation_type": "mentor",
+            "label": "同门",
+            "evidence": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。",
+            "confidence": 0.9
+          },
+          {
+            "source": "赵建国",
+            "target": "苏晚",
+            "relation_type": "connection",
+            "label": "主线交集",
+            "evidence": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。",
+            "confidence": 0.68
+          },
+          {
+            "source": "周子轩",
+            "target": "王立",
+            "relation_type": "ally",
+            "label": "盟友/同伴",
+            "evidence": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。",
+            "confidence": 0.68
+          },
+          {
+            "source": "刘阿婆",
+            "target": "赵建国",
+            "relation_type": "connection",
+            "label": "主线交集",
+            "evidence": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。",
+            "confidence": 0.68
+          },
+          {
+            "source": "小满",
+            "target": "林溯",
+            "relation_type": "family",
+            "label": "家族/血缘",
+            "evidence": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。",
+            "confidence": 0.68
+          }
+        ],
+        "source": "info_recommend",
+        "stage_policy": "static_initial_topology",
+        "quality": {
+          "character_count": 9,
+          "edge_count": 8,
+          "static_edge_count": 5,
+          "relation_type_count": 4,
+          "coverage_ratio": 1.0,
+          "score": 77,
+          "level": "watch",
+          "warnings": [
+            "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+            "存在泛化主线交集边，建议改为更明确的静态关系。"
+          ]
+        },
+        "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+      },
+      "topology_updated_at": "2026-05-14 23:10:19"
+    }
+  },
+  "wiki_seed": {
+    "document": {
+      "document_id": "fef5ee4fd991cffd",
+      "user_id": "1",
+      "novel_id": "114",
+      "title": "潮声档案-世界观种子",
+      "source_type": "worldbuilding",
+      "path": "C:\\Users\\wxwhs\\Desktop\\nanochat-dgxspark-rl-main\\data\\novel_wiki\\users\\1\\114\\sources\\潮声档案-世界观种子.md",
+      "tags": [
+        "世界观",
+        "前端上传",
+        "info_recommend"
+      ],
+      "created_at": "2026-05-14T15:10:19Z"
+    },
+    "extracted_relations": [],
+    "imported_relations": [],
+    "wiki_status": {
+      "user_id": 1,
+      "novel_id": 114,
+      "wiki_root": "C:\\Users\\wxwhs\\Desktop\\nanochat-dgxspark-rl-main\\data\\novel_wiki\\users\\1\\114",
+      "counts": {
+        "documents": 1,
+        "words": 888,
+        "characters": 0,
+        "relations": 0,
+        "topology_nodes": 9,
+        "topology_edges": 8,
+        "chapter_summaries": 0,
+        "chapter_events": 0,
+        "character_state_ledgers": 0,
+        "foreshadow_ledgers": 0,
+        "foreshadow_states": 0,
+        "timeline_ledgers": 0,
+        "chapter_quality_reports": 0
+      },
+      "documents": [
+        {
+          "id": "fef5ee4fd991cffd",
+          "model_document_id": "fef5ee4fd991cffd",
+          "title": "潮声档案-世界观种子",
+          "source_type": "worldbuilding",
+          "word_count": 888,
+          "preview": "# 潮声档案 世界观种子资料。旧港改造、失踪录音、潮汐档案。- 林溯：沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识。- 陈默：地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌。- 苏晚：档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门。- 赵建国：退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友。- 周子轩：旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友。- 王立：开发商代表，性格贪婪",
+          "relative_path": "sources/潮声档案-世界观种子.md",
+          "model_path": "C:\\Users\\wxwhs\\Desktop\\nanochat-dgxspark-rl-main\\data\\novel_wiki\\users\\1\\114\\sources\\潮声档案-世界观种子.md",
+          "sync_status": 1,
+          "sync_message": "已写入模型端本地 Wiki",
+          "create_time": "2026-05-14T15:10:19Z",
+          "update_time": "2026-05-14T15:10:19Z"
+        }
+      ],
+      "latest_document": {
+        "id": "fef5ee4fd991cffd",
+        "model_document_id": "fef5ee4fd991cffd",
+        "title": "潮声档案-世界观种子",
+        "source_type": "worldbuilding",
+        "word_count": 888,
+        "preview": "# 潮声档案 世界观种子资料。旧港改造、失踪录音、潮汐档案。- 林溯：沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识。- 陈默：地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌。- 苏晚：档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门。- 赵建国：退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友。- 周子轩：旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友。- 王立：开发商代表，性格贪婪",
+        "relative_path": "sources/潮声档案-世界观种子.md",
+        "model_path": "C:\\Users\\wxwhs\\Desktop\\nanochat-dgxspark-rl-main\\data\\novel_wiki\\users\\1\\114\\sources\\潮声档案-世界观种子.md",
+        "sync_status": 1,
+        "sync_message": "已写入模型端本地 Wiki",
+        "create_time": "2026-05-14T15:10:19Z",
+        "update_time": "2026-05-14T15:10:19Z"
+      },
+      "latest_chapter": null,
+      "latest_continuity_report": null,
+      "latest_chapter_quality": null,
+      "foreshadow_state_counts": {
+        "open": 0,
+        "strengthened": 0,
+        "partially_resolved": 0,
+        "resolved": 0
+      },
+      "updated_at": "2026-05-14T15:10:19Z",
+      "topology": {
+        "user_id": "1",
+        "novel_id": "114",
+        "title": "潮声档案",
+        "nodes": [
+          {
+            "id": "林溯",
+            "label": "林溯",
+            "type": "character",
+            "role": "character",
+            "summary": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。"
+          },
+          {
+            "id": "陈默",
+            "label": "陈默",
+            "type": "character",
+            "role": "character",
+            "summary": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。"
+          },
+          {
+            "id": "苏晚",
+            "label": "苏晚",
+            "type": "character",
+            "role": "character",
+            "summary": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。"
+          },
+          {
+            "id": "赵建国",
+            "label": "赵建国",
+            "type": "character",
+            "role": "character",
+            "summary": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。"
+          },
+          {
+            "id": "周子轩",
+            "label": "周子轩",
+            "type": "character",
+            "role": "ally",
+            "summary": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。"
+          },
+          {
+            "id": "王立",
+            "label": "王立",
+            "type": "character",
+            "role": "ally",
+            "summary": "开发商代表，性格贪婪激进，目标不惜一切代价完成拆迁指标。关系 Ancher：周子贤的上司/盟友。"
+          },
+          {
+            "id": "刘阿婆",
+            "label": "刘阿婆",
+            "type": "character",
+            "role": "character",
+            "summary": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。"
+          },
+          {
+            "id": "小满",
+            "label": "小满",
+            "type": "character",
+            "role": "character",
+            "summary": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。"
+          },
+          {
+            "id": "人物关系",
+            "label": "人物关系",
+            "type": "character",
+            "role": "antagonist",
+            "summary": "林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲。"
+          }
+        ],
+        "edges": [
+          {
+            "source": "人物关系",
+            "target": "小满",
+            "relation_type": "family",
+            "label": "血亲",
+            "evidence": "人物关系：林与陈为旧识敌对，苏与赵为同门旧友，周与王为上下级，林与小满为血亲",
+            "confidence": 0.88
+          },
+          {
+            "source": "林溯",
+            "target": "陈默",
+            "relation_type": "background",
+            "label": "旧识",
+            "evidence": "沿海测绘员，性格沉稳内敛，目标是通过“潮汐档案”还原旧港真相。关系 Anchor：与陈默是旧识；隶属“旧港保护协会”。",
+            "confidence": 0.9
+          },
+          {
+            "source": "陈默",
+            "target": "林溯",
+            "relation_type": "connection",
+            "label": "主线交集",
+            "evidence": "地下情报贩子，性格阴鸷多疑，目标是利用失踪录音贩卖给最高 bidder。关系 anchor：与林溯是旧知/敌；隶属\"黑市交易圈”。",
+            "confidence": 0.68
+          },
+          {
+            "source": "苏晚",
+            "target": "赵建国",
+            "relation_type": "mentor",
+            "label": "同门",
+            "evidence": "档案修复师，性格冷静克制，目标是在噪音中剥离出真实的求救信号。关系anchor：与赵建国是同门；隶属旧港档案馆。",
+            "confidence": 0.9
+          },
+          {
+            "source": "赵建国",
+            "target": "苏晚",
+            "relation_type": "connection",
+            "label": "主线交集",
+            "evidence": "退休码头工头，性格粗犷豪爽，目标是为早逝的儿子讨个公道。关系Anchor：与苏晚是旧友；隶属民间维权者。",
+            "confidence": 0.68
+          },
+          {
+            "source": "周子轩",
+            "target": "王立",
+            "relation_type": "ally",
+            "label": "盟友/同伴",
+            "evidence": "旧港开发办官员，性格圆滑冷酷，目标是将旧港项目快速落地以换取政绩。关系ancher：与王立是上下级/盟友；隶属市政府。",
+            "confidence": 0.68
+          },
+          {
+            "source": "刘阿婆",
+            "target": "赵建国",
+            "relation_type": "connection",
+            "label": "主线交集",
+            "evidence": "社区老人，性格固执神秘，目标是守护自家阁楼里的“潮声”。关系 Anchor: 与赵建国的邻居/旧友。",
+            "confidence": 0.68
+          },
+          {
+            "source": "小满",
+            "target": "林溯",
+            "relation_type": "family",
+            "label": "家族/血缘",
+            "evidence": "林溯的侄女，性格早熟敏感，目标是寻找失踪的叔叔。关系 ancher: 林溯的血缘亲属。",
+            "confidence": 0.68
+          }
+        ],
+        "source": "info_recommend",
+        "stage_policy": "static_initial_topology",
+        "quality": {
+          "character_count": 9,
+          "edge_count": 8,
+          "static_edge_count": 5,
+          "relation_type_count": 4,
+          "coverage_ratio": 1.0,
+          "score": 77,
+          "level": "watch",
+          "warnings": [
+            "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+            "存在泛化主线交集边，建议改为更明确的静态关系。"
+          ]
+        },
+        "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+      },
+      "topology_updated_at": "2026-05-14 23:10:19"
+    }
+  },
+  "summary": [
+    {
+      "volume": 1,
+      "title": "全书梗概",
+      "minChapter": 1,
+      "maxChapter": 12,
+      "characterActions": {
+        "陈默": "陈默围绕本卷关键线索推进选择、误判与代价。",
+        "林溯": "林溯围绕本卷关键线索推进选择、误判与代价。",
+        "赵建国": "赵建国围绕本卷关键线索推进选择、误判与代价。",
+        "周子轩": "周子轩围绕本卷关键线索推进选择、误判与代价。",
+        "苏晚": "苏晚围绕本卷关键线索推进选择、误判与代价。"
+      },
+      "content": "他利用测绘员的专业视角，将物理数据转化为犯罪线索，在陈默提供的地下情报与官方封锁线之间艰难穿行，其核心动力始终是小满的安危与父亲的遗愿，最终不惜牺牲自身安全去触碰禁忌的地下档案，他最初将那段关键的“求救录音”视为可变现的筹码，意图借高利贷式交易向林溯施压，却在得知录音背后的政治阴谋后，被迫卷入保护与出卖的两难境地，他在剧情中段多次制造假象诱导林溯靠近陷阱，实则在关键时刻成为林溯对抗周子萱势力时不可或缺的暗线支援者，其立场随局势恶化从投机转向被迫共谋，起初她仅专注于技术层面的档案修复，对录音中的异常音波视而不见，直到赵建国道出“潮声中藏匿冤魂”的警告，她才被迫介入调查。"
+    }
+  ]
+}

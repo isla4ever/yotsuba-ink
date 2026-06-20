@@ -1,0 +1,861 @@
+{
+  "updated_at": "2026-05-23T15:53:07Z",
+  "items": [
+    {
+      "id": "3cab24ed4229",
+      "text": "这里是吴忆的藏身之处，也是联调局档案库里标记为已销毁的盲区。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "卷1灯塔底层",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "卷1灯塔底层",
+          "event": "touch",
+          "text": "这里是吴忆的藏身之处，也是联调局档案库里标记为已销毁的盲区。",
+          "updated_at": "2026-05-23T15:49:50Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:49:50Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "41b0ee5eb790",
+      "text": "磁带指令内容：林默声音说出频率稳定及注入指令，暗示被改造。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "卷1灯塔底层",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "卷1灯塔底层",
+          "event": "touch",
+          "text": "磁带指令内容：林默声音说出频率稳定及注入指令，暗示被改造。",
+          "updated_at": "2026-05-23T15:49:50Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:49:50Z",
+      "last_volume": 1,
+      "last_chapter": 5,
+      "last_title": "卷1灯塔底层",
+      "updated_at": "2026-05-23T15:49:50Z"
+    },
+    {
+      "id": "95d95029811d",
+      "text": "苏曼知道，赵立就在某个监控屏幕后看着这一切，热成像图里她体温最高的头部和手部，此刻正成了靶心。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "卷1灯塔底层",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "卷1灯塔底层",
+          "event": "touch",
+          "text": "苏曼知道，赵立就在某个监控屏幕后看着这一切，热成像图里她体温最高的头部和手部，此刻正成了靶心。",
+          "updated_at": "2026-05-23T15:49:50Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:49:50Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "ae95fea01be1",
+      "text": "录音笔未解析低语：吴忆遗物中藏着林默最后时刻留下的关键信息。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "卷1灯塔底层",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "卷1灯塔底层",
+          "event": "touch",
+          "text": "录音笔未解析低语：吴忆遗物中藏着林默最后时刻留下的关键信息。",
+          "updated_at": "2026-05-23T15:49:50Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:49:50Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "c28b9c35ef77",
+      "text": "苏曼敲了三长两短的暗号，铁门吱呀一声开了一条缝，吴忆那张布满皱纹的脸在阴影里浮现，手里还捏着一卷泛黄的磁带，眼神里带着常年不见阳光的浑浊。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "卷1灯塔底层",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "卷1灯塔底层",
+          "event": "touch",
+          "text": "苏曼敲了三长两短的暗号，铁门吱呀一声开了一条缝，吴忆那张布满皱纹的脸在阴影里浮现，手里还捏着一卷泛黄的磁带，眼神里带着常年不见阳光的浑浊。",
+          "updated_at": "2026-05-23T15:49:50Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:49:50Z",
+      "last_volume": 1,
+      "last_chapter": 5,
+      "last_title": "卷1灯塔底层",
+      "updated_at": "2026-05-23T15:49:50Z"
+    },
+    {
+      "id": "de97dff45707",
+      "text": "匿名短信来源：非林声或陈雾号码，知晓明日计划，疑似第三方或已被控制的吴忆。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "卷1灯塔底层",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "卷1灯塔底层",
+          "event": "touch",
+          "text": "匿名短信来源：非林声或陈雾号码，知晓明日计划，疑似第三方或已被控制的吴忆。",
+          "updated_at": "2026-05-23T15:49:50Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:49:50Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "1b9965451f82",
+      "text": "口袋里的录音笔硬生生抵着大腿外侧，那是吴忆塞给她的唯一遗物，也是此刻唯一能证明那个老人曾经存在过的实体。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "口袋里的录音笔硬生生抵着大腿外侧，那是吴忆塞给她的唯一遗物，也是此刻唯一能证明那个老人曾经存在过的实体。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "673a5ce023c0",
+      "text": "你早就知道真相，你只是在利用他们的绝望赚钱。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "你早就知道真相，你只是在利用他们的绝望赚钱。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "685772d9932e",
+      "text": "我只记得那天灯塔的频率异常高，很多人听到了不该听到的声音，然后他们就消失了。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "我只记得那天灯塔的频率异常高，很多人听到了不该听到的声音，然后他们就消失了。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "71acef5815e8",
+      "text": "苏曼走到桌前，将吴忆的录音笔连接上旁边的解码器。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "苏曼走到桌前，将吴忆的录音笔连接上旁边的解码器。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "73fd30b56770",
+      "text": "这种真相卖不出去，只会引来杀身之祸。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "这种真相卖不出去，只会引来杀身之祸。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "d585264461d0",
+      "text": "在这个港里，真相是毒药，只有沉默才是解药。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "在这个港里，真相是毒药，只有沉默才是解药。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "d772381064dd",
+      "text": "苏曼指尖划过屏幕，那段缺失的频率波形呈现出一种诡异的平滑，像是被某种更高权限的算法直接覆盖，吴忆，你当时就在灯塔值班，这三分钟里到底发生了什么。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "卷1雾潮前夜",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "卷1雾潮前夜",
+          "event": "touch",
+          "text": "苏曼指尖划过屏幕，那段缺失的频率波形呈现出一种诡异的平滑，像是被某种更高权限的算法直接覆盖，吴忆，你当时就在灯塔值班，这三分钟里到底发生了什么。",
+          "updated_at": "2026-05-23T15:53:07Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:53:07Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "367e04801f4a",
+      "text": "陈雾犹豫了片刻，最终还是松开了手，将日志摊开在桌面上，页面停留在三个月前的日期，那里有一行被红笔圈出的备注，夜间频率异常，灯塔光源遮挡，疑似非法发射源。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "陈雾犹豫了片刻，最终还是松开了手，将日志摊开在桌面上，页面停留在三个月前的日期，那里有一行被红笔圈出的备注，夜间频率异常，灯塔光源遮挡，疑似非法发射源。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "5ecde92182a8",
+      "text": "林声掐灭了烟头，声音低沉，官方渠道既然能清空电子档案，也能让纸质文件失踪，妹妹的声音就在旧港的电流里，我要去那里，哪怕只有一段波形。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "林声掐灭了烟头，声音低沉，官方渠道既然能清空电子档案，也能让纸质文件失踪，妹妹的声音就在旧港的电流里，我要去那里，哪怕只有一段波形。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "c3daceef87f4",
+      "text": "林声摇了摇头，目光投向远处模糊的灯塔，那里才是源头，灯塔日志上的备注是手写的，说明有人在那里实时监控频率，纸质文件也可能被调包。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "林声摇了摇头，目光投向远处模糊的灯塔，那里才是源头，灯塔日志上的备注是手写的，说明有人在那里实时监控频率，纸质文件也可能被调包。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "c613726e2007",
+      "text": "赵立停下脚步，脸上挂着职业化的微笑，却未达眼底，林声，你最近的查询频率有些异常，超出了修复师的权限范围。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "赵立停下脚步，脸上挂着职业化的微笑，却未达眼底，林声，你最近的查询频率有些异常，超出了修复师的权限范围。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "d0929d24a8ea",
+      "text": "林声手指悬在键盘上方，指节因为用力而微微发白，屏幕上的档案库显示一片刺眼的空白，关于林默的所有声纹数据在一夜之间被彻底清空，仿佛这个人从未在这个世界上存在过。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "林声手指悬在键盘上方，指节因为用力而微微发白，屏幕上的档案库显示一片刺眼的空白，关于林默的所有声纹数据在一夜之间被彻底清空，仿佛这个人从未在这个世界上存在过。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "e6f5122b72f1",
+      "text": "陈雾抬起头，眼神中带着一种孤注一掷的执着，港务局，那里有原始的备案记录，电子档案可以被删，纸质文件很难全部销毁，我要确认兄长的登记信息。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "陈雾抬起头，眼神中带着一种孤注一掷的执着，港务局，那里有原始的备案记录，电子档案可以被删，纸质文件很难全部销毁，我要确认兄长的登记信息。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 5,
+      "last_title": "卷1灯塔底层",
+      "updated_at": "2026-05-23T15:49:50Z"
+    },
+    {
+      "id": "e7f2bcf3e25b",
+      "text": "林声刚想追问细节，档案库的警报灯突然闪烁起来，红色的光芒在大厅内旋转，刺耳的蜂鸣声划破寂静。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "卷1钟内密钥",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "卷1钟内密钥",
+          "event": "touch",
+          "text": "林声刚想追问细节，档案库的警报灯突然闪烁起来，红色的光芒在大厅内旋转，刺耳的蜂鸣声划破寂静。",
+          "updated_at": "2026-05-23T15:35:31Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:35:31Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "341d45ee0676",
+      "text": "录音笔因干扰异常断电。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "卷1病历回声",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "卷1病历回声",
+          "event": "touch",
+          "text": "录音笔因干扰异常断电。",
+          "updated_at": "2026-05-23T15:39:05Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:39:05Z",
+      "last_volume": 1,
+      "last_chapter": 5,
+      "last_title": "卷1灯塔底层",
+      "updated_at": "2026-05-23T15:49:50Z"
+    },
+    {
+      "id": "539c8c7853e9",
+      "text": "林声指尖摩挲着录音笔冰冷的金属外壳，那上面还残留着他掌心的汗意。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "卷1病历回声",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "卷1病历回声",
+          "event": "touch",
+          "text": "林声指尖摩挲着录音笔冰冷的金属外壳，那上面还残留着他掌心的汗意。",
+          "updated_at": "2026-05-23T15:39:05Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:39:05Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "9a4948880591",
+      "text": "林声停下脚步，录音笔的红灯在雾中微弱闪烁。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "卷1病历回声",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "卷1病历回声",
+          "event": "touch",
+          "text": "林声停下脚步，录音笔的红灯在雾中微弱闪烁。",
+          "updated_at": "2026-05-23T15:39:05Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:39:05Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "f031617a48da",
+      "text": "林声上前一步，将录音笔收进袖口，只露出麦克风探头。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "卷1病历回声",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "卷1病历回声",
+          "event": "touch",
+          "text": "林声上前一步，将录音笔收进袖口，只露出麦克风探头。",
+          "updated_at": "2026-05-23T15:39:05Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:39:05Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "f5187678932f",
+      "text": "三月十四日频率异常波动记录。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "卷1病历回声",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "卷1病历回声",
+          "event": "touch",
+          "text": "三月十四日频率异常波动记录。",
+          "updated_at": "2026-05-23T15:39:05Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "卷1病历回声",
+          "event": "touch",
+          "text": "陈雾猛地抬头，眼神里透着一股偏执的亮光，港务局的备份档案里明明有三月十四日的记录，那天晚上灯塔的频率异常波动，和我哥哥失踪的时间完全吻合。",
+          "updated_at": "2026-05-23T15:39:05Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:39:05Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "7a4cccc10fb2",
+      "text": "录音笔红灯熄灭后的黑色圆孔仿佛仍在吞噬光线。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "卷1港务暗门",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "卷1港务暗门",
+          "event": "touch",
+          "text": "录音笔红灯熄灭后的黑色圆孔仿佛仍在吞噬光线。",
+          "updated_at": "2026-05-23T15:42:04Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "卷1港务暗门",
+          "event": "touch",
+          "text": "他收回手，掌心里那支电量耗尽的录音笔沉甸甸的，红灯熄灭后的黑色圆孔像一只闭合的眼睛，不再记录任何声音，却仿佛仍在吞噬周围的光线。",
+          "updated_at": "2026-05-23T15:42:04Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:42:04Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "ad83fd5b72d2",
+      "text": "林声的脚步顿了一下，随即恢复正常，走到自己的操作台前，将录音笔连接上接口。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "卷1港务暗门",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "卷1港务暗门",
+          "event": "touch",
+          "text": "林声的脚步顿了一下，随即恢复正常，走到自己的操作台前，将录音笔连接上接口。",
+          "updated_at": "2026-05-23T15:42:04Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:42:04Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "ec9fc8230b41",
+      "text": "既然现场的设备被干扰，唯一的办法就是回到局里的隔音实验室，利用那里的频谱分析仪强行提取录音笔缓存里的残留数据。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "卷1港务暗门",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "卷1港务暗门",
+          "event": "touch",
+          "text": "既然现场的设备被干扰，唯一的办法就是回到局里的隔音实验室，利用那里的频谱分析仪强行提取录音笔缓存里的残留数据。",
+          "updated_at": "2026-05-23T15:42:04Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:42:04Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "f3cddded55b1",
+      "text": "录音笔缓存中提取出的林默声音碎片，基频匹配度百分之九十以上。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "卷1港务暗门",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "卷1港务暗门",
+          "event": "touch",
+          "text": "录音笔缓存中提取出的林默声音碎片，基频匹配度百分之九十以上。",
+          "updated_at": "2026-05-23T15:42:04Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:42:04Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "15a91fe312ad",
+      "text": "如果现在清除，我们就再也找不到他们被带去哪里的线索了。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "卷1研究所裂缝",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "卷1研究所裂缝",
+          "event": "touch",
+          "text": "如果现在清除，我们就再也找不到他们被带去哪里的线索了。",
+          "updated_at": "2026-05-23T15:45:18Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:45:18Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "3ef0182a56ff",
+      "text": "你知道联调局二级封锁意味着什么吗，赵立问，不是我们在调查真相，而是真相正在调查我们。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "卷1研究所裂缝",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "卷1研究所裂缝",
+          "event": "touch",
+          "text": "你知道联调局二级封锁意味着什么吗，赵立问，不是我们在调查真相，而是真相正在调查我们。",
+          "updated_at": "2026-05-23T15:45:18Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:45:18Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "4aaa3d132359",
+      "text": "林声的妹妹林默也在失踪名单上，他的声纹数据被清空的方式和其他人完全不同，这说明他是关键变量。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "卷1研究所裂缝",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "卷1研究所裂缝",
+          "event": "touch",
+          "text": "林声的妹妹林默也在失踪名单上，他的声纹数据被清空的方式和其他人完全不同，这说明他是关键变量。",
+          "updated_at": "2026-05-23T15:45:18Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:45:18Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "51d35e4f2be1",
+      "text": "灯塔旧案的档案库刚刚完成二次校验，赵立走到苏曼身后，双手撑在椅背上，阴影笼罩了整个操作台。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "卷1研究所裂缝",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "卷1研究所裂缝",
+          "event": "touch",
+          "text": "灯塔旧案的档案库刚刚完成二次校验，赵立走到苏曼身后，双手撑在椅背上，阴影笼罩了整个操作台。",
+          "updated_at": "2026-05-23T15:45:18Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:45:18Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "9d23f77ce8aa",
+      "text": "这段波形如果是记忆清洗的残留，那么保留它就等于保留了犯罪证据。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "卷1研究所裂缝",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "卷1研究所裂缝",
+          "event": "touch",
+          "text": "这段波形如果是记忆清洗的残留，那么保留它就等于保留了犯罪证据。",
+          "updated_at": "2026-05-23T15:45:18Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:45:18Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    },
+    {
+      "id": "e5c44f979730",
+      "text": "如果我们现在抹除证据，林声只会更疯狂地深入旧港，到时候引发的混乱比数据崩溃更可怕。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "卷1研究所裂缝",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "卷1研究所裂缝",
+          "event": "touch",
+          "text": "如果我们现在抹除证据，林声只会更疯狂地深入旧港，到时候引发的混乱比数据崩溃更可怕。",
+          "updated_at": "2026-05-23T15:45:18Z"
+        }
+      ],
+      "created_at": "2026-05-23T15:45:18Z",
+      "last_volume": 1,
+      "last_chapter": 6,
+      "last_title": "卷1雾潮前夜",
+      "updated_at": "2026-05-23T15:53:07Z"
+    }
+  ]
+}

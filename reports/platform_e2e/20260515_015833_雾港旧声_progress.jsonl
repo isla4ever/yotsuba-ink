@@ -1,0 +1,18 @@
+{"time": "2026-05-15T01:58:33", "event": "stage_start", "stage": "info_recommend"}
+{"time": "2026-05-15T02:01:51", "event": "stage_done", "stage": "info_recommend", "elapsed_seconds": 197.94}
+{"time": "2026-05-15T02:01:51", "event": "stage_start", "stage": "create_novel"}
+{"time": "2026-05-15T02:01:51", "event": "stage_done", "stage": "create_novel", "elapsed_seconds": 0.11}
+{"time": "2026-05-15T02:01:51", "event": "novel_created", "novel_id": 129}
+{"time": "2026-05-15T02:01:51", "event": "stage_start", "stage": "persist_topology"}
+{"time": "2026-05-15T02:01:51", "event": "stage_done", "stage": "persist_topology", "elapsed_seconds": 0.05}
+{"time": "2026-05-15T02:01:51", "event": "stage_start", "stage": "summary"}
+{"time": "2026-05-15T02:03:19", "event": "stage_done", "stage": "summary", "elapsed_seconds": 87.62}
+{"time": "2026-05-15T02:03:19", "event": "stage_start", "stage": "finalize_summary"}
+{"time": "2026-05-15T02:03:19", "event": "stage_done", "stage": "finalize_summary", "elapsed_seconds": 0.03}
+{"time": "2026-05-15T02:03:19", "event": "stage_start", "stage": "outline"}
+{"time": "2026-05-15T02:03:26", "event": "stage_done", "stage": "outline", "elapsed_seconds": 6.87}
+{"time": "2026-05-15T02:03:26", "event": "stage_start", "stage": "finalize_outline"}
+{"time": "2026-05-15T02:03:26", "event": "stage_done", "stage": "finalize_outline", "elapsed_seconds": 0.02}
+{"time": "2026-05-15T02:03:26", "event": "stage_start", "stage": "detail_outline_v1"}
+{"time": "2026-05-15T02:03:58", "event": "stage_done", "stage": "detail_outline_v1", "elapsed_seconds": 32.74}
+{"time": "2026-05-15T02:03:58", "event": "stage_start", "stage": "detail_outline_v2"}

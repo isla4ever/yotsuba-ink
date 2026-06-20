@@ -1,0 +1,53 @@
+# 小说 Wiki 索引
+- [[sources/雾钟航线世界观种子]]：雾钟航线世界观种子（text）
+- [[entities/characters/许知衡]]：人物 许知衡
+- [[entities/characters/闻简]]：人物 闻简
+- [[entities/characters/陆晚汀]]：人物 陆晚汀
+- [[entities/characters/陈砚舟]]：人物 陈砚舟
+- [[relations/许知衡__闻简]]：许知衡 与 闻简 的 ally 关系
+- [[relations/陆晚汀__闻简]]：陆晚汀 与 闻简 的 ally 关系
+- [[relations/陈砚舟__许知衡]]：陈砚舟 与 许知衡 的 ally 关系
+- [[relations/陈砚舟__闻简]]：陈砚舟 与 闻简 的 ally 关系
+- [[ledgers/character_states/volume-01-chapter-001]]：第 1 卷第 1 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：旧案重启异讯 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：旧案重启异讯 已发生事实
+- [[reports/chapters/chapter-001-quality]]：第 1 章质检报告
+- [[reports/_continuity_report]]：小说连续性体检报告
+- [[ledgers/character_states/volume-01-chapter-002]]：第 1 卷第 2 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-002]]：第 1 卷第 2 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-002]]：第 1 卷第 2 章时间线账本
+- [[reports/chapters/volume-01-chapter-002-quality]]：第 1 卷第 2 章质检报告
+- [[chapters/summaries/volume-01-chapter-002]]：动接收压力 摘要
+- [[chapters/canon_events/volume-01-chapter-002]]：动接收压力 已发生事实
+- [[reports/chapters/chapter-002-quality]]：第 2 章质检报告
+- [[ledgers/character_states/volume-01-chapter-003]]：第 1 卷第 3 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-003]]：第 1 卷第 3 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-003]]：第 1 卷第 3 章时间线账本
+- [[reports/chapters/volume-01-chapter-003-quality]]：第 1 卷第 3 章质检报告
+- [[chapters/summaries/volume-01-chapter-003]]：先追哪一条线 摘要
+- [[chapters/canon_events/volume-01-chapter-003]]：先追哪一条线 已发生事实
+- [[reports/chapters/chapter-003-quality]]：第 3 章质检报告
+- [[ledgers/character_states/volume-01-chapter-004]]：第 1 卷第 4 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-004]]：第 1 卷第 4 章伏笔账本
+- [[reports/chapters/volume-01-chapter-004-quality]]：第 1 卷第 4 章质检报告
+- [[chapters/summaries/volume-01-chapter-004]]：雾钟号失录 摘要
+- [[chapters/canon_events/volume-01-chapter-004]]：雾钟号失录 已发生事实
+- [[reports/chapters/chapter-004-quality]]：第 4 章质检报告
+- [[ledgers/character_states/volume-01-chapter-005]]：第 1 卷第 5 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-005]]：第 1 卷第 5 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-005]]：第 1 卷第 5 章时间线账本
+- [[reports/chapters/volume-01-chapter-005-quality]]：第 1 卷第 5 章质检报告
+- [[chapters/summaries/volume-01-chapter-005]]：为了掩盖真相旧案 摘要
+- [[chapters/canon_events/volume-01-chapter-005]]：为了掩盖真相旧案 已发生事实
+- [[reports/chapters/chapter-005-quality]]：第 5 章质检报告
+- [[ledgers/character_states/volume-01-chapter-006]]：第 1 卷第 6 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-006]]：第 1 卷第 6 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-006]]：第 1 卷第 6 章时间线账本
+- [[reports/chapters/volume-01-chapter-006-quality]]：第 1 卷第 6 章质检报告
+- [[chapters/summaries/volume-01-chapter-006]]：灯下余波 摘要
+- [[chapters/canon_events/volume-01-chapter-006]]：灯下余波 已发生事实
+- [[reports/chapters/chapter-006-quality]]：第 6 章质检报告

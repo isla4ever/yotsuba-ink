@@ -1,0 +1,127 @@
+{
+  "service": {
+    "reused_existing": false,
+    "health_mode": "online",
+    "tokenhub_base_url": "https://tokenhub.tencentmaas.com/v1",
+    "task_model_mapping": {
+      "info_recommend": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 1800,
+        "temperature": 0.58,
+        "top_p": 0.95
+      },
+      "summary": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 1200,
+        "temperature": 0.48,
+        "top_p": 0.95
+      },
+      "outline": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 1600,
+        "temperature": 0.46,
+        "top_p": 0.95
+      },
+      "detail_outline": {
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "low",
+        "max_tokens": 2400,
+        "temperature": 0.42,
+        "top_p": 0.95
+      },
+      "text": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 3600,
+        "temperature": 0.32,
+        "top_p": 0.95
+      },
+      "text_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 4200,
+        "temperature": 0.32,
+        "top_p": 0.95
+      },
+      "text_non_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 4200,
+        "temperature": 0.32,
+        "top_p": 0.95
+      }
+    }
+  },
+  "stages": {
+    "info_recommend": {
+      "status_code": 200,
+      "elapsed_seconds": 61.03,
+      "stream": false,
+      "model": "deepseek-v4-flash",
+      "content_length": 1308,
+      "structured_length": 0,
+      "quality_status": "pass"
+    },
+    "summary": {
+      "status_code": 200,
+      "elapsed_seconds": 23.55,
+      "stream": false,
+      "model": "deepseek-v4-flash",
+      "content_length": 432,
+      "structured_length": 0,
+      "quality_status": "pass"
+    },
+    "outline": {
+      "status_code": 200,
+      "elapsed_seconds": 37.9,
+      "stream": false,
+      "model": "deepseek-v4-flash",
+      "content_length": 1572,
+      "structured_length": 0,
+      "quality_status": "pass"
+    },
+    "detail_outline": {
+      "status_code": 200,
+      "elapsed_seconds": 91.5,
+      "stream": false,
+      "model": "deepseek-v4-pro",
+      "content_length": 1580,
+      "structured_length": 0,
+      "quality_status": "pass"
+    },
+    "text_first_chapter_chapter_1": {
+      "status_code": 200,
+      "elapsed_seconds": 59.55,
+      "first_content_latency_seconds": 9.82,
+      "stream": true,
+      "content_length": 6990,
+      "reasoning_length": 814,
+      "quality_status": "pass"
+    },
+    "text_non_first_chapter_chapter_2": {
+      "status_code": 200,
+      "elapsed_seconds": 75.62,
+      "first_content_latency_seconds": 18.63,
+      "stream": true,
+      "content_length": 6865,
+      "reasoning_length": 1887,
+      "quality_status": "pass"
+    },
+    "text_non_first_chapter_chapter_3": {
+      "status_code": 200,
+      "elapsed_seconds": 58.64,
+      "first_content_latency_seconds": 12.9,
+      "stream": true,
+      "content_length": 4774,
+      "reasoning_length": 969,
+      "quality_status": "pass"
+    }
+  },
+  "stability": {
+    "malformed_status_code": 400,
+    "malformed_body_excerpt": "{\"detail\":\"Invalid JSON body: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\"}"
+  }
+}

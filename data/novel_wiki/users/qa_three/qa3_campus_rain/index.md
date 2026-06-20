@@ -1,0 +1,26 @@
+# 小说 Wiki 索引
+- [[sources/雨廊未寄出的信世界观种子]]：雨廊未寄出的信世界观种子（text）
+- [[ledgers/character_states/chapter-001]]：第 1 章人物状态账本
+- [[ledgers/foreshadows/chapter-001]]：第 1 章伏笔账本
+- [[ledgers/timeline/chapter-001]]：第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/chapter-001-quality]]：第 1 章质检报告
+- [[chapters/summaries/chapter-001]]：追线暗防 摘要
+- [[chapters/canon_events/chapter-001]]：追线暗防 已发生事实
+- [[reports/_continuity_report]]：小说连续性体检报告
+- [[sources/雨廊未寄出的信世界观种子-b397db]]：雨廊未寄出的信世界观种子（text）
+- [[entities/characters/夏知远]]：人物 夏知远
+- [[entities/characters/林眠]]：人物 林眠
+- [[entities/characters/周祈安]]：人物 周祈安
+- [[entities/characters/许映禾]]：人物 许映禾
+- [[relations/林眠__周祈安]]：林眠 与 周祈安 的 connection 关系
+- [[relations/夏知远__林眠]]：夏知远 与 林眠 的 ally 关系
+- [[relations/林眠__夏知远]]：林眠 与 夏知远 的 family 关系
+- [[relations/周祈安__夏知远]]：周祈安 与 夏知远 的 family 关系
+- [[relations/许映禾__夏知远]]：许映禾 与 夏知远 的 ally 关系
+- [[relations/许映禾__林眠]]：许映禾 与 林眠 的 ally 关系
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：第一轮异动旧案 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：第一轮异动旧案 已发生事实

@@ -1,0 +1,24 @@
+# Issues
+
+- [warn] quality_chapter_2: 正文偏长 chinese_len=4367
+- [warn] quality_chapter_3: 章首未明显承接上一章尾段关键词
+- [warn] quality_chapter_5: 章首未明显承接上一章尾段关键词
+- [warn] quality_chapter_6: 正文偏长 chinese_len=3636
+- [fail] detail_title_v2: 跨卷章节标题重复：钟内密钥 已出现在第 1 卷
+- [fail] detail_title_v2: 跨卷章节标题重复：病历回声 已出现在第 1 卷
+- [fail] detail_title_v2: 跨卷章节标题重复：港务暗门 已出现在第 1 卷
+- [fail] detail_title_v2: 跨卷章节标题重复：研究所裂缝 已出现在第 1 卷
+- [fail] detail_title_v2: 跨卷章节标题重复：灯塔底层 已出现在第 1 卷
+- [fail] detail_title_v2: 跨卷章节标题重复：雾潮前夜 已出现在第 1 卷
+- [warn] quality_chapter_10: 章首未明显承接上一章尾段关键词
+- [warn] quality_chapter_11: 章首未明显承接上一章尾段关键词
+- [fail] detail_title_v3: 跨卷章节标题重复：钟内密钥 已出现在第 1 卷
+- [fail] detail_title_v3: 跨卷章节标题重复：病历回声 已出现在第 1 卷
+- [fail] detail_title_v3: 跨卷章节标题重复：港务暗门 已出现在第 1 卷
+- [fail] detail_title_v3: 跨卷章节标题重复：研究所裂缝 已出现在第 1 卷
+- [fail] detail_title_v3: 跨卷章节标题重复：灯塔底层 已出现在第 1 卷
+- [fail] detail_title_v3: 跨卷章节标题重复：雾潮前夜 已出现在第 1 卷
+- [fail] detail_title_v3: 跨卷章节标题重复：记忆筛网 已出现在第 2 卷
+- [warn] quality_chapter_14: 章首未明显承接上一章尾段关键词
+- [warn] quality_chapter_14: 分卷首章缺少上一卷尾段承接信号
+- [warn] quality_chapter_16: 章首未明显承接上一章尾段关键词

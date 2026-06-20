@@ -1,0 +1,311 @@
+.app-header {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: clamp(16px, 2vw, 34px);
+  grid-template-columns: minmax(190px, 245px) minmax(500px, 760px) minmax(300px, auto);
+  justify-content: space-between;
+  padding: 12px clamp(18px, 1.6vw, 26px);
+}
+
+.header-progress-slot {
+  align-items: center;
+  background:
+    radial-gradient(circle at 16% 20%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 42%),
+    color-mix(in srgb, var(--panel-muted) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 34%, transparent);
+  border-radius: 16px;
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--accent) 5%, transparent);
+  display: flex;
+  justify-self: center;
+  min-width: 0;
+  padding: 7px 11px;
+  position: relative;
+  width: min(100%, 720px);
+}
+
+.header-progress-slot::after,
+.canvas-shell::after,
+.run-console::after,
+.inspector::after,
+.settings-dialog-inner::after,
+.insight-card::after,
+.config-section::after,
+.knowledge-mini-card::after,
+.writing-head::after,
+.stage-run-head::after,
+.writing-editor::after,
+.writing-card::after,
+.stage-run-card::after,
+.chapter-strip article::after {
+  animation: cardScan 10s ease-in-out infinite;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fx-color, var(--accent-2)) 52%, #fff) 0 1px, transparent 2px),
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--fx-color, var(--accent-2)) 20%, transparent), transparent);
+  background-size: 31px 10px, 100% 100%;
+  content: "";
+  height: 2px;
+  left: 10%;
+  opacity: calc(var(--fx-opacity, 0.72) * 0.42);
+  pointer-events: none;
+  position: absolute;
+  right: 10%;
+  top: 0;
+}
+
+.canvas-shell,
+.run-console,
+.inspector,
+.settings-dialog-inner,
+.insight-card,
+.config-section,
+.knowledge-mini-card,
+.writing-head,
+.stage-run-head,
+.writing-editor,
+.writing-card,
+.stage-run-card,
+.chapter-strip article {
+  position: relative;
+}
+
+.canvas-shell::before,
+.run-console::before,
+.inspector::before,
+.settings-dialog-inner::before,
+.insight-card::before,
+.config-section::before,
+.knowledge-mini-card::before,
+.writing-head::before,
+.stage-run-head::before,
+.writing-editor::before,
+.writing-card::before,
+.stage-run-card::before,
+.chapter-strip article::before {
+  animation: fxBorderOrbit var(--fx-speed, 14s) linear infinite, borderBreath 9s ease-in-out infinite;
+  background:
+    conic-gradient(
+      from var(--fx-angle),
+      transparent 0deg,
+      transparent 56deg,
+      color-mix(in srgb, var(--fx-color, var(--accent-2)) 12%, transparent) 78deg,
+      color-mix(in srgb, var(--fx-color, var(--accent-2)) 74%, #fff) 104deg,
+      color-mix(in srgb, var(--fx-color, var(--accent-2)) 18%, transparent) 132deg,
+      transparent 162deg,
+      transparent 360deg
+    );
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: var(--fx-opacity, 0.72);
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  z-index: 0;
+}
+
+.canvas-shell > *,
+.run-console > *,
+.inspector > *,
+.settings-dialog-inner > *,
+.insight-card > *,
+.config-section > *,
+.knowledge-mini-card > *,
+.writing-head > *,
+.stage-run-head > *,
+.writing-editor > *,
+.writing-card > *,
+.stage-run-card > *,
+.chapter-strip article > * {
+  position: relative;
+  z-index: 1;
+}
+
+.canvas-shell,
+.header-progress-slot {
+  --fx-opacity: 0.82;
+  --fx-speed: 7s;
+}
+
+.knowledge-mini-card,
+.insight-card {
+  --fx-opacity: 0.88;
+}
+
+.knowledge-mini-card {
+  --fx-color: var(--accent-2);
+  --fx-speed: 6.5s;
+}
+
+.insight-card {
+  --fx-color: #3a8cff;
+}
+
+.writing-head,
+.stage-run-head,
+.writing-editor,
+.writing-card,
+.stage-run-card,
+.chapter-strip article {
+  --fx-opacity: 0.7;
+  --fx-speed: 8.6s;
+}
+
+.memory-quality-card,
+.rail-list article.warning,
+.layer-stage-list.quality article,
+.crosscutting-node.quality {
+  --fx-color: var(--warning);
+}
+
+.chapter-strip article.completed {
+  --fx-color: var(--success);
+}
+
+.chapter-strip article.running,
+.stage-thinking-strip article.active {
+  --fx-color: var(--accent-2);
+  --fx-opacity: 0.96;
+  --fx-speed: 4.6s;
+}
+
+.creation-status-cluster.mode-fast,
+.creation-action-dock.mode-fast {
+  --mode-aura: #7fb8ff;
+}
+
+.creation-status-cluster.mode-balanced,
+.creation-action-dock.mode-balanced {
+  --mode-aura: #22d3ee;
+}
+
+.creation-status-cluster.mode-deep,
+.creation-action-dock.mode-deep {
+  --mode-aura: #9467ff;
+}
+
+.creation-status-cluster.locked,
+.creation-action-dock.locked {
+  opacity: 0.82;
+}
+
+.creation-action-dock {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  display: inline-flex;
+  gap: 0;
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 12%, transparent));
+  padding: 0;
+  --control-h: 40px;
+}
+
+.quality-mode-tabs {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 12%, transparent), transparent 72%),
+    color-mix(in srgb, var(--panel-muted) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 34%, var(--border));
+  border-right: 0;
+  border-radius: 999px 3px 3px 999px;
+  box-shadow:
+    inset 0 0 13px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 9%, transparent);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, 1fr);
+  height: var(--control-h);
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 2px 4px 4px;
+  position: relative;
+  width: clamp(148px, 10vw, 174px);
+  justify-self: end;
+}
+
+.quality-mode-tabs::after {
+  animation: controlSeamPulse 6s ease-in-out infinite;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 58%, #fff), transparent);
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  z-index: 2;
+}
+
+.quality-mode-tabs .mode-glow {
+  background:
+    radial-gradient(circle at 50% 92%, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 88%, #fff) 0 2px, transparent 3px),
+    linear-gradient(180deg, color-mix(in srgb, #fff 8%, transparent), transparent 46%),
+    color-mix(in srgb, var(--mode-aura, var(--accent-2)) 20%, transparent);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 0 12px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 22%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent),
+    0 0 12px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 20%, transparent);
+  bottom: 4px;
+  left: 4px;
+  position: absolute;
+  top: 4px;
+  transition: transform 220ms ease;
+  width: calc((100% - 8px) / 3);
+}
+
+.quality-mode-tabs.balanced .mode-glow {
+  transform: translateX(100%);
+}
+
+.quality-mode-tabs.deep .mode-glow {
+  transform: translateX(200%);
+}
+
+.quality-mode-tabs.locked {
+  filter: saturate(0.78);
+}
+
+.quality-mode-tabs button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 5px;
+  justify-content: center;
+  min-height: 30px;
+  min-width: 0;
+  outline: none;
+  padding: 2px 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.quality-mode-tabs button:hover {
+  transform: none;
+}
+
+.quality-mode-tabs button.active {
+  color: var(--text);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 52%, transparent);
+}
+
+.quality-mode-tabs button:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 32%, transparent);
+}
+
+.quality-mode-tabs button:disabled {
+  cursor: not-allowed;
+}
+
+.quality-mode-tabs strong {
+  font-size: 12px;
+  line-height: 1;
+}
+

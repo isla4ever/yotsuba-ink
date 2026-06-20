@@ -1,0 +1,157 @@
+{
+  "updated_at": "2026-05-11T03:47:29Z",
+  "items": [
+    {
+      "id": "33de6911c53e",
+      "text": "海雾气象站前数据员，三年前因一场错误预警离职，仍保存着最后一组异常潮汐记录。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "海雾气象站前数据员，三年前因一场错误预警离职，仍保存着最后一组异常潮汐记录。",
+          "updated_at": "2026-05-11T03:44:19Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "雨夜暗痕，临时清出的安全屋里，空气里弥漫着潮湿的霉味和某种说不清的焦躁，前厅的灯光被刻意调暗，只有几盏应急灯在墙角投下昏黄的光晕，将四人的影子拉得细长而扭曲，周临川坐在角落那张摇摇欲坠的折叠椅上，手里捏着一份皱巴巴的清单，那是他刚接手“资源调度”时整理的最新版，上面密密麻麻记满了霜港港城的可用通道、人脉节点以及那些灰色",
+          "updated_at": "2026-05-11T03:47:29Z"
+        }
+      ],
+      "created_at": "2026-05-11T03:44:19Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-11T03:47:29Z"
+    },
+    {
+      "id": "58d82efebe8c",
+      "text": "异常信号异讯：上一章留下的余波还没有散尽。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "异常信号异讯：上一章留下的余波还没有散尽。",
+          "updated_at": "2026-05-11T03:44:19Z"
+        }
+      ],
+      "created_at": "2026-05-11T03:44:19Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-11T03:47:29Z"
+    },
+    {
+      "id": "7624b13e6bb5",
+      "text": "这一章真正落下来的，不是答案，而是更明确的行动代价。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "这一章真正落下来的，不是答案，而是更明确的行动代价。",
+          "updated_at": "2026-05-11T03:44:19Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "旧码头沉压",
+          "event": "touch",
+          "text": "这一章真正落下来的，不是答案，而是更明确的行动代价。",
+          "updated_at": "2026-05-11T03:45:51Z"
+        }
+      ],
+      "created_at": "2026-05-11T03:44:19Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-11T03:47:29Z"
+    },
+    {
+      "id": "0f5952e6bbbb",
+      "text": "等灯光重新暗下去，梁照雪终于把这一章真正的结论压在心里：眼前的线索可以继续追，但他们之间的缝隙也会被一起带进下一步。",
+      "status": "strengthened",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "等灯光重新暗下去，梁照雪终于把这一章真正的结论压在心里：眼前的线索可以继续追，但他们之间的缝隙也会被一起带进下一步。",
+          "updated_at": "2026-05-11T03:44:19Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "旧码头沉压",
+          "event": "touch",
+          "text": "等灯光重新暗下去，岑越终于把这一章真正的结论压在心里：眼前的线索可以继续追，但他们之间的缝隙也会被一起带进下一步。",
+          "updated_at": "2026-05-11T03:45:51Z"
+        }
+      ],
+      "created_at": "2026-05-11T03:44:19Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-11T03:47:29Z"
+    },
+    {
+      "id": "fb48f3e90007",
+      "text": "周临川也被卷进这个判断里，他看见的不是单一线索，而是几个人立场开始偏移的前兆。",
+      "status": "strengthened",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "周临川也被卷进这个判断里，他看见的不是单一线索，而是几个人立场开始偏移的前兆。",
+          "updated_at": "2026-05-11T03:44:19Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "旧码头沉压",
+          "event": "touch",
+          "text": "贺今遥也被卷进这个判断里，他看见的不是单一线索，而是几个人立场开始偏移的前兆。",
+          "updated_at": "2026-05-11T03:45:51Z"
+        }
+      ],
+      "created_at": "2026-05-11T03:44:19Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-11T03:47:29Z"
+    }
+  ]
+}

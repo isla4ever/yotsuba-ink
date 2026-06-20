@@ -1,0 +1,179 @@
+{
+  "started_at": "20260523_014313",
+  "user_id": 507453444,
+  "title": "回声雾港-八万联调-20260523_014313",
+  "target_chars": 50000,
+  "stages": {
+    "template": {
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8090/front/template",
+        "kwargs": {
+          "json": {
+            "title": "回声雾港-八万联调-20260523_014313",
+            "tags": [
+              {
+                "id": 1,
+                "name": "悬疑",
+                "isShow": 1,
+                "categoryId": 1
+              }
+            ],
+            "creativeKeywords": [
+              "声纹档案",
+              "城市秘史",
+              "群像悬疑",
+              "记忆频率",
+              "旧港失踪案"
+            ]
+          }
+        }
+      },
+      "status_code": 200,
+      "elapsed_seconds": 1.77,
+      "body_excerpt": "{\"message\":\"创作模型更新维护中，请稍后再试\",\"code\":500,\"data\":null}",
+      "response": {
+        "message": "创作模型更新维护中，请稍后再试",
+        "code": 500,
+        "data": null
+      }
+    }
+  },
+  "model_health": {
+    "status": "ok",
+    "mode": "online",
+    "served_model_name": "ChiYong-MoE-Novel-18B-A6B",
+    "tokenhub_base_url": "https://tokenhub.tencentmaas.com/v1",
+    "tokenhub_models": {
+      "info_recommend": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 1800,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "summary": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 1200,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "outline": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 1600,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "detail_outline": {
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 2400,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "text": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "disabled",
+        "max_tokens": 3600,
+        "temperature": 0.64,
+        "top_p": 0.9,
+        "stream": true
+      },
+      "text_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "disabled",
+        "max_tokens": 4200,
+        "temperature": 0.64,
+        "top_p": 0.9,
+        "stream": true
+      },
+      "text_non_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "disabled",
+        "max_tokens": 4200,
+        "temperature": 0.64,
+        "top_p": 0.9,
+        "stream": true
+      }
+    },
+    "task_model_mapping": {
+      "info_recommend": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 1800,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "summary": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 1200,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "outline": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 1600,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "detail_outline": {
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "low",
+        "thinking": "enabled",
+        "max_tokens": 2400,
+        "temperature": 0.38,
+        "top_p": 0.9,
+        "stream": false
+      },
+      "text": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "disabled",
+        "max_tokens": 3600,
+        "temperature": 0.64,
+        "top_p": 0.9,
+        "stream": true
+      },
+      "text_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "disabled",
+        "max_tokens": 4200,
+        "temperature": 0.64,
+        "top_p": 0.9,
+        "stream": true
+      },
+      "text_non_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "thinking": "disabled",
+        "max_tokens": 4200,
+        "temperature": 0.64,
+        "top_p": 0.9,
+        "stream": true
+      }
+    }
+  },
+  "fatal_error": "RuntimeError('template response invalid')"
+}

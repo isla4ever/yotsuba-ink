@@ -1,0 +1,36 @@
+{"time": "2026-05-25T11:52:55", "event": "stage_start", "stage": "info_recommend"}
+{"time": "2026-05-25T11:53:28", "event": "stage_done", "stage": "info_recommend", "elapsed_seconds": 32.37}
+{"time": "2026-05-25T11:53:28", "event": "stage_start", "stage": "create_novel"}
+{"time": "2026-05-25T11:53:28", "event": "stage_done", "stage": "create_novel", "elapsed_seconds": 0.14}
+{"time": "2026-05-25T11:53:28", "event": "novel_created", "novel_id": 146}
+{"time": "2026-05-25T11:53:28", "event": "stage_start", "stage": "novel_info_after_create"}
+{"time": "2026-05-25T11:53:28", "event": "stage_done", "stage": "novel_info_after_create", "elapsed_seconds": 0.03}
+{"time": "2026-05-25T11:53:28", "event": "stage_start", "stage": "persist_topology"}
+{"time": "2026-05-25T11:53:28", "event": "stage_done", "stage": "persist_topology", "elapsed_seconds": 0.36}
+{"time": "2026-05-25T11:53:28", "event": "stage_start", "stage": "summary"}
+{"time": "2026-05-25T11:53:46", "event": "stage_done", "stage": "summary", "elapsed_seconds": 17.44}
+{"time": "2026-05-25T11:53:46", "event": "stage_start", "stage": "finalize_summary"}
+{"time": "2026-05-25T11:53:46", "event": "stage_done", "stage": "finalize_summary", "elapsed_seconds": 0.03}
+{"time": "2026-05-25T11:53:46", "event": "stage_start", "stage": "outline"}
+{"time": "2026-05-25T11:54:19", "event": "stage_done", "stage": "outline", "elapsed_seconds": 33.76}
+{"time": "2026-05-25T11:54:19", "event": "stage_start", "stage": "finalize_outline"}
+{"time": "2026-05-25T11:54:19", "event": "stage_done", "stage": "finalize_outline", "elapsed_seconds": 0.01}
+{"time": "2026-05-25T11:54:19", "event": "stage_start", "stage": "detail_outline_v1"}
+{"time": "2026-05-25T11:55:25", "event": "stage_done", "stage": "detail_outline_v1", "elapsed_seconds": 66.03}
+{"time": "2026-05-25T11:55:26", "event": "stage_start", "stage": "detail_outline_v2"}
+{"time": "2026-05-25T11:56:07", "event": "stage_done", "stage": "detail_outline_v2", "elapsed_seconds": 41.1}
+{"time": "2026-05-25T11:56:07", "event": "stage_start", "stage": "detail_outline_v3"}
+{"time": "2026-05-25T11:56:44", "event": "stage_done", "stage": "detail_outline_v3", "elapsed_seconds": 37.34}
+{"time": "2026-05-25T11:56:44", "event": "stage_start", "stage": "text_chapter_1"}
+{"time": "2026-05-25T11:57:15", "event": "stage_done", "stage": "text_chapter_1", "elapsed_seconds": 30.51}
+{"time": "2026-05-25T11:57:15", "event": "stage_start", "stage": "continuity_after_chapter_1"}
+{"time": "2026-05-25T11:57:25", "event": "stage_done", "stage": "continuity_after_chapter_1", "elapsed_seconds": 10.54}
+{"time": "2026-05-25T11:57:25", "event": "stage_start", "stage": "text_chapter_2"}
+{"time": "2026-05-25T11:57:43", "event": "stage_done", "stage": "text_chapter_2", "elapsed_seconds": 17.67}
+{"time": "2026-05-25T11:57:43", "event": "stage_start", "stage": "continuity_after_chapter_2"}
+{"time": "2026-05-25T11:58:03", "event": "stage_done", "stage": "continuity_after_chapter_2", "elapsed_seconds": 20.39}
+{"time": "2026-05-25T11:58:03", "event": "stage_start", "stage": "wiki_status"}
+{"time": "2026-05-25T11:58:03", "event": "stage_done", "stage": "wiki_status", "elapsed_seconds": 0.04}
+{"time": "2026-05-25T11:58:03", "event": "stage_start", "stage": "wiki_documents"}
+{"time": "2026-05-25T11:58:03", "event": "stage_done", "stage": "wiki_documents", "elapsed_seconds": 0.04}
+{"time": "2026-05-25T11:58:03", "event": "report_written", "path": "reports\\platform_e2e\\novel_146_20260525_115255_e2e_report.json", "novel_id": 146}

@@ -1,0 +1,277 @@
+{
+  "updated_at": "2026-05-09T11:20:44Z",
+  "items": [
+    {
+      "id": "606b05ceee41",
+      "text": "顾沉砚原本只是沿着最寻常的一条检查路线往前走，可当他真正看见2.核心冲突：围绕“救局vs追真相”、“信息核验vs资源调度”、“试探人心vs利益偏移”展开时，脚步还是不由得慢了一瞬。",
+      "status": "partially_resolved",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "顾沉砚原本只是沿着最寻常的一条检查路线往前走，可当他真正看见2.核心冲突：围绕“救局vs追真相”、“信息核验vs资源调度”、“试探人心vs利益偏移”展开时，脚步还是不由得慢了一瞬。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "b8fbe07e823f",
+      "text": "救局追真相证据：1.关系恒定：顾沉林既白（旧识/盟友/防备）、林陆（家族/旧怨）、沈顾（旧识）、边陆（家族牵连）、陆顾（师承）等静态关系不变。",
+      "status": "partially_resolved",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "救局追真相证据：1.关系恒定：顾沉林既白（旧识/盟友/防备）、林陆（家族/旧怨）、沈顾（旧识）、边陆（家族牵连）、陆顾（师承）等静态关系不变。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "267bb8cc6e19",
+      "text": "顾沉砚知道自己已经没有退回局外的余地，林既白也明白稳住局面的代价只会越来越高，至于陆照野，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "顾沉砚知道自己已经没有退回局外的余地，林既白也明白稳住局面的代价只会越来越高，至于陆照野，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "顾沉砚知道自己已经没有退回局外的余地，林既白也明白稳住局面的代价只会越来越高，至于陆照野，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "4d4edf8e5f2b",
+      "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "80f77ac75371",
+      "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "84fa9e33c990",
+      "text": "主要人物和他们的行为':{'顾沉砚':'太医院旧案牵连者，围绕核心异常、人物站位和第一轮代价展开。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "主要人物和他们的行为':{'顾沉砚':'太医院旧案牵连者，围绕核心异常、人物站位和第一轮代价展开。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "主要人物和他们的行为':{'顾沉砚':'太医院旧案牵连者，围绕核心异常、人物站位和第一轮代价展开。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "b801f5189f3e",
+      "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "d068cd6df9c2",
+      "text": "顾沉砚想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "顾沉砚想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "顾沉砚想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    },
+    {
+      "id": "dab53a6da810",
+      "text": "当他们以为这一轮判断已经足够靠近真相时，直接输出小说正文。",
+      "status": "strengthened",
+      "first_volume": null,
+      "first_chapter": 1,
+      "first_title": "救局追真相证据",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": null,
+          "chapter_no": 1,
+          "title": "救局追真相证据",
+          "event": "touch",
+          "text": "当他们以为这一轮判断已经足够靠近真相时，直接输出小说正文。",
+          "updated_at": "2026-05-09T10:35:00Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "破局者试探",
+          "event": "touch",
+          "text": "当他们以为这一轮判断已经足够靠近真相时，问题很快从单点事件扩张成涉及旧案翻案、资源链和隐藏站位的复杂局面。",
+          "updated_at": "2026-05-09T11:20:44Z"
+        }
+      ],
+      "created_at": "2026-05-09T10:35:00Z",
+      "last_volume": 1,
+      "last_chapter": 1,
+      "last_title": "破局者试探",
+      "updated_at": "2026-05-09T11:20:44Z"
+    }
+  ]
+}

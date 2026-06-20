@@ -1,0 +1,8 @@
+{"time": "2026-05-15T01:46:43", "event": "stage_start", "stage": "info_recommend"}
+{"time": "2026-05-15T01:48:07", "event": "stage_done", "stage": "info_recommend", "elapsed_seconds": 84.05}
+{"time": "2026-05-15T01:48:07", "event": "stage_start", "stage": "create_novel"}
+{"time": "2026-05-15T01:48:07", "event": "stage_done", "stage": "create_novel", "elapsed_seconds": 0.09}
+{"time": "2026-05-15T01:48:07", "event": "novel_created", "novel_id": 127}
+{"time": "2026-05-15T01:48:07", "event": "stage_start", "stage": "persist_topology"}
+{"time": "2026-05-15T01:48:07", "event": "stage_done", "stage": "persist_topology", "elapsed_seconds": 0.04}
+{"time": "2026-05-15T01:48:07", "event": "stage_start", "stage": "summary"}

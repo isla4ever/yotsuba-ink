@@ -1,0 +1,99 @@
+{
+  "started_at": "20260522_193359",
+  "user_id": 507453444,
+  "title": "雾港回声档案-联调-20260522_193359",
+  "stages": {
+    "template": {
+      "request": {
+        "method": "POST",
+        "path": "/template",
+        "kwargs": {
+          "json": {
+            "title": "雾港回声档案-联调-20260522_193359",
+            "tags": [
+              {
+                "id": 1,
+                "name": "悬疑",
+                "isShow": 1,
+                "categoryId": 1
+              }
+            ],
+            "creativeKeywords": [
+              "港口旧档案",
+              "群像悬疑",
+              "城市异能",
+              "失踪案",
+              "关系网反转"
+            ]
+          }
+        }
+      },
+      "status_code": 200,
+      "elapsed_seconds": 81.06,
+      "body_excerpt": "{\"message\":\"创作模型正在重组设定，请稍后重试\",\"code\":500,\"data\":null}",
+      "response": {
+        "message": "创作模型正在重组设定，请稍后重试",
+        "code": 500,
+        "data": null
+      }
+    }
+  },
+  "model_health": {
+    "status": "ok",
+    "mode": "online",
+    "model": "ChiYong-MoE-Novel-18B-A6B",
+    "tokenhub_base_url": "https://tokenhub.tencentmaas.com/v1",
+    "task_model_mapping": {
+      "info_recommend": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 1800,
+        "temperature": 0.58,
+        "top_p": 0.95
+      },
+      "summary": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 1200,
+        "temperature": 0.48,
+        "top_p": 0.95
+      },
+      "outline": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 1600,
+        "temperature": 0.46,
+        "top_p": 0.95
+      },
+      "detail_outline": {
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "low",
+        "max_tokens": 2400,
+        "temperature": 0.42,
+        "top_p": 0.95
+      },
+      "text": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 3600,
+        "temperature": 0.32,
+        "top_p": 0.95
+      },
+      "text_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 4200,
+        "temperature": 0.32,
+        "top_p": 0.95
+      },
+      "text_non_first_chapter": {
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "low",
+        "max_tokens": 4200,
+        "temperature": 0.32,
+        "top_p": 0.95
+      }
+    }
+  },
+  "fatal_error": "RuntimeError('template response invalid')"
+}

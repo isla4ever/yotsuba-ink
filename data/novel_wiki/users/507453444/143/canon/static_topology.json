@@ -1,0 +1,137 @@
+{
+  "user_id": "507453444",
+  "novel_id": "143",
+  "title": "回声雾港-八万联调-20260523_214654",
+  "nodes": [
+    {
+      "id": "林雾",
+      "label": "林雾",
+      "type": "character",
+      "role": "character",
+      "summary": "声纹档案管理员/冷静疏离/修复异常音频/主线调查者。关系锚点：与陈默是委托与被委托"
+    },
+    {
+      "id": "陈默",
+      "label": "陈默",
+      "type": "character",
+      "role": "family",
+      "summary": "失踪者亲属/偏执焦虑/寻找兄长下落/主线推动者。关系锚点：与林雾是委托与被委托"
+    },
+    {
+      "id": "苏红",
+      "label": "苏红",
+      "type": "character",
+      "role": "character",
+      "summary": "旧港住户/热心敏感/守护老街记忆/邻里支点人物。关系锚点：与吴老是邻里旧识"
+    },
+    {
+      "id": "赵铁",
+      "label": "赵铁",
+      "type": "character",
+      "role": "character",
+      "summary": "片区警官/务实强硬/维持表面秩序/现实压力来源。关系锚点：与林雾是同事"
+    },
+    {
+      "id": "周听",
+      "label": "周听",
+      "type": "character",
+      "role": "character",
+      "summary": "频率工程师/天才孤僻/解析记忆波段/关键同行者。关系锚点：与林雾是同事"
+    },
+    {
+      "id": "吴老",
+      "label": "吴老",
+      "type": "character",
+      "role": "character",
+      "summary": "退休渔民/沉默寡言/知晓旧港真相/隐藏旧事知情者。关系锚点：与苏红是邻里旧识"
+    },
+    {
+      "id": "叶曼",
+      "label": "叶曼",
+      "type": "character",
+      "role": "character",
+      "summary": "开发商代表/精致冷酷/推进拆迁计划/利益冲突。关系锚点：与陈默是利益冲突"
+    },
+    {
+      "id": "林河",
+      "label": "林河",
+      "type": "character",
+      "role": "protagonist",
+      "summary": "失踪兄长/声音样本/核心谜题载体/亲情牵引者。关系锚点：与陈默是亲属"
+    }
+  ],
+  "edges": [
+    {
+      "source": "林雾",
+      "target": "陈默",
+      "relation_type": "connection",
+      "label": "主线交集",
+      "evidence": "声纹档案管理员/冷静疏离/修复异常音频/主线调查者。关系锚点：与陈默是委托与被委托",
+      "confidence": 0.68
+    },
+    {
+      "source": "陈默",
+      "target": "林雾",
+      "relation_type": "family",
+      "label": "家族/血缘",
+      "evidence": "失踪者亲属/偏执焦虑/寻找兄长下落/主线推动者。关系锚点：与林雾是委托与被委托",
+      "confidence": 0.68
+    },
+    {
+      "source": "苏红",
+      "target": "吴老",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "旧港住户/热心敏感/守护老街记忆/邻里支点人物。关系锚点：与吴老是邻里旧识",
+      "confidence": 0.68
+    },
+    {
+      "source": "赵铁",
+      "target": "林雾",
+      "relation_type": "faction",
+      "label": "同事",
+      "evidence": "片区警官/务实强硬/维持表面秩序/现实压力来源。关系锚点：与林雾是同事",
+      "confidence": 0.9
+    },
+    {
+      "source": "周听",
+      "target": "林雾",
+      "relation_type": "faction",
+      "label": "同事",
+      "evidence": "频率工程师/天才孤僻/解析记忆波段/关键同行者。关系锚点：与林雾是同事",
+      "confidence": 0.9
+    },
+    {
+      "source": "叶曼",
+      "target": "陈默",
+      "relation_type": "connection",
+      "label": "主线交集",
+      "evidence": "开发商代表/精致冷酷/推进拆迁计划/利益冲突。关系锚点：与陈默是利益冲突",
+      "confidence": 0.68
+    },
+    {
+      "source": "林河",
+      "target": "陈默",
+      "relation_type": "family",
+      "label": "家族/血缘",
+      "evidence": "失踪兄长/声音样本/核心谜题载体/亲情牵引者。关系锚点：与陈默是亲属",
+      "confidence": 0.68
+    }
+  ],
+  "source": "info_recommend",
+  "stage_policy": "static_initial_topology",
+  "quality": {
+    "character_count": 8,
+    "edge_count": 7,
+    "static_edge_count": 5,
+    "relation_type_count": 3,
+    "coverage_ratio": 1.0,
+    "score": 75,
+    "level": "watch",
+    "warnings": [
+      "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+      "存在泛化主线交集边，建议改为更明确的静态关系。"
+    ]
+  },
+  "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+}

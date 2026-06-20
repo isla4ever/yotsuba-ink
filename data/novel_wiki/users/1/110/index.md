@@ -1,0 +1,15 @@
+# 小说 Wiki 索引
+- [[sources/雾港世界观联调资料]]：雾港世界观联调资料（worldbuilding）
+- [[entities/characters/沈知砚]]：人物 沈知砚
+- [[entities/characters/林望舒]]：人物 林望舒
+- [[entities/characters/沈明澈]]：人物 沈明澈
+- [[entities/characters/顾青舟]]：人物 顾青舟
+- [[entities/characters/许雁回]]：人物 许雁回
+- [[relations/沈知砚__林望舒]]：沈知砚 与 林望舒 的 background 关系
+- [[relations/沈知砚__顾青舟]]：沈知砚 与 顾青舟 的 background 关系
+- [[relations/林望舒__顾青舟]]：林望舒 与 顾青舟 的 background 关系
+- [[relations/沈明澈__沈知砚]]：沈明澈 与 沈知砚 的 connection 关系
+- [[relations/沈明澈__顾青舟]]：沈明澈 与 顾青舟 的 connection 关系
+- [[relations/顾青舟__许雁回]]：顾青舟 与 许雁回 的 enemy 关系
+- [[relations/沈知砚__沈明澈]]：沈知砚 与 沈明澈 的 family 关系
+- [[relations/林望舒__许雁回]]：林望舒 与 许雁回 的 faction 关系

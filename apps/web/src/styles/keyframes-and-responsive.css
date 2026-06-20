@@ -1,0 +1,372 @@
+@keyframes shellAurora {
+  from {
+    background-position: 0 0, 18px 12px, center, 0% 50%, center, center;
+  }
+  to {
+    background-position: 0 0, 18px 12px, center, 100% 50%, center, center;
+  }
+}
+
+@keyframes ambientStars {
+  from {
+    background-position: 0 0, 18px 12px, center, 0% 50%, center, center;
+  }
+  to {
+    background-position: 46px 46px, -44px 74px, center, 0% 50%, center, center;
+  }
+}
+
+@keyframes ambientScan {
+  0%, 100% {
+    opacity: 0.18;
+    transform: translateX(-12%);
+  }
+  50% {
+    opacity: 0.46;
+    transform: translateX(12%);
+  }
+}
+
+@keyframes cardScan {
+  0%, 100% {
+    opacity: 0.18;
+    transform: translateX(-24%);
+  }
+  50% {
+    opacity: 0.72;
+    transform: translateX(24%);
+  }
+}
+
+@keyframes fxBorderOrbit {
+  to {
+    --fx-angle: 360deg;
+  }
+}
+
+@keyframes borderBreath {
+  0%, 100% {
+    filter: brightness(0.9);
+    opacity: calc(var(--fx-opacity, 0.72) * 0.45);
+  }
+  50% {
+    filter: brightness(1.16);
+    opacity: var(--fx-opacity, 0.72);
+  }
+}
+
+@keyframes saveShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-2px);
+  }
+  65% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes nodeShimmer {
+  0%, 100% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2) 18%, transparent), var(--shadow);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 10%, transparent), var(--shadow);
+  }
+}
+
+@keyframes ecgTailTrace {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 104.4;
+  }
+  8%,
+  88% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes graphDrift {
+  0% {
+    transform: translate3d(-8px, 4px, 0) scale(0.96);
+  }
+  100% {
+    transform: translate3d(12px, 12px, 0) scale(1.04);
+  }
+}
+
+@keyframes saveShimmer {
+  0% {
+    left: -48%;
+  }
+  100% {
+    left: 110%;
+  }
+}
+
+@keyframes savePulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 38%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@keyframes particleDrift {
+  from {
+    background-position: 12% 42%, 72% 58%;
+  }
+  to {
+    background-position: 88% 42%, 18% 58%;
+  }
+}
+
+@keyframes buttonAmbient {
+  0% {
+    background-position: 10% 40%, 72% 68%, 0% 50%;
+  }
+  100% {
+    background-position: 86% 38%, 18% 62%, 200% 50%;
+  }
+}
+
+@keyframes controlSeamPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scaleY(0.72);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes noticeBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes noticeBackdropOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes noticeCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes noticeCardOut {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@keyframes modeEnergySweep {
+  0% {
+    opacity: 0;
+    transform: rotate(-70deg) scale(0.58);
+  }
+  45% {
+    opacity: 0.82;
+  }
+  72% {
+    opacity: 0.54;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(95deg) scale(1.28);
+  }
+}
+
+@keyframes modeOrbPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mode-aura) 0%, transparent);
+    transform: scale(0.92);
+  }
+  45% {
+    box-shadow:
+      0 0 0 10px color-mix(in srgb, var(--mode-aura) 18%, transparent),
+      0 0 24px color-mix(in srgb, var(--mode-aura) 28%, transparent);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mode-aura) 0%, transparent);
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .product-shell {
+    animation: none !important;
+  }
+
+  .product-shell::before,
+  .tech-button::before,
+  .tech-icon-button::before,
+  .save-state::before,
+  .icon-button::after,
+  .run-button::after,
+  .quality-mode-tabs::before {
+    opacity: 0 !important;
+  }
+}
+
+@media (max-width: 1400px) {
+  .app-header {
+    gap: 14px;
+    grid-template-columns: 190px minmax(460px, 1fr) auto;
+  }
+
+  .workbench {
+    grid-template-columns: minmax(300px, 1fr) 260px 255px 315px;
+  }
+
+  .stage-mini-progress {
+    grid-template-columns: minmax(124px, 156px) minmax(230px, 1fr);
+    max-width: none;
+  }
+
+  .force-graph-wrap canvas {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1280px) {
+  .app-header {
+    grid-template-columns: minmax(150px, 185px) minmax(430px, 1fr) auto;
+  }
+
+  .workbench {
+    grid-template-columns: minmax(300px, 1fr) 255px 245px 300px;
+  }
+
+  .writing-workbench,
+  .stage-run-workbench {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .writing-side,
+  .stage-run-side {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  .product-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .app-header {
+    grid-template-columns: 1fr;
+  }
+
+  .header-progress-slot {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .stage-mini-progress {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+
+  .stage-mini-track {
+    overflow-x: auto;
+  }
+
+  .workbench {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .inspector {
+    display: block;
+  }
+
+  .writing-bottom-grid,
+  .writing-side,
+  .stage-run-side,
+  .stage-run-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    justify-content: end;
+  }
+
+  .save-state {
+    max-width: 74px;
+    overflow: hidden;
+  }
+
+  .insight-rail {
+    grid-template-rows: auto auto;
+  }
+
+  .knowledge-world-rail {
+    grid-template-rows: auto auto;
+  }
+
+  .console-content {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-tab-list {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 0 0 10px;
+  }
+
+  .settings-dialog {
+    width: min(760px, calc(100vw - 28px));
+  }
+
+  .settings-dialog-inner {
+    max-height: calc(100vh - 28px);
+    min-height: 0;
+    padding: 14px;
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "user_id": "1",
+  "novel_id": "151",
+  "title": "潮声旧档",
+  "nodes": [
+    {
+      "id": "沈书宁",
+      "label": "沈书宁",
+      "type": "character",
+      "role": "family",
+      "summary": "独立纪录片导演/表面疏离内心敏感/用镜头寻找母亲失踪的真相/主线调查者。关系锚点：与沈卫国是父女。"
+    },
+    {
+      "id": "沈卫国",
+      "label": "沈卫国",
+      "type": "character",
+      "role": "family",
+      "summary": "退休潮汐观测员/沉默固执、把痛苦封存在旧物里/守护旧港观测站最后的完整记录/主线阻力与钥匙。关系锚点：与沈书宁是父女。"
+    },
+    {
+      "id": "林潮生",
+      "label": "林潮生",
+      "type": "character",
+      "role": "ally",
+      "summary": "旧港码头管理员/寡言仗义、熟知潮汐与旧事/替失踪者保管关键证物/主线协助者。关系锚点：与沈卫国是邻里旧识。"
+    },
+    {
+      "id": "周敏",
+      "label": "周敏",
+      "type": "character",
+      "role": "ally",
+      "summary": "市档案馆修复员/冷静缜密、相信证据链/协助修复受损录音带并追溯来源/主线技术支撑。关系锚点：与沈书宁是委托与被委托。"
+    },
+    {
+      "id": "孟怀远",
+      "label": "孟怀远",
+      "type": "character",
+      "role": "character",
+      "summary": "已退休老刑警/旧案未破成为心病/掌握当年调查的第一手疑点/主线信息提供者。关系锚点：与沈卫国是背景交集。"
+    },
+    {
+      "id": "何秋兰",
+      "label": "何秋兰",
+      "type": "character",
+      "role": "character",
+      "summary": "旧港老街杂货铺老板娘/热心肠的消息枢纽/记得失踪者最后出现在港区的细节/邻里支点人物。关系锚点：与沈书宁是邻里旧识。"
+    },
+    {
+      "id": "江予安",
+      "label": "江予安",
+      "type": "character",
+      "role": "character",
+      "summary": "市局刑侦支队警员/务实理性、按程序办事/对重启旧案持保留态度但提供部分卷宗支持/现实压力来源。关系锚点：与沈书宁是利益冲突。"
+    }
+  ],
+  "edges": [
+    {
+      "source": "沈书宁",
+      "target": "沈卫国",
+      "relation_type": "family",
+      "label": "父女",
+      "evidence": "独立纪录片导演/表面疏离内心敏感/用镜头寻找母亲失踪的真相/主线调查者。关系锚点：与沈卫国是父女。",
+      "confidence": 0.9
+    },
+    {
+      "source": "林潮生",
+      "target": "沈卫国",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "旧港码头管理员/寡言仗义、熟知潮汐与旧事/替失踪者保管关键证物/主线协助者。关系锚点：与沈卫国是邻里旧识。",
+      "confidence": 0.68
+    },
+    {
+      "source": "周敏",
+      "target": "沈书宁",
+      "relation_type": "connection",
+      "label": "主线交集",
+      "evidence": "市档案馆修复员/冷静缜密、相信证据链/协助修复受损录音带并追溯来源/主线技术支撑。关系锚点：与沈书宁是委托与被委托。",
+      "confidence": 0.68
+    },
+    {
+      "source": "孟怀远",
+      "target": "沈卫国",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "已退休老刑警/旧案未破成为心病/掌握当年调查的第一手疑点/主线信息提供者。关系锚点：与沈卫国是背景交集。",
+      "confidence": 0.68
+    },
+    {
+      "source": "何秋兰",
+      "target": "沈书宁",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "旧港老街杂货铺老板娘/热心肠的消息枢纽/记得失踪者最后出现在港区的细节/邻里支点人物。关系锚点：与沈书宁是邻里旧识。",
+      "confidence": 0.68
+    },
+    {
+      "source": "江予安",
+      "target": "沈书宁",
+      "relation_type": "background",
+      "label": "背景交集",
+      "evidence": "市局刑侦支队警员/务实理性、按程序办事/对重启旧案持保留态度但提供部分卷宗支持/现实压力来源。关系锚点：与沈书宁是利益冲突。",
+      "confidence": 0.68
+    }
+  ],
+  "source": "info_recommend",
+  "stage_policy": "static_initial_topology",
+  "quality": {
+    "character_count": 7,
+    "edge_count": 6,
+    "static_edge_count": 5,
+    "relation_type_count": 2,
+    "coverage_ratio": 1.0,
+    "score": 67,
+    "level": "risk",
+    "warnings": [
+      "静态关系密度偏低，后续梗概和大纲可能缺少人物牵引。",
+      "关系类型不够丰富，建议增加家族、敌对、阵营、师承、旧识等差异化关系。",
+      "存在泛化主线交集边，建议改为更明确的静态关系。"
+    ]
+  },
+  "note": "人物关系网应在信息推荐阶段高质量定稿。关系边偏向家族、背景、阵营、旧识、师承、敌友等静态关系，不随梗概、大纲、细纲或正文回写自动迭代。"
+}

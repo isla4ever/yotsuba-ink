@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "title": "潮声旧档",
+  "error": "backend code=500 message=创作模型更新维护中，请稍后再试 path=/front/detailOutline",
+  "failed_at": "2026-05-25T12:41:33"
+}

@@ -1,0 +1,14 @@
+# 小说 Wiki 索引
+- [[sources/云崖医馆札记-世界观测试资料]]：云崖医馆札记 世界观测试资料（test_worldbuilding）
+- [[ledgers/character_states/chapter-001]]：第 1 章人物状态账本
+- [[ledgers/foreshadows/chapter-001]]：第 1 章伏笔账本
+- [[ledgers/timeline/chapter-001]]：第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/chapter-001-quality]]：第 1 章质检报告
+- [[chapters/summaries/chapter-001]]：章节标题逆流 摘要
+- [[chapters/canon_events/chapter-001]]：章节标题逆流 已发生事实
+- [[ledgers/foreshadows/chapter-002]]：第 2 章伏笔账本
+- [[ledgers/timeline/chapter-002]]：第 2 章时间线账本
+- [[reports/chapters/chapter-002-quality]]：第 2 章质检报告
+- [[chapters/summaries/chapter-002]]：章节头试探 摘要
+- [[chapters/canon_events/chapter-002]]：章节头试探 已发生事实

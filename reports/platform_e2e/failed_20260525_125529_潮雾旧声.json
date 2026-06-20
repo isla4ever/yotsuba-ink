@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "title": "潮雾旧声",
+  "error": "backend code=500 message=正文生成质量不足：段落或标点异常，请换一稿重试 path=/front/getText",
+  "failed_at": "2026-05-25T12:55:29"
+}

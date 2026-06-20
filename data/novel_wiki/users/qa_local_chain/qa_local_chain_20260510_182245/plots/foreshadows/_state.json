@@ -1,0 +1,357 @@
+{
+  "updated_at": "2026-05-10T10:30:15Z",
+  "items": [
+    {
+      "id": "b28d46bd1808",
+      "text": "纸张边缘还残留着某种特殊的触感——不是粗糙的纤维，而是一种经过特殊处理后的平滑，甚至带着微弱的静电吸附力，仿佛它在抗拒被触碰。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "寻找自证清白",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "寻找自证清白",
+          "event": "touch",
+          "text": "纸张边缘还残留着某种特殊的触感——不是粗糙的纤维，而是一种经过特殊处理后的平滑，甚至带着微弱的静电吸附力，仿佛它在抗拒被触碰。",
+          "updated_at": "2026-05-10T10:28:26Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:28:26Z",
+      "last_volume": 1,
+      "last_chapter": 2,
+      "last_title": "寻找自证清白",
+      "updated_at": "2026-05-10T10:28:26Z"
+    },
+    {
+      "id": "21de88ae050a",
+      "text": "梁照雪想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "梁照雪想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "梁照雪想顺着异动继续往下追，生怕松手之后真正有用的线索会被迅速扩大的噪音吞掉。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "35289c190f6f",
+      "text": "三年前因一场错误预警离职，岑越这卷先得把“核验线索”撑起来。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "三年前因一场错误预警离职，岑越这卷先得把“核验线索”撑起来。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "三年前因一场错误预警离职，岑越这卷先得把“核验线索”撑起来。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "47538fd4270d",
+      "text": "梁照雪知道自己已经没有退回局外的余地，岑越也明白稳住局面的代价只会越来越高，至于周临川，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "梁照雪知道自己已经没有退回局外的余地，岑越也明白稳住局面的代价只会越来越高，至于周临川，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "梁照雪知道自己已经没有退回局外的余地，岑越也明白稳住局面的代价只会越来越高，至于周临川，他更清楚接下来任何一次试探都可能直接把暗处的人逼到明面。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "5cbc22b6bc23",
+      "text": "当他们以为这一轮判断已经足够靠近真相时，却已经贴到每个人后颈。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "当他们以为这一轮判断已经足够靠近真相时，却已经贴到每个人后颈。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "当他们以为这一轮判断已经足够靠近真相时，谁都没法再停在原地。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "68ea03d78236",
+      "text": "他脑子里最先浮上来的不是结论，而是自己此刻最该守住的那条线：海雾气象站前数据员，三年前因一场错误预警离职，仍保存着最后一组异常潮汐记录。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "他脑子里最先浮上来的不是结论，而是自己此刻最该守住的那条线：海雾气象站前数据员，三年前因一场错误预警离职，仍保存着最后一组异常潮汐记录。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "他脑子里最先浮上来的不是结论，而是自己此刻最该守住的那条线：海雾气象站前数据员，三年前因一场错误预警离职，仍保存着最后一组异常潮汐记录。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "76b0484addf5",
+      "text": "异常信号异讯：平静的“临时清出的安全屋前厅”被“确立“先追哪线、先保谁、先舍谁”的抉择逻辑”一下撕开了口子。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "异常信号异讯：平静的“临时清出的安全屋前厅”被“确立“先追哪线、先保谁、先舍谁”的抉择逻辑”一下撕开了口子。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "782604eb3c66",
+      "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "如果有人真在利用这次异动重排所有人的站位，那么眼前这份东西就绝不只是线索，它更像一枚故意掷出来的试探。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "8dcffb885ca5",
+      "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "也正因为他知道这一步不能错，心里那点隐约的不对劲才越发清晰。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "9f7e83b009e4",
+      "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "异常信号异讯",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "异常信号异讯",
+          "event": "touch",
+          "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+          "updated_at": "2026-05-10T10:26:39Z"
+        },
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "雨夜暗痕",
+          "event": "touch",
+          "text": "他带来的不只是另一套看法，还有更直接的提醒：现在每往前多走一步，代价都可能比表面看见的更重。",
+          "updated_at": "2026-05-10T10:30:15Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:26:39Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "5da3e55599fa",
+      "text": "”梁照雪站起身，拍了拍膝盖上的灰尘，动作间流露出一种长期压抑后的疲惫，“我需要确认一件事：如果我把这东西交给救援队，会不会有人为了掩盖真相而把它销毁。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "寻找自证清白",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "寻找自证清白",
+          "event": "touch",
+          "text": "”梁照雪站起身，拍了拍膝盖上的灰尘，动作间流露出一种长期压抑后的疲惫，“我需要确认一件事：如果我把这东西交给救援队，会不会有人为了掩盖真相而把它销毁。",
+          "updated_at": "2026-05-10T10:28:26Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:28:26Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    },
+    {
+      "id": "dbfb30b82b38",
+      "text": "就像……有人在幕后拉着一根看不见的弦。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "寻找自证清白",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "寻找自证清白",
+          "event": "touch",
+          "text": "就像……有人在幕后拉着一根看不见的弦。",
+          "updated_at": "2026-05-10T10:28:26Z"
+        }
+      ],
+      "created_at": "2026-05-10T10:28:26Z",
+      "last_volume": 1,
+      "last_chapter": 3,
+      "last_title": "雨夜暗痕",
+      "updated_at": "2026-05-10T10:30:15Z"
+    }
+  ]
+}

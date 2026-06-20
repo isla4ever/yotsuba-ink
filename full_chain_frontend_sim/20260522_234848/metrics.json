@@ -1,0 +1,169 @@
+{
+  "stages": {
+    "template": {
+      "status_code": 200,
+      "elapsed_seconds": 36.25,
+      "note": "chars=5568"
+    },
+    "create_novel": {
+      "status_code": 200,
+      "elapsed_seconds": 0.11
+    },
+    "summary": {
+      "status_code": 200,
+      "elapsed_seconds": 17.57
+    },
+    "save_summary": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    },
+    "finalize_summary": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    },
+    "outline": {
+      "status_code": 200,
+      "elapsed_seconds": 28.28
+    },
+    "save_outline": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalize_outline": {
+      "status_code": 200,
+      "elapsed_seconds": 0.03
+    },
+    "detail_outline_v1": {
+      "status_code": 200,
+      "elapsed_seconds": 42.55
+    },
+    "chapters_v1": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    },
+    "save_detail_v1": {
+      "status_code": 200,
+      "elapsed_seconds": 0.06
+    },
+    "finalize_detail_v1": {
+      "status_code": 200,
+      "elapsed_seconds": 0.07
+    },
+    "finalized_chapters_v1": {
+      "status_code": 200,
+      "elapsed_seconds": 0.03
+    },
+    "save_text_474": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalize_text_474": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "save_text_475": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalize_text_475": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    },
+    "save_text_476": {
+      "status_code": 200,
+      "elapsed_seconds": 0.06
+    },
+    "finalize_text_476": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    },
+    "detail_outline_v2": {
+      "status_code": 200,
+      "elapsed_seconds": 124.24
+    },
+    "chapters_v2": {
+      "status_code": 200,
+      "elapsed_seconds": 0.03
+    },
+    "save_detail_v2": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalize_detail_v2": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalized_chapters_v2": {
+      "status_code": 200,
+      "elapsed_seconds": 0.02
+    },
+    "save_text_477": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalize_text_477": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    },
+    "save_text_478": {
+      "status_code": 200,
+      "elapsed_seconds": 0.05
+    },
+    "finalize_text_478": {
+      "status_code": 200,
+      "elapsed_seconds": 0.04
+    }
+  },
+  "chapters": [
+    {
+      "id": 474,
+      "sort": 1,
+      "volume": 1,
+      "content_length": 10335,
+      "thinking_length": 49,
+      "first_content_latency_seconds": 5.0,
+      "elapsed_seconds": 27.96
+    },
+    {
+      "id": 475,
+      "sort": 2,
+      "volume": 1,
+      "content_length": 12246,
+      "thinking_length": 49,
+      "first_content_latency_seconds": 18.71,
+      "elapsed_seconds": 50.61
+    },
+    {
+      "id": 476,
+      "sort": 3,
+      "volume": 1,
+      "content_length": 11549,
+      "thinking_length": 49,
+      "first_content_latency_seconds": 20.11,
+      "elapsed_seconds": 47.05
+    },
+    {
+      "id": 477,
+      "sort": 4,
+      "volume": 2,
+      "content_length": 11328,
+      "thinking_length": 49,
+      "first_content_latency_seconds": 3.58,
+      "elapsed_seconds": 31.19
+    },
+    {
+      "id": 478,
+      "sort": 5,
+      "volume": 2,
+      "content_length": 9237,
+      "thinking_length": 49,
+      "first_content_latency_seconds": 23.42,
+      "elapsed_seconds": 47.46
+    }
+  ],
+  "totals": {
+    "generated_chars": 54695,
+    "fail_count": 0,
+    "warn_count": 0
+  }
+}

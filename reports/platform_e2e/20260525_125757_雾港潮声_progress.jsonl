@@ -1,0 +1,24 @@
+{"time": "2026-05-25T12:57:57", "event": "stage_start", "stage": "info_recommend"}
+{"time": "2026-05-25T12:58:20", "event": "stage_done", "stage": "info_recommend", "elapsed_seconds": 22.83}
+{"time": "2026-05-25T12:58:20", "event": "stage_start", "stage": "create_novel"}
+{"time": "2026-05-25T12:58:20", "event": "stage_done", "stage": "create_novel", "elapsed_seconds": 0.15}
+{"time": "2026-05-25T12:58:20", "event": "novel_created", "novel_id": 154}
+{"time": "2026-05-25T12:58:20", "event": "stage_start", "stage": "novel_info_after_create"}
+{"time": "2026-05-25T12:58:20", "event": "stage_done", "stage": "novel_info_after_create", "elapsed_seconds": 0.04}
+{"time": "2026-05-25T12:58:20", "event": "stage_start", "stage": "persist_topology"}
+{"time": "2026-05-25T12:58:20", "event": "stage_done", "stage": "persist_topology", "elapsed_seconds": 0.62}
+{"time": "2026-05-25T12:58:20", "event": "stage_start", "stage": "summary"}
+{"time": "2026-05-25T12:58:48", "event": "stage_done", "stage": "summary", "elapsed_seconds": 27.3}
+{"time": "2026-05-25T12:58:48", "event": "stage_start", "stage": "finalize_summary"}
+{"time": "2026-05-25T12:58:48", "event": "stage_done", "stage": "finalize_summary", "elapsed_seconds": 0.02}
+{"time": "2026-05-25T12:58:48", "event": "stage_start", "stage": "outline"}
+{"time": "2026-05-25T12:59:15", "event": "stage_done", "stage": "outline", "elapsed_seconds": 27.07}
+{"time": "2026-05-25T12:59:15", "event": "stage_start", "stage": "finalize_outline"}
+{"time": "2026-05-25T12:59:15", "event": "stage_done", "stage": "finalize_outline", "elapsed_seconds": 0.02}
+{"time": "2026-05-25T12:59:15", "event": "stage_start", "stage": "detail_outline_v1"}
+{"time": "2026-05-25T12:59:35", "event": "stage_done", "stage": "detail_outline_v1", "elapsed_seconds": 20.29}
+{"time": "2026-05-25T12:59:35", "event": "stage_start", "stage": "detail_outline_v2"}
+{"time": "2026-05-25T13:01:12", "event": "stage_done", "stage": "detail_outline_v2", "elapsed_seconds": 96.53}
+{"time": "2026-05-25T13:01:12", "event": "stage_start", "stage": "detail_outline_v3"}
+{"time": "2026-05-25T13:01:42", "event": "stage_done", "stage": "detail_outline_v3", "elapsed_seconds": 30.59}
+{"time": "2026-05-25T13:01:42", "event": "stage_start", "stage": "text_chapter_1"}

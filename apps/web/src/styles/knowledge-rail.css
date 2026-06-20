@@ -1,0 +1,150 @@
+.insight-rail,
+.knowledge-world-rail,
+.inspector {
+  min-height: 0;
+  overflow: auto;
+}
+
+.knowledge-world-rail {
+  display: grid;
+  gap: 12px;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.insight-rail {
+  display: grid;
+  gap: 12px;
+  grid-template-rows: minmax(260px, 1fr) auto;
+  min-width: 0;
+}
+
+.knowledge-mini-card,
+.insight-card {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 36%),
+    color-mix(in srgb, var(--panel) 96%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.knowledge-mini-head,
+.insight-card-head {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.knowledge-mini-head h3,
+.insight-card-head h3 {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 15px;
+  gap: 7px;
+  margin: 0;
+}
+
+.knowledge-mini-stats,
+.rail-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.knowledge-mini-stats strong,
+.rail-stats strong {
+  background: color-mix(in srgb, var(--panel-muted) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  font-size: 16px;
+  gap: 4px;
+  padding: 10px 8px;
+}
+
+.knowledge-mini-stats span,
+.rail-stats span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.kb-backend,
+.rail-status {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: 999px;
+  color: var(--text-soft);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+}
+
+.kb-backend.warn,
+.rail-status.warn {
+  border-color: color-mix(in srgb, var(--warning) 46%, transparent);
+  color: var(--warning);
+}
+
+.rail-status.ok {
+  border-color: color-mix(in srgb, var(--success) 42%, transparent);
+  color: var(--success);
+}
+
+.knowledge-mini-list,
+.rail-list {
+  display: grid;
+  gap: 7px;
+}
+
+.knowledge-mini-list article {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 8px;
+}
+
+.knowledge-mini-list span {
+  color: var(--text-soft);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-mini-list em {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.knowledge-mini-list p,
+.knowledge-mini-card small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.constraint-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}

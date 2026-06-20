@@ -1,0 +1,27 @@
+# 小说 Wiki 索引
+- [[ledgers/character_states/volume-01-chapter-001]]：第 1 卷第 1 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：雨夜旧港听潮音 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：雨夜旧港听潮音 已发生事实
+- [[reports/_continuity_report]]：小说连续性体检报告
+- [[ledgers/character_states/volume-02-chapter-004]]：第 2 卷第 4 章人物状态账本
+- [[ledgers/foreshadows/volume-02-chapter-004]]：第 2 卷第 4 章伏笔账本
+- [[ledgers/timeline/volume-02-chapter-004]]：第 2 卷第 4 章时间线账本
+- [[reports/chapters/volume-02-chapter-004-quality]]：第 2 卷第 4 章质检报告
+- [[chapters/summaries/volume-02-chapter-004]]：雨夜码头听潮声 摘要
+- [[chapters/canon_events/volume-02-chapter-004]]：雨夜码头听潮声 已发生事实
+- [[ledgers/character_states/volume-03-chapter-007]]：第 3 卷第 7 章人物状态账本
+- [[ledgers/foreshadows/volume-03-chapter-007]]：第 3 卷第 7 章伏笔账本
+- [[ledgers/timeline/volume-03-chapter-007]]：第 3 卷第 7 章时间线账本
+- [[reports/chapters/volume-03-chapter-007-quality]]：第 3 卷第 7 章质检报告
+- [[chapters/summaries/volume-03-chapter-007]]：磁带里的惊雷 摘要
+- [[chapters/canon_events/volume-03-chapter-007]]：磁带里的惊雷 已发生事实
+- [[ledgers/character_states/volume-04-chapter-010]]：第 4 卷第 10 章人物状态账本
+- [[ledgers/foreshadows/volume-04-chapter-010]]：第 4 卷第 10 章伏笔账本
+- [[ledgers/timeline/volume-04-chapter-010]]：第 4 卷第 10 章时间线账本
+- [[reports/chapters/volume-04-chapter-010-quality]]：第 4 卷第 10 章质检报告
+- [[chapters/summaries/volume-04-chapter-010]]：旧码头发低语 摘要
+- [[chapters/canon_events/volume-04-chapter-010]]：旧码头发低语 已发生事实

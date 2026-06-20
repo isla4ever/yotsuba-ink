@@ -1,0 +1,35 @@
+# 小说 Wiki 索引
+- [[sources/霜港回声站世界观种子]]：霜港回声站世界观种子（text）
+- [[entities/characters/梁照雪]]：人物 梁照雪
+- [[entities/characters/岑越]]：人物 岑越
+- [[entities/characters/周临川]]：人物 周临川
+- [[entities/characters/贺今遥]]：人物 贺今遥
+- [[relations/岑越__周临川]]：岑越 与 周临川 的 connection 关系
+- [[relations/梁照雪__周临川]]：梁照雪 与 周临川 的 background 关系
+- [[relations/梁照雪__岑越]]：梁照雪 与 岑越 的 ally 关系
+- [[relations/岑越__梁照雪]]：岑越 与 梁照雪 的 background 关系
+- [[relations/周临川__梁照雪]]：周临川 与 梁照雪 的 ally 关系
+- [[relations/周临川__岑越]]：周临川 与 岑越 的 ally 关系
+- [[relations/贺今遥__梁照雪]]：贺今遥 与 梁照雪 的 ally 关系
+- [[relations/贺今遥__岑越]]：贺今遥 与 岑越 的 ally 关系
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：异常信号异讯 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：异常信号异讯 已发生事实
+- [[reports/chapters/chapter-001-quality]]：第 1 章质检报告
+- [[ledgers/character_states/volume-01-chapter-002]]：第 1 卷第 2 章人物状态账本
+- [[ledgers/foreshadows/volume-01-chapter-002]]：第 1 卷第 2 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-002]]：第 1 卷第 2 章时间线账本
+- [[reports/chapters/volume-01-chapter-002-quality]]：第 1 卷第 2 章质检报告
+- [[chapters/summaries/volume-01-chapter-002]]：寻找自证清白 摘要
+- [[chapters/canon_events/volume-01-chapter-002]]：寻找自证清白 已发生事实
+- [[reports/chapters/chapter-002-quality]]：第 2 章质检报告
+- [[ledgers/foreshadows/volume-01-chapter-003]]：第 1 卷第 3 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-003]]：第 1 卷第 3 章时间线账本
+- [[reports/chapters/volume-01-chapter-003-quality]]：第 1 卷第 3 章质检报告
+- [[chapters/summaries/volume-01-chapter-003]]：雨夜暗痕 摘要
+- [[chapters/canon_events/volume-01-chapter-003]]：雨夜暗痕 已发生事实
+- [[reports/chapters/chapter-003-quality]]：第 3 章质检报告
+- [[reports/_continuity_report]]：小说连续性体检报告

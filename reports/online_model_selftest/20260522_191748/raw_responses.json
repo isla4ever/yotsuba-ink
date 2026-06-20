@@ -1,0 +1,8 @@
+{
+  "started_at": "20260522_191748",
+  "user_id": "codex_selftest",
+  "novel_id": "online_20260522_191748",
+  "health": null,
+  "stages": {},
+  "fatal_error": "RuntimeError('TOKENHUB_API_KEY missing')"
+}

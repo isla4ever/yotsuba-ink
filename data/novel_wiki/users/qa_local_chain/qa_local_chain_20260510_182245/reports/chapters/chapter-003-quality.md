@@ -1,0 +1,19 @@
+---
+type: "chapter_quality_report"
+volume: null
+chapter_no: 3
+chapter_key: "chapter-003"
+score: 88
+level: "good"
+checked_at: "2026-05-10T10:30:15Z"
+---
+
+# 第 3 章质检报告
+
+- 章节：雨夜暗痕
+- 分数：88
+- 等级：good
+- 字数：1188
+
+## 问题清单
+- [warning] 本章字数偏少（约 1188 字）。 建议：扩写场景动作、对话交锋、人物心理和章末推进，避免只完成情节摘要。

@@ -1,0 +1,28 @@
+# 小说 Wiki 索引
+- [[sources/星河灯塔世界观种子]]：星河灯塔世界观种子（text）
+- [[ledgers/character_states/chapter-001]]：第 1 章人物状态账本
+- [[ledgers/foreshadows/chapter-001]]：第 1 章伏笔账本
+- [[ledgers/timeline/chapter-001]]：第 1 章时间线账本
+- [[plots/foreshadows/_state]]：伏笔状态机
+- [[reports/chapters/chapter-001-quality]]：第 1 章质检报告
+- [[chapters/summaries/chapter-001]]：护顾见微查清真相 摘要
+- [[chapters/canon_events/chapter-001]]：护顾见微查清真相 已发生事实
+- [[reports/_continuity_report]]：小说连续性体检报告
+- [[sources/星河灯塔世界观种子-04fe10]]：星河灯塔世界观种子（text）
+- [[entities/characters/季闻夏]]：人物 季闻夏
+- [[entities/characters/乔清和]]：人物 乔清和
+- [[entities/characters/顾见微]]：人物 顾见微
+- [[entities/characters/苏时安]]：人物 苏时安
+- [[relations/乔清和__顾见微]]：乔清和 与 顾见微 的 connection 关系
+- [[relations/季闻夏__顾见微]]：季闻夏 与 顾见微 的 family 关系
+- [[relations/顾见微__季闻夏]]：顾见微 与 季闻夏 的 family 关系
+- [[relations/顾见微__乔清和]]：顾见微 与 乔清和 的 family 关系
+- [[relations/苏时安__季闻夏]]：苏时安 与 季闻夏 的 ally 关系
+- [[relations/苏时安__乔清和]]：苏时安 与 乔清和 的 ally 关系
+- [[relations/季闻夏__乔清和]]：季闻夏 与 乔清和 的 ally 关系
+- [[relations/乔清和__季闻夏]]：乔清和 与 季闻夏 的 family 关系
+- [[ledgers/foreshadows/volume-01-chapter-001]]：第 1 卷第 1 章伏笔账本
+- [[ledgers/timeline/volume-01-chapter-001]]：第 1 卷第 1 章时间线账本
+- [[reports/chapters/volume-01-chapter-001-quality]]：第 1 卷第 1 章质检报告
+- [[chapters/summaries/volume-01-chapter-001]]：异常落地代价 摘要
+- [[chapters/canon_events/volume-01-chapter-001]]：异常落地代价 已发生事实

@@ -1,0 +1,12 @@
+{"time": "2026-05-15T00:33:14", "event": "stage_start", "stage": "info_recommend"}
+{"time": "2026-05-15T00:35:04", "event": "stage_done", "stage": "info_recommend", "elapsed_seconds": 110.76}
+{"time": "2026-05-15T00:35:04", "event": "stage_start", "stage": "create_novel"}
+{"time": "2026-05-15T00:35:04", "event": "stage_done", "stage": "create_novel", "elapsed_seconds": 0.09}
+{"time": "2026-05-15T00:35:04", "event": "novel_created", "novel_id": 118}
+{"time": "2026-05-15T00:35:04", "event": "stage_start", "stage": "persist_topology"}
+{"time": "2026-05-15T00:35:05", "event": "stage_done", "stage": "persist_topology", "elapsed_seconds": 0.05}
+{"time": "2026-05-15T00:35:05", "event": "stage_start", "stage": "summary"}
+{"time": "2026-05-15T00:36:52", "event": "stage_done", "stage": "summary", "elapsed_seconds": 107.73}
+{"time": "2026-05-15T00:36:52", "event": "stage_start", "stage": "finalize_summary"}
+{"time": "2026-05-15T00:36:52", "event": "stage_done", "stage": "finalize_summary", "elapsed_seconds": 0.03}
+{"time": "2026-05-15T00:36:52", "event": "stage_start", "stage": "outline"}

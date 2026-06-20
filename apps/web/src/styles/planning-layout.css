@@ -1,0 +1,304 @@
+.workbench {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(300px, 1fr) clamp(260px, 18vw, 320px) clamp(250px, 18vw, 310px) clamp(300px, 22vw, 370px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px clamp(14px, 1.45vw, 20px);
+}
+
+.canvas-column {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+}
+
+.canvas-shell {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent) 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--panel) 96%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-head {
+  align-items: start;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+}
+
+.canvas-head h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.pipeline-metrics {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.pipeline-metrics span,
+.stage-policy-strip span,
+.constraint-chips span,
+.layer-chips span {
+  background: color-mix(in srgb, var(--panel-muted) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 8px;
+}
+
+.flow-frame {
+  min-height: 0;
+  position: relative;
+}
+
+.flow-frame .react-flow {
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--accent-2) 4%, transparent), transparent 56%),
+    transparent;
+}
+
+.flow-frame .react-flow__renderer,
+.flow-frame .react-flow__pane,
+.flow-frame .react-flow__viewport {
+  min-height: 100%;
+}
+
+.flow-bg {
+  opacity: 0.55;
+}
+
+.flow-frame .react-flow__controls {
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.flow-frame .react-flow__controls-button,
+.react-flow__controls-interactive {
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  color: var(--text-soft);
+}
+
+.flow-frame .react-flow__controls-button:last-child,
+.react-flow__controls-interactive:last-child {
+  border-bottom: 0;
+}
+
+.flow-frame .react-flow__controls-button:hover,
+.react-flow__controls-interactive:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+  transform: none;
+}
+
+.mini-map {
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  height: 78px !important;
+  opacity: 0.92;
+  width: 112px !important;
+}
+
+.compact-node,
+.crosscutting-node {
+  backdrop-filter: blur(8px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 92%, transparent), color-mix(in srgb, var(--panel) 92%, transparent)),
+    color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2);
+  min-width: 0;
+  position: relative;
+}
+
+.compact-node {
+  padding: 12px;
+  width: 212px;
+}
+
+.compact-node.selected {
+  border-color: color-mix(in srgb, var(--accent) 72%, var(--border));
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.24),
+    0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.compact-node.running {
+  border-color: color-mix(in srgb, var(--accent-2) 68%, var(--border));
+}
+
+.compact-node.done {
+  border-color: color-mix(in srgb, var(--success) 56%, var(--border));
+}
+
+.compact-node.failed {
+  border-color: color-mix(in srgb, var(--danger) 58%, var(--border));
+}
+
+.compact-node-top {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.compact-node-top strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.node-index {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  height: 22px;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 7px;
+}
+
+.node-meta {
+  color: var(--muted);
+  display: grid;
+  font-size: 10px;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.node-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.node-badges span {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  gap: 4px;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.node-badges span.on {
+  border-color: color-mix(in srgb, var(--accent-2) 36%, transparent);
+  color: var(--text-soft);
+}
+
+.node-badges span.warn {
+  border-color: color-mix(in srgb, var(--warning) 46%, transparent);
+  color: var(--warning);
+}
+
+.crosscutting-node {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding: 12px 14px;
+  width: 150px;
+}
+
+.crosscutting-node.wiki {
+  border-color: color-mix(in srgb, var(--accent-2) 46%, var(--border));
+}
+
+.crosscutting-node.quality {
+  border-color: color-mix(in srgb, var(--warning) 46%, var(--border));
+}
+
+.crosscutting-node.selected {
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.24),
+    0 0 0 1px color-mix(in srgb, var(--accent-2) 20%, transparent);
+}
+
+.crosscutting-node strong {
+  color: var(--text);
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.crosscutting-node span {
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.crosscutting-orb {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
+  border-radius: 999px;
+  color: var(--text-soft);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.crosscutting-spark {
+  color: var(--accent-2);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-2) 36%, transparent));
+}
+
+.pipeline-edge path {
+  stroke: color-mix(in srgb, var(--edge) 78%, transparent);
+  stroke-width: 2;
+}
+
+.crosscutting-edge path {
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.crosscutting-edge.wiki-edge path {
+  stroke: color-mix(in srgb, var(--accent-2) 74%, transparent);
+}
+
+.crosscutting-edge.quality-edge path {
+  stroke: color-mix(in srgb, var(--warning) 74%, transparent);
+}
+
+.crosscutting-edge.selected path {
+  stroke-width: 2.1;
+}

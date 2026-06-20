@@ -1,0 +1,2325 @@
+{
+  "updated_at": "2026-05-22T17:14:13Z",
+  "items": [
+    {
+      "id": "68563faa00f7",
+      "text": "沈渡掏出车钥匙，按了一下解锁键，远处一辆黑色越野车闪了两下灯。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "研究所裂缝",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "研究所裂缝",
+          "event": "touch",
+          "text": "沈渡掏出车钥匙，按了一下解锁键，远处一辆黑色越野车闪了两下灯。",
+          "updated_at": "2026-05-22T17:01:59Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:01:59Z",
+      "last_volume": 2,
+      "last_chapter": 10,
+      "last_title": "交换禁档",
+      "updated_at": "2026-05-22T17:09:03Z"
+    },
+    {
+      "id": "e3235217f026",
+      "text": "”何屿把录音机转过来给沈渡看，“你看这个峰值，六十点三赫兹，非常稳定，误差不超过零点一赫兹。",
+      "status": "open",
+      "first_volume": 1,
+      "first_chapter": 8,
+      "first_title": "父亲日志",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 8,
+          "title": "父亲日志",
+          "event": "touch",
+          "text": "”何屿把录音机转过来给沈渡看，“你看这个峰值，六十点三赫兹，非常稳定，误差不超过零点一赫兹。",
+          "updated_at": "2026-05-22T17:06:01Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:06:01Z",
+      "last_volume": 2,
+      "last_chapter": 13,
+      "last_title": "自己的回声",
+      "updated_at": "2026-05-22T17:12:24Z"
+    },
+    {
+      "id": "ad58a64ffcf2",
+      "text": "林茂的录音设备被改装含有高压放电模块，播放到特定节点触发电击。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "林茂的录音设备被改装含有高压放电模块，播放到特定节点触发电击。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 14,
+      "last_title": "共振与破裂",
+      "updated_at": "2026-05-22T17:13:20Z"
+    },
+    {
+      "id": "3a9609c2faed",
+      "text": "她打开盒盖，磁带卷得整齐，带头处贴着一小片红色标记带——这是录音师惯用的做法，表示这一段内容需要特别注意。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "她打开盒盖，磁带卷得整齐，带头处贴着一小片红色标记带——这是录音师惯用的做法，表示这一段内容需要特别注意。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 13,
+      "last_title": "自己的回声",
+      "updated_at": "2026-05-22T17:12:24Z"
+    },
+    {
+      "id": "3561217999b1",
+      "text": "” 然后她按下分析仪上的录音键，对着对讲机说：“准备好了。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "” 然后她按下分析仪上的录音键，对着对讲机说：“准备好了。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 14,
+      "last_title": "共振与破裂",
+      "updated_at": "2026-05-22T17:13:20Z"
+    },
+    {
+      "id": "0747d686e045",
+      "text": "当时八万联调局接到一个任务——清理旧港区地下管网中的异常声纹。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 15,
+      "first_title": "容器与容器",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "当时八万联调局接到一个任务——清理旧港区地下管网中的异常声纹。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:14:13Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "080037ecfc04",
+      "text": "共鸣管碎片编号M-19230721，与林茂磁带盒编号一致，关联二十年前被频率同化的人。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 15,
+      "first_title": "容器与容器",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "共鸣管碎片编号M-19230721，与林茂磁带盒编号一致，关联二十年前被频率同化的人。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:14:13Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "4ca576e68b71",
+      "text": "她把碎片翻过来，背面刻着一串编号——M-19230721。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 15,
+      "first_title": "容器与容器",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "她把碎片翻过来，背面刻着一串编号——M-19230721。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:14:13Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5822450519d3",
+      "text": "当他睁开眼睛的时候，他的眼睛里有一种陆声从未见过的疲惫——那是一种被压了太久的秘密终于撑破堤坝的疲惫。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 15,
+      "first_title": "容器与容器",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "当他睁开眼睛的时候，他的眼睛里有一种陆声从未见过的疲惫——那是一种被压了太久的秘密终于撑破堤坝的疲惫。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:14:13Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "e9bc3feccd6e",
+      "text": "林茂死前一周疯狂复制声纹并留下编号，动机是销毁证据还是留下线索不明。",
+      "status": "open",
+      "first_volume": 2,
+      "first_chapter": 15,
+      "first_title": "容器与容器",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "林茂死前一周疯狂复制声纹并留下编号，动机是销毁证据还是留下线索不明。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:14:13Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "0344db75a359",
+      "text": "” “林茂那盘磁带里的低频叠加波，”陆声把光标移到波形图最底端那条几乎平直的线上，“我做了四次滤波处理，去掉所有已知的环境噪声和录音设备底噪，剩下的就是这个。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 15,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "” “林茂那盘磁带里的低频叠加波，”陆声把光标移到波形图最底端那条几乎平直的线上，“我做了四次滤波处理，去掉所有已知的环境噪声和录音设备底噪，剩下的就是这个。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "0a29ef04f5fa",
+      "text": "”陆声说，“我调的是原始电子档案，正式版里关于心肌纤维异常的描述全部被替换成了‘未见明显异常’。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 15,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "”陆声说，“我调的是原始电子档案，正式版里关于心肌纤维异常的描述全部被替换成了‘未见明显异常’。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "9751347696fb",
+      "text": "替换时间是在林茂死后第三天，操作账号归属档案室主任办公室。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "替换时间是在林茂死后第三天，操作账号归属档案室主任办公室。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "c6029bde6afc",
+      "text": "他想申请调阅档案室里的原始工程图纸，被姜衡以‘档案保存状态不佳’为由拒绝了。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "他想申请调阅档案室里的原始工程图纸，被姜衡以‘档案保存状态不佳’为由拒绝了。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 11,
+      "last_title": "缺页频段",
+      "updated_at": "2026-05-22T17:10:17Z"
+    },
+    {
+      "id": "c6d94fc19014",
+      "text": "”陆声说，“但我查了那个账号的操作记录，最近三个月内，它一共修改过七份档案。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 15,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "”陆声说，“但我查了那个账号的操作记录，最近三个月内，它一共修改过七份档案。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "e6393fe60f27",
+      "text": "”陆声从抽屉里抽出一份文件递给他，“但报告里提到一个细节——他的心脏组织切片显示心肌纤维有异常收缩纹路，法医备注说‘类似长期暴露于低频振动环境下的特征性改变’。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "”陆声从抽屉里抽出一份文件递给他，“但报告里提到一个细节——他的心脏组织切片显示心肌纤维有异常收缩纹路，法医备注说‘类似长期暴露于低频振动环境下的特征性改变’。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "fc10ddb8cb88",
+      "text": "桌面上摊着三份打印出来的声谱分析报告，每一份的结论都指向同一个异常点——低频段存在一个叠加波，频率稳定在8.7赫兹，与任何已知的自然声源都不匹配。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 1,
+      "first_title": "钟内密钥",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 1,
+          "title": "钟内密钥",
+          "event": "touch",
+          "text": "桌面上摊着三份打印出来的声谱分析报告，每一份的结论都指向同一个异常点——低频段存在一个叠加波，频率稳定在8.7赫兹，与任何已知的自然声源都不匹配。",
+          "updated_at": "2026-05-22T16:58:48Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:58:48Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "2ea0b2284353",
+      "text": "沈渡从口袋里掏出一把钥匙，插进锁孔里拧了两下，铁门发出一声刺耳的嘎吱声，开了。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 13,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "沈渡从口袋里掏出一把钥匙，插进锁孔里拧了两下，铁门发出一声刺耳的嘎吱声，开了。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5067806df2ce",
+      "text": "但图纸上也有一行手写的小字，字迹潦草，像是后来被人加注上去的：“B-7结构异常，1924年改造后未通过共振测试，建议永久封闭。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "但图纸上也有一行手写的小字，字迹潦草，像是后来被人加注上去的：“B-7结构异常，1924年改造后未通过共振测试，建议永久封闭。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "52237724d594",
+      "text": "档案室主任姜衡，一直以技术伦理为由压制陆声查阅M-19230721档案，但陆声从来没想过，他会用这种方式来阻止他们进入旧港区。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 14,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "档案室主任姜衡，一直以技术伦理为由压制陆声查阅M-19230721档案，但陆声从来没想过，他会用这种方式来阻止他们进入旧港区。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "98d683aebe81",
+      "text": "”沈渡推开门，侧身让陆声先进，“后来换了新门锁，但老锁芯没换，我留了一把备用。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 14,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "”沈渡推开门，侧身让陆声先进，“后来换了新门锁，但老锁芯没换，我留了一把备用。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "c0b3763b25c2",
+      "text": "雾太大，看不清远处的车灯，但旧港方向没有传来任何异常的声音——除了那声汽笛之后残留的、若有若无的低频嗡鸣，像是城市在呼吸。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 14,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "雾太大，看不清远处的车灯，但旧港方向没有传来任何异常的声音——除了那声汽笛之后残留的、若有若无的低频嗡鸣，像是城市在呼吸。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "ddca42b8512b",
+      "text": "那正好是她和沈渡在办公室里分析声纹档案的时间。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 14,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "那正好是她和沈渡在办公室里分析声纹档案的时间。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "fd2f0847a1bb",
+      "text": "陈柏的声纹在B-7号共鸣管里被触发过，那是六年来她离弟弟失踪真相最近的一次。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 2,
+      "first_title": "病历回声",
+      "mentions": 14,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 2,
+          "title": "病历回声",
+          "event": "touch",
+          "text": "陈柏的声纹在B-7号共鸣管里被触发过，那是六年来她离弟弟失踪真相最近的一次。",
+          "updated_at": "2026-05-22T16:59:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T16:59:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "57c6f872ad7b",
+      "text": "没有物证链，声纹证据在法庭上本来就容易被质疑，更何况是这种——这种超出常识的内容。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "没有物证链，声纹证据在法庭上本来就容易被质疑，更何况是这种——这种超出常识的内容。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5b4eca7c1d76",
+      "text": "林茂的录音带标签写有‘B-7，最后一次’，含义未明。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 10,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "林茂的录音带标签写有‘B-7，最后一次’，含义未明。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "61e169f9e4f0",
+      "text": "她盯着那台老旧的录音机，像是盯着一个随时会炸开的陷阱。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 12,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "她盯着那台老旧的录音机，像是盯着一个随时会炸开的陷阱。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "b985233ba797",
+      "text": "姜衡以城市基础设施保密信息为由驳回M-19230721档案调阅。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "姜衡以城市基础设施保密信息为由驳回M-19230721档案调阅。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "bcb89e602e4b",
+      "text": "单凭一段录音，姜衡可以说这是伪造的，可以说林茂老年痴呆胡说八道，甚至可以说是我为了查陈柏的案子自己编的。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "单凭一段录音，姜衡可以说这是伪造的，可以说林茂老年痴呆胡说八道，甚至可以说是我为了查陈柏的案子自己编的。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "f5d4749d0916",
+      "text": "”沈渡说，“他今天上午在市政档案馆翻了一整个上午，从一堆报废工程档案里翻出来的。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 13,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "”沈渡说，“他今天上午在市政档案馆翻了一整个上午，从一堆报废工程档案里翻出来的。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "f99882c2c4eb",
+      "text": "林茂的录音就停在那句话上——“那个频率会吞噬所有靠近它的人。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 3,
+      "first_title": "港务暗门",
+      "mentions": 13,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 3,
+          "title": "港务暗门",
+          "event": "touch",
+          "text": "林茂的录音就停在那句话上——“那个频率会吞噬所有靠近它的人。",
+          "updated_at": "2026-05-22T17:00:45Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:00:45Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "4c247ef05120",
+      "text": "陈霜的弟弟陈柏失踪六年，线索可能与旧港地下有关。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "研究所裂缝",
+      "mentions": 12,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "研究所裂缝",
+          "event": "touch",
+          "text": "陈霜的弟弟陈柏失踪六年，线索可能与旧港地下有关。",
+          "updated_at": "2026-05-22T17:01:59Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:01:59Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "6b6b62b317d7",
+      "text": "那不是一个档案室主任看下属的眼神，那是一个见过某种东西、并且被那东西吓破了胆的人的眼神。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "研究所裂缝",
+      "mentions": 12,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "研究所裂缝",
+          "event": "touch",
+          "text": "那不是一个档案室主任看下属的眼神，那是一个见过某种东西、并且被那东西吓破了胆的人的眼神。",
+          "updated_at": "2026-05-22T17:01:59Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:01:59Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "9e04e956d901",
+      "text": "“他说的‘有些事’，可能不是指档案，也不是指实验。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "研究所裂缝",
+      "mentions": 12,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "研究所裂缝",
+          "event": "touch",
+          "text": "“他说的‘有些事’，可能不是指档案，也不是指实验。",
+          "updated_at": "2026-05-22T17:01:59Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:01:59Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "ec8a98a5b82a",
+      "text": "”陆声靠在座椅上，手指无意识地摩挲着安全带的边缘，“他知道我们要去，但他拦的方式很怪——不是用行政命令，不是用档案封锁，而是用一句‘雾要来了’。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 4,
+      "first_title": "研究所裂缝",
+      "mentions": 12,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 4,
+          "title": "研究所裂缝",
+          "event": "touch",
+          "text": "”陆声靠在座椅上，手指无意识地摩挲着安全带的边缘，“他知道我们要去，但他拦的方式很怪——不是用行政命令，不是用档案封锁，而是用一句‘雾要来了’。",
+          "updated_at": "2026-05-22T17:01:59Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:01:59Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "0375b1d6df78",
+      "text": "林茂不是复制那段声纹，他是在用那段声纹当钥匙——打开这堵墙里储存的声音。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "林茂不是复制那段声纹，他是在用那段声纹当钥匙——打开这堵墙里储存的声音。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "0a9e25d287b3",
+      "text": "”陆声压低声音说，“他把自己的声音刻进了这堵墙的结构里——用特定的频率让砖墙变成录音介质。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "”陆声压低声音说，“他把自己的声音刻进了这堵墙的结构里——用特定的频率让砖墙变成录音介质。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "24e67a5a9742",
+      "text": "她掏出随身带的微型录音笔，打开录音模式，然后把录音笔贴着那道细缝放进去。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "她掏出随身带的微型录音笔，打开录音模式，然后把录音笔贴着那道细缝放进去。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "38a2743bb17f",
+      "text": "盒子上那道手写的编号“M-19230721”在路灯下显得格外刺眼，像是某种密码，又像是某种墓志铭。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "盒子上那道手写的编号“M-19230721”在路灯下显得格外刺眼，像是某种密码，又像是某种墓志铭。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "51473f99389a",
+      "text": "可那个年代根本没有录音设备，她不可能听过这个频率的陈柏声纹。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "可那个年代根本没有录音设备，她不可能听过这个频率的陈柏声纹。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "7bdf3fb32fa6",
+      "text": "那些声音是活的，但发出那些声音的人是否还活着，她没有任何证据可以判断。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "那些声音是活的，但发出那些声音的人是否还活着，她没有任何证据可以判断。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "b1397b8defe0",
+      "text": "录音笔的拾音头刚碰到墙面，井筒里突然响起一阵尖锐的啸叫声——不是从共鸣管里发出来的，而是从砖墙后面，像是某种高频声波被激活了。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 5,
+      "first_title": "灯塔底层",
+      "mentions": 11,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 5,
+          "title": "灯塔底层",
+          "event": "touch",
+          "text": "录音笔的拾音头刚碰到墙面，井筒里突然响起一阵尖锐的啸叫声——不是从共鸣管里发出来的，而是从砖墙后面，像是某种高频声波被激活了。",
+          "updated_at": "2026-05-22T17:02:52Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:02:52Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "1808362216cf",
+      "text": "“这是旧港灯塔的原始值班日志，我在市政档案馆的废弃文件堆里找到的。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 9,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "“这是旧港灯塔的原始值班日志，我在市政档案馆的废弃文件堆里找到的。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "55fb1bca10b0",
+      "text": "何屿点头：“他不仅回应了，还开始录音。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 10,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "何屿点头：“他不仅回应了，还开始录音。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5f3740ec5a98",
+      "text": "已向港务局报告，对方称是地下水管压力异常，无需处理。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "已向港务局报告，对方称是地下水管压力异常，无需处理。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "6536c1015569",
+      "text": "”何屿说，“方国栋把日志和灯塔钥匙交给他之后，就离开了旧港。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "”何屿说，“方国栋把日志和灯塔钥匙交给他之后，就离开了旧港。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "8622721b5d42",
+      "text": "1924年到1925年之间，林茂用灯塔值班室的录音设备，录下了至少三十段地下回声。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "1924年到1925年之间，林茂用灯塔值班室的录音设备，录下了至少三十段地下回声。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "adc5af06321d",
+      "text": "原件烧了，但数据我留在了市政档案馆的地下储藏室——那里有一个老式的防潮铁柜，钥匙只有一把，在我手里。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 10,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "原件烧了，但数据我留在了市政档案馆的地下储藏室——那里有一个老式的防潮铁柜，钥匙只有一把，在我手里。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "f70c7c9417b9",
+      "text": "他把这些录音藏在灯塔的地下室里，直到1940年灯塔改建，那些磁带才被转移出来。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 6,
+      "first_title": "雾潮前夜",
+      "mentions": 10,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 6,
+          "title": "雾潮前夜",
+          "event": "touch",
+          "text": "他把这些录音藏在灯塔的地下室里，直到1940年灯塔改建，那些磁带才被转移出来。",
+          "updated_at": "2026-05-22T17:03:55Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:03:55Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "2586f37b7fc4",
+      "text": "她从口袋里掏出一把钥匙，打开柜门，在里面翻了一会儿，拿出一个用旧报纸包着的东西。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 7,
+      "first_title": "记忆筛网",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 7,
+          "title": "记忆筛网",
+          "event": "touch",
+          "text": "她从口袋里掏出一把钥匙，打开柜门，在里面翻了一会儿，拿出一个用旧报纸包着的东西。",
+          "updated_at": "2026-05-22T17:04:51Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:04:51Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "2a79fe8df9c2",
+      "text": "他确实跟林茂干过活，帮林茂搬那些录音设备，有时候也替林茂去码头收租金。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 7,
+      "first_title": "记忆筛网",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 7,
+          "title": "记忆筛网",
+          "event": "touch",
+          "text": "他确实跟林茂干过活，帮林茂搬那些录音设备，有时候也替林茂去码头收租金。",
+          "updated_at": "2026-05-22T17:04:51Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:04:51Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "7f495a531e7c",
+      "text": "林茂给我之后，我当晚就用录音机放了一遍。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 7,
+      "first_title": "记忆筛网",
+      "mentions": 9,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 7,
+          "title": "记忆筛网",
+          "event": "touch",
+          "text": "林茂给我之后，我当晚就用录音机放了一遍。",
+          "updated_at": "2026-05-22T17:04:51Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:04:51Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "cec36a54067e",
+      "text": "她想起陈柏声纹档案里那句被扭曲的话——姐，别进雾里……它会记住你。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 7,
+      "first_title": "记忆筛网",
+      "mentions": 9,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 7,
+          "title": "记忆筛网",
+          "event": "touch",
+          "text": "她想起陈柏声纹档案里那句被扭曲的话——姐，别进雾里……它会记住你。",
+          "updated_at": "2026-05-22T17:04:51Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:04:51Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "d1c8e7261481",
+      "text": "那是一盘老式磁带，外壳上贴着一张泛黄的标签，手写着一串编号：M-19230721。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 7,
+      "first_title": "记忆筛网",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 7,
+          "title": "记忆筛网",
+          "event": "touch",
+          "text": "那是一盘老式磁带，外壳上贴着一张泛黄的标签，手写着一串编号：M-19230721。",
+          "updated_at": "2026-05-22T17:04:51Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:04:51Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "d6add8b9d06e",
+      "text": "林茂那个人，一辈子都在藏东西，但他藏不住秘密。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 7,
+      "first_title": "记忆筛网",
+      "mentions": 9,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 7,
+          "title": "记忆筛网",
+          "event": "touch",
+          "text": "林茂那个人，一辈子都在藏东西，但他藏不住秘密。",
+          "updated_at": "2026-05-22T17:04:51Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:04:51Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5c04c45e7399",
+      "text": "” 她没有立刻回答，而是从口袋里掏出那盘磁带——林茂留下的那盘，编号M-19230721。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 8,
+      "first_title": "父亲日志",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 8,
+          "title": "父亲日志",
+          "event": "touch",
+          "text": "” 她没有立刻回答，而是从口袋里掏出那盘磁带——林茂留下的那盘，编号M-19230721。",
+          "updated_at": "2026-05-22T17:06:01Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:06:01Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "e21c1706d41c",
+      "text": "” 何屿从后面走上来，手里拿着一个便携式录音机，屏幕上显示着实时频谱图。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 8,
+      "first_title": "父亲日志",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 8,
+          "title": "父亲日志",
+          "event": "touch",
+          "text": "” 何屿从后面走上来，手里拿着一个便携式录音机，屏幕上显示着实时频谱图。",
+          "updated_at": "2026-05-22T17:06:01Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:06:01Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "ef62c05968eb",
+      "text": "他把录音机举到和陆声耳朵齐平的高度，盯着那条跳动的波形线看了几秒，脸色变了。",
+      "status": "partially_resolved",
+      "first_volume": 1,
+      "first_chapter": 8,
+      "first_title": "父亲日志",
+      "mentions": 8,
+      "history": [
+        {
+          "volume": 1,
+          "chapter_no": 8,
+          "title": "父亲日志",
+          "event": "touch",
+          "text": "他把录音机举到和陆声耳朵齐平的高度，盯着那条跳动的波形线看了几秒，脸色变了。",
+          "updated_at": "2026-05-22T17:06:01Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:06:01Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "111fca6dc653",
+      "text": "”陆声说，“阿婆周说过，林茂生前一直在重复一段录音，那段录音里藏着一个能让人从雾里出来的频率。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "”陆声说，“阿婆周说过，林茂生前一直在重复一段录音，那段录音里藏着一个能让人从雾里出来的频率。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "723eb254cbd0",
+      "text": "它不是被加密的信息，而是用来解锁其他东西的密码。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "它不是被加密的信息，而是用来解锁其他东西的密码。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "827d8cc75280",
+      "text": "她需要时间做频谱还原，需要时间验证频率的安全性，需要时间等何屿把地下管网图整理出来，需要时间等姜衡松口放行档案——而这些时间，每一分每一秒都在把她和陈柏之间的距离拉得更远。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "她需要时间做频谱还原，需要时间验证频率的安全性，需要时间等何屿把地下管网图整理出来，需要时间等姜衡松口放行档案——而这些时间，每一分每一秒都在把她和陈柏之间的距离拉得更远。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "cdb126657622",
+      "text": "林茂应该是用了某种特殊的录音设备，才能把这个频段保留下来。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "林茂应该是用了某种特殊的录音设备，才能把这个频段保留下来。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "d2b28e570969",
+      "text": "”陆声靠在椅背上，揉了揉太阳穴，“但更有可能的是，这个频率本身就是钥匙。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "”陆声靠在椅背上，揉了揉太阳穴，“但更有可能的是，这个频率本身就是钥匙。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "e4bca9c7796e",
+      "text": "声纹循环的原理她比任何人都懂——姜衡封存的档案里记载过，被频率囚禁的人会不断重复同一句话，而那些话会被共振腔记录下来，在特定条件下反复播放，像一张永远跳不过去的唱片。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "声纹循环的原理她比任何人都懂——姜衡封存的档案里记载过，被频率囚禁的人会不断重复同一句话，而那些话会被共振腔记录下来，在特定条件下反复播放，像一张永远跳不过去的唱片。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "ed4fec19a5cf",
+      "text": "那个62.7赫兹的信号像是被一把锁锁住了，没有钥匙，任何常规的解码手段都打不开它。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 9,
+      "first_title": "安全频率的代价",
+      "mentions": 7,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 9,
+          "title": "安全频率的代价",
+          "event": "touch",
+          "text": "那个62.7赫兹的信号像是被一把锁锁住了，没有钥匙，任何常规的解码手段都打不开它。",
+          "updated_at": "2026-05-22T17:08:07Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:08:07Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "0727e1428a03",
+      "text": "但她知道，从她决定去翻那份档案的那一刻起，八万联调局的每一道门对她来说都不再是安全的了。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "但她知道，从她决定去翻那份档案的那一刻起，八万联调局的每一道门对她来说都不再是安全的了。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "124106f812b5",
+      "text": "“去一趟声纹实验室，”陆声说，“有几段旧录音需要做频谱剥离，实验室那边的设备比局里的干净。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "“去一趟声纹实验室，”陆声说，“有几段旧录音需要做频谱剥离，实验室那边的设备比局里的干净。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5384956a1fc0",
+      "text": "也许是数据库的访问日志，也许是何屿那边申请调档的记录，也许是更早之前，从她第一次调取M-19230721档案的时候，他就已经在盯着她了。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "也许是数据库的访问日志，也许是何屿那边申请调档的记录，也许是更早之前，从她第一次调取M-19230721档案的时候，他就已经在盯着她了。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "739b6cc2e764",
+      "text": "档案室主任站在电梯里，手里拿着一只灰色的文件夹，目光从陆声脸上扫过，停在她夹在腋下的笔记本上。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "档案室主任站在电梯里，手里拿着一只灰色的文件夹，目光从陆声脸上扫过，停在她夹在腋下的笔记本上。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "86de9c6f436d",
+      "text": "手机屏幕还亮着，何屿发来的那条消息停在对话框最底部：“下午三点，市政档案馆东侧门，带上你的工牌和声纹分析权限。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "手机屏幕还亮着，何屿发来的那条消息停在对话框最底部：“下午三点，市政档案馆东侧门，带上你的工牌和声纹分析权限。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "9355e970b728",
+      "text": "“陆声，”他说，声音不高，但电梯间里回荡得很清楚，“有些档案不是封锁知识，是封锁后果。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "“陆声，”他说，声音不高，但电梯间里回荡得很清楚，“有些档案不是封锁知识，是封锁后果。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "f7a24d7d667a",
+      "text": "” 市政档案馆东侧门是一扇几乎没人用的铁皮门，门锁是老式的弹子锁，钥匙孔周围被锈蚀出一圈褐色的纹路。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 10,
+      "first_title": "交换禁档",
+      "mentions": 6,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 10,
+          "title": "交换禁档",
+          "event": "touch",
+          "text": "” 市政档案馆东侧门是一扇几乎没人用的铁皮门，门锁是老式的弹子锁，钥匙孔周围被锈蚀出一圈褐色的纹路。",
+          "updated_at": "2026-05-22T17:09:03Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:09:03Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "3b51ff797fd4",
+      "text": "”陆声把帆布包放在桌上，拉链拉开，露出里面那个档案盒的边缘，“但我半路想起一件事，必须当面问你。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "”陆声把帆布包放在桌上，拉链拉开，露出里面那个档案盒的边缘，“但我半路想起一件事，必须当面问你。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "3dd2b2a35f79",
+      "text": "陆声推开八万联调局档案室的门时，姜衡正坐在办公桌前翻一本泛黄的卷宗。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "陆声推开八万联调局档案室的门时，姜衡正坐在办公桌前翻一本泛黄的卷宗。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "3ef8becfaa81",
+      "text": "他没问档案盒是怎么来的，也没问她为什么会有东侧门的钥匙，只是安静地等着她开口。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "他没问档案盒是怎么来的，也没问她为什么会有东侧门的钥匙，只是安静地等着她开口。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "7f573217b23a",
+      "text": "陈柏的声纹档案包含原版频率，是解开关键的一环。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "陈柏的声纹档案包含原版频率，是解开关键的一环。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "928f66ef67cd",
+      "text": "陆声从档案盒里抽出那份已经被撕掉一页的卷宗，翻到缺页的位置，把打开的卷宗推到姜衡面前。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "陆声从档案盒里抽出那份已经被撕掉一页的卷宗，翻到缺页的位置，把打开的卷宗推到姜衡面前。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "ab6826c6adf5",
+      "text": "” 姜衡这才抬起头，目光从档案盒上扫过，然后落在陆声脸上。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 11,
+      "first_title": "缺页频段",
+      "mentions": 5,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 11,
+          "title": "缺页频段",
+          "event": "touch",
+          "text": "” 姜衡这才抬起头，目光从档案盒上扫过，然后落在陆声脸上。",
+          "updated_at": "2026-05-22T17:10:17Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:10:17Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "315d739cd730",
+      "text": "但我留了一盘，因为我总觉得那声音不对劲。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "但我留了一盘，因为我总觉得那声音不对劲。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "5f3e1361344d",
+      "text": "”陆声站起来，“但陈霜有权知道她弟弟失踪的真相，也有权知道自己在这件事里的位置。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "”陆声站起来，“但陈霜有权知道她弟弟失踪的真相，也有权知道自己在这件事里的位置。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "9c9404489923",
+      "text": "他说他在码头发现了一个秘密，等查清楚了就告诉我。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "他说他在码头发现了一个秘密，等查清楚了就告诉我。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "b87fa46a8eb8",
+      "text": "”林茂的声音变得低沉，“我找到了当年那个给我磁带的人的后代，他姓何，在市政档案馆工作。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "”林茂的声音变得低沉，“我找到了当年那个给我磁带的人的后代，他姓何，在市政档案馆工作。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "e071cd39075e",
+      "text": "而你是唯一能把他带出来的人，但代价是你得替他进去。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "而你是唯一能把他带出来的人，但代价是你得替他进去。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "07fa0eedb4f7",
+      "text": "我能听到她的呼吸声，能听到她哭的时候鼻子堵住的声音，和当年案发现场的录音一模一样。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 13,
+      "first_title": "自己的回声",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 13,
+          "title": "自己的回声",
+          "event": "touch",
+          "text": "我能听到她的呼吸声，能听到她哭的时候鼻子堵住的声音，和当年案发现场的录音一模一样。",
+          "updated_at": "2026-05-22T17:12:24Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:12:24Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "71e9ee449055",
+      "text": "围绕最终在市政档案馆发现回声公司当年留下的声纹自毁协议冒出来的动静既然已经露出头，后面的代价就不可能只落在一个人身上。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 13,
+      "first_title": "自己的回声",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 13,
+          "title": "自己的回声",
+          "event": "touch",
+          "text": "围绕最终在市政档案馆发现回声公司当年留下的声纹自毁协议冒出来的动静既然已经露出头，后面的代价就不可能只落在一个人身上。",
+          "updated_at": "2026-05-22T17:12:24Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:12:24Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "a7b9811f6902",
+      "text": "” “因为那些录音也被频率捕捉了。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 13,
+      "first_title": "自己的回声",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 13,
+          "title": "自己的回声",
+          "event": "touch",
+          "text": "” “因为那些录音也被频率捕捉了。",
+          "updated_at": "2026-05-22T17:12:24Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:12:24Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "ef8f0b8a061e",
+      "text": "”陆声说，“你的记忆、你的情绪、你办案时反复听过的那些录音，都被这些管道提取出来，重新播放。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 13,
+      "first_title": "自己的回声",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 13,
+          "title": "自己的回声",
+          "event": "touch",
+          "text": "”陆声说，“你的记忆、你的情绪、你办案时反复听过的那些录音，都被这些管道提取出来，重新播放。",
+          "updated_at": "2026-05-22T17:12:24Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:12:24Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "35b83b1ca0d8",
+      "text": "他看着陆声，眼睛里有一种说不清道不明的东西——像是悲伤，像是释然，又像是某种被压抑了很久的真相。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "他看着陆声，眼睛里有一种说不清道不明的东西——像是悲伤，像是释然，又像是某种被压抑了很久的真相。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "864ebca512df",
+      "text": "”她的声音很轻，但在这个腔室里却异常清晰，“我需要你帮我做一件事。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "”她的声音很轻，但在这个腔室里却异常清晰，“我需要你帮我做一件事。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "9b6bba69af97",
+      "text": "她的目光钉在那串数据上，脑子里已经把这个新频率和之前所有的线索串成了一条线——林茂的调音器输出440Hz，陈柏的残像里出现了523.25Hz，两个频率相差一个小三度。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "她的目光钉在那串数据上，脑子里已经把这个新频率和之前所有的线索串成了一条线——林茂的调音器输出440Hz，陈柏的残像里出现了523.25Hz，两个频率相差一个小三度。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "a6dc53a86395",
+      "text": "姐，你必须找到林茂的私人录音——那里面录着完整的反向频率，只有你的声带能发出那个音高。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "姐，你必须找到林茂的私人录音——那里面录着完整的反向频率，只有你的声带能发出那个音高。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "a84335478530",
+      "text": "如果没有……” 她没有说完，但沈渡明白她的意思。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "如果没有……” 她没有说完，但沈渡明白她的意思。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "db21103e0ae7",
+      "text": "她想起七年前第一次走进八万联调局时，师父跟她说过的话：声纹分析员最大的忌讳，就是把自己的声音变成证据。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 14,
+      "first_title": "共振与破裂",
+      "mentions": 2,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 14,
+          "title": "共振与破裂",
+          "event": "touch",
+          "text": "她想起七年前第一次走进八万联调局时，师父跟她说过的话：声纹分析员最大的忌讳，就是把自己的声音变成证据。",
+          "updated_at": "2026-05-22T17:13:20Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:13:20Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "08f64186942f",
+      "text": "陈柏的残像重复‘姐，别进雾里，它会记住你’，未解释其含义。",
+      "status": "partially_resolved",
+      "first_volume": 2,
+      "first_chapter": 15,
+      "first_title": "容器与容器",
+      "mentions": 1,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "陈柏的残像重复‘姐，别进雾里，它会记住你’，未解释其含义。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:14:13Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "98a19b17843a",
+      "text": "沈渡从口袋里掏出他们刚听过的磁带，两盒放在一起，一模一样，连侧面的数字编号都是同一个笔迹写的“7”。",
+      "status": "strengthened",
+      "first_volume": 2,
+      "first_chapter": 12,
+      "first_title": "封锁与突破",
+      "mentions": 4,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 12,
+          "title": "封锁与突破",
+          "event": "touch",
+          "text": "沈渡从口袋里掏出他们刚听过的磁带，两盒放在一起，一模一样，连侧面的数字编号都是同一个笔迹写的“7”。",
+          "updated_at": "2026-05-22T17:11:23Z"
+        },
+        {
+          "volume": 2,
+          "chapter_no": 15,
+          "title": "容器与容器",
+          "event": "touch",
+          "text": "和林茂磁带盒上的编号一模一样。",
+          "updated_at": "2026-05-22T17:14:13Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:11:23Z",
+      "last_volume": 2,
+      "last_chapter": 15,
+      "last_title": "容器与容器",
+      "updated_at": "2026-05-22T17:14:13Z"
+    },
+    {
+      "id": "66447e8b4f7e",
+      "text": "她把分析仪的探头对准墙壁，屏幕上显示出一组新的数据：主频 47.8Hz，但谐波成分里出现了一个异常信号——一个 440Hz 的纯音，持续输出，没有衰减。",
+      "status": "strengthened",
+      "first_volume": 2,
+      "first_chapter": 13,
+      "first_title": "自己的回声",
+      "mentions": 3,
+      "history": [
+        {
+          "volume": 2,
+          "chapter_no": 13,
+          "title": "自己的回声",
+          "event": "touch",
+          "text": "她把分析仪的探头对准墙壁，屏幕上显示出一组新的数据：主频 47.8Hz，但谐波成分里出现了一个异常信号——一个 440Hz 的纯音，持续输出，没有衰减。",
+          "updated_at": "2026-05-22T17:12:24Z"
+        },
+        {
+          "volume": 2,
+          "chapter_no": 13,
+          "title": "自己的回声",
+          "event": "touch",
+          "text": "但在一堆数据中，她注意到了一个异常——在 440Hz 的纯音信号旁边，出现了一个新的频率：523.25Hz。",
+          "updated_at": "2026-05-22T17:12:24Z"
+        }
+      ],
+      "created_at": "2026-05-22T17:12:24Z",
+      "last_volume": 2,
+      "last_chapter": 14,
+      "last_title": "共振与破裂",
+      "updated_at": "2026-05-22T17:13:20Z"
+    }
+  ]
+}
