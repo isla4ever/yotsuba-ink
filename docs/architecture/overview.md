@@ -2,7 +2,7 @@
 
 ## 仓库里有什么
 
-Novel Workflow 是一个单仓产品，当前可以理解成五层：
+Yotsuba Ink 是一个单仓产品，当前可以理解成五层：
 
 ```text
 apps/web                    前端工作台
@@ -14,6 +14,11 @@ docs                       产品与工程文档
 
 ## 从哪里开始看
 
+- 产品生产模式主线：[docs/architecture/product-production-workflow.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/product-production-workflow.md)
+- 阶段 Artifact 合同：[docs/architecture/stage-artifact-contract.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/stage-artifact-contract.md)
+- 三档模式、运行状态与 SSE 事件矩阵：[docs/architecture/run-state-event-matrix.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/run-state-event-matrix.md)
+- 设计 Token 与全局 UI 验收合同：[docs/architecture/design-system-foundation.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/design-system-foundation.md)
+- Overlay、Tooltip、空状态与错误状态合同：[docs/architecture/overlay-feedback-contract.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/overlay-feedback-contract.md)
 - 前端入口：[apps/web/src/App.tsx](/Users/isla/Desktop/project/multi-stage-creation-model-end/apps/web/src/App.tsx)
 - 前端应用状态：[apps/web/src/features/pipeline/state/useNovelWorkflowApp.ts](/Users/isla/Desktop/project/multi-stage-creation-model-end/apps/web/src/features/pipeline/state/useNovelWorkflowApp.ts)
 - 后端入口：[src/novel_workflow/api/app.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/api/app.py)

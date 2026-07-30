@@ -1,24 +1,42 @@
-import { Globe2 } from 'lucide-react';
+import { Edit3, Globe2 } from 'lucide-react';
 import type { RunEvent } from '../../contracts';
-import { extractWorldbuilding } from '../../lib/stageConfig';
+import { extractWorldbuilding, type WorldbuildingView } from '../../lib/stageConfig';
 
 type Props = {
   events: RunEvent[];
+  artifactStatus?: 'draft' | 'confirmed';
+  worldbuilding?: WorldbuildingView;
+  onEdit?: () => void;
+  stageEnrichment?: { label: string; detail: string };
 };
 
-export function WorldbuildingPanel({ events }: Props) {
-  const world = extractWorldbuilding(events);
+export function WorldbuildingPanel({ artifactStatus, events, onEdit, stageEnrichment, worldbuilding }: Props) {
+  const world = worldbuilding ?? extractWorldbuilding(events);
+  const hasWorld = Boolean(world.seed || world.rules.length || world.tone || world.impact.length);
   return (
     <section className="worldbuilding-panel">
       <div className="worldbuilding-head">
         <div>
-          <p className="eyebrow">Worldbuilding</p>
+          <p className="eyebrow">设定资产</p>
           <h3><Globe2 size={15} />世界观</h3>
         </div>
-        <span>{world.source}</span>
+        <div className="insight-head-actions">
+          <span>{artifactStatus === 'draft' ? '当前稿预览' : artifactStatus === 'confirmed' ? '已定稿' : world.source}</span>
+          {onEdit ? (
+            <button aria-label="编辑世界观" className="insight-edit-button" onClick={onEdit} title="编辑世界观" type="button">
+              <Edit3 size={14} />
+            </button>
+          ) : null}
+        </div>
       </div>
-      <p className="world-seed">{world.seed}</p>
-      <div className="worldbuilding-grid">
+      {stageEnrichment ? (
+        <div className="insight-stage-enrichment world">
+          <strong>{stageEnrichment.label}</strong>
+          <span>{stageEnrichment.detail}</span>
+        </div>
+      ) : null}
+      {hasWorld ? <p className="world-seed">{world.seed}</p> : <div className="runtime-widget-empty">等待小说信息推荐生成世界观。</div>}
+      {hasWorld ? <div className="worldbuilding-grid">
         <article>
           <strong>硬设定</strong>
           {world.rules.slice(0, 3).map((item) => <span key={item}>{item}</span>)}
@@ -28,11 +46,10 @@ export function WorldbuildingPanel({ events }: Props) {
           <span>{world.tone}</span>
         </article>
         <article>
-          <strong>链路影响</strong>
+          <strong>后续影响</strong>
           {world.impact.slice(0, 3).map((item) => <span key={item}>{item}</span>)}
         </article>
-      </div>
-      {world.source === '默认草案' ? <small>运行小说推荐阶段后，世界观种子会自动更新并约束后续梗概、大纲和正文。</small> : null}
+      </div> : null}
     </section>
   );
 }

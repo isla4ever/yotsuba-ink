@@ -2,7 +2,7 @@
   "id": "prompt-cover",
   "name": "封面 Prompt",
   "stage_type": "cover_image",
-  "content": "根据小说信息和梗概生成封面提示词。",
+  "content": "根据已定稿的小说信息、全书梗概、分卷结构和章节细纲返回结构化 cover planning artifact：封面 brief、视觉关键词、构图、文案建议、图片提示词和 3 个候选方案 metadata。封面规划在章节细纲定稿后与正文并行，不依赖全文完成；候选只返回稳定 id、构图、色板和质量说明，不得编造 image_url、Data URL 或图片已生成状态，真实图片由 ImageProvider 独立生成。",
   "variables": [
     "cover_style",
     "aspect_ratio"

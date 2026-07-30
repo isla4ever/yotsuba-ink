@@ -1,30 +1,4 @@
 :root {
-  --bg: #070b14;
-  --bg-soft: #0a1020;
-  --panel: #0d1626;
-  --panel-strong: #111d31;
-  --panel-muted: #0a1322;
-  --border: #223654;
-  --border-strong: #31527e;
-  --text: #edf5ff;
-  --text-soft: #b7c8e4;
-  --muted: #8298ba;
-  --accent: #2f7df6;
-  --accent-2: #18b6c8;
-  --success: #26c985;
-  --warning: #e8b44c;
-  --danger: #f06464;
-  --edge: #5e7fb1;
-  --graph-label-bg: rgba(13, 22, 38, 0.72);
-  --graph-label-bg-strong: rgba(15, 28, 50, 0.94);
-  --graph-label-text: #c6d7f0;
-  --node-mini: #7ca6df;
-  --minimap-mask: rgba(7, 11, 20, 0.58);
-  --shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
-  --fx-color: var(--accent-2);
-  --fx-opacity: 0.72;
-  --fx-speed: 8s;
-  --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
   font-family: var(--font);
@@ -36,37 +10,27 @@
   initial-value: 0deg;
 }
 
-:root[data-theme="light"] {
-  --bg: #eef3f9;
-  --bg-soft: #e5edf7;
-  --panel: #ffffff;
-  --panel-strong: #f8fbff;
-  --panel-muted: #edf4fb;
-  --border: #c8d7ea;
-  --border-strong: #8fb1db;
-  --text: #132137;
-  --text-soft: #34506e;
-  --muted: #657b98;
-  --accent: #246ee9;
-  --accent-2: #0799b0;
-  --success: #139b68;
-  --warning: #b7791f;
-  --danger: #d94b4b;
-  --edge: #7190b8;
-  --graph-label-bg: rgba(255, 255, 255, 0.78);
-  --graph-label-bg-strong: rgba(255, 255, 255, 0.96);
-  --graph-label-text: #38516f;
-  --node-mini: #5c83b2;
-  --minimap-mask: rgba(226, 235, 247, 0.56);
-  --shadow: 0 18px 44px rgba(42, 67, 101, 0.16);
-}
-
 * {
   box-sizing: border-box;
+  scrollbar-color: color-mix(in srgb, var(--accent-2) 30%, var(--border)) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent-2) 26%, var(--border));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
 }
 
 button,
@@ -78,80 +42,144 @@ textarea {
 
 button {
   align-items: center;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border: 0;
-  border-radius: 7px;
-  color: #f8fbff;
+  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  box-shadow: none;
+  color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
-  font-weight: 800;
-  gap: 8px;
-  min-height: 34px;
-  padding: 0 12px;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+  font-size: var(--control-font-size);
+  font-weight: var(--control-font-weight);
+  gap: var(--control-gap);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--control-padding-inline);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
 }
 
-button:hover {
-  transform: translateY(-1px);
+button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-action-primary) 8%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-action-primary) 44%, var(--color-border-subtle));
+  color: var(--color-text-primary);
+}
+
+button:not(:disabled):active {
+  background: color-mix(in srgb, var(--color-action-primary) 13%, var(--color-surface-muted));
+  box-shadow: inset 0 1px 3px color-mix(in srgb, #000 24%, transparent);
 }
 
 button:disabled {
-  cursor: wait;
-  opacity: 0.7;
+  cursor: not-allowed;
+  opacity: var(--control-disabled-opacity);
   transform: none;
+}
+
+:where(input, select, textarea):disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+:where(input, textarea):read-only {
+  background: color-mix(in srgb, var(--color-surface-muted) 82%, var(--color-surface-base));
+  cursor: text;
+  opacity: 1;
+}
+
+:where(.readonly, .read-only, [data-readonly="true"]) button:disabled {
+  cursor: default;
+  opacity: 0.76;
+}
+
+:where(button, input, select, textarea)[aria-busy="true"],
+[aria-busy="true"] :where(button, input, select, textarea):disabled {
+  cursor: progress;
 }
 
 button.ghost,
 .icon-button {
-  background: var(--panel-strong);
-  border: 1px solid var(--border);
-  color: var(--text-soft);
+  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: none;
+  color: var(--color-text-secondary);
 }
 
 input,
 select,
 textarea {
-  background: var(--panel-muted);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  color: var(--text);
-  min-width: 0;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
   font-size: 12px;
-  padding: 7px 9px;
+  min-width: 0;
+  padding: var(--field-padding-block) var(--field-padding-inline);
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: var(--control-height-md);
+}
+
+:where(input, select, textarea):not(:disabled):not(:read-only):hover {
+  border-color: color-mix(in srgb, var(--color-action-primary) 34%, var(--color-border-subtle));
+}
+
+:where(input, select, textarea):focus-visible {
+  background: var(--color-surface-raised);
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--focus-ring);
+}
+
+:where(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--color-status-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-status-danger) 18%, transparent);
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--color-action-primary);
+  block-size: 16px;
+  inline-size: 16px;
+  min-height: 16px;
+  padding: 0;
 }
 
 textarea {
-  min-height: 84px;
+  min-height: 76px;
   resize: vertical;
 }
 
 .product-shell {
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--accent-2) 18%, transparent) 0 1px, transparent 1.8px),
-    radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 18% 0, color-mix(in srgb, var(--accent) 10%, transparent), transparent 28%),
-    linear-gradient(105deg, transparent 0 32%, color-mix(in srgb, var(--accent-2) 4%, transparent) 42%, transparent 52%),
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-soft) 62%, transparent), var(--bg)),
-    var(--bg);
-  background-position: 0 0, 18px 12px, center, 0% 50%, center, center;
-  background-size: 46px 46px, 62px 62px, auto, 220% 100%, auto, auto;
-  animation: shellAurora 18s ease-in-out infinite alternate, ambientStars 42s linear infinite;
+    linear-gradient(180deg, color-mix(in srgb, var(--text) 2.5%, transparent), transparent 180px),
+    var(--surface-0);
   display: grid;
-  grid-template-rows: 78px minmax(0, 1fr);
+  grid-template-rows: var(--shell-header-height) minmax(0, 1fr);
   height: 100vh;
-  min-height: 720px;
+  min-height: var(--shell-min-height);
   overflow: hidden;
   position: relative;
+  width: 100%;
 }
 
 .product-shell::before {
-  animation: ambientScan 16s ease-in-out infinite;
   background:
-    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent),
-    repeating-linear-gradient(180deg, transparent 0 17px, color-mix(in srgb, var(--accent) 4%, transparent) 18px, transparent 20px);
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 3.5%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--text) 2.5%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
   content: "";
   inset: 0;
-  opacity: 0.32;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.44), transparent 72%);
+  opacity: 0.28;
   pointer-events: none;
   position: absolute;
   z-index: 0;
@@ -161,4 +189,3 @@ textarea {
   position: relative;
   z-index: 1;
 }
-

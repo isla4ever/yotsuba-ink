@@ -1,0 +1,66 @@
+.planning-canvas-shell .planning-stage-nav {
+  display: none;
+}
+
+.planning-canvas-shell {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+@media (max-width: 767px) {
+  .planning-canvas-shell {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .planning-canvas-shell .planning-stage-nav {
+    display: grid;
+    gap: 8px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px;
+  }
+
+  .planning-canvas-shell .planning-stage-list {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .planning-canvas-shell .planning-stage-list > li > button {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    min-height: 44px;
+    padding: 6px 8px;
+  }
+
+  .planning-canvas-shell .planning-stage-nav-copy strong {
+    font-size: 11px;
+  }
+
+  .planning-canvas-shell .planning-stage-nav-copy small {
+    font-size: 9px;
+  }
+
+  .planning-canvas-shell .planning-config-trigger {
+    justify-self: stretch;
+    min-height: 36px;
+  }
+
+  .planning-canvas-shell .flow-frame {
+    bottom: 0;
+    display: block;
+    height: 1px;
+    min-height: 1px;
+    pointer-events: none;
+    position: absolute;
+    visibility: hidden;
+    width: 100%;
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planning-canvas-shell .planning-stage-list > li > button {
+    transition: none;
+  }
+}

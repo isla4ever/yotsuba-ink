@@ -3,13 +3,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from novel_workflow.orchestration.character_network import graph_from_brief
 from novel_workflow.orchestration.constants import TEXT_NODE_TYPES, VARIANT_NODE_TYPES
 from novel_workflow.workflows.schemas import (
     ChapterDraft,
     ChapterProgressItem,
-    CharacterEdge,
     CharacterGraph,
-    CharacterNode,
     NovelRunState,
     QualityEvent,
     SelectedVariant,
@@ -25,7 +24,18 @@ def memory_query(node: Any, state: NovelRunState) -> str:
     return "\n".join(part for part in parts if part)
 
 
-def effective_variant_policy(node: Any, workflow: Any) -> VariantPolicy:
+def artifact_text(value: Any) -> str:
+    if isinstance(value, dict):
+        parts: list[str] = []
+        for item in value.values():
+            parts.append(artifact_text(item))
+        return "\n".join(part for part in parts if part)
+    if isinstance(value, list):
+        return "\n".join(artifact_text(item) for item in value)
+    return str(value or "")
+
+
+def effective_variant_policy(node: Any, workflow: Any, state: NovelRunState | None = None) -> VariantPolicy:
     policy = node.variant_policy
     mode = workflow.quality_mode
     if node.type == "info_recommend":
@@ -33,37 +43,38 @@ def effective_variant_policy(node: Any, workflow: Any) -> VariantPolicy:
     if mode == "fast":
         return VariantPolicy(enabled=False, candidate_count=1, retry_on_fail=False, dimensions=policy.dimensions)
     if mode == "balanced":
-        enabled = bool(policy.enabled)
+        # The config switch only authorizes the post-stage "compare" action.
+        # Mainline generation stays single-draft; explicit candidates use the
+        # draft-regeneration endpoint after the stage has completed.
         return VariantPolicy(
-            enabled=enabled,
-            candidate_count=2 if enabled else 1,
+            enabled=False,
+            candidate_count=1,
             judge_provider_profile_id=policy.judge_provider_profile_id,
             judge_model=policy.judge_model,
             dimensions=policy.dimensions,
-            retry_on_fail=enabled,
+            retry_on_fail=False,
         )
     if mode == "deep" and node.type in VARIANT_NODE_TYPES:
         return VariantPolicy(
-            enabled=True,
-            candidate_count=max(3, min(5, policy.candidate_count or 3)),
+            enabled=False,
+            candidate_count=1,
             judge_provider_profile_id=policy.judge_provider_profile_id,
             judge_model=policy.judge_model,
             dimensions=policy.dimensions,
-            retry_on_fail=True,
+            retry_on_fail=False,
         )
     return policy
 
 
-def node_with_mode_policy(node: Any, workflow: Any) -> Any:
+def node_with_mode_policy(node: Any, workflow: Any, state: NovelRunState | None = None) -> Any:
     cloned = node.model_copy(deep=True)
-    cloned.variant_policy = effective_variant_policy(cloned, workflow)
+    cloned.variant_policy = effective_variant_policy(cloned, workflow, state)
     if workflow.quality_mode == "fast":
         cloned.quality_policy.retry_on_fail = False
     if workflow.quality_mode == "deep" and cloned.type in TEXT_NODE_TYPES:
         cloned.quality_policy.retry_on_fail = True
         cloned.quality_policy.min_score = max(cloned.quality_policy.min_score, 0.84)
     return cloned
-
 
 def variant_score(result: Any, index: int) -> float:
     text = str(result or "")
@@ -76,7 +87,12 @@ def chapter_count(node: Any, state: NovelRunState) -> int:
     stage_configs = state.inputs.get("stage_configs", {})
     detail_config = stage_configs.get("detail", {}) if isinstance(stage_configs, dict) else {}
     text_config = stage_configs.get(node.id, {}) if isinstance(stage_configs, dict) else {}
-    for value in (detail_config.get("chapter_count"), text_config.get("chapter_count"), node.params.get("chapters")):
+    for value in (
+        text_config.get("max_chapters_to_generate"),
+        text_config.get("chapter_count"),
+        detail_config.get("chapter_count"),
+        node.params.get("chapters"),
+    ):
         if isinstance(value, int) and value > 0:
             return min(value, 12)
         if isinstance(value, str) and value.isdigit():
@@ -86,20 +102,30 @@ def chapter_count(node: Any, state: NovelRunState) -> int:
 
 def detail_outline_issue(node: Any, state: NovelRunState) -> str:
     target = chapter_count(node, state)
-    detail = str(state.artifacts.get("detail_outline") or "")
-    found = len(set(int(match) for match in re.findall(r"第\s*(\d+)\s*章", detail)))
+    artifact = state.artifacts.get("detail_outline") or state.artifacts.get("detail") or {}
+    if isinstance(artifact, dict) and isinstance(artifact.get("chapters"), list):
+        found = len(artifact["chapters"])
+    else:
+        detail = artifact_text(artifact)
+        found = len(set(int(match) for match in re.findall(r"第\s*(\d+)\s*章", detail)))
     if found < target:
         return f"章节细纲不完整：目标 {target} 章，当前仅识别到 {found} 章，已停止进入正文创作。"
     return ""
 
 
 def chapter_content(result: Any, chapter_index: int, candidate_count: int, variant_index: int) -> str:
-    base = str(result or "").strip()
+    del candidate_count, variant_index
+    if isinstance(result, dict):
+        base = str(result.get("content") or "").strip()
+        title = str(result.get("chapter_title") or f"第{chapter_index}章").strip()
+        if title and title not in base:
+            base = f"{title}\n\n{base}".strip()
+    else:
+        base = str(result or "").strip()
     marker = f"第{chapter_index}章"
-    suffix = "" if candidate_count == 1 else f"\n\n[候选版本 {variant_index + 1}] 该版本强化了{'人物关系' if variant_index % 2 else '伏笔推进'}。"
     if marker in base:
-        return f"{base}{suffix}"
-    return f"{marker} 正文\n\n{base}{suffix}"
+        return base
+    return f"{marker} 正文\n\n{base}"
 
 
 def chapter_deltas(content: str) -> list[str]:
@@ -111,18 +137,23 @@ def chapter_deltas(content: str) -> list[str]:
 
 
 def update_worldbuilding_state(node: Any, result: Any, state: NovelRunState, chapter_name: str = "") -> None:
-    text = str(result or "")
+    text = artifact_text(result)
     if node.type == "info_recommend":
+        record = result if isinstance(result, dict) else {}
+        detail = str(record.get("worldbuilding_detail") or "").strip()
+        tags = [str(item).strip() for item in record.get("tags", []) if str(item).strip()] if isinstance(record.get("tags"), list) else []
         state.worldbuilding_state = {
-            "source": "创作立项定稿",
-            "seed": text[:320],
-            "hard_rules": ["世界观硬设定不得被后续阶段推翻", "人物关系变化必须有事件触发", "伏笔需在细纲或正文中记录状态"],
-            "tone": "悬疑、强情节、群像关系、信息差",
+            "source": "创作立项产物",
+            "seed": detail[:1200],
+            "hard_rules": _worldbuilding_lines(detail),
+            "tone": "、".join(tags[:5]),
             "updated_by": node.id,
         }
         return
     if node.type == "chapter_text":
-        state.worldbuilding_state.setdefault("chapter_impacts", []).append({"chapter": chapter_name, "impact": text[:180]})
+        impacts = state.worldbuilding_state.setdefault("chapter_impacts", [])
+        state.worldbuilding_state["chapter_impacts"] = [item for item in impacts if item.get("chapter") != chapter_name]
+        state.worldbuilding_state["chapter_impacts"].append({"chapter": chapter_name, "impact": text[:180]})
         state.worldbuilding_state["updated_by"] = f"{node.id}:{chapter_name}"
         return
     if node.type in {"summary", "outline", "detail_outline"}:
@@ -131,17 +162,21 @@ def update_worldbuilding_state(node: Any, result: Any, state: NovelRunState, cha
 
 
 def wiki_state(runner: Any, state: NovelRunState) -> dict[str, Any]:
+    active_facts = [item for item in state.canon_facts if item.get("status", "active") == "active"]
+    pending_conflicts = [item for item in state.canon_conflicts if item.get("status") == "pending"]
     return {
         "documents": len(state.wiki_refs),
         "latest_refs": state.wiki_refs[-5:],
         "constraint_kinds": ["人物状态", "世界观硬设定", "未回收伏笔", "章节摘要", "关系拓扑"],
         "status": runner.wiki_store.status(state.project_id),
         "story_bible": state.story_bible.model_dump(),
+        "canon_facts": active_facts[-20:],
+        "canon_conflicts": pending_conflicts[-10:],
     }
 
 
 def continuity_state(state: NovelRunState) -> dict[str, Any]:
-    open_foreshadows = [item for item in state.story_bible.foreshadow_ledger if item.get("status") != "recovered"]
+    open_foreshadows = [item for item in state.story_bible.foreshadow_ledger if item.get("status") not in {"recovered", "回收"}]
     blocking_findings = [
         finding
         for report in state.quality_reports
@@ -155,11 +190,13 @@ def continuity_state(state: NovelRunState) -> dict[str, Any]:
         "world_rules": len(state.story_bible.world_rules),
         "blocking_findings": blocking_findings[-5:],
         "revision_directives": len(state.revision_directives),
+        "canon_facts": len([item for item in state.canon_facts if item.get("status", "active") == "active"]),
+        "pending_canon_conflicts": [item for item in state.canon_conflicts if item.get("status") == "pending"][-5:],
     }
 
 
 def quality_event(node: Any, result: Any) -> QualityEvent:
-    text = str(result or "")
+    text = artifact_text(result)
     length_score = min(len(text) / 1200, 1.0) * 0.22
     structure_score = 0.24 if any(token in text for token in ("章节", "梗概", "大纲", "正文", "世界观")) else 0.16
     continuity_score = 0.22 if node.memory_policy.read else 0.18
@@ -190,22 +227,13 @@ def quality_event(node: Any, result: Any) -> QualityEvent:
     )
 
 
-def character_graph(node_id: str) -> CharacterGraph:
-    nodes = [
-        CharacterNode(id="c1", name="林雾", role="主角", faction="旧港调查线", status="追查记忆失真"),
-        CharacterNode(id="c2", name="沈白", role="盟友/嫌疑人", faction="档案馆", status="掌握旧案碎片"),
-        CharacterNode(id="c3", name="周砚", role="对手", faction="港务集团", status="隐藏关键证据"),
-        CharacterNode(id="c4", name="阿青", role="线索人物", faction="码头旧友", status="关系摇摆"),
-        CharacterNode(id="c5", name="许檀", role="幕后推动者", faction="记忆实验室", status="未公开真实目的"),
-    ]
-    edges = [
-        CharacterEdge(source="c1", target="c2", relation="互信未稳", strength=0.62),
-        CharacterEdge(source="c1", target="c3", relation="调查/压制", strength=0.78),
-        CharacterEdge(source="c2", target="c5", relation="旧案关联", strength=0.54),
-        CharacterEdge(source="c3", target="c5", relation="利益同盟", strength=0.7),
-        CharacterEdge(source="c1", target="c4", relation="童年旧识", strength=0.66),
-    ]
-    return CharacterGraph(nodes=nodes, edges=edges, updated_by=node_id)
+def character_graph(node_id: str, artifact: Any = None, current: CharacterGraph | None = None) -> CharacterGraph:
+    record = artifact if isinstance(artifact, dict) else {}
+    return graph_from_brief(node_id, record, current)
+
+
+def _worldbuilding_lines(detail: str) -> list[str]:
+    return [line.strip() for line in re.split(r"[\n；;]", detail) if line.strip()][:8]
 
 
 def chapter_progress(node: Any, result: Any, quality_score: float) -> list[ChapterProgressItem]:
@@ -225,8 +253,22 @@ def chapter_progress(node: Any, result: Any, quality_score: float) -> list[Chapt
     ]
 
 
-def chapter_draft(chapter_name: str, content: str, variant_id: str, score: float) -> ChapterDraft:
-    return ChapterDraft(chapter=chapter_name, content=content, status="completed", words=len(content), variant_id=variant_id, score=score)
+def chapter_draft(
+    chapter_name: str,
+    content: str,
+    variant_id: str,
+    score: float,
+    artifact: dict[str, Any] | None = None,
+) -> ChapterDraft:
+    return ChapterDraft(
+        chapter=chapter_name,
+        content=content,
+        status="completed",
+        words=len(content),
+        variant_id=variant_id,
+        score=score,
+        artifact=artifact or {},
+    )
 
 
 def selected_variant(node_id: str, variant_id: str, score: float, *, chapter: str = "") -> SelectedVariant:

@@ -1,0 +1,233 @@
+.planning-config-sheet-backdrop {
+  align-items: stretch;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3);
+}
+
+.planning-config-sheet {
+  background: var(--color-surface-raised);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: min(880px, calc(100dvh - 24px));
+  max-width: min(620px, calc(100vw - 24px));
+  overflow: hidden;
+  width: min(620px, 46vw);
+}
+
+.planning-config-sheet-head {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+}
+
+.planning-config-sheet-head p,
+.planning-config-sheet-head h2 {
+  margin: 0;
+}
+
+.planning-config-sheet-head p {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
+}
+
+.planning-config-sheet-head h2 {
+  font-size: 18px;
+  margin-top: 3px;
+}
+
+.planning-config-sheet-close {
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  width: 40px;
+}
+
+.planning-config-sheet-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4);
+}
+
+.planning-config-sheet .inspector {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+}
+
+.planning-config-sheet .inspector-title-row {
+  display: none;
+}
+
+.fallback-targets-editor {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.fallback-targets-editor > summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 36px;
+}
+
+.fallback-targets-editor > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fallback-targets-editor > summary span,
+.fallback-channel-heading {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.fallback-targets-editor > summary small {
+  color: var(--color-text-muted);
+}
+
+.fallback-channel-editor {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+}
+
+.fallback-channel-heading {
+  justify-content: space-between;
+}
+
+.fallback-channel-heading .icon-button,
+.fallback-priority-actions .icon-button,
+.fallback-target-row > .icon-button {
+  height: 30px;
+  min-width: 30px;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 30px;
+}
+
+.fallback-target-row {
+  align-items: stretch;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: var(--space-2);
+  grid-template-areas:
+    "priority provider remove"
+    "priority model remove"
+    "priority enabled remove";
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  padding: var(--space-2);
+}
+
+.fallback-priority-actions {
+  align-items: center;
+  display: grid;
+  gap: 2px;
+  grid-area: priority;
+  grid-template-rows: 22px 30px 30px;
+  justify-items: center;
+}
+
+.fallback-priority-actions > span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.fallback-enabled-toggle {
+  align-items: center;
+  flex-direction: row;
+  grid-area: enabled;
+  margin-bottom: 0;
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.fallback-enabled-toggle input {
+  margin: 0;
+}
+
+.fallback-target-row > label:not(.fallback-enabled-toggle):not(.model-option-field),
+.fallback-target-row > .fallback-provider-field {
+  grid-area: provider;
+  margin-bottom: 0;
+}
+
+.fallback-target-row > .model-option-field {
+  grid-area: model;
+  margin-bottom: 0;
+}
+
+.fallback-target-row .model-option-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fallback-target-row > .icon-button {
+  align-self: start;
+  grid-area: remove;
+}
+
+.fallback-target-row select,
+.fallback-target-row .option-field-trigger,
+.fallback-target-row input {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .workbench > .inspector {
+    display: none;
+  }
+
+  .planning-config-sheet-backdrop {
+    padding: 0;
+  }
+
+  .planning-config-sheet {
+    border: 0;
+    border-radius: 0;
+    height: 100dvh;
+    max-height: none;
+    max-width: none;
+    width: 100vw;
+  }
+
+  .planning-config-sheet-head {
+    padding-top: max(var(--space-3), env(safe-area-inset-top));
+  }
+
+  .planning-config-sheet-scroll {
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
+
+}
+
+@media (max-width: 520px) {
+  .planning-config-sheet .brief-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planning-config-sheet .brief-input,
+  .planning-config-sheet .brief-input.wide,
+  .planning-config-sheet .brief-input:has(textarea),
+  .planning-config-sheet .brief-input:has(.tag-input-box) {
+    grid-column: 1;
+  }
+}

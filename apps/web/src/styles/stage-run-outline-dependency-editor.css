@@ -1,0 +1,278 @@
+.outline-dependency-head {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding-right: 52px;
+}
+
+.outline-dependency-icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 30%, var(--border));
+  border-radius: 12px;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 82%, var(--text));
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.outline-dependency-head h2 {
+  color: var(--text);
+  font-size: 23px;
+  font-weight: 840;
+  line-height: 1.15;
+  margin: 4px 0 0;
+}
+
+.outline-carry-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 0.35fr) minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.outline-source-rail {
+  background: color-mix(in srgb, var(--panel-muted) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 38%, transparent);
+  border-radius: 13px;
+  display: grid;
+  gap: 7px;
+  grid-auto-rows: min-content;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  scrollbar-width: none;
+}
+
+.outline-source-rail::-webkit-scrollbar,
+.outline-carry-editor textarea::-webkit-scrollbar,
+.outline-ledger-rows::-webkit-scrollbar,
+.outline-ledger-shell textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.outline-source-rail button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 11px;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.outline-source-rail button.active,
+.outline-source-rail button:hover,
+.outline-source-rail button:focus-visible {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent);
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 30%, var(--border));
+  color: var(--text);
+  outline: none;
+}
+
+.outline-source-rail span,
+.outline-carry-editor label > span {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 70%, var(--muted));
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.outline-source-rail b {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.outline-source-rail small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.outline-carry-editor {
+  border: 1px solid color-mix(in srgb, var(--border) 38%, transparent);
+  border-radius: 13px;
+  display: grid;
+  gap: 0;
+  grid-template-rows: auto repeat(4, minmax(0, 1fr));
+  min-height: 0;
+  overflow: hidden;
+}
+
+.outline-carry-editor label {
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border) 32%, transparent);
+  display: grid;
+  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  padding: 14px 16px;
+}
+
+.outline-carry-editor textarea {
+  background: transparent;
+  border: 0;
+  color: color-mix(in srgb, var(--text) 92%, var(--text-soft));
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.55;
+  min-height: 0;
+  outline: none;
+  resize: none;
+  scrollbar-width: none;
+}
+
+.outline-carry-editor input {
+  background: transparent;
+  border: 0;
+  color: color-mix(in srgb, var(--text) 92%, var(--text-soft));
+  font-size: 13px;
+  font-weight: 650;
+  min-width: 0;
+  outline: none;
+}
+
+.outline-carry-editor.world {
+  grid-template-rows: auto repeat(3, minmax(0, 1fr));
+}
+
+.outline-link-preview {
+  align-items: center;
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr) auto;
+  padding: 14px 16px;
+}
+
+.outline-link-preview strong,
+.outline-world-anchor b {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.outline-link-preview i {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 70%, transparent), transparent);
+  height: 1px;
+}
+
+.outline-link-preview span,
+.outline-world-anchor span {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 74%, var(--text-soft));
+  font-size: 11px;
+  font-weight: 820;
+}
+
+.outline-world-anchor {
+  align-items: center;
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent);
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.outline-ledger-shell {
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: 13px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.outline-ledger-shell header,
+.outline-ledger-rows article {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(120px, 0.8fr) 84px 92px minmax(0, 1.8fr) 32px;
+}
+
+.outline-ledger-shell header {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 9%, transparent);
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 74%, var(--muted));
+  font-size: 10px;
+  font-weight: 860;
+  padding: 10px 12px;
+}
+
+.outline-ledger-rows {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.outline-ledger-rows article {
+  align-items: stretch;
+  border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  min-height: 88px;
+  padding: 9px 12px;
+}
+
+.outline-ledger-rows article > .icon-button {
+  align-self: start;
+}
+
+.outline-ledger-rows strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  padding-top: 5px;
+}
+
+.outline-ledger-shell input,
+.outline-ledger-shell select,
+.outline-ledger-shell textarea {
+  background: color-mix(in srgb, var(--panel-muted) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 34%, transparent);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 680;
+  height: 36px;
+  min-width: 0;
+  outline: none;
+  padding: 0 9px;
+}
+
+.outline-ledger-shell textarea {
+  line-height: 1.45;
+  height: 52px;
+  min-height: 52px;
+  padding: 8px 10px;
+  resize: none;
+  scrollbar-width: none;
+}
+
+.outline-ledger-shell select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text-soft)) 50%) right 14px center / 6px 6px no-repeat,
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent), color-mix(in srgb, var(--panel-muted) 22%, transparent));
+  padding-right: 28px;
+}
+
+.outline-ledger-shell > .tiny-action {
+  justify-self: start;
+  margin: 10px 12px;
+}
+
+.outline-ledger-shell input:focus,
+.outline-ledger-shell select:focus,
+.outline-ledger-shell textarea:focus {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 48%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent);
+}
+
+.outline-dependency-actions {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--border) 34%, transparent);
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+}

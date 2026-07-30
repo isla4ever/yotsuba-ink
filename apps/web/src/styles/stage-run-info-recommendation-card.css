@@ -1,0 +1,252 @@
+.info-recommendation-board {
+  display: grid;
+  gap: 10px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.recommendation-main-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(280px, 1.08fr) minmax(260px, 0.98fr) minmax(230px, 0.86fr);
+}
+
+.recommendation-main-grid.compact {
+  grid-template-columns: minmax(0, 1.18fr) minmax(260px, 0.82fr);
+}
+
+.recommendation-main-grid.refined {
+  align-items: stretch;
+  grid-template-columns: minmax(360px, 0.98fr) minmax(360px, 1.02fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.recommendation-card {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 34%),
+    radial-gradient(circle at 100% 8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30%),
+    linear-gradient(135deg, color-mix(in srgb, var(--panel) 98%, transparent), color-mix(in srgb, var(--panel-muted) 82%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 26%, var(--border));
+  border-radius: 16px;
+  box-shadow:
+    0 18px 52px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  position: relative;
+}
+
+.recommendation-card::before {
+  background:
+    linear-gradient(color-mix(in srgb, var(--accent-2) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 7%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  content: "";
+  inset: 0;
+  opacity: 0.34;
+  pointer-events: none;
+  position: absolute;
+}
+
+.recommendation-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.recommendation-card .spotlight-layer {
+  inset: 0;
+  position: absolute;
+  z-index: 0;
+}
+
+.recommendation-command-card {
+  align-content: stretch;
+  gap: 14px;
+  grid-template-rows: auto auto auto minmax(220px, 0.86fr) minmax(230px, 0.72fr) auto;
+  min-height: 0;
+}
+
+.recommendation-status-ribbon {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.recommendation-status-ribbon span,
+.recommendation-status-ribbon b {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.recommendation-status-ribbon span {
+  color: color-mix(in srgb, var(--accent-2) 84%, #fff);
+}
+
+.recommendation-status-ribbon b {
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 28%, var(--border));
+  color: var(--text-soft);
+  padding: 6px 9px;
+}
+
+.recommendation-card-world {
+  min-height: 0;
+}
+
+.recommendation-card-primary {
+  align-content: start;
+}
+
+.recommendation-card-primary.compact {
+  grid-template-columns: 1fr 1fr;
+}
+
+.recommendation-card-primary.compact .recommendation-card-head,
+.recommendation-card-primary.compact .recommendation-tag-editor,
+.recommendation-card-primary.compact .recommendation-title-picker {
+  grid-column: 1 / -1;
+}
+
+.recommendation-card-primary.refined {
+  align-content: start;
+}
+
+.recommendation-card-wide {
+  grid-column: 1 / -1;
+}
+
+.recommendation-main-grid.refined .recommendation-card-wide {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.recommendation-main-grid.refined .recommendation-card-wide::-webkit-scrollbar {
+  display: none;
+}
+
+.recommendation-card-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.recommendation-card-head h3 {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+  margin: 0;
+}
+
+.recommendation-card-head > span {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-soft);
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 4px 7px;
+}
+
+.recommendation-field {
+  display: grid;
+  gap: 5px;
+}
+
+.recommendation-field span,
+.recommendation-tag-editor > span {
+  color: color-mix(in srgb, var(--accent-2) 72%, var(--muted));
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.recommendation-field textarea,
+.recommendation-tag-editor input {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-muted) 72%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 12px;
+  color: var(--text);
+  font: 13px/1.58 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-width: 0;
+  outline: none;
+  padding: 11px 12px;
+}
+
+.recommendation-field textarea {
+  min-height: 58px;
+  resize: vertical;
+}
+
+.recommendation-field.compact textarea {
+  min-height: 70px;
+}
+
+.recommendation-field.reason textarea {
+  min-height: 156px;
+}
+
+.recommendation-field.world-detail textarea {
+  min-height: 186px;
+}
+
+.recommendation-field.synopsis textarea {
+  height: 100%;
+  min-height: 260px;
+  max-height: none;
+  width: 100%;
+}
+
+.recommendation-field.synopsis {
+  margin-bottom: 2px;
+}
+
+.recommendation-tag-console {
+  display: grid;
+  gap: 6px;
+}
+
+.recommendation-tag-console > span {
+  color: color-mix(in srgb, var(--accent-2) 72%, var(--muted));
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.recommendation-field textarea:focus,
+.recommendation-tag-editor input:focus {
+  border-color: color-mix(in srgb, var(--accent-2) 46%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 10%, transparent);
+}
+
+.recommendation-tag-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.recommendation-tag-editor > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recommendation-tag-editor input {
+  flex: 1 1 96px;
+  max-width: 160px;
+  padding: 7px 8px;
+}

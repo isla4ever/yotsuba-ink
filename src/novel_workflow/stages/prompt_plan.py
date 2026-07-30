@@ -1,26 +1,67 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from novel_workflow.stages.prompt_layers import (
+    PROMPT_CHAR_BUDGET,
+    PromptPlan,
+    PromptSection,
+    assemble_user,
+    entity_state,
+    hard_constraints,
+    voice_spec_section,
+)
+from novel_workflow.stages.prompt_output_contracts import (
+    compact_contract_for_node,
+    compact_output_budget,
+)
 from novel_workflow.workflows.schemas import NovelRunState, WorkflowNode
 
 
 class PromptPlanBuilder:
-    def build(self, node: WorkflowNode, state: NovelRunState) -> str:
+    """Builds the layered prompt plan (system = L0 + contract; user = L1-L5).
+
+    build() renders system and user into one string joined by
+    PROMPT_SYSTEM_SPLIT so existing single-prompt provider interfaces keep
+    working; OpenAI-compatible adapters split it back into real messages.
+    """
+
+    def build(self, node: WorkflowNode, state: NovelRunState, *, template_content: str = "") -> str:
+        return self.build_plan(node, state, template_content=template_content).render()
+
+    def build_plan(
+        self,
+        node: WorkflowNode,
+        state: NovelRunState,
+        *,
+        template_content: str = "",
+        char_budget: int = PROMPT_CHAR_BUDGET,
+    ) -> PromptPlan:
         stage_config = state.inputs.get("stage_configs", {}).get(node.id, {}) if isinstance(state.inputs.get("stage_configs"), dict) else {}
-        return "\n\n".join(
+        system = "\n\n".join(
             [
                 self._role_task(node),
-                self._brief(node, state, stage_config),
-                self._reference_context(node, state, stage_config),
-                self._upstream(node, state),
-                self._chapter_context(node, state),
-                self._constraints(node, state),
-                self._output_contract(node),
-                self._rubric(node),
+                hard_constraints(node, state),
+                self._output_contract(node, stage_config),
                 self._guardrails(node),
             ]
         )
+        sections = [
+            PromptSection(1, "task", self._template(template_content)),
+            PromptSection(1, "rubric", self._rubric(node)),
+            PromptSection(2, "brief", self._brief(node, state, stage_config)),
+            PromptSection(2, "upstream", self._upstream(node, state)),
+            PromptSection(2, "chapter_context", self._chapter_context(node, state)),
+            PromptSection(3, "entities", entity_state(node, state)),
+            PromptSection(4, "voice", voice_spec_section(node, state)),
+            PromptSection(5, "reference", self._reference_context(node, state, stage_config)),
+        ]
+        user, dropped = assemble_user(sections, char_budget=char_budget)
+        return PromptPlan(system=system, user=user, dropped_layers=dropped)
+
+    def _template(self, template_content: str) -> str:
+        return f"## 阶段 Prompt 模板\n{template_content.strip()}" if template_content.strip() else "## 阶段 Prompt 模板\n使用默认阶段任务。"
 
     def _role_task(self, node: WorkflowNode) -> str:
         tasks = {
@@ -72,60 +113,52 @@ class PromptPlanBuilder:
         return (
             "## 章节上下文包\n"
             f"- 当前章节: {packet.chapter} / {packet.chapter_kind}\n"
+            f"- 所属卷: {packet.volume_title or '未命名卷'} / {packet.volume_chapter_range or '范围待定'}\n"
             f"- 所属卷目标: {packet.volume_goal or '暂无'}\n"
+            f"- 下一卷目标: {packet.next_volume_goal or '暂无'}\n"
             f"- 当前章细纲: {packet.chapter_outline or '暂无'}\n"
             f"- 上一章摘要: {packet.previous_chapter_summary or '暂无'}\n"
             f"- 上一卷结尾: {packet.previous_volume_ending or '暂无'}\n"
+            f"- 叙事衔接指令: {packet.transition_directive or '默认连续续写，不自行跳切'}\n"
             f"- 未回收伏笔: {packet.open_foreshadows or '暂无'}\n"
             f"- 世界观硬设定: {packet.world_rules or '暂无'}"
         )
 
-    def _constraints(self, node: WorkflowNode, state: NovelRunState) -> str:
-        memory = state.memory_contexts.get(node.id, {})
-        hits = memory.get("hits") if isinstance(memory, dict) else None
-        world = state.worldbuilding_state or {}
-        character = state.character_graph.model_dump() if state.character_graph.nodes else {}
+    def _output_contract(self, node: WorkflowNode, stage_config: dict[str, Any]) -> str:
+        schema_text = json.dumps(compact_contract_for_node(node), ensure_ascii=False, indent=2)
+        budget = compact_output_budget(node, stage_config)
+        if node.type == "chapter_text":
+            return (
+                "## 输出结构\n"
+                "只返回 JSON object，不要 Markdown、不要解释、不要代码块。当前调用只生成一个章节，不返回整本 chapters 数组。\n"
+                f"{budget}\n"
+                f"{schema_text}"
+            )
         return (
-            "## Wiki / World / Character 约束\n"
-            f"- Wiki 命中: {hits or '暂无'}\n"
-            f"- 世界观状态: {world or '暂无'}\n"
-            f"- 人物关系: {character or '暂无'}"
+            "## 输出结构\n"
+            "只返回 JSON object，不要 Markdown、不要解释、不要代码块。字段必须完整，数组项必须包含 schema 中的必填字段。\n"
+            f"{budget}\n"
+            f"{schema_text}"
         )
-
-    def _output_contract(self, node: WorkflowNode) -> str:
-        contracts = {
-            "info_recommend": (
-                "输出可人工编辑定稿的 Story Brief：项目定位、核心卖点、世界观种子、角色种子、角色名/身份/行为边界、"
-                "禁忌与必须保留元素、参考吸收、长线伏笔、结局方向、风险提示、后续梗概硬约束。只生成一版，不做候选比对。"
-            ),
-            "summary": (
-                "输出全书梗概：一句话主线、冲突阶梯、三幕/递进结构、角色弧、世界观揭示节奏、伏笔总账、主要反转、结局承诺、"
-                "分卷阶段必须遵守的约束。"
-            ),
-            "outline": (
-                "先根据目标篇幅与字数区间推导建议卷数和每卷章节范围；再逐卷输出卷目标、卷首钩子、卷中反转、卷尾爆点、"
-                "人物阶段变化、伏笔投放与回收计划。"
-            ),
-            "detail_outline": (
-                "必须覆盖全部目标章节，章节数量不得少于配置的 chapter_count；逐章输出承接来源、章节目标、核心冲突、人物变化、"
-                "伏笔推进/回收、世界观信息、章末钩子，并标注所属卷。"
-            ),
-            "chapter_text": (
-                "输出当前章节正文，不要摘要化。首章强化钩子和核心承诺；卷首重建目标和张力；卷尾完成爆点/回收/转折；"
-                "终章兑现结局承诺；普通章承接上一章摘要并推进当前章细纲。"
-            ),
-        }
-        return f"## 输出结构\n{contracts.get(node.type, '输出结构化结果，便于后续阶段读取。')}"
 
     def _rubric(self, node: WorkflowNode) -> str:
         checks = node.quality_policy.checks or ["连续性", "人物一致性", "世界观冲突", "伏笔推进", "模板味"]
         return f"## 质量 Rubric\n最低分: {node.quality_policy.min_score:.2f}\n检查项: {'、'.join(checks)}"
 
     def _guardrails(self, node: WorkflowNode) -> str:
+        chapter_guardrail = (
+            "\n- 正文默认沿上一章结果连续续写；只有细纲明确标注时才允许视角转移、倒叙或时间跳切。"
+            "\n- 发生视角、场景或时间转换时，必须先给出可感知的因果/时空锚点；禁止把新章写成与前文无关的重新开局。"
+            "\n- 开篇先兑现叙事衔接指令：用动作、后果、物证或人物反应连接上一章结果与本章进入状态，不要复述上一章摘要。"
+            "\n- 卷首先呈现上一卷结局造成的后果再启动本卷目标；卷末必须结算本卷目标，并向下一卷建立可执行因果。"
+            if node.type == "chapter_text" else ""
+        )
         return (
             "## 禁止事项\n"
             "- 不要复制参考资料的专有设定或具体表达。\n"
             "- 不要引入与已写 Wiki/World 硬设定冲突的事实。\n"
             "- 不要用空泛套话代替具体人物动机、冲突和伏笔。\n"
+            "- 不要为了解决剧情问题临时发明新角色；超出阶段配额的新增会被系统阻断。\n"
             "- 如果信息不足，优先补充可持续约束，而不是跳过。"
+            f"{chapter_guardrail}"
         )

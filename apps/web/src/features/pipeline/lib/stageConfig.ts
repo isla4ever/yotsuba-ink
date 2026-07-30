@@ -8,19 +8,48 @@ export type WorldbuildingView = {
   impact: string[];
 };
 
-const defaultWorldbuilding: WorldbuildingView = {
-  source: '默认草案',
-  seed: '旧港城市被多年前的记忆实验影响，人物对同一事件保留互相矛盾的片段。',
-  rules: ['记忆不能凭空改写事实，只能改变人物对事实的理解', '旧案线索必须能回扣到港口、档案馆或实验室', '人物关系变化要优先服从已建立动机'],
-  tone: '悬疑、冷调、群像推进，强调信息差和旧案回声。',
-  impact: ['约束梗概主线不要脱离旧港旧案', '约束大纲持续推进人物关系与伏笔回收', '约束正文保持记忆线索的一致性'],
+export const defaultWorldbuilding: WorldbuildingView = {
+  source: '等待产物',
+  seed: '',
+  rules: [],
+  tone: '',
+  impact: [],
 };
+
+export function worldbuildingFromDraft(detail: string): WorldbuildingView {
+  const lines = detail.split(/\n|；|;/).map((item) => item.trim()).filter(Boolean);
+  return {
+    ...defaultWorldbuilding,
+    source: '推荐草稿',
+    seed: detail.trim(),
+    rules: lines.slice(0, 4),
+  };
+}
 
 export function updateStageInputDefault(stage: WorkflowStage, key: string, value: unknown): WorkflowStage {
   return {
     ...stage,
     input_schema: stage.input_schema.map((field) => (field.key === key ? { ...field, default: value } : field)),
   };
+}
+
+/**
+ * Phase 12 B2: the brief keeps a single length control. The user picks the
+ * word-count range (the finer choice); the coarse `target_length` tier is
+ * derived from it so both prompt inputs stay consistent without asking twice.
+ */
+export const targetLengthByWordsRange: Record<string, string> = {
+  '1-3 万字': '短篇',
+  '5-10 万字': '中篇',
+  '20-40 万字': '长篇',
+  '80-120 万字': '长篇',
+  '120 万字以上': '系列长篇',
+};
+
+export function applyTargetWordsRange(stage: WorkflowStage, range: string): WorkflowStage {
+  const next = updateStageInputDefault(stage, 'target_words_range', range);
+  const derived = targetLengthByWordsRange[range];
+  return derived ? updateStageInputDefault(next, 'target_length', derived) : next;
 }
 
 export function parseTagInput(value: string) {
@@ -66,13 +95,13 @@ export function extractWorldbuilding(events: RunEvent[]): WorldbuildingView {
 
   if (typeof result === 'object' && result !== null) {
     const record = result as Record<string, unknown>;
-    const seed = firstString(record.world_seed, record.worldbuilding, record.world, record.summary);
+    const seed = firstString(record.worldbuilding_detail, record.worldbuilding, record.world, record.world_seed);
     return {
       source: '小说推荐产物',
-      seed: seed || defaultWorldbuilding.seed,
-      rules: arrayFrom(record.rules, record.constraints, record.hard_settings) || defaultWorldbuilding.rules,
-      tone: firstString(record.tone, record.style, record.genre) || defaultWorldbuilding.tone,
-      impact: arrayFrom(record.impact, record.downstream_effects) || defaultWorldbuilding.impact,
+      seed,
+      rules: arrayFrom(record.rules, record.constraints, record.hard_settings) || parseTagInput(seed),
+      tone: firstString(record.tone, record.style, record.genre),
+      impact: arrayFrom(record.impact, record.downstream_effects) || [],
     };
   }
 

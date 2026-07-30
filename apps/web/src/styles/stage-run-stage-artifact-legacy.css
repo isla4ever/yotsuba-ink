@@ -1,0 +1,99 @@
+.stage-run-card pre {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.62;
+  margin: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
+.cover-preview-image {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: block;
+  height: min(62vh, 600px);
+  max-height: none;
+  max-width: min(100%, 420px);
+  object-fit: cover;
+  width: auto;
+}
+
+.brief-readout {
+  display: grid;
+  gap: 7px;
+}
+
+.brief-readout span,
+.brief-readout p {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 8px;
+}
+
+.rag-event-list,
+.chapter-outline-board {
+  display: grid;
+  gap: 8px;
+}
+
+.rag-event-list.collapsed article:nth-child(n + 4) {
+  display: none;
+}
+
+.rag-event-list article,
+.chapter-outline-board article {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+}
+
+.rag-event-list strong,
+.chapter-outline-board strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.rag-event-list span,
+.chapter-outline-board span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.story-brief-approval-editor {
+  min-height: 260px;
+  max-height: 360px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid color-mix(in srgb, var(--color-action-primary) 18%, transparent);
+  border-radius: 12px;
+  background: rgba(4, 12, 24, 0.54);
+  color: var(--text);
+  font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  padding: 14px;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 24px color-mix(in srgb, var(--mode-aura) 6%, transparent);
+}
+
+.story-brief-approval-editor:focus {
+  border-color: color-mix(in srgb, var(--color-focus-ring) 46%, transparent);
+  box-shadow: var(--focus-ring), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.story-brief-approval-editor:disabled {
+  color: var(--muted);
+  opacity: 0.86;
+}

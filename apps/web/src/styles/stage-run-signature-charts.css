@@ -1,0 +1,247 @@
+/* Stage-shared charts use one dynamic mode hue with contrast-preserving tonal steps. */
+.signature-chart {
+  --chart-series: var(--mode-aura-strong, var(--accent));
+  --chart-ordinal-1: color-mix(in srgb, var(--mode-aura, var(--accent)) 38%, white);
+  --chart-ordinal-2: var(--mode-aura, var(--accent));
+  --chart-ordinal-3: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 72%, #07100c);
+  --chart-grid: color-mix(in srgb, var(--border) 52%, transparent);
+}
+
+:root[data-theme="light"] .signature-chart {
+  --chart-series: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 82%, #15201c);
+  --chart-ordinal-1: color-mix(in srgb, var(--mode-aura, var(--accent)) 56%, white);
+  --chart-ordinal-2: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 84%, #15201c);
+  --chart-ordinal-3: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 62%, #07100c);
+}
+
+/* One-shot enter tween on data change only; duration tokens collapse to 0ms under Reduced Motion. */
+.signature-chart-enter { animation: signature-chart-enter var(--duration-standard) var(--ease-standard); }
+
+@keyframes signature-chart-enter { from { opacity: 0.25; } }
+
+/* ── Summary: character arc swimlanes ─────────────────────────────── */
+.summary-relationship-content.with-arc-swimlanes {
+  display: block;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.arc-swimlanes { --arc-name-w: 88px; display: grid; gap: 8px; }
+
+.arc-swimlane-acts {
+  align-items: end;
+  display: flex;
+  margin-left: calc(var(--arc-name-w) + 8px);
+  padding-top: 10px;
+  position: relative;
+}
+
+.arc-swimlane-acts > span {
+  border-bottom: 2px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 56%, var(--border));
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  padding: 2px 4px 3px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arc-swimlane-acts > span + span { border-left: 1px solid var(--chart-grid); }
+.arc-swimlane-acts-missing { color: var(--muted); font-size: 12px; }
+.arc-swimlane-ticks { height: 8px; left: 0; position: absolute; top: 0; width: 100%; }
+.arc-swimlane-tick { fill: var(--muted); }
+.arc-swimlane-rows { display: grid; gap: 2px; }
+
+.arc-swimlane-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: var(--arc-name-w) minmax(0, 1fr);
+}
+
+.arc-swimlane-name {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 3px 4px;
+  text-align: left;
+}
+
+.arc-swimlane-name:hover { background: color-mix(in srgb, var(--panel-strong) 78%, transparent); }
+.arc-swimlane-name:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+
+.arc-swimlane-name b,
+.arc-swimlane-name small {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arc-swimlane-name b { color: var(--text); }
+.arc-swimlane-name small { color: var(--muted); font-weight: 500; }
+.arc-swimlane-track { display: block; height: 32px; width: 100%; }
+.arc-swimlane-separator { stroke: var(--chart-grid); stroke-width: 1; }
+
+.arc-swimlane-baseline {
+  stroke: color-mix(in srgb, var(--chart-series) 44%, var(--border));
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+/* 2px surface ring keeps markers legible where they cross the baseline. */
+.arc-swimlane-stop { stroke: var(--panel); stroke-width: 2; }
+.arc-swimlane-stop.stop-start { fill: var(--chart-ordinal-1); }
+.arc-swimlane-stop.stop-pressure { fill: var(--chart-ordinal-2); }
+.arc-swimlane-stop.stop-end { fill: var(--chart-ordinal-3); }
+.arc-swimlane-stop.unassigned { stroke: var(--chart-ordinal-2); stroke-dasharray: 2 2; stroke-width: 1.5; }
+.arc-swimlane-stop.missing { fill: transparent; stroke: var(--muted); stroke-dasharray: 2 2; stroke-width: 1.5; }
+
+.arc-swimlane-legend {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.arc-swimlane-legend > span { align-items: center; display: inline-flex; gap: 5px; }
+.arc-swimlane-legend .key { border-radius: 50%; height: 9px; width: 9px; }
+.arc-swimlane-legend .key.stop-start { background: var(--chart-ordinal-1); }
+.arc-swimlane-legend .key.stop-pressure { background: var(--chart-ordinal-2); }
+.arc-swimlane-legend .key.stop-end { background: var(--chart-ordinal-3); }
+.arc-swimlane-legend .key.stop-pressure.unassigned { background: transparent; border: 1.5px dashed var(--chart-ordinal-2); }
+
+.arc-swimlane-legend .key.tick {
+  background: transparent;
+  border-left: 5px solid transparent;
+  border-radius: 0;
+  border-right: 5px solid transparent;
+  border-top: 8px solid var(--muted);
+  height: 0;
+  width: 0;
+}
+
+.arc-swimlane-digest { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.arc-swimlane-digest li { display: grid; gap: 2px; }
+.arc-swimlane-digest b { color: var(--text); font-size: 12px; }
+.arc-swimlane-digest li > span { color: var(--text-soft); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.arc-swimlane-digest em { color: var(--muted); font-style: normal; margin-right: 5px; }
+
+/* ── Outline: whole-book rhythm curve ─────────────────────────────── */
+.rhythm-curve {
+  border-bottom: 1px solid var(--chart-grid);
+  border-top: 1px solid var(--chart-grid);
+  display: grid;
+  gap: 8px;
+  padding: 8px 2px 10px;
+}
+
+.rhythm-curve-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  justify-content: space-between;
+}
+
+.rhythm-curve-head > span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.rhythm-curve-head > em { color: var(--text-soft); font-size: 12px; font-style: normal; }
+.rhythm-curve-plot { height: 96px; margin-left: 20px; position: relative; }
+.rhythm-curve-canvas { height: 100%; inset: 0; position: absolute; width: 100%; }
+.rhythm-curve-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.rhythm-curve-boundary { stroke: var(--border-strong); stroke-width: 1; }
+.rhythm-curve-active-band { fill: color-mix(in srgb, var(--chart-series) 10%, transparent); }
+
+.rhythm-curve-line {
+  fill: none;
+  stroke: var(--chart-series);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.rhythm-curve-axis {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  left: -20px;
+  line-height: 1;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.rhythm-curve-point {
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24px;
+}
+
+.rhythm-curve-point > i {
+  background: var(--chart-series);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--panel);
+  height: 10px;
+  width: 10px;
+}
+
+.rhythm-curve-point:hover > i,
+.rhythm-curve-point.in-active-volume > i {
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px color-mix(in srgb, var(--chart-series) 55%, transparent);
+}
+
+.rhythm-curve-point:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+.rhythm-curve-volumes { display: flex; margin-left: 20px; }
+
+.rhythm-curve-volumes > span {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  padding: 0 6px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rhythm-curve-volumes > span + span { border-left: 1px solid var(--chart-grid); }
+.rhythm-curve-volumes > span.active { color: var(--text); font-weight: 800; }
+
+.rhythm-curve-readout,
+.rhythm-curve-empty {
+  color: var(--text-soft);
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.rhythm-curve-empty { color: var(--muted); }

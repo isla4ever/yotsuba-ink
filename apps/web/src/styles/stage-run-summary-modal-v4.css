@@ -1,0 +1,173 @@
+/* Summary edit modal v4: one continuous editorial sheet, no floating field cards. */
+.artifact-detail-backdrop .summary-mini-dialog.beat,
+.artifact-detail-backdrop .summary-mini-dialog.turn {
+  gap: 12px;
+  padding: 20px 22px 16px;
+}
+
+.artifact-detail-backdrop .summary-mini-dialog.beat {
+  width: min(690px, calc(100vw - 56px));
+}
+
+.artifact-detail-backdrop .summary-mini-dialog.turn {
+  width: min(610px, calc(100vw - 56px));
+}
+
+.artifact-detail-backdrop .summary-mini-head {
+  align-items: end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 56px;
+  padding: 0 78px 12px 0;
+}
+
+.artifact-detail-backdrop .summary-mini-head span {
+  grid-column: 1;
+}
+
+.artifact-detail-backdrop .summary-mini-head h2 {
+  font-size: 23px;
+  grid-column: 1;
+}
+
+.artifact-detail-backdrop .summary-mini-fields.summary-beat-composer,
+.artifact-detail-backdrop .summary-mini-fields.summary-turn-composer {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent), transparent 74%),
+    color-mix(in srgb, var(--panel-muted) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, var(--border));
+  border-radius: 12px;
+  gap: 0;
+  max-height: min(380px, calc(100vh - 250px));
+  overflow: hidden;
+  padding: 0;
+}
+
+.summary-edit-ribbon {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, var(--border));
+  border-radius: 0;
+  gap: 10px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  min-height: 62px;
+  padding: 11px 14px;
+}
+
+.summary-edit-ribbon > b {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 13%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 6%, transparent);
+  font-size: 12px;
+  height: 34px;
+  width: 34px;
+}
+
+.artifact-detail-backdrop .summary-edit-ribbon input {
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.summary-edit-columns {
+  background: transparent;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 220px;
+  position: relative;
+}
+
+.summary-edit-columns::before {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 14%, var(--border));
+  content: "";
+  inset: 18px auto 18px 50%;
+  position: absolute;
+  width: 1px;
+}
+
+.artifact-detail-backdrop .summary-mini-fields.summary-beat-composer label,
+.artifact-detail-backdrop .summary-mini-fields.summary-turn-composer label,
+.artifact-detail-backdrop .summary-mini-fields .summary-mini-node,
+.artifact-detail-backdrop .summary-mini-fields .summary-mini-block.goal,
+.artifact-detail-backdrop .summary-mini-fields .summary-mini-block.turn,
+.artifact-detail-backdrop .summary-mini-fields .summary-mini-block.turn-detail {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  grid-area: auto;
+  min-width: 0;
+  padding: 0;
+}
+
+.summary-edit-columns > label {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 16px 18px 18px;
+}
+
+.artifact-detail-backdrop .summary-mini-fields span {
+  align-items: center;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 76%, var(--text-soft));
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.artifact-detail-backdrop .summary-mini-fields textarea,
+.artifact-detail-backdrop .summary-mini-fields input {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.artifact-detail-backdrop .summary-mini-fields textarea {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 760;
+  line-height: 1.68;
+  min-height: 0;
+}
+
+.artifact-detail-backdrop .summary-mini-fields textarea:focus,
+.artifact-detail-backdrop .summary-mini-fields input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.artifact-detail-backdrop .summary-mini-fields textarea::selection,
+.artifact-detail-backdrop .summary-mini-fields input::selection {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 30%, transparent);
+}
+
+.artifact-detail-backdrop .summary-turn-composer .turn-detail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 260px;
+  padding: 17px 18px 18px;
+}
+
+.artifact-detail-backdrop .summary-turn-composer .turn-detail textarea {
+  font-size: 17px;
+  line-height: 1.72;
+  min-height: 0;
+}
+
+.artifact-detail-backdrop .summary-mini-actions {
+  margin-top: 2px;
+}
+
+@media (max-width: 780px) {
+  .summary-edit-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-edit-columns::before {
+    display: none;
+  }
+
+  .summary-edit-columns > label + label {
+    border-top: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 14%, var(--border));
+  }
+}

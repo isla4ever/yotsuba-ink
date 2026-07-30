@@ -40,6 +40,6 @@
 2. 前端 `services/runApi.ts`
 3. 后端 `api/routes/runs.py`
 4. 后端 `workflows/runner.py`
-5. 前端 `state/appEvents.ts`
+5. 前端 `state/runReducer.ts` 与 `state/useStageDecision.ts`
 
 这条链路就是当前产品的核心主循环。

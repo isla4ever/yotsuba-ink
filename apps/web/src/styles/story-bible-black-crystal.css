@@ -1,0 +1,118 @@
+/* Wave 3C: read-only continuity archive material. */
+.workbench.story-bible-workbench {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    #070908;
+  background-size: 72px 100%;
+}
+
+.bible-head {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 58%), rgba(10, 13, 12, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 14px 16px;
+}
+
+.bible-head .eyebrow { color: var(--accent); }
+.bible-head h2 { font-size: 22px; font-weight: 500; }
+
+.bible-section-nav {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.1);
+  padding: 3px;
+}
+
+.bible-section-tab {
+  border-radius: 5px;
+  min-height: 30px;
+}
+
+.bible-section-tab.active {
+  background: color-mix(in srgb, var(--accent) 11%, rgba(255, 255, 255, 0.06));
+  border-color: color-mix(in srgb, var(--accent) 34%, rgba(255, 255, 255, 0.12));
+}
+
+.bible-section-empty {
+  align-items: flex-start;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 38px, rgba(255, 255, 255, 0.035) 38px 39px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 44%, rgba(5, 8, 7, 0.96)),
+    #0d100f;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  justify-content: flex-start;
+  min-height: 440px;
+  overflow: hidden;
+  padding: 42px 48px;
+  position: relative;
+}
+
+.bible-section-empty::before {
+  background: linear-gradient(180deg, transparent, var(--accent) 16% 84%, transparent);
+  bottom: 22px;
+  content: "";
+  left: 22px;
+  opacity: 0.64;
+  position: absolute;
+  top: 22px;
+  width: 1px;
+}
+
+.bible-section-empty .bible-empty-note {
+  border-left: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  color: var(--text-soft);
+  max-width: 430px;
+  padding-left: 12px;
+}
+
+.bible-network-canvas,
+.bible-character-ledger,
+.bible-profile-panel,
+.bible-list-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 42%),
+    rgba(10, 13, 12, 0.9);
+  border-color: rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.bible-network-canvas {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 42%);
+  background-size: 48px 48px, 48px 48px, auto;
+}
+
+.bible-ledger-row {
+  border-radius: 5px;
+}
+
+.bible-ledger-row.active,
+.bible-ledger-row.related {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, rgba(255, 255, 255, 0.1));
+}
+
+.bible-fact-list li,
+.bible-table th,
+.bible-table td { border-color: rgba(255, 255, 255, 0.08); }
+
+@media (max-width: 767px) {
+  .bible-head { align-items: flex-start; }
+  .bible-section-empty { min-height: 300px; padding: 30px 34px; }
+}
+
+:root[data-theme="light"] .workbench.story-bible-workbench { background: var(--surface-0); }
+:root[data-theme="light"] .bible-head,
+:root[data-theme="light"] .bible-section-empty,
+:root[data-theme="light"] .bible-network-canvas,
+:root[data-theme="light"] .bible-character-ledger,
+:root[data-theme="light"] .bible-profile-panel,
+:root[data-theme="light"] .bible-list-card {
+  background-color: var(--surface-2);
+  border-color: var(--stroke-2);
+}

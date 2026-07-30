@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-This repository is the open-source `Novel Workflow` product. Optimize for structural consistency and maintainability before feature sprawl.
+This repository is the open-source `Yotsuba Ink` product. Optimize for structural consistency and maintainability before feature sprawl.
 
 ## Frontend Rules
 

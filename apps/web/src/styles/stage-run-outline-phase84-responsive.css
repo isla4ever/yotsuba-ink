@@ -1,0 +1,170 @@
+/* Phase 8.4B responsive behavior: one workbench scroll, horizontal volume/beat rails, bounded dialogs. */
+@media (max-width: 1180px) {
+  .product-shell .stage-run-workbench:has(> .stage-run-main.outline-main) {
+    align-content: start;
+    grid-template-rows: auto auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .stage-run-main.outline-main,
+  .stage-run-side.stage-outline {
+    height: max(640px, calc(100dvh - var(--shell-header-height) - 24px));
+    min-height: max(640px, calc(100dvh - var(--shell-header-height) - 24px));
+  }
+
+  .stage-run-main.outline-main {
+    overflow: hidden;
+  }
+
+  .outline-workbench-phase84 {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .outline-workbench-phase84 .outline-program-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(620px, auto);
+    overflow: visible;
+  }
+
+  .outline-workbench-phase84 .outline-volume-rail {
+    display: flex;
+    height: 94px;
+    min-height: 94px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .outline-workbench-phase84 .outline-volume-rail button {
+    flex: 0 0 190px;
+  }
+
+  .outline-workbench-phase84 .outline-program-stage {
+    min-height: 620px;
+  }
+}
+
+@media (max-width: 760px) {
+  .outline-context-bar {
+    align-items: stretch;
+    gap: 9px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outline-context-title {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outline-context-title > small {
+    grid-column: 1;
+  }
+
+  .outline-readiness > small {
+    white-space: normal;
+  }
+
+  .outline-workbench-phase84 .outline-program-shell {
+    grid-template-rows: auto minmax(900px, auto);
+  }
+
+  .outline-workbench-phase84 .outline-program-stage {
+    grid-template-rows: auto auto minmax(230px, auto) auto auto;
+    min-height: 900px;
+    overflow: visible;
+  }
+
+  .outline-program-head span {
+    white-space: normal;
+  }
+
+  .outline-workbench-phase84 .outline-beat-matrix {
+    grid-auto-rows: minmax(230px, 1fr);
+    grid-template-columns: repeat(5, 170px);
+    min-height: 230px;
+  }
+
+  .outline-workbench-phase84 .outline-dependency-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outline-workbench-phase84 .outline-dependency-row > button {
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--border) 38%, transparent);
+    min-height: 104px;
+  }
+
+  .outline-workbench-phase84 .outline-dependency-row > button:first-child {
+    border-top: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .outline-beat-dialog {
+    max-height: calc(100dvh - 24px);
+    padding: 16px;
+    width: calc(100vw - 24px);
+  }
+
+  .outline-beat-editor-nav {
+    display: flex;
+  }
+
+  .outline-beat-editor-nav button {
+    flex: 0 0 156px;
+  }
+
+  .outline-beat-editor-focus {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 520px) {
+  .outline-beat-dialog {
+    gap: 10px;
+    max-height: calc(100dvh - 16px);
+    padding: 12px;
+    width: calc(100vw - 16px);
+  }
+
+  .outline-beat-dialog-head {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+    padding-right: 40px;
+  }
+
+  .outline-beat-dialog-head > span {
+    justify-self: start;
+    padding: 5px 8px;
+  }
+
+  .outline-beat-editor-nav button {
+    flex-basis: 140px;
+  }
+
+  .outline-focus-overview label,
+  .outline-focus-field {
+    padding: 15px;
+  }
+
+  .outline-beat-dialog > .artifact-dialog-actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .outline-beat-dialog > .artifact-dialog-actions .unsaved-draft-status {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-volume-rail button,
+  .outline-beat-tile,
+  .outline-dependency-row > button,
+  .outline-beat-editor-nav button {
+    transition: none !important;
+  }
+}

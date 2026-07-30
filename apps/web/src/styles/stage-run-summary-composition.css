@@ -1,0 +1,210 @@
+/* Summary final composition: left manuscript owns height, right rail stacks structure/turns over graph writeback. */
+.stage-contract-board.summary-board {
+  align-items: stretch;
+  display: grid !important;
+  gap: 12px;
+  grid-template-columns: minmax(520px, 1.08fr) minmax(430px, 0.92fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+.stage-contract-board.summary-board > .summary-manuscript-pane {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stage-contract-board.summary-board > .summary-side-workbench {
+  display: grid;
+  gap: 12px;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  grid-template-rows: minmax(0, 1fr) minmax(164px, 0.28fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.summary-side-workbench > .summary-side-top {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.12fr) minmax(150px, 0.78fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.summary-side-workbench .summary-structure-pane,
+.summary-side-workbench .summary-turning-pane {
+  grid-column: auto !important;
+  grid-row: auto !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.summary-side-workbench .summary-relationship-sync {
+  align-items: stretch;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent), transparent 58%),
+    color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.summary-side-workbench .summary-relationship-head {
+  align-content: start;
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.summary-side-workbench .summary-relationship-map {
+  align-content: start;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 84px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.summary-side-workbench .summary-relationship-map button {
+  border-radius: 8px;
+  grid-template-columns: minmax(40px, 0.38fr) minmax(36px, 1fr) minmax(40px, 0.38fr);
+  min-height: 50px;
+  padding: 6px 8px;
+}
+
+.summary-side-workbench .summary-relationship-delta {
+  border-left: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 66%, transparent);
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  gap: 4px;
+  max-height: 48px;
+  overflow: auto;
+  padding: 8px 0 0;
+  scrollbar-width: thin;
+}
+
+.summary-side-workbench .summary-relationship-delta span {
+  white-space: nowrap;
+}
+
+.summary-side-workbench .summary-beat-step {
+  gap: 7px 9px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  min-height: 104px;
+  padding: 9px;
+}
+
+.summary-side-workbench .summary-beat-step > span {
+  height: 25px;
+  width: 25px;
+}
+
+.summary-side-workbench .summary-beat-step textarea {
+  min-height: 27px;
+}
+
+.summary-side-workbench .summary-turn-step {
+  min-height: 92px;
+  padding: 9px 9px 9px 38px;
+}
+
+.summary-side-workbench .summary-turn-step textarea {
+  min-height: 42px;
+}
+
+.stage-contract-board.summary-board .summary-manuscript-editor {
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  min-height: 0;
+}
+
+.stage-contract-board.summary-board .summary-stream-paper {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.stage-contract-board.summary-board .summary-paper-settled {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.stage-contract-board.summary-board .summary-paper-readable {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.stage-contract-board.summary-board .summary-paper-editor {
+  max-height: 36%;
+  min-height: 128px !important;
+  overflow: auto;
+}
+
+.stage-contract-board.summary-board > .summary-structure-pane,
+.stage-contract-board.summary-board > .summary-turning-pane,
+.stage-contract-board.summary-board > .summary-relationship-sync,
+.stage-contract-board.summary-board > .summary-character-pane {
+  display: none !important;
+}
+
+@media (max-width: 1360px) {
+  .stage-contract-board.summary-board {
+    grid-template-columns: minmax(480px, 1fr) minmax(390px, 0.82fr) !important;
+  }
+
+  .summary-side-workbench > .summary-side-top {
+    grid-template-columns: minmax(0, 1.16fr) minmax(145px, 0.74fr);
+  }
+
+  .summary-side-workbench .summary-relationship-sync {
+    grid-template-columns: 126px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .stage-contract-board.summary-board {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(520px, 1fr) minmax(420px, 0.8fr) !important;
+    overflow: auto !important;
+  }
+
+  .stage-contract-board.summary-board > .summary-manuscript-pane,
+  .stage-contract-board.summary-board > .summary-side-workbench {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  .summary-side-workbench > .summary-side-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-side-workbench .summary-relationship-sync {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-side-workbench .summary-relationship-head,
+  .summary-side-workbench .summary-relationship-map,
+  .summary-side-workbench .summary-relationship-delta {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}

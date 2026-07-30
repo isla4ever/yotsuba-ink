@@ -69,3 +69,92 @@ async def wait_for_artifact_approval(
     runner.run_store.update_state(run_id, state)
     runner.run_store.append_event(run_id, approved_event)
     yield approved_event
+
+
+def should_wait_for_stage_confirmation(mode: str, node_id: str, node_type: str) -> bool:
+    if mode == "fast":
+        return False
+    if mode == "balanced":
+        return node_type == "info_recommend"
+    if mode == "deep":
+        return node_id != "export"
+    return node_type == "info_recommend"
+
+
+async def wait_for_stage_confirmation(
+    runner: Any,
+    run_id: str,
+    state: Any,
+    *,
+    node_id: str,
+    node_type: str,
+    label: str,
+    output_key: str,
+    artifact: Any,
+    next_node_id: str = "",
+) -> AsyncIterator[dict[str, Any]]:
+    state.runtime_phase = "awaiting_stage_confirmation"
+    state.approval_required = True
+    state.current_checkpoint_stage_id = node_id
+    state.stage_confirmation_state[node_id] = {
+        "status": "pending",
+        "node_id": node_id,
+        "node_type": node_type,
+        "output_key": output_key,
+    }
+    runner.run_store.update_state(run_id, state)
+    runner.run_store.request_approval(run_id, node_id=node_id, output_key=output_key, artifact=artifact)
+    checkpoint = {
+        "type": "stage_checkpoint_ready",
+        "run_id": run_id,
+        "node_id": node_id,
+        "node_type": node_type,
+        "label": label,
+        "output_key": output_key,
+        "artifact": artifact,
+        "next_node_id": next_node_id,
+        "message": "当前阶段产物已生成，等待人工确认定稿。",
+    }
+    approval = {
+        "type": "approval_required",
+        "run_id": run_id,
+        "node_id": node_id,
+        "node_type": node_type,
+        "label": label,
+        "output_key": output_key,
+        "artifact": artifact,
+        "message": "当前阶段需要人工确认后才能继续。",
+    }
+    for event in (checkpoint, approval):
+        runner.run_store.append_event(run_id, event)
+        yield event
+    while runner.run_store.approval_pending(run_id, node_id=node_id):
+        await asyncio.sleep(0.2)
+    stored = runner.run_store.read(run_id)
+    approval_data = stored.get("approval") or {}
+    approved_artifact = approval_data.get("artifact", artifact)
+    state.runtime_phase = "stage_ready_to_continue"
+    state.approval_required = False
+    state.artifacts[output_key] = approved_artifact
+    state.approved_artifacts[output_key] = approved_artifact
+    state.stage_confirmation_state[node_id] = {
+        "status": "confirmed",
+        "node_id": node_id,
+        "node_type": node_type,
+        "output_key": output_key,
+        "event_emitted": True,
+    }
+    confirmed = {
+        "type": "stage_artifact_confirmed",
+        "run_id": run_id,
+        "node_id": node_id,
+        "node_type": node_type,
+        "label": label,
+        "output_key": output_key,
+        "artifact": approved_artifact,
+    }
+    approved = {"type": "artifact_approved", **{key: value for key, value in confirmed.items() if key != "type"}}
+    runner.run_store.update_state(run_id, state)
+    for event in (confirmed, approved):
+        runner.run_store.append_event(run_id, event)
+        yield event

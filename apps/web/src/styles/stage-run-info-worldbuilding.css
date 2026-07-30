@@ -1,0 +1,207 @@
+.info-compact-main {
+  min-height: 0;
+}
+
+.recommendation-command-card {
+  grid-template-rows: auto auto auto minmax(220px, 0.72fr) minmax(210px, 0.72fr);
+}
+
+.recommendation-tag-console {
+  align-content: start;
+}
+
+.recommendation-chip-row {
+  max-height: 68px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.recommendation-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.recommendation-chip-row span,
+.recommendation-chip-row button {
+  height: 26px;
+  padding: 5px 9px;
+}
+
+.recommendation-chip-row.editable input {
+  height: 26px;
+  min-height: 26px;
+}
+
+.recommendation-field.synopsis textarea,
+.compact-synopsis textarea {
+  min-height: 220px;
+}
+
+.info-worldbuilding-digest {
+  --world-aura: var(--mode-aura, var(--success));
+  background:
+    radial-gradient(circle at 6% 0, color-mix(in srgb, var(--world-aura) 18%, transparent), transparent 34%),
+    radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--world-aura) 14%, transparent), transparent 32%),
+    linear-gradient(135deg, color-mix(in srgb, var(--panel-muted) 78%, transparent), color-mix(in srgb, var(--panel) 72%, transparent));
+  border: 1px solid color-mix(in srgb, var(--world-aura) 28%, var(--border));
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent),
+    0 18px 46px color-mix(in srgb, var(--world-aura) 7%, transparent);
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+  position: relative;
+}
+
+.info-worldbuilding-digest::before {
+  background:
+    linear-gradient(color-mix(in srgb, var(--world-aura) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--world-aura) 6%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  content: "";
+  inset: 0;
+  opacity: 0.22;
+  pointer-events: none;
+  position: absolute;
+}
+
+.info-worldbuilding-digest > * {
+  position: relative;
+  z-index: 1;
+}
+
+.info-worldbuilding-orbit {
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--world-aura) 55%, transparent) 0 2px, transparent 3px),
+    conic-gradient(from 90deg, transparent 0 45deg, color-mix(in srgb, var(--world-aura) 22%, transparent) 92deg, transparent 145deg);
+  border-radius: 999px;
+  filter: blur(0.2px);
+  height: 120px;
+  opacity: 0.45;
+  pointer-events: none;
+  position: absolute;
+  right: -34px;
+  top: -48px;
+  width: 120px;
+}
+
+.info-worldbuilding-head {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-width: 0;
+}
+
+.info-worldbuilding-head div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.info-worldbuilding-head span {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 950;
+  gap: 7px;
+}
+
+.info-worldbuilding-head small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-worldbuilding-head b {
+  background: color-mix(in srgb, var(--world-aura) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--world-aura) 26%, var(--border));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--world-aura) 72%, var(--text));
+  font-size: 10px;
+  font-weight: 950;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.info-worldbuilding-scroll,
+.info-worldbuilding-grid {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  overflow: auto;
+  padding: 1px 3px 1px 1px;
+  scrollbar-color: color-mix(in srgb, var(--world-aura) 36%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.info-worldbuilding-scroll::-webkit-scrollbar,
+.info-worldbuilding-grid::-webkit-scrollbar {
+  width: 7px;
+}
+
+.info-worldbuilding-scroll::-webkit-scrollbar-thumb,
+.info-worldbuilding-grid::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--world-aura) 32%, transparent);
+  border-radius: 999px;
+}
+
+.info-worldbuilding-tile,
+.info-worldbuilding-grid article {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--panel) 78%, transparent), color-mix(in srgb, var(--panel-muted) 66%, transparent));
+  border: 1px solid color-mix(in srgb, var(--world-aura) 16%, var(--border));
+  border-radius: 14px;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 104px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.info-worldbuilding-tile i {
+  align-items: center;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, #fff 18%, transparent), transparent 42%),
+    color-mix(in srgb, var(--world-aura) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--world-aura) 32%, var(--border));
+  border-radius: 12px;
+  color: color-mix(in srgb, var(--world-aura) 78%, var(--text));
+  display: inline-flex;
+  font-style: normal;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.info-worldbuilding-tile div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.info-worldbuilding-tile strong,
+.info-worldbuilding-grid strong {
+  color: color-mix(in srgb, var(--world-aura) 76%, var(--text));
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.info-worldbuilding-tile span,
+.info-worldbuilding-grid span {
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}

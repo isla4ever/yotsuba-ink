@@ -1,0 +1,62 @@
+.cover-stage-board {
+  grid-template-columns: minmax(0, 0.95fr) minmax(280px, 0.58fr);
+}
+
+.cover-direction-panel {
+  grid-template-rows: minmax(96px, auto) minmax(260px, 1fr);
+}
+
+.cover-prompt-card {
+  min-height: 0;
+}
+
+.cover-prompt-card textarea {
+  min-height: 260px;
+}
+
+.quality-gauge {
+  overflow: hidden;
+  position: relative;
+}
+
+.quality-gauge > div {
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 20%, var(--border));
+  border-radius: 999px;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.quality-gauge i {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 66%, #fff), color-mix(in srgb, var(--accent-2) 88%, #fff)),
+    repeating-linear-gradient(120deg, transparent 0 10px, rgba(255, 255, 255, 0.2) 10px 18px);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-2) 28%, transparent);
+  transition: width 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.quality-gauge span {
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-2) 80%, #fff), transparent 62%);
+  filter: blur(0.2px);
+}
+
+/* Final cover/export overrides: keep prompt and readiness usable after responsive blocks. */
+.cover-direction-panel .cover-prompt-card {
+  display: grid;
+  grid-template-rows: auto minmax(260px, 1fr) auto;
+  min-height: 0;
+}
+
+.cover-direction-panel .cover-prompt-card textarea {
+  min-height: 260px;
+  height: 100%;
+}
+
+.cover-quality-card {
+  overflow: hidden;
+}
+
+.cover-progress-list {
+  min-height: 0;
+  overflow: auto;
+}

@@ -1,0 +1,147 @@
+/* Summary modal refinement: content-shaped editors and graph writeback controls. */
+.summary-mini-dialog {
+  gap: 13px;
+  padding: 20px;
+}
+
+.summary-mini-dialog.beat {
+  width: min(660px, calc(100vw - 56px));
+}
+
+.summary-mini-dialog.turn {
+  width: min(540px, calc(100vw - 56px));
+}
+
+.summary-mini-head {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
+  padding-bottom: 11px;
+}
+
+.summary-mini-head h2 {
+  font-size: 21px;
+}
+
+.summary-mini-fields.summary-beat-composer,
+.summary-mini-fields.summary-turn-composer {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 9%, transparent), transparent 54%),
+    color-mix(in srgb, var(--panel-muted) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.summary-mini-fields.summary-beat-composer {
+  grid-template-columns: minmax(172px, 0.48fr) minmax(0, 1fr);
+  grid-template-areas:
+    "preview node"
+    "preview goal"
+    "preview turn";
+}
+
+.summary-mini-fields.summary-turn-composer {
+  grid-template-columns: minmax(130px, 0.38fr) minmax(0, 1fr);
+  grid-template-areas:
+    "preview node"
+    "preview detail";
+}
+
+.summary-mini-preview,
+.summary-turn-preview {
+  align-content: center;
+  background:
+    radial-gradient(circle at 20% 15%, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 22%, transparent), transparent 46%),
+    color-mix(in srgb, var(--panel) 64%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 24%, var(--border));
+  border-radius: 10px;
+  display: grid;
+  gap: 7px;
+  grid-area: preview;
+  min-height: 150px;
+  padding: 14px;
+}
+
+.summary-mini-preview b,
+.summary-turn-preview b {
+  align-items: center;
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 14%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 48%, var(--border));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 88%, var(--text));
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 950;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.summary-mini-preview strong,
+.summary-turn-preview strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.32;
+}
+
+.summary-mini-preview small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.summary-mini-fields .summary-mini-node {
+  grid-area: node;
+}
+
+.summary-mini-fields .summary-mini-block.goal {
+  grid-area: goal;
+}
+
+.summary-mini-fields .summary-mini-block.turn,
+.summary-mini-fields .summary-mini-block.turn-detail {
+  grid-area: turn;
+}
+
+.summary-mini-fields.summary-turn-composer .summary-mini-block.turn-detail {
+  grid-area: detail;
+}
+
+.summary-mini-fields.summary-beat-composer label,
+.summary-mini-fields.summary-turn-composer label {
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 56%, transparent);
+  border-left: 0;
+  border-radius: 10px;
+  gap: 7px;
+  padding: 10px;
+}
+
+.summary-mini-fields.summary-beat-composer label:nth-child(n + 2) {
+  grid-column: auto;
+}
+
+.summary-mini-fields.summary-beat-composer input,
+.summary-mini-fields.summary-beat-composer textarea,
+.summary-mini-fields.summary-turn-composer input,
+.summary-mini-fields.summary-turn-composer textarea {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.summary-mini-fields.summary-beat-composer input:focus,
+.summary-mini-fields.summary-beat-composer textarea:focus,
+.summary-mini-fields.summary-turn-composer input:focus,
+.summary-mini-fields.summary-turn-composer textarea:focus {
+  box-shadow: none;
+}
+
+.summary-mini-fields.summary-beat-composer textarea {
+  min-height: 82px;
+}
+
+.summary-mini-fields.summary-turn-composer textarea {
+  min-height: 132px;
+}

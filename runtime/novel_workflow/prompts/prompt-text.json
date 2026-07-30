@@ -2,7 +2,7 @@
   "id": "prompt-text",
   "name": "正文 Prompt",
   "stage_type": "chapter_text",
-  "content": "逐章按细纲、上一章摘要、人物状态、世界观硬设定和未回收伏笔生成正文，保持动机、信息差、节奏和语言质感一致。",
+  "content": "逐章按当前 Chapter Context Packet、已确认细纲和 Voice Spec 生成一个结构化章节产物。\n\n- 默认从上一章结果连续续写。开篇先用动作、后果、物证或人物反应兑现 previous_chapter_summary 与 transition_directive，再进入本章 entry_state；不要复述摘要，不要重新介绍故事。\n- 只有细纲明确标记时才允许视角转移、倒叙或时间跳切；转换前必须给出可感知的因果、时间、地点或视角锚点，并保留上一章后果。\n- 卷首先承接 previous_volume_ending 再启动 volume_goal；卷末结算本卷目标，并向 next_volume_goal 建立具体因果。\n- 正文必须推进本章 goal/conflict/stakes，人物动机、信息差、世界规则、未回收伏笔和语言质感保持一致；章末 hook 必须由本章行动后果产生。\n- summary 只记录本章新增事实、人物状态和未决行动，足以供下一章承接；wiki_writebacks、character_shift、foreshadow_updates 只返回本章真实发生的变化。",
   "variables": [
     "chapter_words",
     "pov"

@@ -1,0 +1,3 @@
+/* entry-settings: settings/provider surfaces, imported by SettingsDialog and by
+ * ProviderManagerSheet (which guided setup also renders). */
+@import './settings-overview.css';

@@ -1,15 +1,27 @@
-import type { Edge, Node } from '@xyflow/react';
+import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import { CrosscuttingNode, StageCompactNode } from './StageCompactNode';
 import type { CanvasLayout, QualityEvent, RunEvent, WorkflowDefinition } from '../contracts';
+import { latestNodeStatus } from './cockpitRuntime';
+import { stageLabelForUi } from '../lib/display';
+import { stageArtifactLabel, stageConfigurationReadiness } from '../lib/planningReadiness';
 
 export const pipelineNodeTypes = { stageCompact: StageCompactNode, crosscutting: CrosscuttingNode };
 
 const crosscuttingTargetIds = ['summary', 'outline', 'detail', 'text'];
+export type PipelineLayoutVariant = 'planning' | 'cockpit-vertical';
+
+export function isCanvasNodeActivationKey(key: string) {
+  return key === 'Enter' || key === ' ';
+}
+
+export function isCanvasViewportInteractive(lockedViewport: boolean, layoutLocked: boolean) {
+  return !lockedViewport && !layoutLocked;
+}
 
 export function createQualityMap(events: RunEvent[]) {
   const map = new Map<string, QualityEvent>();
   events.forEach((event) => {
-    if (event.type === 'quality_check_completed' && event.node_id && event.quality) {
+    if (event.type === 'quality_check_completed' && event.node_id && event.quality && !map.has(event.node_id)) {
       map.set(event.node_id, event.quality);
     }
   });
@@ -22,9 +34,15 @@ export function mergeLayoutNodes(
   events: RunEvent[],
   latestQuality: Map<string, QualityEvent>,
   currentNodes: Node[],
+  showCrosscutting = workflow.canvas_layout?.crosscutting_visible !== false,
+  layoutVariant: PipelineLayoutVariant = 'planning',
+  runtimeLayersEnabled = true,
 ): Node[] {
+  if (layoutVariant === 'cockpit-vertical') {
+    return buildNodes(workflow, selectedId, events, latestQuality, showCrosscutting, layoutVariant, runtimeLayersEnabled);
+  }
   const currentById = new Map(currentNodes.map((node) => [node.id, node]));
-  const next = buildNodes(workflow, selectedId, events, latestQuality);
+  const next = buildNodes(workflow, selectedId, events, latestQuality, showCrosscutting, layoutVariant, runtimeLayersEnabled);
   return next.map((node) => {
     const current = currentById.get(node.id);
     return current ? { ...node, position: current.position ?? node.position } : node;
@@ -52,12 +70,24 @@ export function buildNodes(
   selectedId: string,
   events: RunEvent[],
   latestQuality: Map<string, QualityEvent>,
+  showCrosscutting = workflow.canvas_layout?.crosscutting_visible !== false,
+  layoutVariant: PipelineLayoutVariant = 'planning',
+  runtimeLayersEnabled = true,
 ): Node[] {
   const layout = workflow.canvas_layout?.nodes ?? {};
+  const useCockpitLayout = layoutVariant === 'cockpit-vertical';
+  const useDefaultLayout = useCockpitLayout || needsDefaultCanvasLayout(workflow);
+  const wikiSubtitle = runtimeLayersEnabled ? useCockpitLayout ? '读写约束' : '读取 / 写回 / 冲突处理' : '启动后可用';
+  const qualitySubtitle = runtimeLayersEnabled ? useCockpitLayout ? '评分复检' : '评分 / 重试 / 版本评审' : '启动后可用';
   const stageNodes = workflow.nodes.map((stage, index) => ({
     id: stage.id,
     type: 'stageCompact',
-    position: layout[stage.id] ?? defaultPosition(stage.id, index),
+    position: useCockpitLayout ? cockpitPosition(stage.id, index) : useDefaultLayout ? defaultPosition(stage.id, index) : layout[stage.id] ?? defaultPosition(stage.id, index),
+    ariaLabel: stageNodeAriaLabel(stage, index, selectedId === stage.id, useCockpitLayout, runtimeLayersEnabled),
+    ariaRole: 'button' as const,
+    focusable: true,
+    selectable: true,
+    selected: selectedId === stage.id,
     data: {
       stage,
       index,
@@ -65,58 +95,106 @@ export function buildNodes(
       status: statusFor(stage.id, events),
       quality: latestQuality.get(stage.id),
       events,
+      presentation: useCockpitLayout ? 'runtime' : 'planning',
+      runtime: latestNodeStatus(events, stage.id),
     },
   }));
-  if (workflow.canvas_layout?.crosscutting_visible === false) return stageNodes;
+  if (!showCrosscutting) return stageNodes;
   return [
     ...stageNodes,
     {
       id: 'wiki-layer',
       type: 'crosscutting',
-      position: layout['wiki-layer'] ?? { x: 276, y: 302 },
-      data: { kind: 'wiki', title: 'Wiki 自动约束', subtitle: '读取 / 写回 / 冲突处理', selected: selectedId === 'wiki-layer' },
-      draggable: true,
+      position: useCockpitLayout ? { x: 78, y: 350 } : useDefaultLayout ? { x: 324, y: -96 } : layout['wiki-layer'] ?? { x: 324, y: -96 },
+      ariaLabel: runtimeLayersEnabled ? 'Wiki 事实层，打开事实读写详情' : 'Wiki 事实层，启动创作后可用',
+      ariaRole: runtimeLayersEnabled ? 'button' as const : 'group' as const,
+      data: { compact: useCockpitLayout, disabled: !runtimeLayersEnabled, kind: 'wiki', title: useCockpitLayout ? 'Wiki约束' : 'Wiki 自动约束', subtitle: wikiSubtitle, selected: runtimeLayersEnabled && selectedId === 'wiki-layer' },
+      draggable: runtimeLayersEnabled,
+      focusable: runtimeLayersEnabled,
+      selectable: runtimeLayersEnabled,
     },
     {
       id: 'quality-layer',
       type: 'crosscutting',
-      position: layout['quality-layer'] ?? { x: 694, y: 302 },
-      data: { kind: 'quality', title: '质量阀门', subtitle: '评分 / 重试 / 版本评审', selected: selectedId === 'quality-layer' },
-      draggable: true,
+      position: useCockpitLayout ? { x: 414, y: 350 } : useDefaultLayout ? { x: 708, y: 452 } : layout['quality-layer'] ?? { x: 708, y: 452 },
+      ariaLabel: runtimeLayersEnabled ? '质量监控，打开质量检查详情' : '质量监控，启动创作后可用',
+      ariaRole: runtimeLayersEnabled ? 'button' as const : 'group' as const,
+      data: { compact: useCockpitLayout, disabled: !runtimeLayersEnabled, kind: 'quality', title: '质量检查', subtitle: qualitySubtitle, selected: runtimeLayersEnabled && selectedId === 'quality-layer' },
+      draggable: runtimeLayersEnabled,
+      focusable: runtimeLayersEnabled,
+      selectable: runtimeLayersEnabled,
     },
   ];
 }
 
-export function buildEdges(workflow: WorkflowDefinition, events: RunEvent[], selectedId: string): Edge[] {
+function stageNodeAriaLabel(stage: WorkflowDefinition['nodes'][number], index: number, selected: boolean, cockpit: boolean, runtimeEnabled: boolean) {
+  const readiness = stageConfigurationReadiness(stage);
+  const state = cockpit
+    ? runtimeEnabled ? '打开只读阶段快照' : '打开阶段设置'
+    : readiness.ready ? '配置就绪' : `待补 ${readiness.missingLabels.length} 项`;
+  const selection = selected ? '，当前选中' : '';
+  return `第 ${index + 1} 阶段，${stageLabelForUi(stage)}，产物为${stageArtifactLabel(stage)}，${state}${selection}`;
+}
+
+function needsDefaultCanvasLayout(workflow: WorkflowDefinition) {
+  const layout = workflow.canvas_layout?.nodes;
+  if (!layout) return false;
+  const stagePositions = workflow.nodes.map((stage) => layout[stage.id]).filter(Boolean);
+  if (stagePositions.length < 4) return false;
+  const xSpread = Math.max(...stagePositions.map((item) => item.x)) - Math.min(...stagePositions.map((item) => item.x));
+  const ySpread = Math.max(...stagePositions.map((item) => item.y)) - Math.min(...stagePositions.map((item) => item.y));
+  const wiki = layout['wiki-layer'];
+  const quality = layout['quality-layer'];
+  const crosscuttingSameSide = Boolean(wiki && quality && Math.abs(wiki.y - quality.y) < 100);
+  const crosscuttingSideMounted = Boolean(
+    wiki && quality && Math.abs(wiki.y - quality.y) < 180 && Math.abs(wiki.x - quality.x) > 260,
+  );
+  const tooWideForCurrentBaseline = Math.max(...stagePositions.map((item) => item.x)) > 1320;
+  return (xSpread < 120 && ySpread > 360) || crosscuttingSameSide || crosscuttingSideMounted || tooWideForCurrentBaseline;
+}
+
+export function buildEdges(
+  workflow: WorkflowDefinition,
+  events: RunEvent[],
+  selectedId: string,
+  showCrosscutting = workflow.canvas_layout?.crosscutting_visible !== false,
+  layoutVariant: PipelineLayoutVariant = 'planning',
+  runtimeLayersEnabled = true,
+): Edge[] {
+  const cockpit = layoutVariant === 'cockpit-vertical';
   const mainEdges = workflow.edges.map((edge) => ({
     ...edge,
-    animated: events.some((event) => event.type === 'node_started' && event.node_id === edge.target),
+    animated: latestNodeStatus(events, edge.target).status === 'running',
     className: 'pipeline-edge',
-    sourceHandle: 'bottom',
-    targetHandle: 'top',
+    sourceHandle: cockpit ? 'bottom-source' : 'right',
+    targetHandle: cockpit ? 'top' : 'left',
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--edge)', width: 14, height: 14 },
     type: 'smoothstep' as const,
   }));
-  if (workflow.canvas_layout?.crosscutting_visible === false) return mainEdges;
+  if (!showCrosscutting) return mainEdges;
+  const wikiActive = runtimeLayersEnabled && (selectedId === 'wiki-layer' || events.some((event) => event.type === 'memory_context_loaded' || event.type === 'memory_writeback_completed'));
+  const qualityActive = runtimeLayersEnabled && (selectedId === 'quality-layer' || events.some((event) => event.type === 'quality_check_started' || event.type === 'quality_check_completed'));
+  const disabledClass = runtimeLayersEnabled ? '' : ' disabled';
   const crosscutting = crosscuttingTargetIds.flatMap((nodeId) => [
     {
       id: `wiki-${nodeId}`,
       source: 'wiki-layer',
       target: nodeId,
-      sourceHandle: 'right',
-      targetHandle: 'left',
-      animated: true,
-      className: `crosscutting-edge wiki-edge${selectedId === 'wiki-layer' ? ' selected' : ''}`,
-      type: 'smoothstep' as const,
+      sourceHandle: cockpit ? 'right' : 'bottom',
+      targetHandle: cockpit ? 'left' : 'top',
+      animated: wikiActive,
+      className: `crosscutting-edge wiki-edge${wikiActive ? ' active' : ''}${runtimeLayersEnabled && selectedId === 'wiki-layer' ? ' selected' : ''}${disabledClass}`,
+      type: cockpit ? 'straight' as const : 'smoothstep' as const,
     },
     {
       id: `quality-${nodeId}`,
       source: 'quality-layer',
       target: nodeId,
-      sourceHandle: 'left',
-      targetHandle: 'right-target',
-      animated: true,
-      className: `crosscutting-edge quality-edge${selectedId === 'quality-layer' ? ' selected' : ''}`,
-      type: 'smoothstep' as const,
+      sourceHandle: cockpit ? 'left' : 'top',
+      targetHandle: cockpit ? 'right-target' : 'bottom',
+      animated: qualityActive,
+      className: `crosscutting-edge quality-edge${qualityActive ? ' active' : ''}${runtimeLayersEnabled && selectedId === 'quality-layer' ? ' selected' : ''}${disabledClass}`,
+      type: cockpit ? 'straight' as const : 'smoothstep' as const,
     },
   ]);
   return [...mainEdges, ...crosscutting];
@@ -138,22 +216,30 @@ export function createCanvasLayout(
 
 function defaultPosition(stageId: string, index: number) {
   const map: Record<string, { x: number; y: number }> = {
-    info: { x: 420, y: 20 },
-    summary: { x: 420, y: 160 },
-    outline: { x: 420, y: 300 },
-    detail: { x: 420, y: 440 },
-    text: { x: 420, y: 580 },
-    cover: { x: 420, y: 720 },
-    export: { x: 420, y: 860 },
+    info: { x: -12, y: 178 },
+    summary: { x: 176, y: 178 },
+    outline: { x: 364, y: 178 },
+    detail: { x: 552, y: 178 },
+    text: { x: 740, y: 178 },
+    cover: { x: 928, y: 178 },
+    export: { x: 1116, y: 178 },
   };
-  return map[stageId] ?? { x: 420, y: index * 140 };
+  return map[stageId] ?? { x: -12 + index * 188, y: 178 };
+}
+
+function cockpitPosition(stageId: string, index: number) {
+  const map: Record<string, { x: number; y: number }> = {
+    info: { x: 204, y: 42 },
+    summary: { x: 204, y: 166 },
+    outline: { x: 204, y: 290 },
+    detail: { x: 204, y: 414 },
+    text: { x: 204, y: 538 },
+    cover: { x: 204, y: 662 },
+    export: { x: 204, y: 786 },
+  };
+  return map[stageId] ?? { x: 204, y: 42 + index * 124 };
 }
 
 function statusFor(stageId: string, events: RunEvent[]) {
-  const latest = events.find((event) => event.node_id === stageId && event.type.startsWith('node_'));
-  if (!latest) return 'idle';
-  if (latest.type === 'node_started') return 'running';
-  if (latest.type === 'node_completed') return 'done';
-  if (latest.type === 'node_failed') return 'failed';
-  return 'idle';
+  return latestNodeStatus(events, stageId).status;
 }

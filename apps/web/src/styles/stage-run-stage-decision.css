@@ -1,0 +1,309 @@
+.stage-decision-slot {
+  min-height: 0;
+  overflow: hidden;
+  transform-origin: bottom center;
+  will-change: height, opacity, transform, filter;
+}
+
+.stage-decision-bar {
+  align-items: center;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 54%),
+    color-mix(in srgb, var(--panel) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 22%, var(--border));
+  border-radius: 12px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  min-height: 58px;
+  overflow: hidden;
+  padding: 10px 12px;
+  transform-origin: bottom center;
+}
+
+.stage-decision-bar > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stage-decision-bar strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.stage-decision-bar span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.stage-decision-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.variant-compare-focus {
+  background:
+    radial-gradient(circle at 50% 0, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 36%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 34%),
+    color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 28%, var(--border));
+  border-radius: 20px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.26);
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.variant-compare-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.variant-compare-head > div {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.variant-compare-head span {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 8px;
+}
+
+.variant-compare-head b {
+  color: var(--accent-2);
+  font-size: 11px;
+}
+
+.variant-compare-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.variant-compare-grid.count-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.variant-compare-grid.count-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.variant-compare-grid article {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-muted) 80%, transparent), color-mix(in srgb, var(--panel) 72%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 22%, var(--border));
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  scrollbar-width: none;
+}
+
+.variant-compare-grid article.generating {
+  border-style: dashed;
+  opacity: 0.88;
+}
+
+.variant-compare-grid article.generating::before {
+  color: var(--warning);
+  content: "生成中";
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.variant-compare-grid article.failed {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--border));
+  border-style: solid;
+}
+
+.variant-compare-grid article.failed::before {
+  color: var(--danger);
+  content: "未生成";
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.variant-compare-grid article.ready {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--success) 70%, transparent);
+}
+
+.variant-compare-grid article .tech-button {
+  align-self: end;
+  justify-self: start;
+}
+
+.variant-compare-grid article::-webkit-scrollbar {
+  display: none;
+}
+
+.variant-compare-grid small {
+  color: var(--accent-2);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.variant-compare-grid strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.variant-compare-grid p {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.72;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.variant-compare-grid span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.variant-compare-liquid {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 18%, var(--border));
+  border-radius: 14px;
+  display: flex;
+  gap: 10px;
+  overflow: hidden;
+  padding: 10px 12px;
+}
+
+.variant-compare-liquid span {
+  border: 2px solid color-mix(in srgb, var(--accent-2) 20%, transparent);
+  border-top-color: var(--accent-2);
+  border-radius: 999px;
+  height: 18px;
+  width: 18px;
+}
+
+.variant-compare-liquid p {
+  color: var(--text-soft);
+  font-size: 12px;
+  margin: 0;
+}
+
+.cover-draft-focus .variant-compare-grid article {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.cover-candidate-visual {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-height: 0;
+}
+
+.cover-candidate-visual > img {
+  aspect-ratio: 2 / 3;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--border));
+  border-radius: 10px;
+  display: block;
+  max-height: min(46vh, 340px);
+  object-fit: cover;
+  width: 100%;
+}
+
+.cover-candidate-asset {
+  align-items: center;
+  aspect-ratio: 2 / 3;
+  background: color-mix(in srgb, var(--panel-muted) 82%, var(--panel));
+  border: 1px dashed color-mix(in srgb, var(--accent-2) 30%, var(--border));
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  max-height: 360px;
+  overflow: hidden;
+  padding: 18px;
+  place-content: center;
+  text-align: center;
+}
+
+.cover-candidate-asset > span,
+.cover-candidate-asset > small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cover-candidate-asset.failed {
+  border-color: color-mix(in srgb, var(--danger) 44%, var(--border));
+  color: var(--danger);
+}
+
+.candidate-error-state {
+  align-items: start;
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel-muted));
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, var(--border));
+  border-radius: 8px;
+  color: var(--text-soft);
+  display: grid;
+  font-size: 12px;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  line-height: 1.55;
+  padding: 12px;
+}
+
+.candidate-batch-state {
+  align-content: center;
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 72%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent-2) 34%, var(--border));
+  border-radius: 10px;
+  color: var(--accent-2);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 260px;
+  padding: 24px;
+  text-align: center;
+}
+
+.candidate-batch-state span {
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  .stage-run-main.variant-focus-main,
+  .variant-compare-focus {
+    overflow: visible;
+  }
+
+  .variant-compare-head,
+  .variant-compare-head > div {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .variant-compare-focus .variant-compare-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    overflow: visible;
+  }
+
+  .variant-compare-grid article {
+    min-height: 420px;
+  }
+}

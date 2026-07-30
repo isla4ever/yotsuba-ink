@@ -26,7 +26,7 @@ export function withDeletedKnowledgeDocument(workflow: WorkflowDefinition, docId
     ...workflow,
     nodes: workflow.nodes.map((stage) => {
       if (stage.id !== 'info') return stage;
-      const currentIds = stage.params.knowledge_base_doc_ids;
+      const currentIds = stage.input_schema.find((field) => field.key === 'knowledge_base_doc_ids')?.default;
       const nextIds = Array.isArray(currentIds) ? currentIds.filter((item) => item !== docId) : [];
       return updateStageInputDefault(stage, 'knowledge_base_doc_ids', nextIds);
     }),

@@ -1,0 +1,25 @@
+.writing-workbench,
+.stage-run-workbench {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.28fr) clamp(330px, 25vw, 430px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+  position: relative;
+}
+
+.stage-run-workbench.no-side-panels {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.stage-run-workbench:has(> .stage-run-side.panels-0) {
+  grid-template-columns: minmax(0, 1fr) clamp(176px, 14vw, 208px);
+}
+
+@media (max-width: 1180px) {
+  .product-shell .stage-run-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+}

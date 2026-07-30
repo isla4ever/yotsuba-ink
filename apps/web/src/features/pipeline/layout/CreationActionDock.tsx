@@ -1,53 +1,116 @@
-import { Gauge, Layers3, LoaderCircle, Pause, Play, Zap } from 'lucide-react';
 import type { QualityMode } from '../contracts';
+import { qualityModeProfiles } from '../lib/qualityModes';
+import type { ModeRevealOrigin } from './modeRevealTransition';
+import { useRunStateContext, useWorkflowConfigContext, useUICommandContext } from '../state/pipelineShellContext';
+import { runActionPresentation } from '../state/runPresentationState';
+import { AnimatePresence, motion } from 'motion/react';
+import { CheckCircle2, Clock3, CornerUpLeft, Pause, Play, type LucideIcon } from 'lucide-react';
+import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 
 type Props = {
+  /** Mode-switch lock computed by the header (owns the transition notice). */
   disabled: boolean;
-  paused: boolean;
-  qualityMode: QualityMode;
-  running: boolean;
-  onPause: () => void;
-  onQualityModeChange: (mode: QualityMode) => void;
-  onRun: () => void;
+  onQualityModeChange: (mode: QualityMode, origin?: ModeRevealOrigin) => void;
 };
 
-export function CreationActionDock({ disabled, paused, qualityMode, running, onPause, onQualityModeChange, onRun }: Props) {
+type RunButtonIconState = {
+  Icon: LucideIcon;
+  key: string;
+  size: number;
+};
+
+export function CreationActionDock({ disabled, onQualityModeChange }: Props) {
+  const run = useRunStateContext();
+  const { qualityMode } = useWorkflowConfigContext();
+  const { runPrimaryAction } = useUICommandContext();
+  const action = runActionPresentation({
+    approvalPending: run.approvalPending,
+    checkpointContinueReady: run.checkpointContinueReady,
+    infoContinueReady: run.infoContinueReady,
+    qualityMode,
+    runControlState: run.runControlState,
+    running: run.running,
+    selectedStageCheckpointReady: Boolean(run.stageRuntimes[run.selectedStage.id]?.checkpointReady),
+    selectedStageStatus: run.stageRuntimes[run.selectedStage.id]?.status ?? 'idle',
+    selectedStageType: run.selectedStage.type,
+    transitioning: run.transitioning,
+    workspacePhase: run.workspacePhase,
+  });
+  const loading = action.key === 'running-locked' || action.key === 'pause-pending';
+  const iconState: RunButtonIconState = action.key === 'awaiting-confirmation'
+      ? { Icon: Clock3, key: 'awaiting', size: 16 }
+      : action.key === 'return'
+        ? { Icon: CornerUpLeft, key: 'return', size: 17 }
+        : action.key === 'continue' || action.key === 'resume'
+          ? { Icon: CheckCircle2, key: 'continue', size: 17 }
+          : action.key === 'pause'
+            ? { Icon: Pause, key: 'pause', size: 16 }
+            : { Icon: Play, key: 'start', size: 17 };
+  const RunIcon = iconState.Icon;
   return (
-    <div className={`creation-action-dock mode-${qualityMode}${disabled ? ' locked' : ''}`}>
+    <div className={`creation-action-dock mode-${qualityMode} state-${action.visualState}${disabled ? ' locked' : ''}`}>
       <QualityModeTabs disabled={disabled} value={qualityMode} onChange={onQualityModeChange} />
-      {running ? (
-        <button className="run-button tech-button pause-button compact-run-action" onClick={onPause} disabled={paused} title="在下一个安全点暂停">
-          <Pause size={15} />{paused ? '已暂停' : '暂停'}
-        </button>
-      ) : null}
       <button
-        aria-label={running ? '创作中' : '开始创作'}
-        className={running ? 'run-button tech-button running compact-run-action primary icon-only-run' : 'run-button tech-button compact-run-action primary icon-only-run'}
-        onClick={onRun}
-        disabled={running}
-        title={running ? '创作中' : '开始创作'}
+        aria-busy={action.key === 'running-locked' || action.key === 'pause-pending'}
+        aria-label={action.label}
+        className={`run-button tech-button compact-run-action header-run-action ${action.visualState} ${action.key === 'pause-pending' ? 'pending' : ''}`}
+        disabled={action.disabled}
+        onClick={runPrimaryAction}
+        title={action.title}
       >
-        {running ? <LoaderCircle size={17} /> : <Play size={17} />}
+        <span aria-hidden="true" className="run-button-icon-slot">
+          <AnimatePresence initial={false}>
+            <motion.span
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              className="run-button-icon-motion"
+              exit={{ opacity: 0, rotate: 5, scale: 0.9 }}
+              initial={{ opacity: 0, rotate: -5, scale: 0.9 }}
+              key={iconState.key}
+              transition={{ duration: 0.085, ease: [0.2, 0.8, 0.2, 1] }}
+            >
+              {loading ? <ButtonLoadingIndicator size="medium" /> : <RunIcon size={iconState.size} />}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+        <span className="run-button-label">{action.label}</span>
       </button>
     </div>
   );
 }
 
-function QualityModeTabs({ value, disabled, onChange }: { value: QualityMode; disabled: boolean; onChange: (mode: QualityMode) => void }) {
-  const items: Array<{ key: QualityMode; label: string; hint: string; icon: typeof Zap }> = [
-    { key: 'fast', label: '快', hint: '极速预览', icon: Zap },
-    { key: 'balanced', label: '稳', hint: '平衡创作', icon: Gauge },
-    { key: 'deep', label: '精', hint: '深度精修', icon: Layers3 },
+function QualityModeTabs({ value, disabled, onChange }: { value: QualityMode; disabled: boolean; onChange: (mode: QualityMode, origin?: ModeRevealOrigin) => void }) {
+  const items: Array<{ key: QualityMode }> = [
+    { key: 'fast' },
+    { key: 'balanced' },
+    { key: 'deep' },
   ];
   return (
-    <div className={`quality-mode-tabs ${value}${disabled ? ' locked' : ''}`} title={disabled ? '创作中模式已锁定；暂停到安全点后可切换。' : '质量 / Token 模式'}>
+    <div aria-label="创作模式" className={`quality-mode-tabs ${value}${disabled ? ' locked' : ''}`} role="group" title={disabled ? '本次运行模式已锁定；完成并回到配置态后可切换下一次运行。' : '创作模式'}>
       <span className="mode-glow" />
       {items.map((item) => {
-        const Icon = item.icon;
+        const profile = qualityModeProfiles[item.key];
+        const Icon = profile.icon;
         return (
-          <button className={value === item.key ? 'active' : ''} disabled={disabled} key={item.key} onClick={() => onChange(item.key)} type="button" title={item.hint}>
+          <button
+            aria-label={profile.title}
+            aria-pressed={value === item.key}
+            className={value === item.key ? 'active' : ''}
+            disabled={disabled}
+            key={item.key}
+            onClick={(event) => {
+              // Radial-reveal origin: pointer position, or the button center for
+              // keyboard activation (clientX/Y are 0 there).
+              const rect = event.currentTarget.getBoundingClientRect();
+              const origin = event.clientX || event.clientY
+                ? { x: event.clientX, y: event.clientY }
+                : { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+              onChange(item.key, origin);
+            }}
+            type="button"
+            title={`${profile.title} · ${profile.intervention}`}
+          >
             <Icon size={12} />
-            <strong>{item.label}</strong>
+            <strong>{profile.shortLabel}</strong>
           </button>
         );
       })}

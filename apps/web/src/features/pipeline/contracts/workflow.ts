@@ -16,6 +16,10 @@ export type InputField = {
   required?: boolean;
   default?: unknown;
   help?: string;
+  /** Phase 12 A3: small-print guidance rendered under the field label. */
+  hint?: string;
+  /** Phase 12 A3: placeholder copy for the empty control. */
+  placeholder?: string;
   options?: string[];
 };
 
@@ -32,6 +36,13 @@ export type ModelSettings = {
   max_tokens: number;
   top_p: number;
   timeout_seconds: number;
+};
+
+export type FallbackTarget = {
+  provider_profile_id: string;
+  model: string;
+  enabled: boolean;
+  priority: number;
 };
 
 export type QualityPolicy = {
@@ -55,13 +66,42 @@ export type VariantPolicy = {
 export type ProviderProfile = {
   id: string;
   name: string;
-  kind: 'mock' | 'openai-compatible' | 'image-mock';
+  kind: 'openai-compatible' | 'openai-compatible-image';
+  template_id: ProviderTemplateId;
   base_url: string;
   api_key_env: string;
   default_model: string;
   model_options?: string[];
+  estimated_cost_per_output_usd?: number | null;
   is_global_default?: boolean;
+  has_saved_secret?: boolean;
+  has_env_secret?: boolean;
   enabled: boolean;
+};
+
+export type ProviderTemplateId = string;
+
+export type ProviderTemplate = {
+  id: ProviderTemplateId;
+  label: string;
+  kind: ProviderProfile['kind'];
+  base_url: string;
+  default_model: string;
+  model_options: string[];
+  api_key_env: string;
+  docs_url: string;
+  integration_tier: 'official' | 'compatibility' | 'gateway' | 'custom';
+  description: string;
+  supports_response_format: boolean;
+  image_size_separator: 'x' | ':';
+  image_size_field: 'size' | 'image_size' | 'resolution' | 'aspect_ratio' | 'width_height';
+  image_count_field: 'n' | 'images' | 'batch_size' | 'none';
+  image_response_field: 'data' | 'images';
+  image_endpoint_path: string;
+  models_endpoint_path: string;
+  image_static_parameters: Record<string, string | number | boolean>;
+  supports_image_quality: boolean;
+  max_retries: number;
 };
 
 export type PromptTemplate = {
@@ -81,12 +121,22 @@ export type WorkflowStage = {
   output_key: string;
   memory_policy: MemoryPolicy;
   provider_profile_id: string;
+  image_provider_profile_id?: string;
+  fallback_targets?: FallbackTarget[];
+  image_fallback_targets?: FallbackTarget[];
   model_settings: ModelSettings;
   prompt_template_id: string;
   input_schema: InputField[];
   output_schema: Record<string, unknown>;
   quality_policy: QualityPolicy;
   variant_policy: VariantPolicy;
+  generation_budget?: {
+    target_chars: number;
+    min_chars: number;
+    max_chars: number;
+    max_tokens: number;
+    description?: string;
+  } | null;
 };
 
 export type CanvasLayout = {
@@ -100,6 +150,8 @@ export type WorkflowDefinition = {
   id: string;
   name: string;
   version: string;
+  /** Phase 11: reusable template flag (templates are copied per project on creation). */
+  is_template?: boolean;
   global_inputs: InputField[];
   provider_profiles: ProviderProfile[];
   prompt_templates: PromptTemplate[];

@@ -1,11 +1,13 @@
 # AGENTS
 
-This repository follows a repo-specific engineering guardrail set for `Novel Workflow`.
+This repository follows a repo-specific engineering guardrail set for `Yotsuba Ink`.
 
 ## Product Scope
 
-- Keep the repository focused on the Novel Workflow product.
+- Keep the repository focused on the Yotsuba Ink product.
 - Do not reintroduce training assets, vendor snapshots, or historical report logic into the main product tree.
+- Follow the stage artifact contract in `docs/architecture/stage-artifact-contract.md` before changing stage UI, model outputs, SSE events, runtime panels, or route-per-stage behavior.
+- Do not design stage pages by filling empty space. Define the stage artifact, user decision, writeback target, and next-stage dependency first.
 
 ## Frontend Structure
 

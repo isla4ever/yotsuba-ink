@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+import json
 from typing import Any
 
 from novel_workflow.memory.wiki import WikiStore
@@ -29,7 +30,7 @@ from novel_workflow.quality.engine import QualityEngine
 from novel_workflow.stages.registry import StageRegistry
 from novel_workflow.storage.run_store import RunStore
 from novel_workflow.workflows.compiler import NovelWorkflowCompiler
-from novel_workflow.workflows.schemas import NovelRunState, VariantPolicy, WorkflowDefinition
+from novel_workflow.workflows.schemas import CharacterGraph, NovelRunState, VariantPolicy, WorkflowDefinition
 
 
 class NovelWorkflowRunner:
@@ -43,7 +44,7 @@ class NovelWorkflowRunner:
         self.wiki_store = wiki_store
         self.run_store = run_store
         self.compiler = NovelWorkflowCompiler()
-        self.stages = StageRegistry(providers=providers, wiki_store=wiki_store)
+        self.stages = StageRegistry(providers=providers, wiki_store=wiki_store, run_store=run_store)
         self.quality_engine = QualityEngine()
 
     async def run(
@@ -52,6 +53,7 @@ class NovelWorkflowRunner:
         run_id: str,
         inputs: dict[str, Any],
     ) -> AsyncIterator[dict[str, Any]]:
+        self.stages.prompt_templates = {template.id: template.content for template in workflow.prompt_templates}
         async for event in stream_workflow(self, workflow, run_id=run_id, inputs=inputs):
             yield event
 
@@ -113,21 +115,22 @@ class NovelWorkflowRunner:
     def _write_memory(self, node: Any, output_key: str, result: Any, state: NovelRunState) -> list[dict[str, Any]]:
         if result is None:
             return []
+        content = json.dumps(result, ensure_ascii=False, indent=2) if isinstance(result, (dict, list)) else str(result)
         ref = self.wiki_store.write_artifact(
             state.project_id,
             node_id=node.id,
             node_type=node.type,
             output_key=output_key,
-            content=str(result),
+            content=content,
             kinds=[str(kind) for kind in node.memory_policy.kinds],
         )
         return [ref]
 
-    def _effective_variant_policy(self, node: Any, workflow: WorkflowDefinition) -> VariantPolicy:
-        return effective_variant_policy(node, workflow)
+    def _effective_variant_policy(self, node: Any, workflow: WorkflowDefinition, state: NovelRunState | None = None) -> VariantPolicy:
+        return effective_variant_policy(node, workflow, state)
 
-    def _node_with_mode_policy(self, node: Any, workflow: WorkflowDefinition) -> Any:
-        return node_with_mode_policy(node, workflow)
+    def _node_with_mode_policy(self, node: Any, workflow: WorkflowDefinition, state: NovelRunState | None = None) -> Any:
+        return node_with_mode_policy(node, workflow, state)
 
     def _variant_score(self, result: Any, index: int) -> float:
         return variant_score(result, index)
@@ -156,5 +159,5 @@ class NovelWorkflowRunner:
     def _quality_check(self, node: Any, result: Any):
         return quality_event(node, result)
 
-    def _character_graph(self, node_id: str):
-        return character_graph(node_id)
+    def _character_graph(self, node_id: str, artifact: Any = None, current: CharacterGraph | None = None):
+        return character_graph(node_id, artifact, current)

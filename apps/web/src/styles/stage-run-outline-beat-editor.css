@@ -1,0 +1,204 @@
+.outline-beat-dialog-head {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-right: 54px;
+}
+
+.outline-beat-dialog-head h2 {
+  color: var(--text);
+  font-size: 23px;
+  font-weight: 820;
+  line-height: 1.16;
+  margin: 5px 0 0;
+}
+
+.outline-beat-dialog-head > span {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 28%, var(--border));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text));
+  font-size: 12px;
+  font-weight: 820;
+  padding: 8px 12px;
+}
+
+.outline-beat-editor-layout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(190px, 0.28fr) minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.outline-beat-editor-nav {
+  background: color-mix(in srgb, var(--panel-muted) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 42%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  grid-auto-rows: min-content;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  scrollbar-width: none;
+}
+
+.outline-beat-editor-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.outline-beat-editor-nav button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  min-height: 54px;
+  padding: 9px 10px;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.outline-beat-editor-nav button.active,
+.outline-beat-editor-nav button:hover,
+.outline-beat-editor-nav button:focus-visible {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent);
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 28%, var(--border));
+  color: var(--text);
+  outline: none;
+}
+
+.outline-beat-editor-nav small {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 70%, var(--muted));
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.outline-beat-editor-nav b {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.outline-beat-editor-nav span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.outline-beat-dialog span,
+.outline-beat-dialog label > span {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 68%, var(--muted));
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.outline-beat-dialog textarea {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: color-mix(in srgb, var(--text) 92%, var(--text-soft));
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.58;
+  min-height: 54px;
+  outline: none;
+  padding: 0;
+  resize: none;
+  scrollbar-width: none;
+}
+
+.outline-beat-dialog textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.outline-beat-editor-focus {
+  border: 1px solid color-mix(in srgb, var(--border) 42%, transparent);
+  border-radius: 12px;
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.outline-focus-overview {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 0.82fr);
+  min-height: 0;
+}
+
+.outline-focus-overview label,
+.outline-focus-field {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-muted) 24%, transparent), transparent),
+    color-mix(in srgb, var(--panel) 64%, transparent);
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  padding: 18px;
+}
+
+.outline-focus-overview label + label {
+  border-top: 1px solid color-mix(in srgb, var(--border) 36%, transparent);
+}
+
+.outline-focus-field {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.outline-focus-field small {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 66%, var(--muted));
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.outline-focus-field strong {
+  align-items: center;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text));
+  display: flex;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.outline-focus-field.character strong,
+.outline-focus-field.world strong,
+.outline-focus-field.wiki strong {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 84%, var(--text));
+}
+
+.outline-focus-overview textarea,
+.outline-focus-field textarea {
+  align-self: stretch;
+  min-height: 0;
+}
+
+.mode-primary-action {
+  align-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 94%, #fff), var(--mode-aura, var(--accent-2)));
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 62%, var(--border));
+  border-radius: 10px;
+  color: #061018;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  transition: filter 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+.mode-primary-action:hover,
+.mode-primary-action:focus-visible {
+  color: #030712;
+  filter: saturate(1.08);
+  opacity: 1;
+  outline: none;
+}

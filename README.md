@@ -1,63 +1,90 @@
-# Novel Workflow
+# Yotsuba Ink
 
-Novel Workflow 是一个开源的长篇小说生产工作台。
+[简体中文](README.md) | [English](README.en.md)
 
-它面向的不是“一次性让 AI 写完整本书”的演示场景，而是希望把小说创作流程做成可配置、可审阅、可追踪、可约束的生产线团队或个人开发者。
+Yotsuba Ink 是一个面向长篇小说的开源创作工作台。它不追求一次提示词生成整本书，而是把小说信息、全书梗概、分卷大纲、章节细纲、正文、封面和导出组织成可编辑、可确认、可追溯、可恢复的生产链路。
 
-核心能力包括：
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/isla4ever/yotsuba-ink/actions/workflows/ci.yml/badge.svg)](https://github.com/isla4ever/yotsuba-ink/actions/workflows/ci.yml)
 
-- 在流水线正式推进前先做 `Story Brief（创作立项）定稿确认`
-- 用 `Story Bible / Wiki` 作为运行中的事实层
-- 用 `质量阀门` 做 `通过 / 修订 / 阻断` 决策
-- 用 `与模型提供方解耦的编排层` 管理规划态和写作态
-- 用 `知识库 + 参考资料注入` 提高提示词的落地性
+> 当前版本：`0.1.0 Alpha`。本地 UI、阶段合同、Fake Provider 自动化和主要浏览器链路已经完成验证；真实创作需要配置文本 Provider，真实封面需要额外配置图片 Provider。自动化通过不代表真实模型的文学质量已经验收。
 
-## 产品流程
+## 核心能力
+
+- **七阶段 Artifact 工作流**：小说信息、全书梗概、分卷大纲、章节细纲、正文生成、AI 封面、导出交付。
+- **三种创作模式**：极速生产、平衡创作、精细定稿，对应不同的成本、人工确认点和自动化程度。
+- **Artifact 优先**：当前稿、确认定稿和正式写回相互分离，候选稿不会提前污染 Story Bible 或正典事实。
+- **长篇连续性**：人物关系、世界观、伏笔账本、Wiki/Canon 和章节上下文共同约束跨章承接。
+- **审校与修订**：质量报告、事实写回、选区修订、版本历史和稳定检查点形成可恢复闭环。
+- **并行交付**：章节细纲确认后，正文与封面可以并行；导出等待两路产物汇合并完成校验。
+- **真实 Provider 边界**：生产代码使用 OpenAI-compatible 文本/图片 Provider；Fake Provider 只存在于测试中。
+
+## 创作流程
 
 ```text
-配置准备
-  -> 创作立项定稿
+创作规划
+  -> 小说信息（v1 默认人工闸门）
   -> 全书梗概
   -> 分卷大纲
-  -> 全书章节细纲
-  -> 正文分章生成
-  -> 封面 / 导出
+  -> 章节细纲
+  -> [正文生成 || AI 封面]
+  -> 导出交付
 ```
 
-核心产品决策：
+三种模式共享同一套阶段产物和写回合同：
 
-- 只有 `创作立项定稿` 是默认的人类审批闸门。
-- `Wiki / Story Bible` 是可写入的连续性事实系统，不是装饰性信息栏。
-- `质量阀门` 是执行决策层，不是泛化打分面板。
-- `正文` 必须在全书章节细纲完整后才开始生成。
+| 模式 | 用户控制 | 默认流程 |
+| --- | --- | --- |
+| 极速生产 | 最少干预 | 配置完成后自动推进完整链路 |
+| 平衡创作 | 确认小说信息 | Info 定稿后自动推进，版本对比由用户主动触发 |
+| 精细定稿 | 逐阶段审阅 | 每个文本阶段可换稿、编辑、确认后继续 |
+
+AI 封面和导出拥有各自的候选、确认和交付决策，不强制套用文本阶段的三栏换稿形式。
+
+## 技术栈
+
+- 前端：React、TypeScript、Vite、GSAP、Motion、Radix UI、Three.js
+- 后端：Python、FastAPI、Pydantic、SSE
+- 模型接入：OpenAI-compatible 文本与图片接口、Provider 模板和故障转移
+- 持久化：项目、运行历史、稳定快照、Provider 配置、Wiki、知识库与导出收据
 
 ## 仓库结构
 
-本仓库有意保持为单仓 monorepo：
-
 ```text
-apps/web/                    React 工作台前端
-src/novel_workflow/          Python 后端领域逻辑与 API
-runtime/novel_workflow/      默认 workflow、prompt、provider 配置与示例
-tests/                       面向主产品的回归测试与夹具
-docs/                        架构说明与协作开发文档
+apps/web/                    React 创作工作台
+src/novel_workflow/          Python 领域逻辑与 FastAPI 适配层
+runtime/novel_workflow/      本地运行时配置和数据目录
+tests/                       后端合同、编排、质量与 Prompt 回归
+docs/                        产品、阶段合同和架构文档
 ```
 
-如果你要快速理解工程结构，建议先看：
+前端 `features/pipeline` 只使用 `layout/`、`planning/`、`brief/`、`running/`、`settings/`、`state/`、`services/`、`contracts/` 和 `lib/` 这一套目录语义。后端 `api/` 只负责 HTTP/SSE 适配，编排、质量和持久化规则位于对应领域包。
 
-- [docs/architecture/overview.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/overview.md)
-- [docs/architecture/vue-springboot-map.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/vue-springboot-map.md)
-- [docs/architecture/story-bible-quality.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/architecture/story-bible-quality.md)
+## 本地运行
 
-## 本地开发
+### 1. 环境要求
 
-### 后端启动
+- Python 3.12 或更高版本
+- Node.js 与 npm
+
+### 2. 安装后端
 
 ```bash
-.venv/bin/python -m uvicorn novel_workflow.api.app:app --host 127.0.0.1 --port 8787 --reload
+python3 -m venv .venv
+.venv/bin/python -m pip install -U pip
+.venv/bin/python -m pip install -e ".[dev]"
 ```
 
-### 前端启动
+### 3. 启动后端
+
+```bash
+.venv/bin/python -m uvicorn novel_workflow.api.app:app \
+  --host 127.0.0.1 \
+  --port 8787 \
+  --reload
+```
+
+### 4. 启动前端
 
 ```bash
 cd apps/web
@@ -65,53 +92,60 @@ npm install
 npm run dev
 ```
 
-前端默认地址：[http://127.0.0.1:5173](http://127.0.0.1:5173)
+打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。Vite 默认把 `/api` 代理到 `http://127.0.0.1:8787`；需要修改时设置 `NOVEL_API_PROXY`。
 
-## 运行时目录说明
+## Provider 配置
 
-`runtime/novel_workflow/` 下存放受版本管理的运行时资源：
+推荐在应用的“设置 -> 模型接口”中选择厂商模板，填写 API Key 和默认模型，然后执行“保存并检查”。密钥写入本地运行时存储，不应提交到仓库。
 
-- `workflows/`：默认工作流定义
-- `prompts/`：阶段 prompt 模板
-- `providers/`：provider 配置
-- `examples/`：最小示例输入
-
-运行后产生的状态数据默认不纳入源码管理：
-
-- `runtime/novel_workflow/runs/`
-- `runtime/novel_workflow/wiki/`
-- `runtime/novel_workflow/references/`
-- `runtime/novel_workflow/knowledge/`
-
-## 质量理念
-
-这个项目优先解决真正会把长篇小说生产链路搞坏的失败模式：
-
-- 人物连续性断裂
-- 世界观硬设定冲突
-- 伏笔投放后失联或被遗忘
-- 章节承接断层
-- 细纲覆盖不完整
-- 明明局部修订即可修复，却被迫整章重写
-
-## 工程规则
-
-本仓库遵循 Ponytail 风格的仓库级工程纪律：
-
-- 文件保持小而清晰
-- 职责一旦混杂，尽早拆分
-- 优先显式合同，而不是隐式耦合
-- 新增依赖前先复用现有本地能力
-
-详细规则见：
-
-- [docs/engineering/ponytail.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/engineering/ponytail.md)
-- [docs/engineering/sources.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/docs/engineering/sources.md)
-- [AGENTS.md](/Users/isla/Desktop/project/multi-stage-creation-model-end/AGENTS.md)
-
-## 验证命令
+也可以使用通用环境变量启动 OpenAI-compatible Provider：
 
 ```bash
-cd apps/web && npm run build
-.venv/bin/python -m pytest tests/test_workflow_runner.py -q
+export NOVEL_LLM_BASE_URL="https://your-text-provider.example/v1"
+export NOVEL_LLM_API_KEY="your-text-api-key"
+export NOVEL_LLM_MODEL="your-text-model"
+
+export NOVEL_IMAGE_BASE_URL="https://your-image-provider.example/v1"
+export NOVEL_IMAGE_API_KEY="your-image-api-key"
+export NOVEL_IMAGE_MODEL="your-image-model"
 ```
+
+只浏览配置、项目和历史界面不需要密钥；启动真实生成前必须完成 Provider 就绪检查。不要把 `.env`、API Key、运行历史或用户稿件提交到公开仓库。
+
+## 验证
+
+```bash
+# 后端全量测试（必须使用仓库虚拟环境）
+.venv/bin/pytest -q
+
+# 前端测试、生产构建与样式门禁
+cd apps/web
+npm test
+npm run build
+npm run audit:css
+npm run check:css-split
+```
+
+当前本地基线：前端 `125 files / 492 passed`，后端 `293 passed / 1 skipped`，生产构建、CSS 审计和 CSS 分包检查通过。真实付费 Provider 的跨卷文学质量与真实图片生成不包含在这组自动化结论中。
+
+## 关键文档
+
+- [产品与架构概览](docs/architecture/overview.md)
+- [阶段 Artifact 合同](docs/architecture/stage-artifact-contract.md)
+- [生产工作流](docs/architecture/product-production-workflow.md)
+- [Story Bible、Wiki 与质量边界](docs/architecture/story-bible-quality.md)
+- [Wave 5 交互与验收记录](docs/architecture/phase-12-wave5-stage-focus-and-motion-closure.md)
+- [仓库协作规则](AGENTS.md)
+
+## 路线图
+
+- 使用明确授权的真实文本 Provider 验证跨卷、跨章承接和文学质量。
+- 使用真实图片 Provider 验证封面生成、失败恢复、候选确认和导出打包。
+- 完成发布安全检查、部署说明和可观测性基线。
+- 到 `v1.0` 再评估开源基础版与线上增强版的代码边界；当前保持单仓演进。
+
+## 许可证
+
+Yotsuba Ink 使用 [Apache License 2.0](LICENSE) 发布。第三方依赖继续遵循各自许可证。
+
+仓库地址：[github.com/isla4ever/yotsuba-ink](https://github.com/isla4ever/yotsuba-ink)

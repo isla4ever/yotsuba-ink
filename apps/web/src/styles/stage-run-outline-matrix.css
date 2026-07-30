@@ -1,0 +1,163 @@
+.outline-rhythm-strip {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.outline-rhythm-line {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow: auto;
+}
+
+.outline-rhythm-line button {
+  background: color-mix(in srgb, var(--panel-muted) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  border-radius: 999px;
+  color: var(--text-soft);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 900;
+  gap: 8px;
+  padding: 7px 10px;
+}
+
+.outline-rhythm-line button.active {
+  border-color: color-mix(in srgb, var(--accent-2) 48%, var(--border));
+  color: var(--accent-2);
+}
+
+.outline-beat-board {
+  display: grid;
+  gap: 7px;
+  grid-template-rows: repeat(auto-fit, minmax(0, auto));
+  overflow: auto;
+}
+
+.outline-volume-row {
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  color: var(--text-soft);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 34px minmax(130px, 0.55fr) minmax(0, 1fr) minmax(120px, 0.55fr) minmax(120px, 0.55fr) minmax(120px, 0.55fr);
+  padding: 10px 2px;
+  text-align: left;
+}
+
+.outline-volume-row b {
+  color: var(--accent-2);
+  font-size: 11px;
+}
+
+.outline-volume-row strong {
+  color: var(--text);
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.outline-volume-row strong small,
+.outline-volume-row span,
+.outline-volume-row em {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.outline-volume-row.generating {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 70%);
+}
+
+.detail-outline-board {
+  grid-template-rows: auto minmax(0, 1fr) minmax(140px, 0.42fr);
+}
+
+.detail-matrix-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 210px minmax(0, 1fr);
+}
+
+.detail-matrix-strip p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.detail-matrix-grid {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+  overflow: auto;
+}
+
+.detail-matrix-grid button {
+  background: color-mix(in srgb, var(--panel-muted) 54%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  border-radius: 9px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 9px;
+  text-align: left;
+}
+
+.detail-matrix-grid b {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.detail-matrix-grid span,
+.detail-matrix-grid small {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.quality-gauge {
+  align-items: center;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.quality-gauge > div {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent),
+    color-mix(in srgb, var(--panel-muted) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 20%, var(--border));
+  border-radius: 999px;
+  height: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.quality-gauge i {
+  background: linear-gradient(90deg, var(--accent-2), color-mix(in srgb, var(--success) 72%, #fff));
+  border-radius: inherit;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-2) 30%, transparent);
+  display: block;
+  height: 100%;
+  width: var(--gauge);
+}
+
+.quality-gauge strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.quality-gauge small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}

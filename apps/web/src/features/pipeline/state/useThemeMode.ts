@@ -6,7 +6,7 @@ export function useThemeMode() {
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const stored = localStorage.getItem('novel-workflow-theme');
     if (stored === 'dark' || stored === 'light') return stored;
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return 'dark';
   });
 
   useEffect(() => {

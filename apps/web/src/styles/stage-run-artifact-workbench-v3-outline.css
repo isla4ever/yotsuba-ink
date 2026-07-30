@@ -1,0 +1,242 @@
+.outline-rhythm-strip {
+  border-radius: 8px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  padding: 10px 12px;
+}
+
+.outline-beat-board {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 10%, transparent) 0 1px, transparent 1px),
+    color-mix(in srgb, var(--panel) 94%, transparent);
+  background-size: 28px 100%;
+  display: grid;
+  gap: 0;
+  overflow: auto;
+  padding: 4px 12px;
+}
+
+.outline-volume-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  grid-template-columns: 34px minmax(140px, 0.46fr) repeat(4, minmax(120px, 1fr));
+  min-height: 76px;
+  padding: 12px 0;
+}
+
+.outline-volume-row.generating {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 9%, transparent), transparent 42%);
+}
+
+.outline-volume-program {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px 0;
+}
+
+.outline-volume-program.generating {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 48%);
+}
+
+.outline-volume-lede {
+  align-items: start;
+  background: transparent;
+  border: 0;
+  color: var(--text-soft);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 34px minmax(150px, 0.38fr) minmax(0, 1fr);
+  padding: 0;
+  text-align: left;
+}
+
+.outline-volume-lede > b {
+  color: color-mix(in srgb, var(--accent-2) 68%, var(--muted));
+  font-size: 11px;
+}
+
+.outline-volume-lede strong {
+  color: var(--text);
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.outline-volume-lede small,
+.outline-volume-lede span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.outline-beat-cells {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.outline-beat-cells button {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-2) 7%, transparent), transparent 70%),
+    color-mix(in srgb, var(--panel-muted) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 7px;
+  color: var(--text-soft);
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  padding: 9px;
+  text-align: left;
+}
+
+.outline-beat-cells b {
+  color: color-mix(in srgb, var(--accent-2) 72%, var(--text));
+  font-size: 11px;
+}
+
+.outline-beat-cells span,
+.outline-live-line {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.chapter-table-card {
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border-radius: 8px;
+}
+
+.chapter-table-head,
+.chapter-row-card {
+  grid-template-columns: minmax(92px, 0.4fr) minmax(0, 1fr) minmax(180px, 0.8fr) minmax(160px, 0.7fr);
+}
+
+.chapter-row-card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 0;
+  padding: 10px 0;
+}
+
+.chapter-row-card.generating {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 9%, transparent), transparent 48%);
+}
+
+.detail-matrix-strip {
+  grid-template-columns: 190px minmax(0, 1fr);
+  padding: 10px 12px;
+}
+
+.detail-matrix-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-matrix-grid button {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  border-radius: 7px;
+}
+
+.writing-stream-reader {
+  background:
+    linear-gradient(color-mix(in srgb, var(--text) 4%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--panel) 96%, transparent);
+  background-size: 100% 33px;
+  padding: 20px 24px 30px;
+}
+
+/* 行级入场动画由 v6-outline-detail 的 .smooth-writing-line（streamLineMaterialize）接管。 */
+.smooth-writing-line {
+  transform-origin: left center;
+}
+
+/* Phase 11.3 流式光标：1.5px 细线、纯 accent、steps(2) 步进闪烁。
+   仅流式进行中挂载（流式状态动画豁免），流结束/中断随组件卸载立即移除。 */
+.writing-caret-tail {
+  animation: caretBlink 1.06s steps(2, jump-none) infinite;
+  background: var(--accent);
+  display: inline-block;
+  height: 1.05em;
+  margin-left: 3px;
+  transform: translateY(0.16em);
+  vertical-align: baseline;
+  width: 1.5px;
+}
+
+@keyframes caretBlink {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Phase 11.3 词级流式渲染：只有新挂载的词 span 播一次 150ms 入场；
+   backlog 加速档由 .stream-word-blur 提供 blur(3px)→sharp 变体掩盖成批感；
+   流结束后渲染层整体剥离（无 .stream-word 节点），已完成章节零动画 DOM。 */
+.stream-word {
+  animation: streamWordIn 150ms ease-out;
+}
+
+.stream-word-blur {
+  --stream-word-blur-from: blur(3px);
+}
+
+@keyframes streamWordIn {
+  from {
+    filter: var(--stream-word-blur-from, none);
+    opacity: 0;
+  }
+
+  to {
+    filter: none;
+    opacity: 1;
+  }
+}
+
+/* Phase 11.3 首 token 前空窗骨架：3 行宽度递减 shimmer（加载期动画）。
+   迭代有界（6 次后静置为素条）以守住 infinite 动画预算；首 token 到达即卸载。 */
+.stream-skeleton {
+  display: grid;
+  gap: 13px;
+  padding: 8px 0;
+}
+
+.stream-skeleton-row {
+  animation: streamSkeletonSweep 1.4s ease-in-out 6;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--text) 7%, transparent) 20%,
+      color-mix(in srgb, var(--text) 14%, transparent) 50%,
+      color-mix(in srgb, var(--text) 7%, transparent) 80%);
+  background-size: 220% 100%;
+  border-radius: 4px;
+  height: 12px;
+}
+
+.stream-skeleton-row:nth-child(1) {
+  width: 100%;
+}
+
+.stream-skeleton-row:nth-child(2) {
+  width: 86%;
+}
+
+.stream-skeleton-row:nth-child(3) {
+  width: 64%;
+}
+
+@keyframes streamSkeletonSweep {
+  from {
+    background-position: 180% 0;
+  }
+
+  to {
+    background-position: -80% 0;
+  }
+}

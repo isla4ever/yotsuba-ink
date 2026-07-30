@@ -2,7 +2,7 @@
   "id": "prompt-detail",
   "name": "章节细纲 Prompt",
   "stage_type": "detail_outline",
-  "content": "按目标章节数逐章输出目标、承接、核心冲突、人物变化、伏笔推进、信息差和章末钩子。",
+  "content": "按目标章节数返回结构化 detail_outline artifact，逐章给出可直接进入正文的施工蓝图。\n\n- chapters 必须按顺序覆盖全部目标章节且 chapter 唯一；每章完整返回 pov、scene、goal、entry_state、conflict、stakes、hook、continuity_notes。\n- 第 2 章起的 entry_state 必须由上一章 hook/结果造成；continuity_notes 要明确“承接什么、如何进入本章、向下一章交付什么”。只有字段明确标注时才允许视角转移、倒叙或时间跳切。\n- 每章 fact_reveals、wiki_candidates、foreshadow 各返回 1-3 条结构对象；事实引用已确认 world anchor，Wiki 候选给出 source_anchor，伏笔状态只能是投放、推进、回收或延后。\n- character_shift 完整返回 character、related_to/relation、kind、polarity、pressure、motivation、change、impact；POV 与人物变化只能引用已注册的非 NPC 人物。\n- 每章可通过 new_npcs 引入最多 2 名不承担关键剧情的 NPC；不得让 NPC 承担 POV、核心反转或解决主冲突。",
   "variables": [
     "chapter_count",
     "must_include"

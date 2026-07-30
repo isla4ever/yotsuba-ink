@@ -1,0 +1,180 @@
+/* Phase 8.5B: chapter review is a single operational inspector beside the manuscript. */
+.writing-workbench-phase85 .writing-stage-layout {
+  grid-template-columns: clamp(208px, 18vw, 236px) minmax(420px, 1fr) clamp(286px, 23vw, 330px);
+}
+
+.stage-run-main.text-main .writing-context-metrics-phase85 > span:nth-child(3) {
+  display: inline-flex;
+}
+
+.writing-review-inspector {
+  background: color-mix(in srgb, var(--panel-muted) 54%, var(--panel));
+  border-left: 1px solid var(--border);
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.writing-review-inspector-head {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+.writing-review-inspector-head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.writing-review-inspector-head span,
+.writing-review-inspector-head strong {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+}
+
+.writing-review-inspector-head span,
+.writing-review-inspector-head small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.writing-review-inspector-head strong {
+  color: var(--text);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writing-review-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 9px 10px 7px;
+}
+
+.writing-review-steps li {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 8px;
+  gap: 4px;
+  justify-content: center;
+  min-width: 0;
+  position: relative;
+}
+
+.writing-review-steps li:not(:last-child)::after {
+  background: color-mix(in srgb, var(--border) 76%, transparent);
+  content: '';
+  height: 1px;
+  position: absolute;
+  right: -12%;
+  top: 50%;
+  width: 24%;
+}
+
+.writing-review-steps i {
+  background: var(--border);
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.writing-review-steps .done { color: var(--color-status-success, #58d29b); }
+.writing-review-steps .done i { background: var(--color-status-success, #58d29b); }
+.writing-review-steps .active { color: var(--mode-aura, var(--accent-2)); }
+.writing-review-steps .active i { background: var(--mode-aura, var(--accent-2)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 13%, transparent); }
+.writing-review-steps .blocked { color: var(--danger); }
+.writing-review-steps .blocked i { background: var(--danger); }
+
+.writing-review-tabs {
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 8px;
+}
+
+.writing-review-tabs button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 9px;
+  font-weight: 850;
+  gap: 5px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 5px 6px;
+}
+
+.writing-review-tabs button[aria-selected='true'] {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 7%, transparent);
+  border-bottom-color: var(--mode-aura, var(--accent-2));
+  color: var(--text);
+}
+
+.writing-review-tabs button b {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  border-radius: 4px;
+  color: var(--warning);
+  font-size: 7px;
+  padding: 2px 3px;
+}
+
+.writing-review-panel {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.writing-quality-inspector,
+.writing-writeback-inspector {
+  align-content: start;
+  display: grid;
+  gap: 9px;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  scrollbar-width: thin;
+}
+
+.writing-review-related {
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.writing-review-related button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 40px;
+  padding: 6px 9px;
+  text-align: left;
+}
+
+.writing-review-related button + button { border-left: 1px solid var(--border); }
+.writing-review-related button:hover,
+.writing-review-related button:focus-visible { background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 7%, transparent); color: var(--text); }
+.writing-review-related span { display: grid; gap: 2px; min-width: 0; }
+.writing-review-related strong { color: var(--text-soft); font-size: 8px; }
+.writing-review-related small { font-size: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

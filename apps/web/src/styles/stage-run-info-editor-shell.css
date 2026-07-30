@@ -1,0 +1,251 @@
+.info-recommendation-board {
+  display: grid;
+  gap: 10px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.info-compact-main {
+  display: grid;
+  gap: 10px;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.recommendation-hero-card {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+}
+
+.refined-title-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.refined-title-picker > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.refined-title-picker button {
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.refined-title-picker button.active {
+  transform: none;
+}
+
+.compact-synopsis {
+  min-height: 0;
+}
+
+.compact-synopsis textarea {
+  height: 100%;
+  min-height: 260px;
+  resize: none;
+}
+
+.info-edit-module {
+  display: none;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.info-edit-module article {
+  align-items: center;
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 40%),
+    color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 20%, var(--border));
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 11px;
+}
+
+.info-edit-module strong,
+.info-edit-module span {
+  display: block;
+}
+
+.info-edit-module strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.info-edit-module span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.square-action-button {
+  align-items: center;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-soft);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  transition: transform 160ms ease, border-color 160ms ease;
+  width: 34px;
+}
+
+.square-action-button:hover {
+  border-color: var(--accent-2);
+  transform: none;
+}
+
+.info-worldbuilding-digest .square-action-button {
+  background: color-mix(in srgb, var(--world-aura) 10%, var(--panel-muted));
+  border-color: color-mix(in srgb, var(--world-aura) 26%, var(--border));
+  color: color-mix(in srgb, var(--world-aura) 78%, var(--text));
+}
+
+.info-worldbuilding-digest .square-action-button:hover {
+  border-color: color-mix(in srgb, var(--world-aura) 58%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--world-aura) 10%, transparent);
+}
+
+.info-editor-backdrop {
+  --editor-aura: var(--mode-aura, var(--accent-2));
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background:
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--editor-aura) 12%, transparent), transparent 36%),
+    rgba(2, 6, 14, 0.78);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 10030;
+}
+
+.info-editor-backdrop.mode-fast {
+  --mode-aura: #d8ecff;
+  --mode-aura-strong: #8fc7ff;
+  --editor-aura: #d8ecff;
+  --editor-aura-strong: #8fc7ff;
+}
+
+.info-editor-backdrop.mode-balanced {
+  --mode-aura: #35e7a6;
+  --mode-aura-strong: #22c984;
+  --editor-aura: #35e7a6;
+  --editor-aura-strong: #22c984;
+}
+
+.info-editor-backdrop.mode-deep {
+  --mode-aura: #a778ff;
+  --mode-aura-strong: #8d5cff;
+  --editor-aura: #a778ff;
+  --editor-aura-strong: #8d5cff;
+}
+
+.info-editor-dialog {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--editor-aura) 18%, transparent), transparent 34%),
+    radial-gradient(circle at 100% 12%, color-mix(in srgb, var(--editor-aura-strong, var(--editor-aura)) 12%, transparent), transparent 32%),
+    color-mix(in srgb, var(--panel) 98%, transparent);
+  border: 1px solid color-mix(in srgb, var(--editor-aura) 42%, var(--border));
+  border-radius: 20px;
+  box-shadow: 0 30px 110px rgba(0, 0, 0, 0.48);
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(820px, calc(100vh - 48px));
+  max-width: min(980px, calc(100vw - 48px));
+  min-width: min(820px, calc(100vw - 48px));
+  overflow: hidden;
+  padding: 18px;
+  position: relative;
+}
+
+.info-editor-dialog.character {
+  max-height: min(780px, calc(100vh - 44px));
+  max-width: min(1120px, calc(100vw - 48px));
+  min-width: min(940px, calc(100vw - 48px));
+  width: min(1120px, calc(100vw - 48px));
+}
+
+.info-editor-dialog.readonly {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.info-editor-dialog.readonly :is(input, textarea) {
+  background: color-mix(in srgb, var(--panel-muted) 30%, transparent);
+  border-color: color-mix(in srgb, var(--editor-aura) 14%, var(--border));
+  color: var(--text-soft);
+  cursor: default;
+}
+
+.info-editor-dialog.readonly .dossier-relation-dropzone {
+  border-style: solid;
+}
+
+.info-editor-dialog.readonly .dossier-relation-candidates button:not(.self):disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.readonly :is(input, textarea, select),
+:is(.summary-mini-dialog, .artifact-detail-dialog, .outline-beat-dialog, .outline-dependency-dialog, .chapter-blueprint-dialog, .chapter-writeback-dialog).readonly :is(input, textarea, select) {
+  cursor: default;
+  user-select: text;
+}
+
+:is(.summary-mini-dialog, .artifact-detail-dialog, .outline-beat-dialog, .outline-dependency-dialog, .chapter-blueprint-dialog, .chapter-writeback-dialog, .info-editor-dialog).readonly :is(.artifact-dialog-actions, .info-editor-actions, .summary-mini-actions, .outline-dependency-actions, .chapter-blueprint-actions, .chapter-writeback-actions) {
+  display: none !important;
+}
+
+.writing-stage-layout.readonly .writing-editor {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 20%, var(--border));
+}
+
+.info-editor-hero {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-right: 34px;
+}
+
+.info-editor-hero > span {
+  align-items: center;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--editor-aura) 32%, transparent), transparent 68%),
+    color-mix(in srgb, var(--panel-muted) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--editor-aura) 40%, var(--border));
+  border-radius: 14px;
+  color: color-mix(in srgb, var(--editor-aura) 82%, var(--text));
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.info-editor-hero h2,
+.info-editor-hero p {
+  margin: 0;
+}
+
+.info-editor-hero h2 {
+  color: var(--text);
+  font-size: 22px;
+}
+
+.info-editor-hero p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}

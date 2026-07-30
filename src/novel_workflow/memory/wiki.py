@@ -43,8 +43,10 @@ class WikiStore:
             encoding="utf-8",
         )
         index = project / "index.md"
-        with index.open("a", encoding="utf-8") as handle:
-            handle.write(f"- [{title}](sources/{path.name})\n")
+        index_line = f"- [{title}](sources/{path.name})\n"
+        if index_line not in index.read_text(encoding="utf-8"):
+            with index.open("a", encoding="utf-8") as handle:
+                handle.write(index_line)
         return {"id": document_id, "title": title, "path": str(path)}
 
     def load_context(

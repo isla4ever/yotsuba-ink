@@ -1,0 +1,313 @@
+/* Coverage and tension use the current mode hue; level is encoded by luminance. */
+.coverage-heat-strip {
+  --heat-1: color-mix(in srgb, var(--mode-aura, var(--accent)) 34%, #07100c);
+  --heat-2: color-mix(in srgb, var(--mode-aura, var(--accent)) 54%, #07100c);
+  --heat-3: var(--mode-aura-strong, var(--accent));
+  --heat-4: color-mix(in srgb, var(--mode-aura, var(--accent)) 72%, white);
+  --heat-5: color-mix(in srgb, var(--mode-aura, var(--accent)) 44%, white);
+}
+
+:root[data-theme="light"] .coverage-heat-strip {
+  --heat-1: color-mix(in srgb, var(--mode-aura, var(--accent)) 42%, white);
+  --heat-2: color-mix(in srgb, var(--mode-aura, var(--accent)) 62%, white);
+  --heat-3: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 82%, #15201c);
+  --heat-4: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 70%, #07100c);
+  --heat-5: color-mix(in srgb, var(--mode-aura-strong, var(--accent)) 54%, #07100c);
+}
+
+/* ── Detail: chapter coverage heat strip ──────────────────────────── */
+.coverage-heat-strip,
+.tension-curve {
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 9px;
+}
+
+.coverage-heat-head,
+.tension-curve-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  justify-content: space-between;
+}
+
+.coverage-heat-head > span,
+.tension-curve-head > span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.coverage-heat-head > em,
+.tension-curve-head > em { color: var(--text-soft); font-size: 12px; font-style: normal; }
+
+.coverage-heat-cells { display: flex; gap: 2px; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+
+.coverage-heat-cells > button {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid;
+  flex: 1 1 0;
+  max-width: 44px;
+  min-width: 16px;
+  padding: 3px 2px;
+}
+
+/* Level 0 = untouched track (lighter step of the same hue); levels 1-5 = validated ordinal steps. */
+.coverage-heat-cells > button > i {
+  background: color-mix(in srgb, var(--chart-series) 14%, transparent);
+  border-radius: 3px;
+  display: block;
+  height: 18px;
+}
+
+.coverage-heat-strip i[data-level="1"] { background: var(--heat-1); }
+.coverage-heat-strip i[data-level="2"] { background: var(--heat-2); }
+.coverage-heat-strip i[data-level="3"] { background: var(--heat-3); }
+.coverage-heat-strip i[data-level="4"] { background: var(--heat-4); }
+.coverage-heat-strip i[data-level="5"] { background: var(--heat-5); }
+
+/* 2px surface ring on hover/selection keeps the mark legible without a data-weight border. */
+.coverage-heat-cells > button:hover > i { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px color-mix(in srgb, var(--chart-series) 55%, transparent); }
+.coverage-heat-cells > button.selected > i { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--chart-series); }
+.coverage-heat-cells > button:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+.coverage-heat-legend { align-items: center; color: var(--muted); display: flex; font-size: 11px; gap: 3px; }
+.coverage-heat-legend i { border-radius: 2px; display: inline-block; height: 8px; width: 14px; }
+
+.coverage-heat-readout,
+.coverage-heat-missing {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coverage-heat-missing { color: var(--muted); }
+
+/* ── Text: whole-book tension ECG ─────────────────────────────────── */
+/* Honest missing state stays a single compact line — no reserved chart height. */
+.tension-curve.empty { background: transparent; border: 0; padding: 2px 4px; }
+.tension-curve-missing { align-items: center; color: var(--muted); display: flex; font-size: 12px; gap: 6px; margin: 0; }
+.tension-curve-plot { height: 84px; margin-bottom: 8px; margin-left: 22px; position: relative; }
+.tension-curve-canvas { height: 100%; inset: 0; position: absolute; width: 100%; }
+.tension-curve-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.tension-curve-current-band { fill: color-mix(in srgb, var(--chart-series) 12%, transparent); }
+
+.tension-curve-line {
+  fill: none;
+  stroke: var(--chart-series);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.tension-curve-axis {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  left: -22px;
+  line-height: 1;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.tension-curve-point {
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24px;
+}
+
+/* 2px surface ring on every data dot. */
+.tension-curve-point > i { background: var(--chart-series); border-radius: 50%; box-shadow: 0 0 0 2px var(--panel); height: 10px; width: 10px; }
+
+.tension-curve-point.current > i,
+.tension-curve-point:hover > i { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px color-mix(in srgb, var(--chart-series) 60%, transparent); }
+
+/* Unscored chapter = hollow gap marker under the plot, never a fake value on the scale. */
+.tension-curve-point.unscored { bottom: -12px; top: auto; transform: translate(-50%, 0); }
+.tension-curve-point.unscored > i { background: transparent; border: 1.5px dashed var(--muted); box-shadow: none; height: 8px; width: 8px; }
+.tension-curve-point:disabled { cursor: default; }
+.tension-curve-point:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+
+.tension-curve-readout {
+  color: var(--text-soft);
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Third grid row for the tension strip under the command bar (see WritingWorkbenchLayout). */
+.writing-workbench-phase85.with-tension-strip { grid-template-rows: auto auto minmax(0, 1fr); }
+
+/* ── Text: deep-mode model review report (quality tab, above L1) ──── */
+.model-review-section {
+  background: color-mix(in srgb, var(--panel-strong) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.model-review-head { align-items: baseline; display: flex; gap: 8px; justify-content: space-between; }
+
+.model-review-head > span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.model-review-head > strong { color: var(--text); font-size: 20px; font-variant-numeric: tabular-nums; }
+.model-review-head > strong > small { color: var(--muted); font-size: 12px; font-weight: 600; margin-left: 2px; }
+.model-review-version { color: var(--muted); font-size: 11px; }
+.model-review-dimensions { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.model-review-dimensions > li { display: grid; gap: 3px; }
+.model-review-dimension-row { color: var(--text); display: flex; font-size: 12px; font-weight: 700; justify-content: space-between; }
+.model-review-dimension-row > b { font-variant-numeric: tabular-nums; }
+
+/* Meter spec: fill carries magnitude; the track is a lighter step of the same hue. */
+.model-review-bar { background: color-mix(in srgb, var(--chart-series) 16%, transparent); border-radius: 4px; height: 8px; }
+.model-review-bar > i { background: var(--chart-series); border-radius: 0 4px 4px 0; display: block; height: 100%; }
+
+.model-review-evidence,
+.model-review-instruction {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-review-instruction > small { color: var(--muted); display: block; margin-top: 1px; }
+.model-review-voice-drift { border-left: 2px solid var(--warning); display: grid; gap: 3px; padding: 2px 0 2px 8px; }
+.model-review-voice-drift > span { align-items: center; color: var(--text); display: inline-flex; font-size: 12px; gap: 6px; }
+.model-review-voice-drift > p { color: var(--text-soft); font-size: 12px; line-height: 1.45; margin: 0; }
+
+.model-review-unavailable {
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.model-review-unavailable > span { align-items: center; color: var(--text); display: inline-flex; font-size: 12px; gap: 6px; }
+.model-review-unavailable > p { color: var(--text-soft); font-size: 12px; line-height: 1.45; margin: 0; }
+.model-review-unavailable > small { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.model-review-missing { align-items: center; color: var(--muted); display: flex; font-size: 12px; gap: 6px; margin: 0 0 10px; }
+
+/* ---- Phase 12 D8: chapter progress band (merged dual-row with tension) ---- */
+
+.writing-signature-band {
+  display: grid;
+  gap: 6px;
+}
+
+.chapter-progress-strip {
+  background: color-mix(in srgb, var(--color-surface-muted) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.chapter-progress-strip > header {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.chapter-progress-strip > header > span {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  gap: 5px;
+}
+
+.chapter-progress-strip > header > em {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-progress-strip.compact {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0 10px;
+}
+
+.chapter-progress-strip.compact .chapter-progress-cell {
+  height: 5px;
+}
+
+.chapter-progress-cells {
+  display: flex;
+  gap: 2px;
+}
+
+/* One cell per chapter; the 2px surface gap separates fills (no borders). */
+.chapter-progress-cell {
+  border-radius: 2px;
+  flex: 1 1 0;
+  height: 8px;
+  min-width: 4px;
+}
+
+.chapter-progress-cell.planned {
+  background: color-mix(in srgb, var(--color-text-muted) 26%, transparent);
+}
+
+.chapter-progress-cell.running {
+  background: var(--accent);
+}
+
+.chapter-progress-cell.review {
+  background: var(--warning);
+}
+
+.chapter-progress-cell.completed {
+  background: var(--success);
+}
+
+.chapter-progress-cell.failed {
+  background: var(--danger);
+}

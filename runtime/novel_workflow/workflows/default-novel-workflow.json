@@ -1,7 +1,8 @@
 {
   "id": "default-novel-workflow",
   "name": "长篇小说生产线工作流",
-  "version": "0.9.0",
+  "version": "1.0.5-parallel-delivery",
+  "is_template": false,
   "global_inputs": [
     {
       "key": "title",
@@ -10,72 +11,40 @@
       "required": true,
       "default": "雾港旧声",
       "help": "",
+      "hint": "",
+      "placeholder": "",
       "options": []
-    },
-    {
-      "key": "theme",
-      "label": "主题偏好",
-      "type": "textarea",
-      "required": false,
-      "default": "悬疑、记忆、旧港、群像",
-      "help": "",
-      "options": []
-    },
-    {
-      "key": "target_length",
-      "label": "目标规模",
-      "type": "select",
-      "required": false,
-      "default": "长篇",
-      "help": "",
-      "options": [
-        "短篇",
-        "中篇",
-        "长篇"
-      ]
     }
   ],
   "provider_profiles": [
     {
-      "id": "mock-text",
-      "name": "演示文本模型",
-      "kind": "mock",
-      "base_url": "",
-      "api_key_env": "",
-      "default_model": "mock-novel-model",
-      "model_options": [
-        "mock-novel-model",
-        "mock-novel-judge"
-      ],
-      "is_global_default": false,
-      "enabled": true
-    },
-    {
       "id": "openai-compatible",
-      "name": "OpenAI Compatible",
+      "name": "文本接口",
       "kind": "openai-compatible",
+      "template_id": "openai-compatible-text",
       "base_url": "",
       "api_key_env": "NOVEL_LLM_API_KEY",
       "default_model": "gpt-4.1-mini",
       "model_options": [
-        "gpt-4.1-mini",
-        "gpt-4.1",
-        "gpt-4o-mini"
+        "gpt-4.1-mini"
       ],
+      "estimated_cost_per_output_usd": null,
       "is_global_default": true,
       "enabled": true
     },
     {
-      "id": "mock-image",
-      "name": "演示封面模型",
-      "kind": "image-mock",
+      "id": "openai-compatible-image",
+      "name": "图片接口",
+      "kind": "openai-compatible-image",
+      "template_id": "openai-compatible-image",
       "base_url": "",
-      "api_key_env": "",
-      "default_model": "mock-cover",
+      "api_key_env": "NOVEL_IMAGE_API_KEY",
+      "default_model": "gpt-image-1.5",
       "model_options": [
-        "mock-cover"
+        "gpt-image-1.5"
       ],
-      "is_global_default": false,
+      "estimated_cost_per_output_usd": null,
+      "is_global_default": true,
       "enabled": true
     }
   ],
@@ -84,7 +53,7 @@
       "id": "prompt-info",
       "name": "创作立项 Prompt",
       "stage_type": "info_recommend",
-      "content": "你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。\n\n输出必须结构化，优先使用 Markdown 分段，并包含：\n1. 标题候选：至少 5 个，说明题材定位与卖点。\n2. Story Brief：一句话卖点、题材定位、目标读者、目标篇幅、商业看点。\n3. 人物种子：主角、关键配角、潜在对立面，每个角色给动机、缺口、可持续冲突。\n4. 世界观种子 world_seed/worldbuilding：硬设定、社会规则、关键地点/组织、不可违背约束。\n5. 核心冲突与长线伏笔：列出可延展到梗概、大纲、细纲和正文的伏笔。\n6. 参考风格吸收点：只吸收结构、节奏、调性，不复制具体表达和专有设定。\n7. 风险与禁忌提醒：指出模板味风险、违禁风险、读者预期风险。\n8. 后续梗概约束：给下一阶段必须遵守的 6-10 条约束。\n\n要求：不要给空泛套话；世界观必须能支撑目标篇幅；人物关系要能形成后续关系网；输出应便于写入 Wiki/World Info。",
+      "content": "你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。\n\n输出必须是结构化对象，字段直接对齐 info artifact，不要返回需要后端二次解析的 Markdown 长文。必须包含：\n1. selected_title 与 title_candidates：至少 5 个书名候选。\n2. synopsis：小说简介，说明题材定位、目标读者、目标篇幅和商业看点。\n3. worldbuilding_detail：详细世界观，覆盖硬设定（不超过 12 条）、社会规则、关键地点/组织和不可违背约束。\n4. characters：5-9 名主要角色，每个角色包含 name、identity、background（人物旧事及其与主线的隐性联系）、motivation、relations、tier（protagonist/major/supporting）、faction（阵营名）、faction_stance、growth_direction。角色阵容必须覆盖主角、对手方与关键支点人物；配角与 NPC 留给后续阶段按配额引入。\n5. relationships：8-20 条关系边，每条包含 source、target、relation、kind（kinship/romance/ally/rival/superior/trade/secret/other）、polarity（positive/negative/complex/neutral）、strength。关系网必须覆盖跨阵营张力，不允许只围绕主角辐射。\n6. tags：轻量题材、节奏、爽点和风格标签。\n7. downstream_constraints：给 summary / outline / detail / text 必须遵守的约束。\n8. voice_spec：全书风格规格——narration（人称/时态/叙事距离）、rhythm（句长与对话叙述比）、banned_words、cliche_slots，以及 per_character 主要人物语声表（habits/catchphrase/speech_register/never_says）。\n\n要求：不要给空泛套话；世界观必须能支撑目标篇幅；人物关系要能形成可生长的大型关系网；输出应便于写入 Wiki、Worldbuilding 和 Character Graph。",
       "variables": [
         "genre",
         "audience",
@@ -97,7 +66,7 @@
       "id": "prompt-summary",
       "name": "梗概 Prompt",
       "stage_type": "summary",
-      "content": "基于已定稿 Story Brief、世界观硬设定、人物种子和 Wiki 约束，生成全书梗概、主线、角色弧、长线伏笔和结局方向。",
+      "content": "基于已定稿 Story Brief、人物关系、世界观硬设定与下游约束，返回结构化 summary artifact。\n\n- one_liner 只概括主角、目标和核心阻力；full_synopsis 必须写清开局、升级、关键选择、代价、高潮、结局与余波，形成连续因果链，不能写成宣传简介。\n- act_structure 每一幕都给出 title、goal、turn；后一幕必须由前一幕转折触发。\n- core_conflict 说明主角目标、阻力系统、失败代价与时间/资源压力。\n- character_arcs 只能引用已确认人物，每项完整给出 name、arc、pressure、next，并与关键转折互相印证。\n- key_turns 每项给出 label、detail，说明它如何改变人物选择或故事状态；ending_resolution 必须结算核心冲突和主要人物承诺。\n- consistency_checks 逐项检查人物动机、世界规则、证据链、伏笔与结局承诺；不得新增未注册人物、地点或组织。",
       "variables": [
         "target_words",
         "structure"
@@ -107,7 +76,7 @@
       "id": "prompt-outline",
       "name": "分卷大纲 Prompt",
       "stage_type": "outline",
-      "content": "基于梗概、角色弧和未回收伏笔，生成卷级目标、卷冲突、章节范围和伏笔分布，避免与世界观硬设定冲突。",
+      "content": "基于已确认梗概、Info 人物与世界观、未回收伏笔，返回结构化 outline artifact。\n\n- volumes 的 chapter_range 必须按顺序连续、互不重叠，并覆盖配置的目标章节；volume_goal 和 rhythm 要能指导该卷取舍。\n- 每卷必须完整返回 opening、development、midpoint、climax、resolution 五段节拍；每一拍由上一拍的结果推动，resolution 要结算本卷目标并为下一卷建立可执行因果。\n- character_progression 必须引用已确认人物或本卷 new_characters，并完整给出关系、kind、polarity、strength、压力、变化和影响。\n- new_characters 仅在确有结构职责时新增，最多 4 名且 tier 必须为 supporting，同时给出 faction、faction_stance/stance 与主角关系；不得新增主角级人物。\n- world_reveal 必须引用已确认世界观原文 anchor，并给出 reveal、rule、impact；不得改写既有硬规则。\n- foreshadow_plan 给出 name、status、chapter_range、note，状态只能是投放、推进、回收或延后，并能在对应章节范围实际执行。",
       "variables": [
         "volume_count",
         "chapters_per_volume"
@@ -117,7 +86,7 @@
       "id": "prompt-detail",
       "name": "章节细纲 Prompt",
       "stage_type": "detail_outline",
-      "content": "按目标章节数逐章输出目标、承接、核心冲突、人物变化、伏笔推进、信息差和章末钩子。",
+      "content": "按目标章节数返回结构化 detail_outline artifact，逐章给出可直接进入正文的施工蓝图。\n\n- chapters 必须按顺序覆盖全部目标章节且 chapter 唯一；每章完整返回 pov、scene、goal、entry_state、conflict、stakes、hook、continuity_notes。\n- 第 2 章起的 entry_state 必须由上一章 hook/结果造成；continuity_notes 要明确“承接什么、如何进入本章、向下一章交付什么”。只有字段明确标注时才允许视角转移、倒叙或时间跳切。\n- 每章 fact_reveals、wiki_candidates、foreshadow 各返回 1-3 条结构对象；事实引用已确认 world anchor，Wiki 候选给出 source_anchor，伏笔状态只能是投放、推进、回收或延后。\n- character_shift 完整返回 character、related_to/relation、kind、polarity、pressure、motivation、change、impact；POV 与人物变化只能引用已注册的非 NPC 人物。\n- 每章可通过 new_npcs 引入最多 2 名不承担关键剧情的 NPC；不得让 NPC 承担 POV、核心反转或解决主冲突。",
       "variables": [
         "chapter_count",
         "must_include"
@@ -127,7 +96,7 @@
       "id": "prompt-text",
       "name": "正文 Prompt",
       "stage_type": "chapter_text",
-      "content": "逐章按细纲、上一章摘要、人物状态、世界观硬设定和未回收伏笔生成正文，保持动机、信息差、节奏和语言质感一致。",
+      "content": "逐章按当前 Chapter Context Packet、已确认细纲和 Voice Spec 生成一个结构化章节产物。\n\n- 默认从上一章结果连续续写。开篇先用动作、后果、物证或人物反应兑现 previous_chapter_summary 与 transition_directive，再进入本章 entry_state；不要复述摘要，不要重新介绍故事。\n- 只有细纲明确标记时才允许视角转移、倒叙或时间跳切；转换前必须给出可感知的因果、时间、地点或视角锚点，并保留上一章后果。\n- 卷首先承接 previous_volume_ending 再启动 volume_goal；卷末结算本卷目标，并向 next_volume_goal 建立具体因果。\n- 正文必须推进本章 goal/conflict/stakes，人物动机、信息差、世界规则、未回收伏笔和语言质感保持一致；章末 hook 必须由本章行动后果产生。\n- summary 只记录本章新增事实、人物状态和未决行动，足以供下一章承接；wiki_writebacks、character_shift、foreshadow_updates 只返回本章真实发生的变化。",
       "variables": [
         "chapter_words",
         "pov"
@@ -137,7 +106,7 @@
       "id": "prompt-cover",
       "name": "封面 Prompt",
       "stage_type": "cover_image",
-      "content": "根据小说信息和梗概生成封面提示词。",
+      "content": "根据已定稿的小说信息、全书梗概、分卷结构和章节细纲返回结构化 cover planning artifact：封面 brief、视觉关键词、构图、文案建议、图片提示词和 3 个候选方案 metadata。封面规划在章节细纲定稿后与正文并行，不依赖全文完成；候选只返回稳定 id、构图、色板和质量说明，不得编造 image_url、Data URL 或图片已生成状态，真实图片由 ImageProvider 独立生成。",
       "variables": [
         "cover_style",
         "aspect_ratio"
@@ -155,6 +124,8 @@
           "required": true,
           "default": "悬疑",
           "help": "",
+          "hint": "决定读者预期与后续阶段的类型惯例校验。",
+          "placeholder": "",
           "options": [
             "悬疑",
             "玄幻",
@@ -173,6 +144,8 @@
           "required": true,
           "default": "长篇",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "短篇",
             "中篇",
@@ -187,6 +160,8 @@
           "required": true,
           "default": "80-120 万字",
           "help": "",
+          "hint": "篇幅只选这一次，目标规模会随字数区间自动确定。",
+          "placeholder": "",
           "options": [
             "1-3 万字",
             "5-10 万字",
@@ -202,6 +177,8 @@
           "required": true,
           "default": "偏好强情节、悬念推进、人物关系清晰的网文读者",
           "help": "",
+          "hint": "写给谁看：平台、口味与期待的阅读体验。",
+          "placeholder": "例如：偏好强冲突、快节奏反转的悬疑读者",
           "options": []
         },
         {
@@ -211,6 +188,8 @@
           "required": true,
           "default": "旧港多年前的记忆实验留下旧案回声，主角追查真相时发现自己最可信的记忆也被改写。",
           "help": "",
+          "hint": "立项只需要一个能撑起全书的核心冲突，人物与世界观随后生成。",
+          "placeholder": "一句话说清冲突：谁+想要什么+被什么阻止",
           "options": []
         },
         {
@@ -225,6 +204,8 @@
             "旧案"
           ],
           "help": "",
+          "hint": "3-6 个题材、氛围或元素词，同时用于参考检索。",
+          "placeholder": "例如：孤岛、双时间线、身份互换",
           "options": []
         },
         {
@@ -234,6 +215,8 @@
           "required": true,
           "default": "避免无动机黑化、机械降神、纯设定堆砌、套路化系统开局和无关恋爱线抢主线。",
           "help": "",
+          "hint": "不想出现的桥段与元素，会作为硬约束进入每个生成阶段。",
+          "placeholder": "例如：不要机械降神、不要无动机黑化",
           "options": []
         },
         {
@@ -243,6 +226,8 @@
           "required": true,
           "default": "smart_search",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "smart_search",
             "url",
@@ -261,6 +246,8 @@
             "伏笔"
           ],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -270,6 +257,8 @@
           "required": false,
           "default": "检索旧港、记忆实验、群像悬疑结构的参考材料；只提炼结构、节奏、题材约束，不返回可照搬桥段。",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -279,6 +268,8 @@
           "required": false,
           "default": [],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -288,6 +279,8 @@
           "required": false,
           "default": [],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -297,6 +290,8 @@
           "required": false,
           "default": true,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -306,19 +301,35 @@
           "required": false,
           "default": "",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 4600,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "prompt-info",
-      "output_schema": {},
+      "output_schema": {
+        "selected_title": "string",
+        "title_candidates": "string[]",
+        "synopsis": "string",
+        "worldbuilding_detail": "string",
+        "characters": "Array<{ name, identity, background, motivation, relations, tier, faction, faction_stance, growth_direction }>",
+        "relationships": "Array<{ source, target, relation, kind, polarity, strength }>",
+        "tags": "string[]",
+        "downstream_constraints": "string[]",
+        "risk_notes": "string[]",
+        "voice_spec": "{ narration, rhythm, banned_words[], cliche_slots[], per_character: Array<{ character, habits, catchphrase, speech_register, never_says }> }"
+      },
       "memory_policy": {
         "read": false,
         "write": true,
@@ -351,7 +362,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -361,7 +372,14 @@
         ],
         "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": {
+        "target_chars": 2200,
+        "min_chars": 1400,
+        "max_chars": 3200,
+        "max_tokens": 4600,
+        "description": "立项 Story Brief 要建立完整人物基线（5-9 名、含阵营与关系语义）和风格规格，同时保持可人工定稿。"
+      }
     },
     "summary": {
       "node_id": "summary",
@@ -373,6 +391,8 @@
           "required": false,
           "default": 1200,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -382,6 +402,8 @@
           "required": false,
           "default": "起承转合",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "起承转合",
             "三幕式",
@@ -396,19 +418,33 @@
           "required": false,
           "default": "真相公开但保留余味",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 3600,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "prompt-summary",
-      "output_schema": {},
+      "output_schema": {
+        "one_liner": "string",
+        "full_synopsis": "string",
+        "act_structure": "Array<{ title, goal, turn }>",
+        "core_conflict": "string",
+        "character_arcs": "Array<{ name, arc, pressure, next }>",
+        "key_turns": "Array<{ label, detail }>",
+        "ending_resolution": "string",
+        "consistency_checks": "string[]"
+      },
       "memory_policy": {
         "read": true,
         "write": true,
@@ -433,7 +469,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -443,7 +479,14 @@
         ],
         "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": {
+        "target_chars": 1200,
+        "min_chars": 1200,
+        "max_chars": 2800,
+        "max_tokens": 3600,
+        "description": "参考出版 synopsis 常用 500-1000 英文词范围，中文梗概需覆盖完整故事、人物变化与结局。"
+      }
     },
     "outline": {
       "node_id": "outline",
@@ -453,8 +496,10 @@
           "label": "卷数",
           "type": "number",
           "required": false,
-          "default": 3,
+          "default": 1,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -462,8 +507,10 @@
           "label": "每卷章节数",
           "type": "number",
           "required": false,
-          "default": 8,
+          "default": 3,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -473,6 +520,8 @@
           "required": false,
           "default": "中高",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "平缓",
             "中等",
@@ -481,16 +530,21 @@
           ]
         }
       ],
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 4200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "prompt-outline",
-      "output_schema": {},
+      "output_schema": {
+        "volumes": "Array<{ title, chapter_range, volume_goal, rhythm, opening, development, midpoint, climax, resolution, new_characters: Array<{ name, role, tier, faction, faction_stance, stance, relation_to_protagonist }>, character_progression: Array<{ character, related_to, relation, kind, polarity, strength, pressure, change, impact }>, world_reveal: Array<{ anchor, reveal, rule, impact }>, foreshadow_plan: Array<{ name, status: 投放|推进|回收|延后, chapter_range, note }> }>"
+      },
       "memory_policy": {
         "read": true,
         "write": true,
@@ -516,7 +570,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -526,7 +580,14 @@
         ],
         "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": {
+        "target_chars": 1400,
+        "min_chars": 1400,
+        "max_chars": 3600,
+        "max_tokens": 4200,
+        "description": "按卷输出 beat board，小字段完整，不让后端再从长文拆节拍。"
+      }
     },
     "detail": {
       "node_id": "detail",
@@ -536,8 +597,10 @@
           "label": "细纲章节数",
           "type": "number",
           "required": false,
-          "default": 6,
+          "default": 3,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -552,19 +615,26 @@
             "章末钩子"
           ],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 5200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "prompt-detail",
-      "output_schema": {},
+      "output_schema": {
+        "chapters": "Array<{ chapter, pov, scene, goal, entry_state, conflict, stakes, fact_reveals: Array<{ anchor, fact, impact }>, foreshadow: Array<{ name, status, note }>, character_shift: { character, related_to, relation, kind, polarity, strength, pressure, motivation, change, impact }, hook, continuity_notes, wiki_candidates: Array<{ title, fact, source_anchor, claim_key }>, new_npcs: Array<{ name, role, faction, note }> }>"
+      },
       "memory_policy": {
         "read": true,
         "write": true,
@@ -591,7 +661,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -601,7 +671,14 @@
         ],
         "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": {
+        "target_chars": 1800,
+        "min_chars": 1800,
+        "max_chars": 4800,
+        "max_tokens": 5200,
+        "description": "三章细纲需覆盖 POV、目标、冲突、事实、伏笔、人物变化和连续性。"
+      }
     },
     "text": {
       "node_id": "text",
@@ -611,8 +688,21 @@
           "label": "单章字数",
           "type": "number",
           "required": false,
-          "default": 2500,
+          "default": 1200,
           "help": "",
+          "hint": "",
+          "placeholder": "",
+          "options": []
+        },
+        {
+          "key": "max_chapters_to_generate",
+          "label": "本轮生成章节数",
+          "type": "number",
+          "required": false,
+          "default": 3,
+          "help": "每轮先生成这几章，定稿后可以继续写下一批。",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -622,6 +712,8 @@
           "required": false,
           "default": "第三人称有限视角",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "第一人称",
             "第三人称有限视角",
@@ -635,15 +727,19 @@
           "required": false,
           "default": true,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
           "key": "enable_version_compare",
-          "label": "自动版本比对",
+          "label": "多版本比对",
           "type": "boolean",
           "required": false,
-          "default": true,
-          "help": "",
+          "default": false,
+          "help": "每章生成多个候选并自动评审优选，用量按候选数成倍增加；仅在平衡模式自动生效，精细模式只在你主动换稿时生成候选。",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -652,19 +748,22 @@
           "type": "number",
           "required": false,
           "default": 2,
-          "help": "",
+          "help": "自动比对使用的候选数量，范围 1-3 版。",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
           "key": "judge_provider_profile_id",
-          "label": "评审 Provider",
+          "label": "评审服务",
           "type": "select",
           "required": false,
           "default": "inherit",
-          "help": "",
+          "help": "默认由正文服务担任评审。",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "inherit",
-            "mock-text",
             "openai-compatible"
           ]
         },
@@ -673,8 +772,10 @@
           "label": "评审模型",
           "type": "text",
           "required": false,
-          "default": "mock-novel-judge",
+          "default": "gpt-4.1-mini",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -690,19 +791,35 @@
             "模板味"
           ],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
-        "temperature": 0.7,
-        "max_tokens": 1800,
+        "model": "gpt-4.1-mini",
+        "temperature": 0.82,
+        "max_tokens": 4200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "prompt-text",
-      "output_schema": {},
+      "output_schema": {
+        "schema_version": "number",
+        "status": "running|completed",
+        "target_chapters": "number",
+        "context_packet": "ChapterContextPacket",
+        "context_packets": "ChapterContextPacket[]",
+        "chapter_deltas": "Array<{ chapter, delta }>",
+        "chapters": "Array<{ id, title, generated_title, content, words, status, version, commit_signature, summary, summary_dirty, context_packet, wiki_writebacks, character_shift, foreshadow_updates, quality_report, quality_recheck, model_review, writeback_proposal, revision_history, version_history }>",
+        "quality_reports": "QualityReport[]",
+        "wiki_writebacks": "Array<{ target, fact, claim_key, source_chapter }>",
+        "chapter_summaries": "Array<{ chapter, summary }>"
+      },
       "memory_policy": {
         "read": true,
         "write": true,
@@ -732,10 +849,10 @@
         "parallelism": 1
       },
       "variant_policy": {
-        "enabled": true,
-        "candidate_count": 2,
+        "enabled": false,
+        "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -743,9 +860,16 @@
           "语言质感",
           "模板味"
         ],
-        "retry_on_fail": true
+        "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": {
+        "target_chars": 1500,
+        "min_chars": 1500,
+        "max_chars": 3200,
+        "max_tokens": 4200,
+        "description": "首轮每章控制在中等篇幅，兼顾正文质感与用量成本。"
+      }
     },
     "cover": {
       "node_id": "cover",
@@ -757,6 +881,8 @@
           "required": false,
           "default": "电影感悬疑",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "电影感悬疑",
             "国风幻想",
@@ -771,23 +897,83 @@
           "required": false,
           "default": "2:3",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
-            "2:3",
-            "3:4",
-            "1:1"
+            "2:3"
           ]
+        },
+        {
+          "key": "candidate_count",
+          "label": "图片候选数",
+          "type": "number",
+          "required": false,
+          "default": 3,
+          "help": "每个候选对应一次独立图片生成，范围 1-4。",
+          "hint": "",
+          "placeholder": "",
+          "options": []
+        },
+        {
+          "key": "image_quality",
+          "label": "图片质量",
+          "type": "select",
+          "required": false,
+          "default": "medium",
+          "help": "",
+          "hint": "",
+          "placeholder": "",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        {
+          "key": "asset_retry_limit",
+          "label": "失败重试上限",
+          "type": "number",
+          "required": false,
+          "default": 2,
+          "help": "仅对失败候选显式重试，范围 0-3。",
+          "hint": "",
+          "placeholder": "",
+          "options": []
+        },
+        {
+          "key": "image_budget_usd",
+          "label": "图片费用上限（USD）",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "help": "0 表示仅限制调用次数；填写后会在调用前校验预计费用。",
+          "hint": "",
+          "placeholder": "",
+          "options": []
         }
       ],
-      "provider_profile_id": "mock-image",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "openai-compatible-image",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
-        "temperature": 0.7,
-        "max_tokens": 1800,
+        "model": "gpt-4.1-mini",
+        "temperature": 0.62,
+        "max_tokens": 2200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "prompt-cover",
-      "output_schema": {},
+      "output_schema": {
+        "brief": "string",
+        "visual_keywords": "string[]",
+        "composition": "string",
+        "copy_suggestions": "string[]",
+        "prompt": "string",
+        "candidates": "Array<{ id, composition, palette, quality_summary }>",
+        "selected_candidate_id": "string",
+        "asset_generation": "{ status, total, ready_count, failed_count, provider_profile_id, model, size, quality, updated_at }"
+      },
       "memory_policy": {
         "read": false,
         "write": false,
@@ -811,7 +997,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -821,7 +1007,14 @@
         ],
         "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": {
+        "target_chars": 500,
+        "min_chars": 500,
+        "max_chars": 1400,
+        "max_tokens": 2200,
+        "description": "先由文本模型生成封面 brief、prompt 和候选计划，再由独立图片 Provider 生成并落盘真实资产。"
+      }
     },
     "export": {
       "node_id": "export",
@@ -833,6 +1026,8 @@
           "required": false,
           "default": "Markdown + JSON",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "Markdown + JSON",
             "纯 Markdown",
@@ -840,16 +1035,27 @@
           ]
         }
       ],
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 1200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
       "prompt_template_id": "",
-      "output_schema": {},
+      "output_schema": {
+        "manifest": "Array<{ name, format, status }>",
+        "formats": "string[]",
+        "chapters": "Array<{ id, title, words, status, content }>",
+        "metadata": "Record<string, string>",
+        "cover_asset": "{ candidate_id, asset_id, sha256, mime_type, width, height, size_bytes, image_url }",
+        "validation": "Record<string, string>",
+        "package_status": "{ kind, name, ready }"
+      },
       "memory_policy": {
         "read": false,
         "write": false,
@@ -871,7 +1077,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -881,7 +1087,8 @@
         ],
         "retry_on_fail": false
       },
-      "analysis_mode": "summary"
+      "analysis_mode": "summary",
+      "generation_budget": null
     }
   },
   "batch_policy": {
@@ -893,46 +1100,46 @@
   "canvas_layout": {
     "nodes": {
       "info": {
-        "x": 420.0,
-        "y": 20.0
+        "x": 20.0,
+        "y": 168.0
       },
       "summary": {
-        "x": 420.0,
-        "y": 160.0
+        "x": 214.0,
+        "y": 168.0
       },
       "outline": {
-        "x": 420.0,
-        "y": 300.0
+        "x": 408.0,
+        "y": 168.0
       },
       "detail": {
-        "x": 420.0,
-        "y": 440.0
+        "x": 602.0,
+        "y": 168.0
       },
       "text": {
-        "x": 420.0,
-        "y": 580.0
+        "x": 796.0,
+        "y": 168.0
       },
       "cover": {
-        "x": 420.0,
-        "y": 720.0
+        "x": 990.0,
+        "y": 168.0
       },
       "export": {
-        "x": 420.0,
-        "y": 860.0
+        "x": 1184.0,
+        "y": 168.0
       },
       "wiki-layer": {
-        "x": 276.0,
-        "y": 302.0
+        "x": 324.0,
+        "y": -96.0
       },
       "quality-layer": {
-        "x": 694.0,
-        "y": 302.0
+        "x": 708.0,
+        "y": 452.0
       }
     },
     "viewport": {
-      "x": -10.0,
-      "y": 18.0,
-      "zoom": 0.72
+      "x": 0.0,
+      "y": 0.0,
+      "zoom": 0.76
     },
     "crosscutting_visible": true,
     "locked": false
@@ -943,7 +1150,7 @@
       "type": "info_recommend",
       "label": "创作立项定稿",
       "params": {
-        "prompt": "你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。\n\n输出必须结构化，优先使用 Markdown 分段，并包含：\n1. 标题候选：至少 5 个，说明题材定位与卖点。\n2. Story Brief：一句话卖点、题材定位、目标读者、目标篇幅、商业看点。\n3. 人物种子：主角、关键配角、潜在对立面，每个角色给动机、缺口、可持续冲突。\n4. 世界观种子 world_seed/worldbuilding：硬设定、社会规则、关键地点/组织、不可违背约束。\n5. 核心冲突与长线伏笔：列出可延展到梗概、大纲、细纲和正文的伏笔。\n6. 参考风格吸收点：只吸收结构、节奏、调性，不复制具体表达和专有设定。\n7. 风险与禁忌提醒：指出模板味风险、违禁风险、读者预期风险。\n8. 后续梗概约束：给下一阶段必须遵守的 6-10 条约束。\n\n要求：不要给空泛套话；世界观必须能支撑目标篇幅；人物关系要能形成后续关系网；输出应便于写入 Wiki/World Info。"
+        "prompt": "你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。\n\n输出必须是结构化对象，字段直接对齐 info artifact，不要返回需要后端二次解析的 Markdown 长文。必须包含：\n1. selected_title 与 title_candidates：至少 5 个书名候选。\n2. synopsis：小说简介，说明题材定位、目标读者、目标篇幅和商业看点。\n3. worldbuilding_detail：详细世界观，覆盖硬设定（不超过 12 条）、社会规则、关键地点/组织和不可违背约束。\n4. characters：5-9 名主要角色，每个角色包含 name、identity、background（人物旧事及其与主线的隐性联系）、motivation、relations、tier（protagonist/major/supporting）、faction（阵营名）、faction_stance、growth_direction。角色阵容必须覆盖主角、对手方与关键支点人物；配角与 NPC 留给后续阶段按配额引入。\n5. relationships：8-20 条关系边，每条包含 source、target、relation、kind（kinship/romance/ally/rival/superior/trade/secret/other）、polarity（positive/negative/complex/neutral）、strength。关系网必须覆盖跨阵营张力，不允许只围绕主角辐射。\n6. tags：轻量题材、节奏、爽点和风格标签。\n7. downstream_constraints：给 summary / outline / detail / text 必须遵守的约束。\n8. voice_spec：全书风格规格——narration（人称/时态/叙事距离）、rhythm（句长与对话叙述比）、banned_words、cliche_slots，以及 per_character 主要人物语声表（habits/catchphrase/speech_register/never_says）。\n\n要求：不要给空泛套话；世界观必须能支撑目标篇幅；人物关系要能形成可生长的大型关系网；输出应便于写入 Wiki、Worldbuilding 和 Character Graph。"
       },
       "input_refs": [],
       "output_key": "info_recommend",
@@ -956,11 +1163,14 @@
           "topology"
         ]
       },
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 4600,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -973,6 +1183,8 @@
           "required": true,
           "default": "悬疑",
           "help": "",
+          "hint": "决定读者预期与后续阶段的类型惯例校验。",
+          "placeholder": "",
           "options": [
             "悬疑",
             "玄幻",
@@ -991,6 +1203,8 @@
           "required": true,
           "default": "长篇",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "短篇",
             "中篇",
@@ -1005,6 +1219,8 @@
           "required": true,
           "default": "80-120 万字",
           "help": "",
+          "hint": "篇幅只选这一次，目标规模会随字数区间自动确定。",
+          "placeholder": "",
           "options": [
             "1-3 万字",
             "5-10 万字",
@@ -1020,6 +1236,8 @@
           "required": true,
           "default": "偏好强情节、悬念推进、人物关系清晰的网文读者",
           "help": "",
+          "hint": "写给谁看：平台、口味与期待的阅读体验。",
+          "placeholder": "例如：偏好强冲突、快节奏反转的悬疑读者",
           "options": []
         },
         {
@@ -1029,6 +1247,8 @@
           "required": true,
           "default": "旧港多年前的记忆实验留下旧案回声，主角追查真相时发现自己最可信的记忆也被改写。",
           "help": "",
+          "hint": "立项只需要一个能撑起全书的核心冲突，人物与世界观随后生成。",
+          "placeholder": "一句话说清冲突：谁+想要什么+被什么阻止",
           "options": []
         },
         {
@@ -1043,6 +1263,8 @@
             "旧案"
           ],
           "help": "",
+          "hint": "3-6 个题材、氛围或元素词，同时用于参考检索。",
+          "placeholder": "例如：孤岛、双时间线、身份互换",
           "options": []
         },
         {
@@ -1052,6 +1274,8 @@
           "required": true,
           "default": "避免无动机黑化、机械降神、纯设定堆砌、套路化系统开局和无关恋爱线抢主线。",
           "help": "",
+          "hint": "不想出现的桥段与元素，会作为硬约束进入每个生成阶段。",
+          "placeholder": "例如：不要机械降神、不要无动机黑化",
           "options": []
         },
         {
@@ -1061,6 +1285,8 @@
           "required": true,
           "default": "smart_search",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "smart_search",
             "url",
@@ -1079,6 +1305,8 @@
             "伏笔"
           ],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1088,6 +1316,8 @@
           "required": false,
           "default": "检索旧港、记忆实验、群像悬疑结构的参考材料；只提炼结构、节奏、题材约束，不返回可照搬桥段。",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1097,6 +1327,8 @@
           "required": false,
           "default": [],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1106,6 +1338,8 @@
           "required": false,
           "default": [],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1115,6 +1349,8 @@
           "required": false,
           "default": true,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1124,10 +1360,23 @@
           "required": false,
           "default": "",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "selected_title": "string",
+        "title_candidates": "string[]",
+        "synopsis": "string",
+        "worldbuilding_detail": "string",
+        "characters": "Array<{ name, identity, background, motivation, relations, tier, faction, faction_stance, growth_direction }>",
+        "relationships": "Array<{ source, target, relation, kind, polarity, strength }>",
+        "tags": "string[]",
+        "downstream_constraints": "string[]",
+        "risk_notes": "string[]",
+        "voice_spec": "{ narration, rhythm, banned_words[], cliche_slots[], per_character: Array<{ character, habits, catchphrase, speech_register, never_says }> }"
+      },
       "quality_policy": {
         "min_score": 0.82,
         "retry_on_fail": true,
@@ -1146,7 +1395,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1155,6 +1404,13 @@
           "模板味"
         ],
         "retry_on_fail": false
+      },
+      "generation_budget": {
+        "target_chars": 2200,
+        "min_chars": 1400,
+        "max_chars": 3200,
+        "max_tokens": 4600,
+        "description": "立项 Story Brief 要建立完整人物基线（5-9 名、含阵营与关系语义）和风格规格，同时保持可人工定稿。"
       }
     },
     {
@@ -1177,11 +1433,14 @@
           "topology"
         ]
       },
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 3600,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -1194,6 +1453,8 @@
           "required": false,
           "default": 1200,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1203,6 +1464,8 @@
           "required": false,
           "default": "起承转合",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "起承转合",
             "三幕式",
@@ -1217,10 +1480,21 @@
           "required": false,
           "default": "真相公开但保留余味",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "one_liner": "string",
+        "full_synopsis": "string",
+        "act_structure": "Array<{ title, goal, turn }>",
+        "core_conflict": "string",
+        "character_arcs": "Array<{ name, arc, pressure, next }>",
+        "key_turns": "Array<{ label, detail }>",
+        "ending_resolution": "string",
+        "consistency_checks": "string[]"
+      },
       "quality_policy": {
         "min_score": 0.8,
         "retry_on_fail": true,
@@ -1231,7 +1505,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1240,6 +1514,13 @@
           "模板味"
         ],
         "retry_on_fail": false
+      },
+      "generation_budget": {
+        "target_chars": 1200,
+        "min_chars": 1200,
+        "max_chars": 2800,
+        "max_tokens": 3600,
+        "description": "参考出版 synopsis 常用 500-1000 英文词范围，中文梗概需覆盖完整故事、人物变化与结局。"
       }
     },
     {
@@ -1247,7 +1528,7 @@
       "type": "outline",
       "label": "分卷大纲",
       "params": {
-        "volumes": 3
+        "volumes": 1
       },
       "input_refs": [
         "summary"
@@ -1263,11 +1544,14 @@
           "outline"
         ]
       },
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 4200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -1278,8 +1562,10 @@
           "label": "卷数",
           "type": "number",
           "required": false,
-          "default": 3,
+          "default": 1,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1287,8 +1573,10 @@
           "label": "每卷章节数",
           "type": "number",
           "required": false,
-          "default": 8,
+          "default": 3,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1298,6 +1586,8 @@
           "required": false,
           "default": "中高",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "平缓",
             "中等",
@@ -1306,7 +1596,9 @@
           ]
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "volumes": "Array<{ title, chapter_range, volume_goal, rhythm, opening, development, midpoint, climax, resolution, new_characters: Array<{ name, role, tier, faction, faction_stance, stance, relation_to_protagonist }>, character_progression: Array<{ character, related_to, relation, kind, polarity, strength, pressure, change, impact }>, world_reveal: Array<{ anchor, reveal, rule, impact }>, foreshadow_plan: Array<{ name, status: 投放|推进|回收|延后, chapter_range, note }> }>"
+      },
       "quality_policy": {
         "min_score": 0.8,
         "retry_on_fail": true,
@@ -1317,7 +1609,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1326,6 +1618,13 @@
           "模板味"
         ],
         "retry_on_fail": false
+      },
+      "generation_budget": {
+        "target_chars": 1400,
+        "min_chars": 1400,
+        "max_chars": 3600,
+        "max_tokens": 4200,
+        "description": "按卷输出 beat board，小字段完整，不让后端再从长文拆节拍。"
       }
     },
     {
@@ -1333,7 +1632,7 @@
       "type": "detail_outline",
       "label": "章节细纲",
       "params": {
-        "chapters": 6
+        "chapters": 3
       },
       "input_refs": [
         "outline"
@@ -1350,11 +1649,14 @@
           "chapter"
         ]
       },
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 5200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -1365,8 +1667,10 @@
           "label": "细纲章节数",
           "type": "number",
           "required": false,
-          "default": 6,
+          "default": 3,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1381,10 +1685,14 @@
             "章末钩子"
           ],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "chapters": "Array<{ chapter, pov, scene, goal, entry_state, conflict, stakes, fact_reveals: Array<{ anchor, fact, impact }>, foreshadow: Array<{ name, status, note }>, character_shift: { character, related_to, relation, kind, polarity, strength, pressure, motivation, change, impact }, hook, continuity_notes, wiki_candidates: Array<{ title, fact, source_anchor, claim_key }>, new_npcs: Array<{ name, role, faction, note }> }>"
+      },
       "quality_policy": {
         "min_score": 0.8,
         "retry_on_fail": true,
@@ -1395,7 +1703,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1404,6 +1712,13 @@
           "模板味"
         ],
         "retry_on_fail": false
+      },
+      "generation_budget": {
+        "target_chars": 1800,
+        "min_chars": 1800,
+        "max_chars": 4800,
+        "max_tokens": 5200,
+        "description": "三章细纲需覆盖 POV、目标、冲突、事实、伏笔、人物变化和连续性。"
       }
     },
     {
@@ -1429,11 +1744,14 @@
           "chapter"
         ]
       },
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
-        "temperature": 0.7,
-        "max_tokens": 1800,
+        "model": "gpt-4.1-mini",
+        "temperature": 0.82,
+        "max_tokens": 4200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -1444,8 +1762,21 @@
           "label": "单章字数",
           "type": "number",
           "required": false,
-          "default": 2500,
+          "default": 1200,
           "help": "",
+          "hint": "",
+          "placeholder": "",
+          "options": []
+        },
+        {
+          "key": "max_chapters_to_generate",
+          "label": "本轮生成章节数",
+          "type": "number",
+          "required": false,
+          "default": 3,
+          "help": "每轮先生成这几章，定稿后可以继续写下一批。",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1455,6 +1786,8 @@
           "required": false,
           "default": "第三人称有限视角",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "第一人称",
             "第三人称有限视角",
@@ -1468,15 +1801,19 @@
           "required": false,
           "default": true,
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
           "key": "enable_version_compare",
-          "label": "自动版本比对",
+          "label": "多版本比对",
           "type": "boolean",
           "required": false,
-          "default": true,
-          "help": "",
+          "default": false,
+          "help": "每章生成多个候选并自动评审优选，用量按候选数成倍增加；仅在平衡模式自动生效，精细模式只在你主动换稿时生成候选。",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1485,19 +1822,22 @@
           "type": "number",
           "required": false,
           "default": 2,
-          "help": "",
+          "help": "自动比对使用的候选数量，范围 1-3 版。",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
           "key": "judge_provider_profile_id",
-          "label": "评审 Provider",
+          "label": "评审服务",
           "type": "select",
           "required": false,
           "default": "inherit",
-          "help": "",
+          "help": "默认由正文服务担任评审。",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "inherit",
-            "mock-text",
             "openai-compatible"
           ]
         },
@@ -1506,8 +1846,10 @@
           "label": "评审模型",
           "type": "text",
           "required": false,
-          "default": "mock-novel-judge",
+          "default": "gpt-4.1-mini",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         },
         {
@@ -1523,10 +1865,23 @@
             "模板味"
           ],
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": []
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "schema_version": "number",
+        "status": "running|completed",
+        "target_chapters": "number",
+        "context_packet": "ChapterContextPacket",
+        "context_packets": "ChapterContextPacket[]",
+        "chapter_deltas": "Array<{ chapter, delta }>",
+        "chapters": "Array<{ id, title, generated_title, content, words, status, version, commit_signature, summary, summary_dirty, context_packet, wiki_writebacks, character_shift, foreshadow_updates, quality_report, quality_recheck, model_review, writeback_proposal, revision_history, version_history }>",
+        "quality_reports": "QualityReport[]",
+        "wiki_writebacks": "Array<{ target, fact, claim_key, source_chapter }>",
+        "chapter_summaries": "Array<{ chapter, summary }>"
+      },
       "quality_policy": {
         "min_score": 0.84,
         "retry_on_fail": true,
@@ -1540,10 +1895,10 @@
         ]
       },
       "variant_policy": {
-        "enabled": true,
-        "candidate_count": 2,
+        "enabled": false,
+        "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1551,7 +1906,14 @@
           "语言质感",
           "模板味"
         ],
-        "retry_on_fail": true
+        "retry_on_fail": false
+      },
+      "generation_budget": {
+        "target_chars": 1500,
+        "min_chars": 1500,
+        "max_chars": 3200,
+        "max_tokens": 4200,
+        "description": "首轮每章控制在中等篇幅，兼顾正文质感与用量成本。"
       }
     },
     {
@@ -1560,7 +1922,10 @@
       "label": "AI 封面",
       "params": {},
       "input_refs": [
-        "chapters"
+        "info_recommend",
+        "summary",
+        "outline",
+        "detail_outline"
       ],
       "output_key": "cover",
       "memory_policy": {
@@ -1571,11 +1936,14 @@
           "cover"
         ]
       },
-      "provider_profile_id": "mock-image",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "openai-compatible-image",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
-        "temperature": 0.7,
-        "max_tokens": 1800,
+        "model": "gpt-4.1-mini",
+        "temperature": 0.62,
+        "max_tokens": 2200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -1588,6 +1956,8 @@
           "required": false,
           "default": "电影感悬疑",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "电影感悬疑",
             "国风幻想",
@@ -1602,14 +1972,71 @@
           "required": false,
           "default": "2:3",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
-            "2:3",
-            "3:4",
-            "1:1"
+            "2:3"
           ]
+        },
+        {
+          "key": "candidate_count",
+          "label": "图片候选数",
+          "type": "number",
+          "required": false,
+          "default": 3,
+          "help": "每个候选对应一次独立图片生成，范围 1-4。",
+          "hint": "",
+          "placeholder": "",
+          "options": []
+        },
+        {
+          "key": "image_quality",
+          "label": "图片质量",
+          "type": "select",
+          "required": false,
+          "default": "medium",
+          "help": "",
+          "hint": "",
+          "placeholder": "",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        {
+          "key": "asset_retry_limit",
+          "label": "失败重试上限",
+          "type": "number",
+          "required": false,
+          "default": 2,
+          "help": "仅对失败候选显式重试，范围 0-3。",
+          "hint": "",
+          "placeholder": "",
+          "options": []
+        },
+        {
+          "key": "image_budget_usd",
+          "label": "图片费用上限（USD）",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "help": "0 表示仅限制调用次数；填写后会在调用前校验预计费用。",
+          "hint": "",
+          "placeholder": "",
+          "options": []
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "brief": "string",
+        "visual_keywords": "string[]",
+        "composition": "string",
+        "copy_suggestions": "string[]",
+        "prompt": "string",
+        "candidates": "Array<{ id, composition, palette, quality_summary }>",
+        "selected_candidate_id": "string",
+        "asset_generation": "{ status, total, ready_count, failed_count, provider_profile_id, model, size, quality, updated_at }"
+      },
       "quality_policy": {
         "min_score": 0.8,
         "retry_on_fail": true,
@@ -1620,7 +2047,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1629,6 +2056,13 @@
           "模板味"
         ],
         "retry_on_fail": false
+      },
+      "generation_budget": {
+        "target_chars": 500,
+        "min_chars": 500,
+        "max_chars": 1400,
+        "max_tokens": 2200,
+        "description": "先由文本模型生成封面 brief、prompt 和候选计划，再由独立图片 Provider 生成并落盘真实资产。"
       }
     },
     {
@@ -1651,11 +2085,14 @@
         "scope": "project",
         "kinds": []
       },
-      "provider_profile_id": "mock-text",
+      "provider_profile_id": "openai-compatible",
+      "image_provider_profile_id": "",
+      "fallback_targets": [],
+      "image_fallback_targets": [],
       "model_settings": {
-        "model": "mock-novel-model",
+        "model": "gpt-4.1-mini",
         "temperature": 0.7,
-        "max_tokens": 1800,
+        "max_tokens": 1200,
         "top_p": 0.95,
         "timeout_seconds": 120
       },
@@ -1668,6 +2105,8 @@
           "required": false,
           "default": "Markdown + JSON",
           "help": "",
+          "hint": "",
+          "placeholder": "",
           "options": [
             "Markdown + JSON",
             "纯 Markdown",
@@ -1675,7 +2114,15 @@
           ]
         }
       ],
-      "output_schema": {},
+      "output_schema": {
+        "manifest": "Array<{ name, format, status }>",
+        "formats": "string[]",
+        "chapters": "Array<{ id, title, words, status, content }>",
+        "metadata": "Record<string, string>",
+        "cover_asset": "{ candidate_id, asset_id, sha256, mime_type, width, height, size_bytes, image_url }",
+        "validation": "Record<string, string>",
+        "package_status": "{ kind, name, ready }"
+      },
       "quality_policy": {
         "min_score": 0.8,
         "retry_on_fail": true,
@@ -1686,7 +2133,7 @@
         "enabled": false,
         "candidate_count": 1,
         "judge_provider_profile_id": "inherit",
-        "judge_model": "mock-novel-judge",
+        "judge_model": "gpt-4.1-mini",
         "dimensions": [
           "连续性",
           "人物一致性",
@@ -1695,7 +2142,8 @@
           "模板味"
         ],
         "retry_on_fail": false
-      }
+      },
+      "generation_budget": null
     }
   ],
   "edges": [
@@ -1720,9 +2168,14 @@
       "target": "text"
     },
     {
-      "id": "e-text-cover",
-      "source": "text",
+      "id": "e-detail-cover",
+      "source": "detail",
       "target": "cover"
+    },
+    {
+      "id": "e-text-export",
+      "source": "text",
+      "target": "export"
     },
     {
       "id": "e-cover-export",

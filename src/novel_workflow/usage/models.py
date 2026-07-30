@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -10,6 +12,7 @@ class ProviderUsageCapabilities(BaseModel):
     cost_estimation: bool = False
     prompt_caching: bool = False
     reasoning_tokens: bool = False
+    image_generation: bool = False
 
 
 class UsageSnapshot(BaseModel):
@@ -21,9 +24,11 @@ class UsageSnapshot(BaseModel):
     reasoning_tokens: int = 0
     candidate_count: int = 1
     revision_count: int = 0
-    estimated_cost_usd: float | None = None
+    estimated_cost_usd: Optional[float] = None
     elapsed_ms: int = 0
     cost_available: bool = False
+    image_count: int = 0
+    failed_image_count: int = 0
 
 
 class StageUsageSummary(BaseModel):

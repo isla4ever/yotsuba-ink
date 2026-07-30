@@ -1,0 +1,183 @@
+/* Stage artifact workbench v3: editor-first surfaces, no stacked card drift. */
+.summary-manuscript-pane,
+.summary-structure-pane,
+.summary-turning-pane,
+.summary-character-pane,
+.outline-rhythm-strip,
+.outline-beat-board,
+.detail-matrix-strip,
+.chapter-table-card,
+.cover-direction-panel,
+.cover-preview-card,
+.cover-quality-card,
+.export-chapter-card,
+.export-package-card {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--panel-muted) 38%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 14%, var(--border));
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.summary-one-liner-editor {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  padding-bottom: 6px;
+}
+
+.summary-one-liner-editor span,
+.summary-beat-row label span {
+  color: color-mix(in srgb, var(--accent-2) 70%, var(--muted));
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.summary-one-liner-editor input {
+  background: transparent;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--accent-2) 48%, transparent);
+  border-radius: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+  outline: none;
+  padding: 4px 0 4px 10px;
+}
+
+.summary-manuscript-editor {
+  min-height: 0;
+}
+
+.summary-stream-paper {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 10%, transparent) 0 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--text) 5%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--panel) 96%, transparent);
+  background-size: 28px 100%, 100% 32px, auto;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 22px 24px 30px;
+  position: relative;
+}
+
+.summary-stream-paper.streaming {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent-2) 62%, transparent);
+}
+
+.summary-stream-paper p {
+  color: color-mix(in srgb, var(--text) 92%, var(--text-soft));
+  font-size: 13px;
+  line-height: 2;
+  margin: 0 0 8px;
+  text-align: left;
+}
+
+.summary-paper-editor {
+  background: transparent;
+  border: 0;
+  color: color-mix(in srgb, var(--text) 92%, var(--text-soft));
+  caret-color: var(--accent-2);
+  font: 13px/2 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100%;
+  outline: none;
+  overflow: auto;
+  padding: 0;
+  resize: none;
+  width: 100%;
+}
+
+.summary-baseline-strip {
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 8px;
+}
+
+.summary-baseline-strip span {
+  border-left: 2px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 48%, transparent);
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  line-height: 1.45;
+  max-height: 34px;
+  overflow: hidden;
+  padding-left: 8px;
+}
+
+.summary-beat-rail,
+.summary-turn-track,
+.summary-character-matrix,
+.summary-character-baseline {
+  scrollbar-width: thin;
+}
+
+.summary-beat-row {
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 30px minmax(78px, 0.32fr) minmax(0, 1fr) minmax(0, 1fr);
+  padding: 8px 0;
+}
+
+.summary-beat-row label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.summary-beat-row input,
+.summary-beat-row textarea,
+.summary-turn-row input,
+.summary-turn-row textarea {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  padding: 4px 0;
+}
+
+.summary-turn-row {
+  align-items: start;
+  border-left: 1px solid color-mix(in srgb, var(--accent-2) 28%, transparent);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 28px minmax(96px, 0.35fr) minmax(0, 1fr);
+  padding: 8px 0 8px 10px;
+}
+
+.summary-character-baseline {
+  display: flex;
+  gap: 6px;
+  min-height: 30px;
+  overflow: auto;
+}
+
+.summary-character-baseline span {
+  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 10px;
+  padding: 5px 8px;
+}
+
+.summary-character-baseline b {
+  color: var(--text-soft);
+  margin-right: 5px;
+}
+
+.summary-character-matrix button {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  grid-template-columns: 64px minmax(0, 1fr);
+  min-height: 54px;
+  padding: 8px 0;
+}

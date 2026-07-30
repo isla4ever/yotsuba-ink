@@ -1,0 +1,116 @@
+/* Phase 8.4A support rail: structure, turns, and character writeback stay subordinate to the manuscript. */
+.stage-contract-board.summary-board > .summary-side-workbench {
+  grid-template-rows: minmax(0, 1fr) minmax(158px, 0.32fr);
+}
+
+.summary-side-workbench > .summary-side-top {
+  grid-template-columns: minmax(0, 1.16fr) minmax(168px, 0.84fr);
+}
+
+.summary-side-workbench .summary-pane-head.compact {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.summary-side-workbench .summary-pane-head.compact > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.summary-side-workbench .summary-beat-content strong,
+.summary-side-workbench .summary-turn-card strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.summary-side-workbench .summary-turn-card,
+.summary-side-workbench .summary-turn-card > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.summary-side-workbench .summary-turn-card strong,
+.summary-side-workbench .summary-turn-card p {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  overflow: hidden;
+}
+
+.summary-side-workbench .summary-turn-card strong {
+  -webkit-line-clamp: 2;
+}
+
+.summary-side-workbench .summary-turn-card p {
+  -webkit-line-clamp: 2;
+}
+
+.summary-side-workbench .summary-relationship-sync {
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 10px 12px;
+}
+
+.summary-side-workbench .summary-relationship-head {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 36px;
+  padding-bottom: 7px;
+}
+
+.summary-side-workbench .summary-relationship-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.summary-side-workbench .summary-relationship-head .eyebrow {
+  font-size: 8px;
+  margin: 0;
+}
+
+.summary-side-workbench .summary-relationship-head h3 {
+  font-size: 13px;
+}
+
+.summary-side-workbench .summary-relationship-content {
+  grid-column: 1;
+  grid-row: 2;
+  grid-template-columns: minmax(0, 1.08fr) minmax(120px, 0.92fr);
+}
+
+.summary-side-workbench .summary-relationship-delta span {
+  display: grid;
+  gap: 2px;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.summary-side-workbench .summary-relationship-delta b,
+.summary-side-workbench .summary-relationship-delta em,
+.summary-side-workbench .summary-relationship-delta small {
+  overflow-wrap: anywhere;
+}
+
+.summary-side-workbench .summary-relationship-delta b {
+  color: var(--text);
+  font-size: 10px;
+}
+
+.summary-side-workbench .summary-relationship-delta em,
+.summary-side-workbench .summary-relationship-delta small,
+.summary-relationship-empty {
+  color: var(--text-soft);
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.summary-side-workbench .summary-relationship-delta small {
+  color: var(--muted);
+}

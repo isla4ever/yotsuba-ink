@@ -1,0 +1,221 @@
+/* Phase 8.4C: Detail is a dense chapter construction ledger, not a chapter card wall. */
+.detail-workbench-phase84 {
+  gap: 12px;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.detail-context-bar {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(220px, 0.34fr);
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.detail-context-title {
+  align-items: center;
+  display: grid;
+  gap: 5px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.detail-context-title > span,
+.detail-readiness > div > span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.detail-context-title > strong {
+  color: var(--text);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-context-title > small {
+  color: var(--text-soft);
+  font-size: 10px;
+  grid-column: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-context-counts {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.detail-context-counts > span {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 48%, transparent);
+  border-radius: 5px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 760;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.detail-context-counts svg,
+.detail-context-counts b {
+  color: var(--mode-aura, var(--accent-2));
+}
+
+.detail-readiness {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.detail-readiness > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.detail-readiness > div > strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.detail-readiness > i {
+  background: color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 2px;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+}
+
+.detail-readiness > i > b {
+  background: var(--mode-aura, var(--accent-2));
+  display: block;
+  height: 100%;
+}
+
+.detail-readiness > small {
+  color: var(--color-status-warning, #e6b85c);
+  font-size: 9px;
+  font-weight: 760;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-readiness.ready > small,
+.detail-readiness.ready > div > span {
+  color: var(--color-status-success, #58d29b);
+}
+
+.detail-construction-phase84,
+.detail-construction-table,
+.detail-construction-scroll,
+.detail-construction-grid {
+  min-height: 0;
+}
+
+.detail-construction-table {
+  border-radius: 8px;
+  display: block;
+}
+
+.detail-construction-scroll {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.detail-construction-grid {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-width: 820px;
+}
+
+.detail-workbench-phase84 .chapter-table-head,
+.detail-workbench-phase84 .chapter-row-card {
+  gap: 10px;
+  grid-template-columns: 70px minmax(110px, 0.72fr) minmax(150px, 1.05fr) minmax(135px, 0.92fr) minmax(115px, 0.78fr) minmax(120px, 0.8fr) 54px;
+}
+
+.detail-workbench-phase84 .chapter-table-head {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 44%, transparent);
+  min-height: 34px;
+  padding: 9px 12px;
+}
+
+.detail-workbench-phase84 .chapter-table-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.detail-workbench-phase84 .chapter-row-card {
+  grid-auto-rows: minmax(0, auto);
+  min-height: 68px;
+  padding: 10px 12px;
+}
+
+.detail-workbench-phase84 .chapter-row-card > strong,
+.detail-workbench-phase84 .chapter-table-head > span:first-child {
+  left: 0;
+  position: sticky;
+  z-index: 2;
+}
+
+.detail-workbench-phase84 .chapter-table-head > span:first-child {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, var(--panel));
+}
+
+.detail-workbench-phase84 .chapter-row-card > strong {
+  align-items: start;
+  align-self: stretch;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  box-shadow: 8px 0 14px color-mix(in srgb, var(--panel) 62%, transparent);
+  display: flex;
+  margin: -10px 0 -10px -12px;
+  padding: 10px 8px 10px 12px;
+}
+
+.detail-workbench-phase84 .chapter-row-card.active > strong {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, var(--panel));
+}
+
+.detail-workbench-phase84 .chapter-row-card > em {
+  align-items: center;
+  align-self: start;
+  color: var(--color-status-warning, #e6b85c);
+  display: inline-flex;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  gap: 4px;
+  justify-content: end;
+  white-space: nowrap;
+}
+
+.detail-workbench-phase84 .chapter-row-card > em.ready {
+  color: var(--color-status-success, #58d29b);
+}
+
+.detail-workbench-phase84 .chapter-row-card[aria-pressed='true'] {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--mode-aura, var(--accent-2)) 72%, transparent);
+}

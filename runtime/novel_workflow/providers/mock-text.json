@@ -1,9 +1,0 @@
-{
-  "id": "mock-text",
-  "name": "Mock 文本模型",
-  "kind": "mock",
-  "base_url": "",
-  "api_key_env": "",
-  "default_model": "mock-novel-model",
-  "enabled": true
-}

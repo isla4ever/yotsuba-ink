@@ -1,24 +1,16 @@
-import type { ProviderProfile } from '../contracts';
+import type { ProviderProfile, WorkflowStage } from '../contracts';
 
-const providerLabels: Record<string, string> = {
-  'mock-text': '演示文本模型',
-  'mock-image': '演示封面模型',
-};
+const providerLabels: Record<string, string> = {};
 
-const modelLabels: Record<string, string> = {
-  'mock-novel-model': '演示小说模型',
-  'mock-novel-judge': '演示评审模型',
-  'mock-cover': '演示封面模型',
-};
+const modelLabels: Record<string, string> = {};
 
 const kindLabels: Record<ProviderProfile['kind'], string> = {
-  mock: '本地演示通道',
-  'image-mock': '本地封面演示通道',
   'openai-compatible': 'OpenAI-compatible',
+  'openai-compatible-image': 'OpenAI-compatible 图片',
 };
 
 export function providerNameForUi(provider?: Pick<ProviderProfile, 'id' | 'name'> | string) {
-  if (!provider) return '未配置 Provider';
+  if (!provider) return '未连接 AI 服务';
   if (typeof provider === 'string') return providerLabels[provider] ?? scrubMockText(provider);
   return providerLabels[provider.id] ?? scrubMockText(provider.name);
 }
@@ -37,14 +29,27 @@ export function runtimeTextForUi(value?: string) {
   return scrubMockText(value ?? '');
 }
 
+export function stageLabelForUi(stage: Pick<WorkflowStage, 'label' | 'type'>) {
+  return stage.type === 'info_recommend' ? '小说信息推荐' : stage.label;
+}
+
+export function formatHistoryTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '时间未知';
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function formatFileSize(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function scrubMockText(value: string) {
-  return value
-    .replace(/mock-novel-judge/gi, '演示评审模型')
-    .replace(/mock-novel-model/gi, '演示小说模型')
-    .replace(/mock-cover/gi, '演示封面模型')
-    .replace(/mock-text/gi, '演示文本模型')
-    .replace(/mock-image/gi, '演示封面模型')
-    .replace(/Mock\/无需密钥/gi, '本地演示通道')
-    .replace(/Mock/gi, '演示')
-    .replace(/mock/gi, '演示');
+  return value;
 }

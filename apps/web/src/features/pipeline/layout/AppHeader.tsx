@@ -1,181 +1,220 @@
-import { CheckCircle2, Gauge, Layers3, LoaderCircle, Moon, Settings, Sun, TriangleAlert, Zap, type LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Activity, CheckCircle2, TriangleAlert } from 'lucide-react';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { BudgetStatusBar } from './BudgetStatusBar';
+import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 import { CreationActionDock } from './CreationActionDock';
-import { StageProgressNavigator } from './StageProgressNavigator';
-import type { ConfigProgress, KnowledgeDocument, QualityMode, RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
+import { GlobalToolDock } from './GlobalToolDock';
+import { HeaderUsageStat } from './HeaderUsageStat';
+import { HeaderStageSwitcher } from './HeaderStageSwitcher';
+import { ProductNavigationRail } from './ProductNavigationRail';
+import { MODE_NOTICE_DWELL_MS, QualityModeTransitionOverlay } from './QualityModeTransitionOverlay';
+import { runModeRevealTransition, type ModeRevealOrigin } from './modeRevealTransition';
+import { sidebarStageItems } from './workbenchSidebarModel';
+import { buildConfigProgress } from '../lib/configProgress';
+import { stagePositionEqual, stagePositionSummary } from '../lib/stageProgress';
+import { useProviderReadinessContext } from '../settings/ProviderReadinessContext';
+import { useRunEventsSelector, useRunStateContext, useUICommandContext, useWorkflowConfigContext } from '../state/pipelineShellContext';
+import { type StageRunStatus } from '../state/runEventIndex';
+import { completedDeliveryStageIds } from '../state/stageDeliveryStatus';
+import { canSwitchModeFromFacts } from '../state/runState';
+import { useReducedMotionPreference } from '../state/useReducedMotionPreference';
+import type { QualityMode, WorkflowStage } from '../contracts';
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 type Props = {
-  selectedStage: WorkflowStage;
-  events: RunEvent[];
-  workflow: WorkflowDefinition;
-  knowledgeDocuments: KnowledgeDocument[];
-  running: boolean;
-  paused: boolean;
-  theme: 'dark' | 'light';
-  saveStatus: 'idle' | 'saving' | 'saved' | 'failed';
-  qualityMode: QualityMode;
-  onOpenSettings: () => void;
-  onQualityModeChange: (mode: QualityMode) => void;
-  onPause: () => void;
-  onRun: () => void;
-  onToggleTheme: () => void;
+  /** Layout decision owned by the parent shell (persistent sidebar breakpoint). */
+  sidebarVisible: boolean;
 };
 
-export function AppHeader({
-  selectedStage,
-  events,
-  workflow,
-  knowledgeDocuments,
-  running,
-  paused,
-  theme,
-  saveStatus,
-  qualityMode,
-  onOpenSettings,
-  onQualityModeChange,
-  onPause,
-  onRun,
-  onToggleTheme,
-}: Props) {
+/**
+ * Memoized (Phase 12 F5): the header reads only low-frequency shell slices;
+ * event-driven visuals (stage position, usage stat, budget bar) are leaf
+ * components on the run-events store, so streaming deltas leave the header
+ * itself untouched.
+ */
+export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
   const [modeNotice, setModeNotice] = useState<QualityMode | null>(null);
-  const configProgress = useMemo(() => buildConfigProgress(workflow, knowledgeDocuments), [workflow, knowledgeDocuments]);
+  const reducedMotion = useReducedMotionPreference();
+  const providerReadiness = useProviderReadinessContext();
+  const run = useRunStateContext();
+  const { knowledgeDocuments, qualityMode, routePolicy, saveStatus, workflow } = useWorkflowConfigContext();
+  const ui = useUICommandContext();
+  const configProgress = useMemo(
+    () => buildConfigProgress(workflow, knowledgeDocuments, providerReadiness),
+    [knowledgeDocuments, providerReadiness.report, providerReadiness.status, workflow],
+  );
+  const isRunSurface = run.workspacePhase === 'running' && run.runHasStarted;
+  const headerStageItems = useMemo(
+    () => sidebarStageItems({
+      policy: routePolicy,
+      qualityMode,
+      runHasStarted: run.runHasStarted,
+      stageRuntimes: run.stageRuntimes,
+      stages: workflow.nodes,
+    }),
+    [qualityMode, routePolicy, run.runHasStarted, run.stageRuntimes, workflow.nodes],
+  );
+  const showHeaderStageSwitcher = isRunSurface && !sidebarVisible && routePolicy.stageRoutes === 'all';
+  const modeSwitchLocked = !canSwitchModeFromFacts({
+    approvalPending: run.approvalPending,
+    checkpointContinueReady: run.checkpointContinueReady,
+    infoContinueReady: run.infoContinueReady,
+    paused: run.runControlState === 'paused',
+    recoverable: run.runHasStarted,
+    runControlState: run.runControlState,
+    running: run.running,
+  });
 
   useEffect(() => {
     if (!modeNotice) return;
-    const timer = window.setTimeout(() => setModeNotice(null), 1450);
+    const timer = window.setTimeout(() => setModeNotice(null), MODE_NOTICE_DWELL_MS);
     return () => window.clearTimeout(timer);
   }, [modeNotice]);
 
-  const handleQualityModeChange = (mode: QualityMode) => {
-    if (mode === qualityMode || (running && !paused)) return;
-    onQualityModeChange(mode);
-    setModeNotice(mode);
+  const handleQualityModeChange = (mode: QualityMode, origin?: ModeRevealOrigin) => {
+    if (mode === qualityMode || modeSwitchLocked) return;
+    // State-only switch (no business requests); optionally wrapped in a radial
+    // View Transition reveal from the clicked segment. Falls back to instant.
+    runModeRevealTransition(
+      () => {
+        ui.changeQualityMode(mode);
+        setModeNotice(mode);
+      },
+      { origin, reducedMotion },
+    );
   };
 
+  const saveStatusLabel = saveStatusCopy[saveStatus];
+
   return (
-    <header className="app-header">
+    <header className={`app-header ${isRunSurface ? 'run-surface' : ''}`}>
       <div className="header-brand">
+        {sidebarVisible ? null : (
+          <ProductNavigationRail
+            activeItem={ui.activeNavigationItem}
+            items={ui.navigationItems}
+            onNavigate={ui.navigateProduct}
+            onOpenChange={ui.setNavigationOpen}
+            open={ui.navigationOpen}
+            qualityMode={qualityMode}
+          />
+        )}
         <div className="brand-mark">NW</div>
         <div>
-          <p>Novel Workflow</p>
+          <p>Yotsuba Ink</p>
           <strong>小说流水线平台</strong>
         </div>
       </div>
 
-      <div className="header-progress-slot">
-        <StageProgressNavigator configProgress={configProgress} stage={selectedStage} events={events} />
-      </div>
+      <CurrentSurfaceStatus
+        configCompleted={configProgress.completed}
+        configTotal={configProgress.items.length}
+        isRunSurface={isRunSurface}
+        runtimeStatus={run.stageRuntimes[run.selectedStage.id]?.status ?? 'idle'}
+        stages={workflow.nodes}
+        saveStatus={saveStatus}
+        saveStatusLabel={saveStatusLabel}
+        stage={run.selectedStage}
+        stageSwitcher={showHeaderStageSwitcher ? (
+          <HeaderStageSwitcher
+            currentStageId={run.selectedStage.id}
+            items={headerStageItems}
+            onNavigate={ui.navigateStage}
+          />
+        ) : null}
+      />
 
       <div className="header-actions">
-        <span className={`save-state ${saveStatus}`}>
-          <SaveStatusIcon status={saveStatus} />
-        </span>
-        <button className="icon-button tech-icon-button" onClick={onToggleTheme} title={theme === 'dark' ? '切换日间模式' : '切换夜间模式'}>
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
-        <button className="icon-button tech-icon-button" onClick={onOpenSettings} title="设置"><Settings size={16} /></button>
-        <CreationActionDock
-          disabled={running && !paused}
-          paused={paused}
-          qualityMode={qualityMode}
-          running={running}
-          onPause={onPause}
-          onQualityModeChange={handleQualityModeChange}
-          onRun={onRun}
-        />
+        <GlobalToolDock showGlobalEntries={!sidebarVisible} />
+        <CreationActionDock disabled={modeSwitchLocked} onQualityModeChange={handleQualityModeChange} />
       </div>
-      {modeNotice ? createPortal(<QualityModeNotice mode={modeNotice} onClose={() => setModeNotice(null)} />, document.body) : null}
+      <QualityModeTransitionOverlay mode={modeNotice} />
+      <BudgetStatusBar />
     </header>
   );
-}
+});
 
-function SaveStatusIcon({ status }: { status: Props['saveStatus'] }) {
-  if (status === 'saving') return <LoaderCircle className="save-spin-icon" size={14} />;
+function SaveStatusIcon({ status }: { status: SaveStatus }) {
+  if (status === 'saving') return <ButtonLoadingIndicator />;
   if (status === 'failed') return <TriangleAlert size={14} />;
   return <CheckCircle2 size={14} />;
 }
 
-function hasValue(value: unknown) {
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'number') return Number.isFinite(value);
-  return String(value ?? '').trim().length > 0;
-}
-
-function fieldDefaults(stage?: WorkflowStage) {
-  return Object.fromEntries(stage?.input_schema.map((field) => [field.key, field.default ?? '']) ?? []);
-}
-
-function buildConfigProgress(workflow: WorkflowDefinition, knowledgeDocuments: KnowledgeDocument[]): ConfigProgress {
-  const info = workflow.nodes.find((stage) => stage.id === 'info');
-  const infoDefaults = fieldDefaults(info);
-  const hasModelConfig = workflow.provider_profiles.some((provider) => provider.enabled && (provider.kind === 'mock' || provider.kind === 'image-mock' || Boolean(provider.base_url.trim() && provider.api_key_env.trim())));
-  const briefKeys = ['genre', 'target_length', 'target_words_range', 'audience', 'core_concept', 'keywords', 'taboos'];
-  const hasBrief = briefKeys.every((key) => hasValue(infoDefaults[key]));
-  const referenceMode = String(infoDefaults.reference_mode || 'smart_search');
-  const hasReference = referenceMode === 'smart_search'
-    ? Boolean(infoDefaults.enable_web_search) || hasValue(infoDefaults.reference_keywords) || hasValue(infoDefaults.reference_query_intent)
-    : referenceMode === 'url'
-      ? hasValue(infoDefaults.reference_urls)
-      : hasValue(infoDefaults.reference_query_intent) || hasValue(infoDefaults.knowledge_base_doc_ids);
-  const needsKnowledge = referenceMode === 'knowledge_base' || (referenceMode === 'smart_search' && infoDefaults.enable_web_search === false);
-  const hasKnowledge = !needsKnowledge || knowledgeDocuments.length > 0 || hasValue(infoDefaults.knowledge_base_doc_ids);
-  const hasQuality = Boolean(workflow.quality_mode) && workflow.nodes.every((stage) => Number.isFinite(stage.quality_policy.min_score) && stage.quality_policy.min_score >= 0 && stage.quality_policy.min_score <= 1);
-  const items = [
-    { key: 'model', label: '模型/API', done: hasModelConfig },
-    { key: 'brief', label: '小说 Brief', done: hasBrief },
-    { key: 'reference', label: '参考源', done: hasReference },
-    { key: 'knowledge', label: '知识库', done: hasKnowledge },
-    { key: 'quality', label: '质量策略', done: hasQuality },
-  ];
-  return { completed: items.filter((item) => item.done).length, items };
-}
-
-function QualityModeNotice({ mode, onClose }: { mode: QualityMode; onClose: () => void }) {
-  const copy = qualityModeCopy[mode];
-  const Icon = copy.icon;
+function CurrentSurfaceStatus({
+  configCompleted,
+  configTotal,
+  isRunSurface,
+  runtimeStatus,
+  stages,
+  saveStatus,
+  saveStatusLabel,
+  stage,
+  stageSwitcher,
+}: {
+  configCompleted: number;
+  configTotal: number;
+  isRunSurface: boolean;
+  runtimeStatus: StageRunStatus;
+  stages: WorkflowStage[];
+  saveStatus: SaveStatus;
+  saveStatusLabel: string;
+  stage: WorkflowStage;
+  stageSwitcher: ReactNode;
+}) {
+  const runtimeLabel = runtimeStatus === 'running'
+    ? '运行中'
+    : runtimeStatus === 'done'
+      ? '已完成'
+      : runtimeStatus === 'attention'
+        ? '待完善'
+      : runtimeStatus === 'failed'
+        ? '需要复核'
+        : '等待运行';
   return (
-    <div className={`quality-mode-notice mode-${mode}`} role="presentation" onClick={onClose}>
-      <section className="quality-mode-notice-card" onClick={(event) => event.stopPropagation()}>
-        <span className="quality-mode-notice-orb"><Icon size={18} /></span>
-        <div>
-          <p className="eyebrow">Quality Mode</p>
-          <h2>{copy.title}</h2>
-          <p>{copy.description}</p>
-        </div>
-        <div className="quality-mode-notice-pills">
-          <span><b>Token</b>{copy.cost}</span>
-          <span><b>适用</b>{copy.useCase}</span>
-        </div>
-      </section>
+    <div className={`header-surface-status ${isRunSurface ? 'runtime' : 'planning'} ${stageSwitcher ? 'has-stage-switcher' : ''}`}>
+      <span className="header-surface-status-icon"><Activity size={15} /></span>
+      <div className="header-surface-status-copy">
+        <strong>{isRunSurface ? stage.label : '创作准备'}</strong>
+        <span>
+          {isRunSurface ? `${runtimeLabel} · 当前工作台` : `已完成 ${configCompleted}/${configTotal} 项准备`}
+          {isRunSurface ? <HeaderStagePosition currentStageId={stage.id} stages={stages} /> : null}
+        </span>
+      </div>
+      {stageSwitcher}
+      <HeaderUsageStat />
+      <span aria-label={saveStatusLabel} className={`save-state ${saveStatus}`} role="status" title={saveStatusLabel}>
+        <SaveStatusIcon status={saveStatus} />
+      </span>
     </div>
   );
 }
 
-const qualityModeCopy = {
-  fast: {
-    title: '极速预览',
-    description: '单版本快速跑通主链路，优先验证题材方向与流程结构。',
-    capability: '单版本生成，质量检查仅提示。',
-    cost: '低消耗',
-    useCase: '早期试想法',
-    icon: Zap,
-  },
-  balanced: {
-    title: '平衡创作',
-    description: '关键节点保留择优能力，在质量、成本和稳定性之间取平衡。',
-    capability: '正文默认双版本择优。',
-    cost: '中等消耗',
-    useCase: '常规章节产出',
-    icon: Gauge,
-  },
-  deep: {
-    title: '深度精修',
-    description: '启用多候选评审、质量重试和更完整记忆检索，面向正式产出。',
-    capability: '多候选评审与重试增强。',
-    cost: '高消耗',
-    useCase: '正式稿精修',
-    icon: Layers3,
-  },
-} satisfies Record<QualityMode, { title: string; description: string; capability: string; cost: string; useCase: string; icon: LucideIcon }>;
+/**
+ * Phase 12 D4/Wave 4: the aggregate position uses delivery-truthful stage
+ * statuses, so incomplete Cover/Export artifacts do not inflate completion.
+ */
+function HeaderStagePosition({ currentStageId, stages }: { currentStageId: string; stages: WorkflowStage[] }) {
+  const stageIds = useMemo(() => stages.map((stage) => stage.id), [stages]);
+  const position = useRunEventsSelector(
+    (snapshot) => stagePositionSummary({
+      completedStageIds: completedDeliveryStageIds(snapshot.index, stages),
+      currentStageId,
+      stageIds,
+    }),
+    stagePositionEqual,
+  );
+  if (!position.current) return null;
+  return (
+    <em className="header-stage-position">
+      第 {position.current}/{position.total} 阶段{position.completed ? ` · 已完成 ${position.completed}` : ''}
+    </em>
+  );
+}
+
+const saveStatusCopy: Record<SaveStatus, string> = {
+  idle: '配置尚未修改',
+  saving: '正在自动保存配置',
+  saved: '配置已自动保存',
+  failed: '配置自动保存失败',
+};

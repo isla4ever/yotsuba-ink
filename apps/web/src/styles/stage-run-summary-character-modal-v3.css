@@ -1,0 +1,104 @@
+.artifact-detail-backdrop .character-deepening-dialog {
+  border-radius: 14px;
+  gap: 12px;
+  max-height: min(84vh, 770px);
+  padding: 20px 22px 18px;
+}
+
+.artifact-detail-backdrop .character-deepening-title {
+  border-bottom: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 16%, var(--border));
+  padding-bottom: 10px;
+}
+
+.artifact-detail-backdrop .character-deepening-title h2 {
+  font-size: 24px;
+}
+
+.artifact-detail-backdrop .character-info-baseline,
+.artifact-detail-backdrop .character-baseline-relations,
+.artifact-detail-backdrop .character-deepening-list,
+.artifact-detail-backdrop .character-deepening-form,
+.artifact-detail-backdrop .relationship-focus-card {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 16%, var(--border));
+  box-shadow: none;
+}
+
+.artifact-detail-backdrop .character-info-baseline,
+.artifact-detail-backdrop .character-baseline-relations {
+  border-radius: 0;
+  border-width: 0 0 1px;
+  padding: 8px 0 12px;
+}
+
+.artifact-detail-backdrop .character-info-baseline {
+  grid-template-columns: 116px minmax(0, 1fr);
+}
+
+.artifact-detail-backdrop .character-info-baseline b {
+  background: color-mix(in srgb, var(--panel-muted) 18%, transparent);
+  border-color: color-mix(in srgb, var(--border) 46%, transparent);
+}
+
+.artifact-detail-backdrop .baseline-relation-map button {
+  background: color-mix(in srgb, var(--panel-muted) 16%, transparent);
+  border-color: color-mix(in srgb, var(--border) 48%, transparent);
+  border-radius: 8px;
+  min-height: 54px;
+}
+
+.artifact-detail-backdrop .baseline-relation-map button.active {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 9%, transparent);
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 42%, var(--border));
+}
+
+.artifact-detail-backdrop .character-deepening-list {
+  border-radius: 0;
+  border-width: 0 1px 0 0;
+  padding: 0 12px 0 0;
+}
+
+.artifact-detail-backdrop .character-deepening-list button {
+  border-color: transparent;
+  border-radius: 8px;
+  min-height: 58px;
+}
+
+.artifact-detail-backdrop .character-deepening-list button.active {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 36%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--mode-aura, var(--accent-2)) 72%, transparent);
+}
+
+.artifact-detail-backdrop .character-deepening-form {
+  border: 0;
+  gap: 12px;
+  padding: 0;
+}
+
+.artifact-detail-backdrop .relationship-focus-card {
+  border-radius: 10px;
+  border-width: 1px;
+  padding: 11px 12px;
+}
+
+.artifact-detail-backdrop .character-deepening-form textarea {
+  background: color-mix(in srgb, var(--panel-muted) 24%, transparent);
+  border-color: color-mix(in srgb, var(--border) 50%, transparent);
+  border-radius: 9px;
+}
+
+.artifact-detail-backdrop .relationship-focus-people button.active {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 46%, var(--border));
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 88%, var(--text));
+}
+
+@media (max-width: 780px) {
+  .summary-edit-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-edit-ribbon {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+}

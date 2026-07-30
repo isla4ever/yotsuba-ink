@@ -1,0 +1,128 @@
+/* Story Bible world / foreshadow / canon-fact ledgers (Phase 10.2a). */
+
+.bible-list-card {
+  background: var(--panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  padding: var(--space-3) var(--space-4);
+}
+
+.bible-list-card h3 {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+}
+
+.bible-fact-list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bible-fact-list li {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.bible-fact-list li:last-child {
+  border-bottom: none;
+}
+
+.bible-fact-text {
+  color: var(--text);
+  flex: 1;
+  font-size: 12px;
+  min-width: 200px;
+}
+
+.bible-fact-source {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.bible-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+}
+
+.bible-table th,
+.bible-table td {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.bible-table thead th {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.bible-table tbody tr.closed {
+  color: var(--text-soft);
+  opacity: 0.62;
+}
+
+.bible-status-badge {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px var(--space-2);
+  white-space: nowrap;
+}
+
+.bible-status-badge.foreshadow-planted { color: var(--accent-2); }
+.bible-status-badge.foreshadow-advanced { color: var(--color-action-emphasis); }
+.bible-status-badge.foreshadow-recovered { color: var(--color-status-success); }
+.bible-status-badge.foreshadow-deferred { color: var(--warning); }
+.bible-status-badge.canon-active { color: var(--color-status-success); }
+.bible-status-badge.canon-pending { border-color: var(--warning); color: var(--warning); }
+.bible-status-badge.canon-superseded { color: var(--color-text-muted); }
+
+.bible-canon-row.pending {
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border-radius: var(--radius-control);
+  padding-inline: var(--space-2);
+}
+
+.bible-canon-row.superseded {
+  opacity: 0.55;
+}
+
+.bible-canon-conflict-detail {
+  color: var(--warning);
+  display: block;
+  font-size: 11px;
+  font-style: normal;
+  margin-top: 2px;
+}
+
+@media (max-width: 480px) {
+  .bible-table thead {
+    display: none;
+  }
+
+  .bible-table tbody tr {
+    border-bottom: 1px solid var(--color-border-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-2) 0;
+  }
+
+  .bible-table th,
+  .bible-table td {
+    border-bottom: none;
+    padding: 2px 0;
+  }
+}

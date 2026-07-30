@@ -1,0 +1,135 @@
+.stage-finalize-tray {
+  display: grid;
+  min-height: 64px;
+  overflow: hidden;
+  position: relative;
+  transform-origin: bottom center;
+  will-change: opacity, transform;
+}
+
+.stage-finalize-tray.collapsed {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.stage-finalize-tray-inner {
+  display: grid;
+  min-height: 64px;
+  overflow: hidden;
+}
+
+.info-finalize-tray {
+  align-self: end;
+  min-height: 84px;
+}
+
+.info-finalize-tray .stage-finalize-tray-inner {
+  display: grid;
+  min-height: 84px;
+}
+
+.approval-action-row.compact > button {
+  min-width: 92px;
+}
+
+.stage-run-main.info-main .recommendation-footer.inline-footer p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .info-finalize-tray,
+  .info-finalize-tray .stage-finalize-tray-inner {
+    min-height: 92px;
+  }
+
+  .info-finalize-tray .approval-action-row.compact > button {
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
+.recommendation-confirm-toast {
+  align-items: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, transparent), color-mix(in srgb, var(--panel-muted) 90%, transparent));
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 42%, var(--border));
+  border-radius: 999px;
+  bottom: 68px;
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.24),
+    0 0 0 3px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent);
+  color: var(--text);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 8px;
+  max-width: min(420px, calc(100% - 28px));
+  padding: 10px 13px;
+  position: absolute;
+  right: 16px;
+  white-space: nowrap;
+  z-index: 6;
+}
+
+.recommendation-confirm-toast svg {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 82%, var(--text));
+  flex: 0 0 auto;
+}
+
+.recommendation-confirm-toast span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-run-main.info-main .compact-synopsis textarea {
+  height: 100%;
+  min-height: 176px;
+}
+
+.stage-run-main.info-main .info-worldbuilding-digest {
+  min-height: 0;
+  margin-top: 2px;
+}
+
+.stage-run-main.info-main .info-worldbuilding-scroll,
+.stage-run-main.info-main .info-worldbuilding-grid {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.stage-run-main.info-main .info-worldbuilding-scroll::-webkit-scrollbar,
+.stage-run-main.info-main .info-worldbuilding-grid::-webkit-scrollbar {
+  width: 7px;
+}
+
+.stage-run-main.info-main .info-worldbuilding-scroll::-webkit-scrollbar-thumb,
+.stage-run-main.info-main .info-worldbuilding-grid::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--success) 34%, transparent);
+  border-radius: 999px;
+}
+
+.stage-run-main.info-main .info-worldbuilding-tile,
+.stage-run-main.info-main .info-worldbuilding-grid article {
+  min-height: 86px;
+}
+
+.stage-run-main.info-main .recommendation-tag-console {
+  min-height: 0;
+}
+
+.stage-run-main.info-main .recommendation-chip-row {
+  max-height: 58px;
+}
+
+.stage-run-main.info-main .recommendation-chip-row span,
+.stage-run-main.info-main .recommendation-chip-row button,
+.stage-run-main.info-main .recommendation-chip-row.editable input {
+  height: 24px;
+  min-height: 24px;
+}

@@ -2,7 +2,7 @@
   "id": "prompt-outline",
   "name": "分卷大纲 Prompt",
   "stage_type": "outline",
-  "content": "基于梗概、角色弧和未回收伏笔，生成卷级目标、卷冲突、章节范围和伏笔分布，避免与世界观硬设定冲突。",
+  "content": "基于已确认梗概、Info 人物与世界观、未回收伏笔，返回结构化 outline artifact。\n\n- volumes 的 chapter_range 必须按顺序连续、互不重叠，并覆盖配置的目标章节；volume_goal 和 rhythm 要能指导该卷取舍。\n- 每卷必须完整返回 opening、development、midpoint、climax、resolution 五段节拍；每一拍由上一拍的结果推动，resolution 要结算本卷目标并为下一卷建立可执行因果。\n- character_progression 必须引用已确认人物或本卷 new_characters，并完整给出关系、kind、polarity、strength、压力、变化和影响。\n- new_characters 仅在确有结构职责时新增，最多 4 名且 tier 必须为 supporting，同时给出 faction、faction_stance/stance 与主角关系；不得新增主角级人物。\n- world_reveal 必须引用已确认世界观原文 anchor，并给出 reveal、rule、impact；不得改写既有硬规则。\n- foreshadow_plan 给出 name、status、chapter_range、note，状态只能是投放、推进、回收或延后，并能在对应章节范围实际执行。",
   "variables": [
     "volume_count",
     "chapters_per_volume"

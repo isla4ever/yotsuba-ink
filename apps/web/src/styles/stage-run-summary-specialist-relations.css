@@ -1,0 +1,148 @@
+.character-deepening-dialog {
+  display: grid;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+  max-height: min(86vh, 820px);
+  overflow: hidden;
+  width: min(1040px, calc(100vw - 48px));
+}
+
+.character-baseline-relations {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 7%, transparent), transparent 62%),
+    color-mix(in srgb, var(--panel-muted) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  padding: 10px;
+}
+
+.baseline-relation-map {
+  display: grid;
+  gap: 7px;
+  max-height: 120px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.baseline-relation-map article {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(58px, 0.24fr) minmax(72px, 1fr) minmax(58px, 0.24fr) minmax(0, 0.8fr);
+  min-width: 0;
+}
+
+.baseline-relation-map article > span,
+.baseline-relation-map b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-deepening-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.character-deepening-list,
+.character-deepening-form {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1280px) {
+  .summary-character-ledger button {
+    grid-template-columns: minmax(84px, 0.3fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .summary-manuscript-pane {
+    grid-row: auto;
+    min-height: 520px;
+  }
+
+  .character-deepening-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stage-contract-board.summary-board > .summary-character-pane {
+  display: grid;
+  gap: 9px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(150px, 0.28fr) minmax(0, 1fr) minmax(210px, 0.34fr);
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  min-height: 180px;
+  padding: 12px;
+}
+
+.stage-contract-board.summary-board {
+  grid-template-rows: minmax(0, 0.82fr) minmax(118px, 0.24fr) minmax(180px, 0.46fr) !important;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.stage-contract-board.summary-board > .summary-character-pane > h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.stage-contract-board.summary-board .summary-character-baseline {
+  align-content: start;
+  display: grid;
+  gap: 7px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.stage-contract-board.summary-board .summary-character-baseline span {
+  max-width: none;
+  width: 100%;
+}
+
+.stage-contract-board.summary-board .summary-character-ledger {
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  overflow: auto;
+}
+
+.stage-contract-board.summary-board .summary-character-ledger button {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.28fr) minmax(0, 1fr);
+  height: auto !important;
+  min-height: 124px !important;
+  padding: 10px 2px !important;
+  width: 100%;
+}
+
+.stage-contract-board.summary-board .summary-character-ledger em,
+.stage-contract-board.summary-board .summary-character-ledger i,
+.stage-contract-board.summary-board .summary-character-ledger strong {
+  min-width: 0;
+}
+
+.stage-contract-board.summary-board .summary-context-thread {
+  align-self: stretch;
+  border-top: 0;
+  border-left: 2px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 44%, transparent);
+  min-height: 0;
+  overflow: auto;
+  padding: 0 0 0 10px;
+}
+
+@media (max-width: 1180px) {
+  .stage-contract-board.summary-board > .summary-character-pane {
+    grid-column: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+}

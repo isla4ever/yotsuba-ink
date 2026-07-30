@@ -1,0 +1,175 @@
+.volume-rhythm-card,
+.chapter-table-card,
+.cover-preview-card,
+.export-manifest-card {
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+  overflow: hidden;
+  padding: 11px;
+}
+
+.volume-rhythm-bar {
+  align-items: stretch;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.volume-rhythm-bar span {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent),
+    var(--panel-muted);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 22%, var(--border));
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 900;
+  overflow: hidden;
+  padding: 7px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.volume-card-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.volume-card {
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  text-align: left;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.volume-card > div {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.volume-card.interactive:hover,
+.chapter-row-card:hover {
+  border-color: color-mix(in srgb, var(--accent-2) 34%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 8%, transparent);
+  transform: none;
+}
+
+.volume-card.generating,
+.chapter-row-card.generating {
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--border));
+  box-shadow:
+    inset 3px 0 0 var(--warning),
+    0 0 0 3px color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+.volume-card.pending,
+.chapter-row-card.pending {
+  opacity: 0.54;
+}
+
+.volume-card em {
+  color: var(--warning);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.live-delta-preview {
+  animation: streamLineIn 260ms ease both;
+  color: color-mix(in srgb, var(--warning) 72%, var(--text-soft)) !important;
+  display: -webkit-box;
+  line-height: 1.55;
+  max-height: 54px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.detail-coverage-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail-coverage-strip strong {
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  display: grid;
+  font-size: 18px;
+  gap: 3px;
+  padding: 10px;
+}
+
+.detail-coverage-strip span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chapter-table-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chapter-table-head,
+.chapter-table-body article {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 72px minmax(220px, 1.2fr) minmax(140px, 0.8fr) minmax(160px, 0.8fr);
+}
+
+.chapter-table-head {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  padding: 0 8px 8px;
+}
+
+.chapter-table-body {
+  display: grid;
+  gap: 7px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.chapter-table-body::-webkit-scrollbar {
+  display: none;
+}
+
+.chapter-table-body article {
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.42;
+  padding: 9px;
+}
+
+.chapter-row-card {
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, opacity 180ms ease;
+}
+
+.chapter-queue-note {
+  border: 1px dashed color-mix(in srgb, var(--accent-2) 20%, var(--border));
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 10px;
+  text-align: center;
+}
+
+.chapter-table-body strong {
+  color: var(--text);
+}

@@ -28,7 +28,7 @@ def provider_usage_capabilities(provider_profile_id: str, model: str) -> Provide
     return ProviderUsageCapabilities(
         provider_id=provider,
         model=model,
-        token_counting=provider in {"openai-compatible", "mock-text"},
+        token_counting=provider == "openai-compatible",
         cost_estimation=False,
         prompt_caching=provider in {"openai-compatible"},
         reasoning_tokens=False,
@@ -70,4 +70,40 @@ def record_stage_usage(
         for item in state.token_estimates.values()
         if isinstance(item, dict) and "usage" in item
     )
+    return summary
+
+
+def record_image_stage_usage(
+    state: Any,
+    *,
+    node: Any,
+    provider_profile_id: str,
+    model: str,
+    image_count: int,
+    failed_image_count: int,
+    estimated_cost_usd: float | None,
+) -> StageUsageSummary:
+    usage = UsageSnapshot(
+        candidate_count=max(1, image_count + failed_image_count),
+        image_count=max(0, image_count),
+        failed_image_count=max(0, failed_image_count),
+        estimated_cost_usd=estimated_cost_usd,
+        cost_available=estimated_cost_usd is not None,
+    )
+    summary = StageUsageSummary(
+        stage_key=node.id,
+        node_id=node.id,
+        label=node.label,
+        stage_type=node.type,
+        provider_profile_id=provider_profile_id,
+        model=model,
+        usage=usage,
+        capabilities=ProviderUsageCapabilities(
+            provider_id=provider_profile_id,
+            model=model,
+            cost_estimation=estimated_cost_usd is not None,
+            image_generation=True,
+        ),
+    )
+    state.stage_usage_summaries[node.id] = summary.model_dump()
     return summary

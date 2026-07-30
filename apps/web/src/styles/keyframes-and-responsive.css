@@ -82,18 +82,207 @@
   }
 }
 
-@keyframes ecgTailTrace {
-  0% {
-    opacity: 0;
-    stroke-dashoffset: 104.4;
+@keyframes microPulse {
+  0%, 100% {
+    opacity: 0.62;
+    transform: scale(0.86);
   }
-  8%,
-  88% {
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes buttonEnergyBreath {
+  0%, 100% {
+    background-position: 0 0, 0 0;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--accent-2) 8%, transparent),
+      0 0 16px color-mix(in srgb, var(--accent-2) 8%, transparent);
+  }
+  50% {
+    background-position: 18px 0, 0 0;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--accent-2) 18%, transparent),
+      0 0 24px color-mix(in srgb, var(--accent-2) 15%, transparent);
+  }
+}
+
+@keyframes starNebulaBreath {
+  0%, 100% {
+    opacity: 0.54;
+    transform: translate3d(-1%, -1%, 0) scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate3d(1.4%, 1%, 0) scale(1.04);
+  }
+}
+
+@keyframes starLayerDrift {
+  from {
+    background-position: 0 0, 24px 16px;
+  }
+  to {
+    background-position: 68px 68px, 120px 112px;
+  }
+}
+
+@keyframes meteorSlash {
+  0%, 62% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(-18deg);
+  }
+  68% {
     opacity: 0.72;
+  }
+  82%, 100% {
+    opacity: 0;
+    transform: translate3d(420%, 160%, 0) rotate(-18deg);
+  }
+}
+
+@keyframes modeCapsuleBreath {
+  0%, 100% {
+    background-position: 0 0, 0 0, 0% 50%, 0 0;
+    box-shadow:
+      inset 0 0 13px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #fff 9%, transparent);
+  }
+  50% {
+    background-position: 10px 2px, -12px 3px, 100% 50%, 0 0;
+    box-shadow:
+      inset 0 0 20px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, transparent),
+      0 0 18px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #fff 13%, transparent);
+  }
+}
+
+@keyframes awaitConfirmBreath {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 18px rgba(255, 255, 255, 0.12),
+      0 0 16px rgba(245, 158, 11, 0.24);
+    filter: saturate(1);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 26px rgba(255, 255, 255, 0.2),
+      0 0 30px rgba(251, 191, 36, 0.38);
+    filter: saturate(1.18);
+  }
+}
+
+@keyframes continueActionBreath {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 18px rgba(255, 255, 255, 0.1),
+      0 0 16px color-mix(in srgb, var(--color-action-primary) 22%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 26px rgba(255, 255, 255, 0.18),
+      0 0 28px color-mix(in srgb, var(--mode-aura) 34%, transparent);
+  }
+}
+
+@keyframes modeGlowBreath {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.22);
+  }
+}
+
+@keyframes modeParticleDrift {
+  0% {
+    background-position: 10% 40%, 72% 68%, 0% 50%;
+  }
+  100% {
+    background-position: 72% 44%, 18% 62%, 100% 50%;
+  }
+}
+
+@keyframes tokenActivate {
+  0% {
+    transform: translateY(0) scale(0.98);
+  }
+  55% {
+    transform: translateY(-2px) scale(1.025);
+  }
+  100% {
+    transform: translateY(-1px) scale(1);
+  }
+}
+
+@keyframes streamLineIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes streamCardSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  52% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes typeReveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes liquidGlassFlow {
+  0%, 100% {
+    background-position: 0% 50%, 100% 0%, 0 0;
+    filter: saturate(1);
+  }
+  50% {
+    background-position: 100% 50%, 86% 12%, 28px 18px;
+    filter: saturate(1.18);
+  }
+}
+
+@keyframes liquidOrbFloat {
+  0%, 100% {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+    opacity: 0.48;
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+    opacity: 0.78;
+  }
+}
+
+@keyframes meteorSweep {
+  0%, 78% {
+    opacity: 0;
+    transform: translate3d(-30%, -10%, 0) rotate(-18deg);
+  }
+  82% {
+    opacity: 0.9;
   }
   100% {
     opacity: 0;
-    stroke-dashoffset: 0;
+    transform: translate3d(150%, 120%, 0) rotate(-18deg);
   }
 }
 
@@ -108,10 +297,10 @@
 
 @keyframes saveShimmer {
   0% {
-    left: -48%;
+    transform: translate3d(0, 0, 0) skewX(-18deg);
   }
   100% {
-    left: 110%;
+    transform: translate3d(286%, 0, 0) skewX(-18deg);
   }
 }
 
@@ -121,6 +310,28 @@
   }
   100% {
     box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@keyframes stopPendingPulse {
+  0%, 100% {
+    box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.1), 0 0 14px rgba(239, 68, 68, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.15), 0 0 24px rgba(245, 158, 11, 0.34);
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes historyDrawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -142,6 +353,49 @@
   }
 }
 
+@keyframes runActionBreath {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 10px color-mix(in srgb, var(--accent-2) 7%, transparent),
+      0 0 12px color-mix(in srgb, var(--accent) 5%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 0 13px color-mix(in srgb, var(--accent-2) 12%, transparent),
+      0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+}
+
+@keyframes infoStepPulse {
+  0%,
+  100% {
+    border-color: var(--border);
+    transform: translateY(0);
+  }
+
+  50% {
+    border-color: color-mix(in srgb, var(--accent-2) 46%, var(--border));
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes stopActionBreath {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 10px color-mix(in srgb, var(--danger) 8%, transparent),
+      0 0 12px color-mix(in srgb, var(--danger) 6%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 0 13px color-mix(in srgb, var(--danger) 15%, transparent),
+      0 0 18px color-mix(in srgb, var(--danger) 13%, transparent);
+  }
+}
+
 @keyframes controlSeamPulse {
   0%, 100% {
     opacity: 0.35;
@@ -153,81 +407,14 @@
   }
 }
 
-@keyframes noticeBackdropIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes noticeBackdropOut {
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes noticeCardIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes noticeCardOut {
-  to {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.98);
-  }
-}
-
-@keyframes modeEnergySweep {
-  0% {
-    opacity: 0;
-    transform: rotate(-70deg) scale(0.58);
-  }
-  45% {
-    opacity: 0.82;
-  }
-  72% {
-    opacity: 0.54;
-  }
-  100% {
-    opacity: 0;
-    transform: rotate(95deg) scale(1.28);
-  }
-}
-
-@keyframes modeOrbPulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mode-aura) 0%, transparent);
-    transform: scale(0.92);
-  }
-  45% {
-    box-shadow:
-      0 0 0 10px color-mix(in srgb, var(--mode-aura) 18%, transparent),
-      0 0 24px color-mix(in srgb, var(--mode-aura) 28%, transparent);
-    transform: scale(1.08);
-  }
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mode-aura) 0%, transparent);
-    transform: scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
+    animation: none !important;
     scroll-behavior: auto !important;
-    transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
   }
 
   .product-shell {
@@ -248,16 +435,23 @@
 @media (max-width: 1400px) {
   .app-header {
     gap: 14px;
-    grid-template-columns: 190px minmax(460px, 1fr) auto;
+    grid-template-columns: 180px minmax(400px, 1fr) auto;
+  }
+
+  .app-header.run-surface {
+    grid-template-columns: 180px minmax(400px, 1fr) auto;
   }
 
   .workbench {
-    grid-template-columns: minmax(300px, 1fr) 260px 255px 315px;
+    grid-template-columns: minmax(0, 1fr) clamp(330px, 29vw, 410px);
   }
 
-  .stage-mini-progress {
-    grid-template-columns: minmax(124px, 156px) minmax(230px, 1fr);
-    max-width: none;
+  .recommendation-main-grid {
+    grid-template-columns: minmax(300px, 1fr) minmax(260px, 0.92fr);
+  }
+
+  .recommendation-main-grid.refined {
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
   }
 
   .force-graph-wrap canvas {
@@ -267,54 +461,66 @@
 
 @media (max-width: 1280px) {
   .app-header {
-    grid-template-columns: minmax(150px, 185px) minmax(430px, 1fr) auto;
+    grid-template-columns: minmax(150px, 178px) minmax(360px, 1fr) auto;
+  }
+
+  .app-header.run-surface {
+    grid-template-columns: minmax(150px, 178px) minmax(360px, 1fr) auto;
   }
 
   .workbench {
-    grid-template-columns: minmax(300px, 1fr) 255px 245px 300px;
+    grid-template-columns: minmax(0, 1fr) 330px;
+    padding-inline: 14px;
   }
 
-  .writing-workbench,
   .stage-run-workbench {
+    grid-template-columns: minmax(0, 1fr) 350px;
+  }
+
+  .writing-workbench {
     grid-template-columns: 1fr;
     overflow: auto;
   }
 
-  .writing-side,
-  .stage-run-side {
-    grid-template-columns: 1fr 1fr;
+  .writing-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: auto auto;
+  }
+
+  .recommendation-footer {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 1180px) {
   .product-shell {
+    --shell-header-height: var(--shell-header-height-medium);
     height: auto;
     min-height: 100vh;
     overflow: auto;
   }
 
   .app-header {
-    grid-template-columns: 1fr;
+    gap: var(--space-2) var(--space-4);
+    grid-template-areas:
+      "brand actions"
+      "progress progress";
+    grid-template-columns: minmax(170px, 1fr) auto;
+    grid-template-rows: auto auto;
+    padding-block: var(--space-2);
   }
 
-  .header-progress-slot {
-    justify-self: stretch;
-    width: 100%;
-  }
-
-  .stage-mini-progress {
-    grid-template-columns: 1fr;
-    max-width: none;
-  }
-
-  .stage-mini-track {
-    overflow-x: auto;
+  .app-header.run-surface {
+    grid-template-columns: minmax(170px, 1fr) auto;
   }
 
   .workbench {
+    align-content: start;
+    grid-auto-rows: max-content;
     grid-template-columns: 1fr;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .inspector {
@@ -324,7 +530,8 @@
   .writing-bottom-grid,
   .writing-side,
   .stage-run-side,
-  .stage-run-grid {
+  .stage-run-grid,
+  .recommendation-main-grid {
     grid-template-columns: 1fr;
   }
 
@@ -341,25 +548,6 @@
     grid-template-rows: auto auto;
   }
 
-  .knowledge-world-rail {
-    grid-template-rows: auto auto;
-  }
-
-  .console-content {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .settings-tabs {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-tab-list {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    padding: 0 0 10px;
-  }
-
   .settings-dialog {
     width: min(760px, calc(100vw - 28px));
   }
@@ -368,5 +556,76 @@
     max-height: calc(100vh - 28px);
     min-height: 0;
     padding: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .product-shell {
+    --shell-header-height: var(--shell-header-height-mobile);
+  }
+
+  .app-header,
+  .app-header.run-surface {
+    gap: var(--space-2);
+    grid-template-areas:
+      "brand utilities"
+      "progress progress"
+      "dock dock";
+    grid-template-columns: minmax(42px, 1fr) auto;
+    grid-template-rows: auto auto auto;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .header-actions {
+    display: contents;
+  }
+
+  .header-utility-group {
+    grid-area: utilities;
+    justify-self: end;
+  }
+
+  .creation-action-dock {
+    display: grid;
+    grid-area: dock;
+    grid-template-columns: minmax(0, 148px) minmax(0, 1fr);
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .quality-mode-tabs {
+    justify-self: stretch;
+    width: 148px;
+  }
+
+  .header-run-action {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 440px) {
+  .header-brand > div:last-child {
+    display: none;
+  }
+
+  .header-utility-group {
+    gap: 3px;
+  }
+
+  .header-utility-group .icon-button,
+  .header-utility-group .save-state {
+    min-height: 32px;
+    min-width: 32px;
+    width: 32px;
+  }
+
+  .creation-action-dock {
+    grid-template-columns: minmax(0, 142px) minmax(0, 1fr);
+  }
+
+  .quality-mode-tabs {
+    width: 142px;
   }
 }

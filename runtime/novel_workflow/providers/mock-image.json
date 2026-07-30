@@ -1,9 +1,0 @@
-{
-  "id": "mock-image",
-  "name": "Mock 封面模型",
-  "kind": "image-mock",
-  "base_url": "",
-  "api_key_env": "",
-  "default_model": "mock-cover",
-  "enabled": true
-}

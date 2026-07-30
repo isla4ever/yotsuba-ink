@@ -1,0 +1,249 @@
+.world-editor-workbench {
+  background:
+    linear-gradient(color-mix(in srgb, var(--editor-aura) 5%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--panel) 70%, transparent);
+  background-size: 100% 38px;
+  border: 1px solid color-mix(in srgb, var(--editor-aura) 22%, var(--border));
+  border-radius: 16px;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.world-editor-workbench::-webkit-scrollbar,
+.world-editor-lane textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.world-editor-lane {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(170px, 0.28fr) minmax(0, 1fr);
+  min-height: 128px;
+  padding: 16px 18px;
+}
+
+.world-editor-lane + .world-editor-lane {
+  border-top: 1px solid color-mix(in srgb, var(--border) 34%, transparent);
+}
+
+.world-editor-lane-meta {
+  align-items: start;
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.world-editor-lane-icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--editor-aura) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--editor-aura) 30%, var(--border));
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--editor-aura) 82%, var(--text));
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.world-editor-lane-meta b {
+  color: var(--text);
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  margin: 1px 0 6px;
+}
+
+.world-editor-lane small,
+.character-dossier-card small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.world-editor-lane textarea,
+.character-dossier-card input,
+.character-dossier-card textarea {
+  background: color-mix(in srgb, var(--panel-muted) 38%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  border-radius: 10px;
+  color: var(--text);
+  font: 12px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  outline: none;
+  padding: 9px 10px;
+  width: 100%;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.world-editor-lane textarea:focus,
+.character-dossier-card input:focus,
+.character-dossier-card textarea:focus {
+  border-color: color-mix(in srgb, var(--editor-aura) 54%, var(--border));
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--editor-aura) 11%, transparent);
+}
+
+.world-editor-lane textarea {
+  min-height: 96px;
+  resize: vertical;
+  scrollbar-width: none;
+}
+
+.character-dossier-editor {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(176px, 236px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.character-dossier-list {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.character-dossier-list::-webkit-scrollbar {
+  display: none;
+}
+
+.character-dossier-list button {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius: 12px;
+  color: var(--text);
+  display: grid;
+  gap: 3px 9px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 58px;
+  padding: 9px;
+  text-align: left;
+}
+
+.character-dossier-list button.active {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 18%, transparent), color-mix(in srgb, var(--panel-muted) 78%, transparent));
+  border-color: color-mix(in srgb, var(--accent-2) 44%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 9%, transparent);
+}
+
+.character-dossier-list button > span,
+.character-dossier-cover > span {
+  align-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 72%, #fff), color-mix(in srgb, var(--accent) 72%, #fff));
+  border-radius: 13px;
+  color: #061018;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  grid-row: span 2;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.character-dossier-list strong,
+.character-dossier-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-dossier-list small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.character-dossier-card {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  scrollbar-width: thin;
+}
+
+.character-dossier-scroll {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.character-dossier-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.character-dossier-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--editor-aura) 26%, transparent);
+  border-radius: 999px;
+}
+
+.character-dossier-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.character-dossier-card::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--editor-aura) 30%, transparent);
+  border-radius: 999px;
+}
+
+.character-dossier-cover {
+  align-items: start;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--editor-aura) 9%, var(--panel-muted)), color-mix(in srgb, var(--panel) 84%, transparent));
+  border: 1px solid color-mix(in srgb, var(--editor-aura) 20%, var(--border));
+  border-radius: 14px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 11px;
+}
+
+.character-dossier-cover > span {
+  border-radius: 16px;
+  font-size: 20px;
+  height: 62px;
+  width: 62px;
+}
+
+.character-dossier-cover > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.character-dossier-basics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.character-dossier-notes {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.character-dossier-card .dossier-long-field {
+  background: color-mix(in srgb, var(--panel-muted) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--editor-aura) 16%, var(--border));
+  border-radius: 13px;
+  min-height: 0;
+  padding: 10px;
+}

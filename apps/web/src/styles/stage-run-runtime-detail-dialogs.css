@@ -1,0 +1,344 @@
+.quality-inline-detail {
+  border-top: 1px solid color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 20%, var(--border));
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 10px;
+}
+
+.wiki-memory-detail {
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.wiki-memory-side-detail .wiki-memory-detail {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--detail-aura) 14%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--detail-aura) 5%, transparent), transparent 56%);
+}
+
+.wiki-memory-detail h2,
+.wiki-memory-detail p {
+  margin: 0;
+}
+
+.wiki-memory-detail h2 {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-size: 17px;
+  gap: 8px;
+  letter-spacing: 0;
+  padding-right: 38px;
+}
+
+.wiki-memory-detail .eyebrow {
+  color: color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 78%, var(--muted));
+}
+
+.quality-inline-detail-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.quality-inline-detail-head > span {
+  align-items: center;
+  color: color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 76%, var(--text));
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 860;
+  gap: 6px;
+}
+
+.mini-close-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 28%, var(--border));
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 72%, var(--text));
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  transition: background 140ms ease, border-color 140ms ease;
+  width: 26px;
+}
+
+.mini-close-button:hover,
+.mini-close-button:focus-visible {
+  background: color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 12%, var(--panel-muted));
+  border-color: color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 42%, var(--border));
+  outline: none;
+}
+
+.quality-inline-detail .quality-list.expanded {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.quality-inline-detail .quality-list.expanded::-webkit-scrollbar {
+  display: none;
+}
+
+.quality-repair-list {
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 7px;
+  margin-bottom: 4px;
+  padding-bottom: 10px;
+}
+
+.quality-repair-list > div {
+  align-items: start;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.quality-repair-list span,
+.quality-repair-list small {
+  color: var(--text-soft);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.quality-repair-list small {
+  color: var(--muted);
+  grid-column: 1 / -1;
+}
+
+.quality-repair-list button {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent-2) 10%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 36%, var(--border));
+  border-radius: 5px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 8px;
+  gap: 3px;
+  min-height: 25px;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.wiki-conflict-warning {
+  color: var(--warning);
+  font-size: 9px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.runtime-character-detail-backdrop {
+  --dialog-aura: var(--mode-aura, var(--accent-2));
+  --mode-aura: var(--dialog-aura);
+  --mode-aura-strong: var(--dialog-aura);
+  align-items: stretch;
+  backdrop-filter: blur(8px) saturate(.82);
+  background: rgba(2, 4, 3, .68);
+  display: flex;
+  inset: 0;
+  justify-content: flex-end;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: clamp(72px, 7.5dvh, 84px) clamp(8px, 1.1vw, 16px) clamp(12px, 1.6dvh, 20px);
+  pointer-events: auto;
+  position: fixed;
+  z-index: 17000;
+}
+
+.runtime-character-detail-backdrop.mode-fast,
+.runtime-character-detail.mode-fast {
+  --dialog-aura: #9fd3ff;
+  --mode-aura: var(--dialog-aura);
+  --mode-aura-strong: var(--dialog-aura);
+}
+
+.runtime-character-detail-backdrop.mode-balanced,
+.runtime-character-detail.mode-balanced {
+  --dialog-aura: #31dfa1;
+  --mode-aura: var(--dialog-aura);
+  --mode-aura-strong: var(--dialog-aura);
+}
+
+.runtime-character-detail-backdrop.mode-deep,
+.runtime-character-detail.mode-deep {
+  --dialog-aura: #a778ff;
+  --mode-aura: var(--dialog-aura);
+  --mode-aura-strong: var(--dialog-aura);
+}
+
+.runtime-character-detail {
+  height: auto;
+  max-height: 100%;
+  pointer-events: auto;
+  width: clamp(352px, 25vw, 430px);
+}
+
+.runtime-character-detail.character-modal {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--dialog-aura) 16%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--dialog-aura) 7%, transparent), transparent 54%),
+    color-mix(in srgb, var(--panel) 97%, transparent);
+  border-color: color-mix(in srgb, var(--dialog-aura) 34%, var(--border));
+  box-shadow:
+    -18px 22px 58px rgba(0, 0, 0, 0.28),
+    0 0 0 1px color-mix(in srgb, var(--dialog-aura) 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent);
+}
+
+.runtime-character-detail .eyebrow {
+  color: color-mix(in srgb, var(--dialog-aura) 82%, var(--muted));
+}
+
+.runtime-character-detail .modal-close,
+.runtime-character-detail .modal-meta span,
+.runtime-character-detail .relation-list section {
+  border-color: color-mix(in srgb, var(--dialog-aura) 30%, var(--border));
+}
+
+.runtime-character-detail .modal-meta span {
+  background: color-mix(in srgb, var(--dialog-aura) 9%, var(--panel-muted));
+  color: color-mix(in srgb, var(--text) 88%, var(--dialog-aura));
+}
+
+.runtime-character-detail .relation-list section {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--dialog-aura) 10%, transparent), transparent 54%),
+    color-mix(in srgb, var(--panel-muted) 70%, transparent);
+}
+
+.runtime-character-detail h3 {
+  font-size: clamp(24px, 2.5vw, 34px);
+}
+
+.wiki-detail-summary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wiki-detail-summary span {
+  background: color-mix(in srgb, var(--panel-muted) 68%, transparent);
+  border: 1px solid color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 20%, var(--border));
+  border-radius: 10px;
+  color: var(--muted);
+  display: grid;
+  font-size: 11px;
+  gap: 3px;
+  min-height: 58px;
+  place-items: center;
+}
+
+.wiki-detail-summary strong {
+  color: color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 78%, var(--text));
+  font-size: 20px;
+}
+
+.wiki-detail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 0;
+}
+
+.wiki-memory-event-list {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: none;
+}
+
+.wiki-memory-event-list::-webkit-scrollbar {
+  display: none;
+}
+
+.wiki-memory-event-list article {
+  background: color-mix(in srgb, var(--panel-muted) 54%, transparent);
+  border: 1px solid color-mix(in srgb, var(--detail-aura, var(--mode-aura, var(--accent-2))) 18%, var(--border));
+  border-radius: 11px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.artifact-detail-dialog h2 {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-size: 24px;
+  gap: 10px;
+  margin: 0;
+  padding-right: 48px;
+}
+
+.artifact-detail-sections,
+.quality-list.expanded,
+.field-list.expanded {
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.artifact-detail-sections article {
+  animation: streamLineIn 320ms ease both;
+  animation-delay: calc(var(--line-index, 0) * 70ms);
+  background: color-mix(in srgb, var(--panel-muted) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 5px;
+  padding: 11px;
+}
+
+.artifact-detail-sections article.typing p {
+  animation: typeReveal 720ms steps(28, end) both;
+  overflow: hidden;
+}
+
+.artifact-detail-sections strong {
+  color: color-mix(in srgb, var(--accent-2) 76%, var(--text));
+  font-size: 11px;
+}
+
+.artifact-detail-sections p {
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.62;
+  margin: 0;
+}
+
+.artifact-detail-sections article.editable label {
+  display: grid;
+  gap: 7px;
+}
+
+.artifact-detail-sections article.editable textarea {
+  min-height: 92px;
+}
+
+.artifact-detail-sections article.editable textarea:disabled,
+.artifact-detail-sections article.editable input:disabled {
+  color: var(--muted);
+  opacity: 0.78;
+}
+
+.artifact-dialog-actions {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 10px;
+}

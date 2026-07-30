@@ -1,0 +1,101 @@
+.outline-dependency-row {
+  border-top: 1px solid color-mix(in srgb, var(--border) 46%, transparent);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 104px;
+}
+
+.outline-dependency-row > button {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--border) 38%, transparent);
+  color: var(--text-soft);
+  cursor: pointer;
+  display: grid;
+  gap: 7px;
+  padding: 13px 14px 0;
+  text-align: left;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.outline-dependency-row > button::before {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 70%, transparent);
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  width: 28px;
+}
+
+.outline-dependency-row > button:first-child {
+  border-left: 0;
+}
+
+.outline-dependency-row > button:hover,
+.outline-dependency-row > button:focus-visible {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent);
+  color: var(--text);
+  outline: none;
+}
+
+.outline-dependency-row b {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 72%, var(--text));
+  font-size: 12px;
+}
+
+.outline-dependency-row small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.outline-dependency-row span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.outline-workbench-v3 .outline-live-line {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 58%, transparent);
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 70%, var(--text-soft));
+  margin: 0;
+  padding: 9px 11px;
+}
+
+.outline-beat-dialog {
+  background:
+    radial-gradient(circle at 18% 0, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 9%, transparent), transparent 35%),
+    color-mix(in srgb, var(--panel) 98%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 22%, var(--border));
+  border-radius: 14px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(780px, calc(100vh - 56px));
+  overflow: hidden;
+  padding: 22px 24px 18px;
+  position: relative;
+  width: min(980px, calc(100vw - 56px));
+}
+
+.outline-dependency-dialog {
+  background:
+    radial-gradient(circle at 20% 0, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 11%, transparent), transparent 36%),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-muted) 22%, transparent), transparent 42%),
+    color-mix(in srgb, var(--panel) 98%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 24%, var(--border));
+  border-radius: 16px;
+  box-shadow: 0 30px 86px rgba(0, 0, 0, 0.35);
+  display: grid;
+  gap: 16px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(760px, calc(100vh - 56px));
+  overflow: hidden;
+  padding: 22px 24px 18px;
+  position: relative;
+  width: min(940px, calc(100vw - 56px));
+}

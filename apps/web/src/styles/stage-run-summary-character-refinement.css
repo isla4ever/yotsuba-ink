@@ -1,0 +1,168 @@
+.character-deepening-dialog {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+  max-height: min(84vh, 780px);
+  width: min(1020px, calc(100vw - 48px));
+}
+
+.character-deepening-title {
+  display: grid;
+  gap: 4px;
+  padding-right: 48px;
+}
+
+.character-deepening-title h2 {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.18;
+  margin: 0;
+}
+
+.character-info-baseline {
+  grid-template-columns: 108px minmax(0, 1fr);
+}
+
+.character-info-baseline > strong {
+  align-self: center;
+}
+
+.character-info-baseline > div {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 68px;
+}
+
+.character-info-baseline b {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.character-info-baseline b small {
+  margin-left: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-baseline-relations {
+  padding: 11px;
+}
+
+.baseline-relations-head span {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 66%, var(--muted));
+}
+
+.baseline-relation-map {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 136px;
+}
+
+.baseline-relation-map button {
+  background: color-mix(in srgb, var(--panel) 54%, transparent);
+  border-radius: 11px;
+  grid-template-columns: minmax(54px, 0.36fr) minmax(42px, 1fr) minmax(54px, 0.36fr);
+  min-height: 58px;
+  padding: 8px 10px;
+}
+
+.baseline-relation-map button.active {
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--mode-aura, var(--accent-2)) 82%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 14%, transparent);
+}
+
+.character-deepening-grid {
+  gap: 12px;
+  grid-template-columns: minmax(210px, 0.32fr) minmax(0, 1fr);
+}
+
+.character-deepening-list {
+  background: color-mix(in srgb, var(--panel-muted) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.character-deepening-list button {
+  background: transparent;
+  border-radius: 9px;
+  min-height: 64px;
+}
+
+.character-deepening-list button.active {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent);
+}
+
+.character-deepening-form {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent), transparent 58%),
+    color-mix(in srgb, var(--panel-muted) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+  border-radius: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.character-deepening-form .relationship-focus-card {
+  grid-column: 1 / -1;
+}
+
+.character-deepening-form label:nth-child(n + 2) {
+  grid-column: span 1;
+}
+
+.character-deepening-form textarea {
+  min-height: 150px;
+}
+
+.relationship-focus-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.relationship-focus-people button {
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  border-radius: 999px;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 5px 9px;
+}
+
+.relationship-focus-people button.active {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 14%, var(--panel));
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 44%, var(--border));
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 86%, var(--text));
+}
+
+@media (max-width: 920px) {
+  .summary-mini-fields.summary-beat-composer,
+  .summary-mini-fields.summary-turn-composer,
+  .character-info-baseline,
+  .character-deepening-grid,
+  .character-deepening-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-mini-fields.summary-beat-composer,
+  .summary-mini-fields.summary-turn-composer {
+    grid-template-areas:
+      "preview"
+      "node"
+      "goal"
+      "turn"
+      "detail";
+  }
+
+  .character-deepening-form label:nth-child(n + 2) {
+    grid-column: span 1;
+  }
+}

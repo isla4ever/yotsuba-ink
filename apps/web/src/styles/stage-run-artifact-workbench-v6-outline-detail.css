@@ -1,0 +1,264 @@
+.outline-beat-board {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent) 0 1px, transparent 1px),
+    color-mix(in srgb, var(--panel) 96%, transparent);
+  background-size: 30px 100%;
+}
+
+.outline-volume-program {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  gap: 8px;
+}
+
+.outline-beat-cells {
+  gap: 0;
+  grid-template-columns: repeat(6, minmax(116px, 1fr));
+}
+
+.outline-beat-cells button {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 94px;
+  padding: 8px 10px;
+}
+
+.outline-beat-cells button:first-child {
+  border-left: 0;
+}
+
+.outline-live-line {
+  border-left: 2px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 58%, transparent);
+  padding-left: 8px;
+}
+
+.chapter-table-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chapter-row-card {
+  align-items: start;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 58px;
+}
+
+.live-delta-preview {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text-soft)) !important;
+}
+
+.artifact-detail-dialog.outline-beat,
+.artifact-detail-dialog.chapter-template {
+  width: min(1080px, calc(100vw - 48px));
+}
+
+.artifact-detail-dialog.outline-beat .artifact-detail-sections,
+.artifact-detail-dialog.chapter-template .artifact-detail-sections {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent) 0 1px, transparent 1px),
+    color-mix(in srgb, var(--panel) 96%, transparent);
+  background-size: 34px 100%;
+  border: 1px solid color-mix(in srgb, var(--border) 66%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.artifact-detail-dialog.outline-beat .artifact-detail-sections article,
+.artifact-detail-dialog.chapter-template .artifact-detail-sections article {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 38%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 9px 10px;
+}
+
+.artifact-detail-field label {
+  display: grid;
+  gap: 6px;
+}
+
+.artifact-detail-field p {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  min-height: 40px;
+}
+
+.artifact-detail-field input,
+.artifact-detail-field textarea {
+  background: color-mix(in srgb, var(--panel-muted) 44%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 7px;
+}
+
+.character-info-baseline {
+  background: color-mix(in srgb, var(--panel-muted) 44%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.character-info-baseline > strong {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text));
+  font-size: 12px;
+}
+
+.character-info-baseline > span {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.character-info-baseline > div {
+  display: flex;
+  gap: 6px;
+  overflow: auto;
+}
+
+.character-info-baseline b {
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+  color: var(--text);
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.character-info-baseline small {
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.character-baseline-relations {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 7%, transparent), transparent 62%),
+    color-mix(in srgb, var(--panel-muted) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  padding: 10px;
+}
+
+.baseline-relations-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.baseline-relations-head strong {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text));
+  font-size: 12px;
+}
+
+.baseline-relations-head span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.baseline-relation-map {
+  display: grid;
+  gap: 7px;
+  max-height: 132px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.baseline-relation-map article {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(54px, 0.22fr) minmax(90px, 1fr) minmax(54px, 0.22fr) minmax(0, 0.72fr);
+  min-width: 0;
+}
+
+.baseline-relation-map article > span {
+  background: color-mix(in srgb, var(--panel) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 900;
+  overflow: hidden;
+  padding: 5px 8px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.baseline-relation-map i {
+  background: color-mix(in srgb, var(--border) 56%, transparent);
+  border-radius: 999px;
+  display: block;
+  height: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.baseline-relation-map i::after {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 88%, #fff), transparent);
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: var(--strength, 58%);
+}
+
+.baseline-relation-map b {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.baseline-relation-map p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.writing-stream-reader {
+  text-align: left;
+}
+
+.writing-stream-reader p {
+  max-width: 74ch;
+  text-align: left;
+}
+
+/* Phase 11.3：行级入场与词级 token 节奏对齐（150ms fade），blur 幅度同步 3px。 */
+.smooth-writing-line {
+  animation: streamLineMaterialize 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes streamLineMaterialize {
+  from {
+    filter: blur(3px);
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "fixture": "same-story-input-v1",
+  "cases": [
+    {
+      "id": "summary-choice-and-cost",
+      "stage_id": "summary",
+      "candidate_instruction": "实验指令：每个关键转折必须显式标注人物选择、即时代价与后续影响。",
+      "required_system_markers": ["full_synopsis", "character_arcs", "禁止新增任何人物"]
+    },
+    {
+      "id": "text-action-and-counterforce",
+      "stage_id": "text",
+      "candidate_instruction": "实验指令：每个场景必须包含可感知的行动目标、阻力与反作用。",
+      "required_system_markers": ["chapter_title", "wiki_writebacks", "禁止引入任何未注册的人物"]
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+.summary-live-pill.incomplete {
+  border-color: color-mix(in srgb, var(--color-status-warning) 42%, var(--color-border-subtle));
+  color: var(--color-status-warning);
+  max-width: min(320px, 48%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-narrative-commitments {
+  background: color-mix(in srgb, var(--color-surface-muted) 56%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 72%, transparent);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 62px;
+  overflow: hidden;
+}
+
+.summary-narrative-commitments > button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--color-text-primary);
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  min-height: 62px;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.summary-narrative-commitments > button + button {
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.summary-narrative-commitments > button:hover,
+.summary-narrative-commitments > button:focus-visible {
+  background: color-mix(in srgb, var(--color-mode-primary) 7%, transparent);
+}
+
+.summary-narrative-commitments i {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-mode-primary) 12%, var(--color-surface-base));
+  border: 1px solid color-mix(in srgb, var(--color-mode-primary) 30%, var(--color-border-subtle));
+  border-radius: var(--radius-control);
+  color: var(--color-mode-secondary);
+  display: inline-flex;
+  font-style: normal;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.summary-narrative-commitments span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.summary-narrative-commitments small {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.summary-narrative-commitments strong {
+  font-size: 10px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-commitment-backdrop {
+  --dialog-aura: var(--color-action-secondary);
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.summary-commitment-backdrop.mode-fast {
+  --dialog-aura: #8fc7ff;
+}
+
+.summary-commitment-backdrop.mode-balanced {
+  --dialog-aura: #35e7a6;
+}
+
+.summary-commitment-backdrop.mode-deep {
+  --dialog-aura: #a778ff;
+}
+
+.summary-commitment-dialog {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--dialog-aura) 11%, transparent), transparent 54%),
+    var(--color-surface-base);
+  border: 1px solid color-mix(in srgb, var(--dialog-aura) 38%, var(--color-border-subtle));
+  box-shadow: var(--shadow-panel);
+  display: grid;
+  gap: var(--space-4);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(720px, calc(100dvh - 48px));
+  overflow: hidden;
+  padding: var(--space-4);
+  width: min(760px, calc(100vw - 48px));
+}
+
+.summary-commitment-dialog > header,
+.summary-commitment-dialog > footer {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.summary-commitment-dialog h2,
+.summary-commitment-dialog p {
+  margin: 0;
+}
+
+.summary-commitment-dialog h2 {
+  font-size: 20px;
+}
+
+.summary-commitment-fields {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: auto;
+}
+
+.summary-commitment-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.summary-commitment-fields label > span {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.summary-commitment-fields label > small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.summary-commitment-fields textarea {
+  min-height: 104px;
+}
+
+.summary-commitment-dialog > footer {
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .summary-narrative-commitments {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-narrative-commitments > button + button {
+    border-left: 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .summary-commitment-dialog {
+    max-height: calc(100dvh - 24px);
+    padding: var(--space-3);
+    width: calc(100vw - 24px);
+  }
+}

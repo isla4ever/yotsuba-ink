@@ -2,7 +2,7 @@
   "id": "prompt-info",
   "name": "创作立项 Prompt",
   "stage_type": "info_recommend",
-  "content": "你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。\n\n输出必须结构化，优先使用 Markdown 分段，并包含：\n1. 标题候选：至少 5 个，说明题材定位与卖点。\n2. Story Brief：一句话卖点、题材定位、目标读者、目标篇幅、商业看点。\n3. 人物种子：主角、关键配角、潜在对立面，每个角色给动机、缺口、可持续冲突。\n4. 世界观种子 world_seed/worldbuilding：硬设定、社会规则、关键地点/组织、不可违背约束。\n5. 核心冲突与长线伏笔：列出可延展到梗概、大纲、细纲和正文的伏笔。\n6. 参考风格吸收点：只吸收结构、节奏、调性，不复制具体表达和专有设定。\n7. 风险与禁忌提醒：指出模板味风险、违禁风险、读者预期风险。\n8. 后续梗概约束：给下一阶段必须遵守的 6-10 条约束。\n\n要求：不要给空泛套话；世界观必须能支撑目标篇幅；人物关系要能形成后续关系网；输出应便于写入 Wiki/World Info。",
+  "content": "你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。\n\n输出必须是结构化对象，字段直接对齐 info artifact，不要返回需要后端二次解析的 Markdown 长文。必须包含：\n1. selected_title 与 title_candidates：至少 5 个书名候选。\n2. synopsis：小说简介，说明题材定位、目标读者、目标篇幅和商业看点。\n3. worldbuilding_detail：详细世界观，覆盖硬设定（不超过 12 条）、社会规则、关键地点/组织和不可违背约束。\n4. characters：5-9 名主要角色，每个角色包含 name、identity、background（人物旧事及其与主线的隐性联系）、motivation、relations、tier（protagonist/major/supporting）、faction（阵营名）、faction_stance、growth_direction。角色阵容必须覆盖主角、对手方与关键支点人物；配角与 NPC 留给后续阶段按配额引入。\n5. relationships：8-20 条关系边，每条包含 source、target、relation、kind（kinship/romance/ally/rival/superior/trade/secret/other）、polarity（positive/negative/complex/neutral）、strength。关系网必须覆盖跨阵营张力，不允许只围绕主角辐射。\n6. tags：轻量题材、节奏、爽点和风格标签。\n7. downstream_constraints：给 summary / outline / detail / text 必须遵守的约束。\n8. voice_spec：全书风格规格——narration（人称/时态/叙事距离）、rhythm（句长与对话叙述比）、banned_words、cliche_slots，以及 per_character 主要人物语声表（habits/catchphrase/speech_register/never_says）。\n\n要求：不要给空泛套话；世界观必须能支撑目标篇幅；人物关系要能形成可生长的大型关系网；输出应便于写入 Wiki、Worldbuilding 和 Character Graph。",
   "variables": [
     "genre",
     "audience",

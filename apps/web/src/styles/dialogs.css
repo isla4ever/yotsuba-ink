@@ -10,17 +10,39 @@
 }
 
 .knowledge-blocker-dialog {
-  background:
-    radial-gradient(circle at 16% 0, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 34%),
-    var(--panel);
+  background: var(--surface-2);
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--radius-surface);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
   display: grid;
   gap: 12px;
   max-width: 520px;
   padding: 18px;
   width: min(520px, calc(100vw - 40px));
+}
+
+.knowledge-blocker-head {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.knowledge-blocker-head > span {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.knowledge-blocker-head h2,
+.knowledge-blocker-head p {
+  margin: 0;
 }
 
 .knowledge-blocker-dialog p {
@@ -37,30 +59,52 @@
 }
 
 .knowledge-manager-backdrop {
+  --mode-aura: var(--accent-2);
+  --mode-aura-strong: var(--accent);
   align-items: center;
-  backdrop-filter: blur(10px);
-  background: rgba(2, 6, 14, 0.62);
+  backdrop-filter: blur(14px);
+  background:
+    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--mode-aura) 12%, transparent), transparent 38%),
+    rgba(2, 6, 14, 0.68);
   display: flex;
   inset: 0;
   justify-content: center;
   padding: 32px;
   position: fixed;
-  z-index: 48;
+  z-index: 10040;
+}
+
+.knowledge-manager-backdrop.mode-fast {
+  --mode-aura: #d8ecff;
+  --mode-aura-strong: #8fc7ff;
+}
+
+.knowledge-manager-backdrop.mode-balanced {
+  --mode-aura: #35e7a6;
+  --mode-aura-strong: #22c984;
+}
+
+.knowledge-manager-backdrop.mode-deep {
+  --mode-aura: #a778ff;
+  --mode-aura-strong: #8d5cff;
 }
 
 .knowledge-manager-dialog {
   background:
-    radial-gradient(circle at 12% 0, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 34%),
+    radial-gradient(circle at 12% 0, color-mix(in srgb, var(--mode-aura) 18%, transparent), transparent 34%),
     var(--panel);
-  border: 1px solid var(--border-strong);
+  border: 1px solid color-mix(in srgb, var(--mode-aura) 34%, var(--border-strong));
   border-radius: 16px;
   box-shadow: 0 30px 110px rgba(0, 0, 0, 0.42);
   display: grid;
   gap: 12px;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
   max-height: min(720px, calc(100vh - 64px));
   overflow: hidden;
   padding: 16px;
+  position: relative;
   width: min(840px, calc(100vw - 64px));
+  z-index: 1;
 }
 
 .knowledge-manager-head {
@@ -109,9 +153,9 @@
 .knowledge-dropzone {
   align-items: center;
   background:
-    radial-gradient(circle at 8% 10%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 38%),
+    radial-gradient(circle at 8% 10%, color-mix(in srgb, var(--mode-aura) 14%, transparent), transparent 38%),
     color-mix(in srgb, var(--panel-muted) 76%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--accent-2) 34%, var(--border-strong));
+  border: 1px dashed color-mix(in srgb, var(--mode-aura) 34%, var(--border-strong));
   border-radius: 13px;
   display: grid;
   gap: 12px;
@@ -121,16 +165,16 @@
 }
 
 .knowledge-dropzone.dragging {
-  border-color: color-mix(in srgb, var(--accent-2) 76%, #fff);
+  border-color: color-mix(in srgb, var(--mode-aura) 76%, #fff);
   box-shadow:
-    inset 0 0 24px color-mix(in srgb, var(--accent-2) 12%, transparent),
-    0 0 28px color-mix(in srgb, var(--accent-2) 12%, transparent);
-  transform: translateY(-1px);
+    inset 0 0 24px color-mix(in srgb, var(--mode-aura) 12%, transparent),
+    0 0 28px color-mix(in srgb, var(--mode-aura) 12%, transparent);
+  transform: none;
 }
 
 .knowledge-dropzone > svg {
-  color: var(--accent-2);
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-2) 28%, transparent));
+  color: var(--mode-aura);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--mode-aura) 28%, transparent));
 }
 
 .knowledge-dropzone strong {
@@ -151,16 +195,30 @@
   display: grid;
   gap: 6px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 132px;
+  overflow: auto;
 }
 
-.knowledge-upload-queue span {
+.knowledge-upload-queue.empty {
+  min-height: 0;
+}
+
+.knowledge-upload-queue > div {
+  align-items: center;
   background: color-mix(in srgb, var(--panel-muted) 76%, transparent);
   border: 1px solid var(--border);
   border-radius: 9px;
+  display: flex;
+  gap: 3px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 8px 9px;
+}
+
+.knowledge-upload-queue > div > span {
   display: grid;
   gap: 3px;
   min-width: 0;
-  padding: 8px 9px;
 }
 
 .knowledge-upload-queue b {
@@ -177,12 +235,17 @@
   font-style: normal;
 }
 
-.knowledge-upload-queue .uploading {
-  border-color: color-mix(in srgb, var(--accent-2) 42%, var(--border));
+.knowledge-upload-queue .reading,
+.knowledge-upload-queue .indexing {
+  border-color: color-mix(in srgb, var(--mode-aura) 42%, var(--border));
 }
 
 .knowledge-upload-queue .done {
   border-color: color-mix(in srgb, var(--success) 44%, var(--border));
+}
+
+.knowledge-upload-queue .demo {
+  border-color: color-mix(in srgb, var(--warning) 48%, var(--border));
 }
 
 .knowledge-upload-queue .failed,
@@ -192,6 +255,10 @@
 
 .knowledge-upload-queue .done em {
   color: var(--success);
+}
+
+.knowledge-upload-queue .demo em {
+  color: var(--warning);
 }
 
 .knowledge-upload-queue .failed em,
@@ -216,6 +283,29 @@
   gap: 9px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   padding: 10px;
+}
+
+.knowledge-manager-list article.pending-delete {
+  border-color: color-mix(in srgb, var(--warning) 48%, var(--border));
+  opacity: 0.72;
+}
+
+.knowledge-delete-undo {
+  align-items: center;
+  background: color-mix(in srgb, var(--warning) 11%, var(--panel-muted));
+  border: 1px solid color-mix(in srgb, var(--warning) 42%, var(--border));
+  border-radius: 9px;
+  color: var(--text-soft);
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.knowledge-manager-feedback {
+  display: grid;
+  gap: 6px;
 }
 
 .knowledge-manager-list strong {
@@ -265,5 +355,39 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .knowledge-manager-backdrop {
+    align-items: stretch;
+    padding: 8px;
+  }
+
+  .knowledge-manager-dialog {
+    border-radius: 12px;
+    max-height: calc(100dvh - 16px);
+    padding: 12px;
+    width: calc(100vw - 16px);
+  }
+
+  .knowledge-dropzone {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 11px;
+  }
+
+  .knowledge-upload-cta {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+
+  .knowledge-upload-queue {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: 112px;
+  }
+
+  .knowledge-delete-undo {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

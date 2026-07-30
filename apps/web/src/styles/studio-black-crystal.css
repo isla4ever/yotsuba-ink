@@ -1,0 +1,157 @@
+/* Wave 3C: black-crystal project folios. Studio data and actions remain unchanged. */
+.studio-workbench {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--mode-aura) 3%, #070908), #070908 34%),
+    #070908;
+}
+
+.studio-projects,
+.studio-unarchived,
+.studio-templates {
+  margin-inline: auto;
+  max-width: 1220px;
+  width: 100%;
+}
+
+.studio-section-head {
+  border-left: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  padding-left: 12px;
+}
+
+.studio-section-head h1,
+.studio-section-head h2 {
+  letter-spacing: 0;
+}
+
+.studio-card-wall {
+  gap: 14px;
+  perspective: 1100px;
+}
+
+.studio-project-card,
+.studio-new-card {
+  min-height: 214px;
+  overflow: hidden;
+}
+
+.studio-project-card {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 18px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025) 34%, rgba(6, 9, 8, 0.98) 78%),
+    #121514;
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.17), inset 10px 0 22px rgba(255, 255, 255, 0.025), 0 18px 34px rgba(0, 0, 0, 0.28);
+  padding: 18px 18px 16px 28px;
+}
+
+.studio-project-card::before {
+  background: linear-gradient(180deg, transparent, var(--project-accent) 18% 82%, transparent);
+  bottom: 10px;
+  content: "";
+  left: 10px;
+  opacity: 0.68;
+  position: absolute;
+  top: 10px;
+  width: 1px;
+}
+
+.studio-project-card::after {
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 12px);
+  bottom: 48px;
+  content: "";
+  height: 48px;
+  left: 28px;
+  opacity: 0.34;
+  pointer-events: none;
+  position: absolute;
+  right: 18px;
+}
+
+.studio-project-card:hover,
+.studio-project-card:focus-visible {
+  border-color: color-mix(in srgb, var(--project-accent) 44%, rgba(255, 255, 255, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 20px 36px rgba(0, 0, 0, 0.32);
+}
+
+.studio-card-accent {
+  height: 2px;
+  width: 48px;
+}
+
+.studio-card-head h3 { font-size: 17px; }
+.studio-card-summary { max-width: 88%; }
+.studio-card-progress,
+.studio-card-meta { position: relative; z-index: 1; }
+
+.studio-new-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%),
+    rgba(10, 13, 12, 0.72);
+  border-color: rgba(255, 255, 255, 0.15);
+  border-style: solid;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.studio-empty-state {
+  align-items: flex-start;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(255, 255, 255, 0.045) 31px 32px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.018) 42%, rgba(5, 8, 7, 0.98)),
+    #101312;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 24px 46px rgba(0, 0, 0, 0.28);
+  justify-content: center;
+  margin: 20px 0 0;
+  max-width: none;
+  min-height: 310px;
+  overflow: hidden;
+  padding: 42px 52px;
+  position: relative;
+  text-align: left;
+}
+
+.studio-empty-state::before {
+  background: var(--accent);
+  bottom: 40px;
+  content: "";
+  left: 24px;
+  opacity: 0.72;
+  position: absolute;
+  top: 40px;
+  width: 2px;
+}
+
+.studio-empty-state h2 { font-size: 22px; font-weight: 500; }
+.studio-empty-state p { max-width: 420px; }
+.studio-empty-state .tech-button { align-self: flex-start; }
+
+.studio-unarchived-toggle {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  padding-bottom: 12px;
+  width: 100%;
+}
+
+.studio-template-card,
+.studio-unarchived-item {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.055), transparent 20px), rgba(12, 15, 14, 0.88);
+  border-color: rgba(255, 255, 255, 0.13);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 767px) {
+  .studio-empty-state { min-height: 240px; padding: 30px 28px 30px 38px; }
+  .studio-empty-state::before { left: 18px; }
+  .studio-project-card,
+  .studio-new-card { min-height: 188px; }
+}
+
+:root[data-theme="light"] .studio-workbench { background: var(--surface-0); }
+:root[data-theme="light"] .studio-project-card,
+:root[data-theme="light"] .studio-empty-state,
+:root[data-theme="light"] .studio-template-card,
+:root[data-theme="light"] .studio-unarchived-item {
+  background-color: var(--surface-2);
+  border-color: var(--stroke-2);
+}

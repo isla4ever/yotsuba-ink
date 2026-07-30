@@ -1,0 +1,155 @@
+.cover-candidate-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cover-candidate-strip button {
+  background: color-mix(in srgb, var(--panel-muted) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  border-radius: 8px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 70px;
+  padding: 9px;
+  text-align: left;
+}
+
+.cover-candidate-strip button.selected {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 48%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 24%, transparent);
+}
+
+.cover-candidate-strip i {
+  background: linear-gradient(180deg, var(--mode-aura, var(--accent-2)), color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, #061018));
+  border-radius: 999px;
+  height: 32px;
+  width: 6px;
+}
+
+.cover-candidate-strip strong,
+.cover-candidate-strip small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cover-candidate-strip strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.cover-candidate-strip small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.cover-quality-gauge {
+  background: color-mix(in srgb, var(--panel-muted) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, var(--border));
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.cover-quality-gauge i {
+  background: linear-gradient(90deg, color-mix(in srgb, #35d399 74%, var(--mode-aura, var(--accent-2))), var(--mode-aura, var(--accent-2)));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  width: var(--gauge);
+}
+
+.cover-quality-ledger {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.cover-quality-ledger::-webkit-scrollbar {
+  display: none;
+}
+
+.cover-quality-ledger article {
+  align-items: start;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 52%, transparent);
+  color: var(--text-soft);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 0.72fr);
+  padding: 8px 0;
+}
+
+.cover-quality-ledger article svg {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 74%, var(--text));
+  margin-top: 2px;
+}
+
+.cover-quality-ledger article.missing svg,
+.cover-quality-ledger article.missing strong {
+  color: var(--warning);
+}
+
+.cover-quality-ledger strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.cover-quality-ledger span {
+  color: var(--muted);
+  font-size: 11px;
+  grid-column: 2;
+  line-height: 1.45;
+}
+
+.cover-direction-panel {
+  grid-template-rows: minmax(96px, 0.24fr) minmax(0, 1fr);
+}
+
+.cover-prompt-card {
+  min-height: 0;
+}
+
+.cover-prompt-card textarea {
+  min-height: 260px;
+}
+
+.quality-gauge {
+  border-radius: 12px;
+  grid-template-columns: minmax(0, 1fr) 54px;
+}
+
+.quality-gauge > div {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent), transparent),
+    color-mix(in srgb, var(--panel) 84%, transparent);
+  height: 14px;
+}
+
+.quality-gauge i {
+  animation: coverGaugeSettle 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  background:
+    linear-gradient(90deg, #30d399, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 76%, #fff)),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+}
+
+@keyframes coverGaugeSettle {
+  from {
+    width: 8%;
+  }
+  to {
+    width: var(--gauge);
+  }
+}
+
+.export-stage-board {
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.58fr);
+}

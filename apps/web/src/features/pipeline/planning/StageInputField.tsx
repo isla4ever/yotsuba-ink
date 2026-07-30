@@ -4,23 +4,29 @@ import { addTagValue, coerceFieldValue, removeTagValue } from '../lib/stageConfi
 
 type Props = {
   field: InputField;
+  idPrefix?: string;
   onChange: (value: unknown) => void;
 };
 
-export function StageInputField({ field, onChange }: Props) {
+export function StageInputField({ field, idPrefix = 'stage-input', onChange }: Props) {
+  const inputId = `${idPrefix}-${field.key}`;
+  const helpId = field.help ? `${inputId}-help` : undefined;
   const common = {
-    id: `stage-input-${field.key}`,
+    'aria-describedby': helpId,
+    'aria-required': field.required || undefined,
+    id: inputId,
     name: field.key,
   };
+  const wide = field.type === 'textarea' || field.type === 'tags';
 
   return (
-    <label className={field.type === 'textarea' ? 'stage-input-field wide' : 'stage-input-field'} htmlFor={common.id}>
-      <span>
+    <div className={wide ? 'stage-input-field wide' : 'stage-input-field'}>
+      <label className="stage-input-label" htmlFor={common.id}>
         {field.label}
         {field.required ? <b>必填</b> : null}
-      </span>
+      </label>
       {field.type === 'select' ? (
-        <select {...common} value={String(field.default ?? '')} onChange={(event) => onChange(event.target.value)}>
+        <select {...common} required={field.required} value={String(field.default ?? '')} onChange={(event) => onChange(event.target.value)}>
           {(field.options ?? []).map((option) => <option value={option} key={option}>{option}</option>)}
         </select>
       ) : null}
@@ -28,13 +34,15 @@ export function StageInputField({ field, onChange }: Props) {
         <textarea
           {...common}
           className="stage-input-textarea"
+          required={field.required}
           value={String(field.default ?? '')}
           onChange={(event) => onChange(event.target.value)}
         />
       ) : null}
       {field.type === 'boolean' ? (
-        <label className="inline-switch">
+        <label className="inline-switch" htmlFor={common.id}>
           <input
+            {...common}
             checked={Boolean(field.default)}
             type="checkbox"
             onChange={(event) => onChange(event.target.checked)}
@@ -44,22 +52,23 @@ export function StageInputField({ field, onChange }: Props) {
       ) : null}
       {field.type !== 'select' && field.type !== 'textarea' && field.type !== 'boolean' ? (
         field.type === 'tags' ? (
-          <TagInput field={field} onChange={onChange} />
+          <TagInput describedBy={helpId} field={field} inputId={common.id} onChange={onChange} />
         ) : (
           <input
             {...common}
+            required={field.required}
             type={field.type === 'number' ? 'number' : 'text'}
             value={String(field.default ?? '')}
             onChange={(event) => onChange(coerceFieldValue(field, event.target.value))}
           />
         )
       ) : null}
-      <small>{field.key} · {field.type}{field.help ? ` · ${field.help}` : ''}</small>
-    </label>
+      {field.help ? <small id={helpId}>{field.help}</small> : null}
+    </div>
   );
 }
 
-function TagInput({ field, onChange }: Props) {
+function TagInput({ describedBy, field, inputId, onChange }: Props & { describedBy?: string; inputId: string }) {
   const tags = Array.isArray(field.default) ? field.default.map(String) : [];
   const [draft, setDraft] = useState('');
 
@@ -79,6 +88,10 @@ function TagInput({ field, onChange }: Props) {
         ))}
       </div>
       <input
+        aria-describedby={describedBy}
+        aria-required={field.required || undefined}
+        id={inputId}
+        name={field.key}
         value={draft}
         placeholder="输入后按回车添加"
         onChange={(event) => setDraft(event.target.value)}

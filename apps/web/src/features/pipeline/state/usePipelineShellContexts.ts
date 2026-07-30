@@ -1,0 +1,294 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { productNavigationIcons, type ProductNavigationItem, type ProductNavigationItemId } from '../layout/ProductNavigationRail';
+import { useSidebarPreference } from '../layout/useSidebarPreference';
+import { historyRoute, routeForBibleSection, routeForStage, studioRoute, type BibleSection } from '../lib/stageRoutes';
+import type { RunStateSlice, UICommandSlice, WorkflowConfigSlice } from './pipelineShellContext';
+import { createRunEventsStore } from './runEventsStore';
+import { canNavigateToStage, modeRoutePolicy } from './runPresentationState';
+import type { NovelWorkflowApp } from './useNovelWorkflowApp';
+import { usePipelineShellRouting } from './usePipelineShellRouting';
+import { useSidebarViewport } from './useSidebarViewport';
+import { useStageRuntimes } from './useStageRuntimes';
+
+type Params = {
+  app: NovelWorkflowApp;
+  routePhase: 'studio' | 'history' | 'planning' | 'running' | 'bible';
+  routeStageId: string;
+  routeBibleSection: BibleSection | '';
+};
+
+/**
+ * Groups the useNovelWorkflowApp return value into the three shell context
+ * slices (run state / workflow config / UI commands). Pure regrouping — no
+ * new behavior; one useMemo per slice keeps references stable.
+ */
+export function usePipelineShellContexts({ app, routePhase, routeStageId, routeBibleSection }: Params) {
+  const navigate = useNavigate();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const sidebarViewport = useSidebarViewport();
+  const sidebarPreference = useSidebarPreference(sidebarViewport.wide);
+  const {
+    activeRunId,
+    activeProject,
+    approvalPending,
+    automationCockpitReady,
+    checkpointContinueReady,
+    dismissRunResetUndo,
+    downloadHistoryExport,
+    events,
+    eventIndex,
+    handleQualityModeChange,
+    historyError,
+    historyItems,
+    historyLoading,
+    infoContinueReady,
+    knowledgeDocuments,
+    knowledgeManagerOpen,
+    openHistoryRun,
+    openProject,
+    refreshHistory,
+    resetRunControl,
+    restoreHistoryCheckpoint,
+    returnExportToPlanning,
+    runControlState,
+    runHasStarted,
+    runIsActiveFromEvents,
+    runResetUndoAvailable,
+    running,
+    runWorkflow,
+    saveStatus,
+    saveWorkflowAsTemplate,
+    selectedId,
+    selectedStage,
+    setApiWarning,
+    setKnowledgeManagerOpen,
+    setRunStageNavigator,
+    setSelectedId,
+    setSelectedInspectorTarget,
+    setSettingsOpen,
+    setTheme,
+    settingsOpen,
+    settlementStageId,
+    setWorkspacePhase,
+    theme,
+    undoRunReset,
+    workflow,
+    workspacePhase,
+  } = app;
+
+  // Phase 12 F5: high-frequency events go through an external store; shell
+  // slices below carry only low-frequency summaries derived from the index.
+  // Created once and then fed via publish(); the effect below keeps it current.
+  const [runEventsStore] = useState(() => createRunEventsStore({ events, index: eventIndex }));
+  useEffect(() => {
+    runEventsStore.publish({ events, index: eventIndex });
+  }, [eventIndex, events, runEventsStore]);
+  const stageRuntimes = useStageRuntimes(eventIndex, workflow.nodes);
+  const hasRunEvents = eventIndex.size > 0;
+
+  const routePolicy = useMemo(
+    () => modeRoutePolicy(workflow.quality_mode, automationCockpitReady),
+    [automationCockpitReady, workflow.quality_mode],
+  );
+  const cockpitVisible = routePhase === 'planning' && routePolicy.planningSurface === 'cockpit';
+  const runControlActive = ['starting', 'running', 'stop_requested'].includes(runControlState) || running || runIsActiveFromEvents;
+  /** Browse routes keep presenting the underlying workspace phase in shared controls. */
+  const presentedPhase: 'planning' | 'running' = routePhase === 'planning' || routePhase === 'running'
+    ? routePhase
+    : workspacePhase;
+  const shellPhase = cockpitVisible && (runHasStarted || runControlActive) ? 'running' : presentedPhase;
+  const controlPhase = cockpitVisible && !(runHasStarted || runControlActive) ? 'planning' : shellPhase;
+  const headerStage = useMemo(
+    () => (routePhase === 'running' && routeStageId
+      ? workflow.nodes.find((stage) => stage.id === routeStageId) ?? selectedStage
+      : selectedStage),
+    [routePhase, routeStageId, selectedStage, workflow.nodes],
+  );
+
+  useEffect(() => {
+    setNavigationOpen(false);
+  }, [routePhase, routeStageId]);
+
+  usePipelineShellRouting({
+    cockpitVisible,
+    routePhase,
+    routePolicy,
+    routeStageId,
+    runHasStarted,
+    selectedId,
+    setRunStageNavigator,
+    setSelectedId,
+    setSelectedInspectorTarget,
+    setWorkspacePhase,
+    workspacePhase,
+  });
+
+  const navigationItems = useMemo<ProductNavigationItem[]>(() => [
+    { id: 'planning', label: '创作流程', description: '配置工作流与启动创作', icon: productNavigationIcons.planning },
+    {
+      id: 'running',
+      label: '当前运行',
+      description: runHasStarted ? '打开当前运行工作台' : '启动创作后可查看阶段工作台',
+      icon: productNavigationIcons.running,
+      disabled: !runHasStarted,
+      disabledReason: '尚未启动运行',
+      badge: runHasStarted ? selectedStage.label : undefined,
+    },
+    { id: 'knowledge', label: '知识资料', description: '管理项目资料与检索依据', icon: productNavigationIcons.knowledge, badge: knowledgeDocuments.length ? String(knowledgeDocuments.length) : undefined },
+    { id: 'history', label: '创作历史', description: '查看运行、快照与导出版本', icon: productNavigationIcons.history, badge: historyItems.length ? String(historyItems.length) : undefined },
+    { id: 'settings', label: '模型与设置', description: '编辑服务、模型和工作流偏好', icon: productNavigationIcons.settings },
+  ], [historyItems.length, knowledgeDocuments.length, selectedStage.label, runHasStarted]);
+
+  const activeNavigationItem: ProductNavigationItemId = settingsOpen
+    ? 'settings'
+    : routePhase === 'history'
+      ? 'history'
+      : knowledgeManagerOpen
+        ? 'knowledge'
+        : controlPhase === 'running'
+          ? 'running'
+          : 'planning';
+
+  const runState = useMemo<RunStateSlice>(() => ({
+    activeRunId,
+    approvalPending,
+    checkpointContinueReady,
+    hasRunEvents,
+    historyError,
+    historyItems,
+    historyLoading,
+    infoContinueReady,
+    resetUndoAvailable: runResetUndoAvailable,
+    routeBibleSection,
+    routePhase,
+    routeStageId,
+    runControlState,
+    runHasStarted,
+    running: running || runIsActiveFromEvents,
+    selectedStage: headerStage,
+    stageRuntimes,
+    transitioning: Boolean(settlementStageId),
+    workspacePhase: controlPhase,
+  }), [
+    activeRunId, approvalPending, checkpointContinueReady, controlPhase, hasRunEvents,
+    headerStage, historyError, historyItems, historyLoading, infoContinueReady,
+    routeBibleSection, routePhase, routeStageId, runControlState, runHasStarted, runIsActiveFromEvents,
+    running, runResetUndoAvailable, settlementStageId, stageRuntimes,
+  ]);
+
+  const workflowConfig = useMemo<WorkflowConfigSlice>(() => ({
+    knowledgeDocuments,
+    project: activeProject,
+    qualityMode: workflow.quality_mode,
+    routePolicy,
+    saveStatus,
+    workflow,
+  }), [activeProject, knowledgeDocuments, routePolicy, saveStatus, workflow]);
+
+  const uiCommands = useMemo<UICommandSlice>(() => {
+    const openKnowledge = () => setKnowledgeManagerOpen(true);
+    const openHistory = () => {
+      navigate(historyRoute, { replace: false });
+      void refreshHistory();
+    };
+    const openSettings = () => {
+      setApiWarning('');
+      setSettingsOpen(true);
+    };
+    const navigatePlanning = () => navigate('/planning', { replace: false });
+    const navigateStage = (stageId: string) => {
+      if (canNavigateToStage(routePolicy, stageId)) navigate(routeForStage(stageId), { replace: false });
+    };
+    const navigateBible = (section: BibleSection) => navigate(routeForBibleSection(section), { replace: false });
+    const navigateStudio = () => navigate(studioRoute, { replace: false });
+    return {
+      activeNavigationItem,
+      changeQualityMode: handleQualityModeChange,
+      closeCommandPalette: () => setCommandPaletteOpen(false),
+      closeHistory: () => navigate('/planning', { replace: false }),
+      commandPaletteOpen,
+      dismissResetUndo: dismissRunResetUndo,
+      downloadHistoryExport,
+      historyOpen: routePhase === 'history',
+      knowledgeOpen: knowledgeManagerOpen,
+      navigateBible,
+      navigatePlanning,
+      navigateStudio,
+      openProject: async (project, latestRun) => {
+        const result = await openProject(project, latestRun ?? null);
+        if (!result.ok) return false;
+        navigate(result.stageId ? routeForStage(result.stageId) : '/planning', { replace: false });
+        return true;
+      },
+      requestNewProject: () => navigate(`${studioRoute}?new=1`, { replace: false }),
+      saveWorkflowAsTemplate,
+      navigateProduct: (item: ProductNavigationItem) => {
+        setNavigationOpen(false);
+        if (item.disabled) return;
+        if (item.id === 'planning') return navigatePlanning();
+        if (item.id === 'running') {
+          if (routePolicy.stageRoutes === 'all') navigate(routeForStage(selectedStage.id), { replace: false });
+          else navigate('/planning', { replace: false });
+          return;
+        }
+        if (item.id === 'knowledge') return openKnowledge();
+        if (item.id === 'history') return openHistory();
+        openSettings();
+      },
+      navigateStage,
+      navigationItems,
+      navigationOpen,
+      openCommandPalette: () => setCommandPaletteOpen(true),
+      openHistory,
+      openHistoryRun: async (item) => {
+        const stageId = await openHistoryRun(item);
+        if (stageId) navigate(routeForStage(stageId), { replace: false });
+        return stageId;
+      },
+      openKnowledge,
+      openSettings,
+      refreshHistory,
+      resetRun: () => {
+        const reset = resetRunControl();
+        if (reset) navigate('/planning', { replace: true });
+        return reset;
+      },
+      restoreHistoryCheckpoint: async (item) => {
+        const stageId = await restoreHistoryCheckpoint(item);
+        if (stageId) navigate(routeForStage(stageId), { replace: false });
+        return stageId;
+      },
+      runPrimaryAction: () => {
+        if (checkpointContinueReady && headerStage.type === 'export_artifact') {
+          returnExportToPlanning();
+          navigate('/planning', { replace: true });
+          return;
+        }
+        void runWorkflow();
+      },
+      setNavigationOpen,
+      settingsOpen,
+      sidebarExpanded: sidebarPreference.expanded,
+      sidebarVisible: sidebarViewport.desktop,
+      theme,
+      toggleSidebar: sidebarPreference.toggle,
+      toggleTheme: () => setTheme((current) => (current === 'dark' ? 'light' : 'dark')),
+      undoResetRun: async () => {
+        const stageId = await undoRunReset();
+        if (stageId) navigate(routeForStage(stageId), { replace: false });
+      },
+    };
+  }, [
+    activeNavigationItem, checkpointContinueReady, commandPaletteOpen, dismissRunResetUndo,
+    downloadHistoryExport, handleQualityModeChange, headerStage, knowledgeManagerOpen,
+    navigate, navigationItems, navigationOpen, openHistoryRun, openProject, refreshHistory, resetRunControl,
+    restoreHistoryCheckpoint, returnExportToPlanning, routePolicy, runWorkflow, saveWorkflowAsTemplate, selectedStage.id,
+    setApiWarning, setKnowledgeManagerOpen, setSettingsOpen, setTheme, settingsOpen,
+    routePhase,
+    sidebarPreference.expanded, sidebarPreference.toggle, sidebarViewport.desktop, theme, undoRunReset,
+  ]);
+
+  return { runEventsStore, runState, uiCommands, workflowConfig };
+}

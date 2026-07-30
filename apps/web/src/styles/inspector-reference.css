@@ -91,29 +91,29 @@
 }
 
 .rail-list,
-.field-list,
-.console-list {
+.field-list {
   display: grid;
   gap: 7px;
 }
 
 .stage-input-form {
   display: grid;
-  gap: 8px;
+  gap: 14px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .stage-input-field {
-  background: var(--panel-muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
   display: grid;
   gap: 6px;
   margin: 0;
   min-width: 0;
-  padding: 8px;
 }
 
-.stage-input-field > span {
+.stage-input-field.wide {
+  grid-column: 1 / -1;
+}
+
+.stage-input-label {
   align-items: center;
   color: var(--text);
   display: flex;
@@ -121,6 +121,8 @@
   font-weight: 900;
   gap: 6px;
   justify-content: space-between;
+  margin: 0;
+  min-height: 18px;
 }
 
 .stage-input-field b {
@@ -135,6 +137,7 @@
 .stage-input-field input,
 .stage-input-field select,
 .stage-input-field textarea {
+  min-height: var(--control-height-md);
   width: 100%;
 }
 
@@ -147,13 +150,13 @@
 .stage-input-textarea {
   font-size: 12px;
   line-height: 1.45;
-  min-height: 64px;
+  min-height: 84px;
   width: 100%;
 }
 
 .info-brief-editor {
   display: grid;
-  gap: 9px;
+  gap: 7px;
   min-width: 0;
 }
 
@@ -165,7 +168,7 @@
   border-radius: 8px;
   display: grid;
   gap: 4px;
-  padding: 9px;
+  padding: 8px;
 }
 
 .brief-summary strong {
@@ -181,8 +184,17 @@
 
 .brief-field-grid {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Phase 12 A3: writer guidance rendered as small print under the field label. */
+.brief-field-hint {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 10px;
+  line-height: 1.45;
+  margin-top: -3px;
 }
 
 .brief-input.wide,
@@ -194,7 +206,7 @@
 .tag-input-box {
   background: color-mix(in srgb, var(--panel) 72%, transparent);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   display: grid;
   gap: 6px;
   padding: 6px;
@@ -205,6 +217,14 @@
   border: 0;
   min-height: 22px;
   padding: 0;
+}
+
+.stage-input-field .inline-switch {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  min-height: var(--control-height-md);
+  padding-inline: var(--field-padding-inline);
 }
 
 .tag-input-box input:focus {
@@ -307,6 +327,10 @@
   box-shadow: inset 0 0 18px color-mix(in srgb, var(--accent-2) 10%, transparent);
 }
 
+.reference-mode-tabs button[aria-selected="true"] {
+  cursor: default;
+}
+
 .reference-mode-tabs strong {
   font-size: 10px;
   line-height: 1.1;
@@ -321,6 +345,36 @@
   display: grid;
   gap: 8px;
   min-width: 0;
+}
+
+.reference-knowledge-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.reference-search-state {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 78%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text-soft);
+  display: flex;
+  font-size: 10px;
+  gap: 8px;
+  justify-content: space-between;
+  line-height: 1.45;
+  padding: 7px 8px;
+}
+
+.reference-search-state.error {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
+  color: var(--danger);
+}
+
+.reference-search-state.empty {
+  border-color: color-mix(in srgb, var(--warning) 38%, var(--border));
 }
 
 .compact-tag-editor {
@@ -385,6 +439,28 @@
   grid-template-columns: 1fr;
 }
 
+.reference-result-meta {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.reference-result-meta a {
+  align-items: center;
+  color: var(--accent-2);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 850;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.reference-result-meta a:hover {
+  text-decoration: underline;
+}
+
 .reference-result input {
   margin-top: 3px;
   min-width: auto;
@@ -401,6 +477,7 @@
   color: var(--text);
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .reference-result small,
@@ -410,6 +487,14 @@
   font-style: normal;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.brief-summary,
+.stage-input-field,
+.reference-panel,
+.field-list article {
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .reference-result em {
@@ -431,3 +516,12 @@
   min-height: 78px;
 }
 
+@media (max-width: 520px) {
+  .stage-input-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stage-input-field.wide {
+    grid-column: 1;
+  }
+}

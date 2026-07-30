@@ -1,0 +1,232 @@
+.artifact-detail-backdrop {
+  align-items: center;
+  backdrop-filter: blur(18px) saturate(1.25);
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 34%),
+    rgba(2, 6, 14, 0.72);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 120;
+}
+
+.artifact-detail-dialog {
+  animation: modalEnter 220ms ease both;
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 36%),
+    color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--border));
+  border-radius: 18px;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.48);
+  display: grid;
+  gap: 12px;
+  max-height: min(760px, calc(100vh - 56px));
+  overflow: hidden;
+  padding: 22px;
+  position: relative;
+  width: min(760px, calc(100vw - 56px));
+}
+
+.artifact-detail-dialog.compact-detail {
+  width: min(620px, calc(100vw - 56px));
+}
+
+.artifact-detail-backdrop.wiki-memory-backdrop {
+  align-items: center;
+  inset: 0;
+  justify-content: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: clamp(16px, 3dvh, 28px);
+  position: fixed;
+  z-index: 16000;
+}
+
+.artifact-detail-backdrop.runtime-detail-backdrop {
+  position: fixed;
+  z-index: 16000;
+}
+
+.runtime-side-detail-backdrop {
+  --detail-aura: var(--mode-aura, var(--accent-2));
+  align-items: stretch;
+  backdrop-filter: blur(8px) saturate(.82);
+  background: rgba(2, 4, 3, .68);
+  display: flex;
+  inset: 0;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: clamp(72px, 7.5dvh, 84px) clamp(8px, 1.1vw, 16px) clamp(12px, 1.6dvh, 20px);
+  pointer-events: auto;
+  position: fixed;
+  z-index: 15500;
+}
+
+.runtime-side-detail-backdrop.wiki-side-backdrop {
+  z-index: 15600;
+}
+
+.runtime-side-detail-backdrop.mode-fast {
+  --detail-aura: #d8ecff;
+}
+
+.runtime-side-detail-backdrop.mode-balanced {
+  --detail-aura: #35e7a6;
+}
+
+.runtime-side-detail-backdrop.mode-deep {
+  --detail-aura: #a778ff;
+}
+
+.runtime-side-detail-sheet {
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--detail-aura) 16%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--detail-aura) 6%, transparent), transparent 54%),
+    color-mix(in srgb, var(--panel) 97%, transparent);
+  border: 1px solid color-mix(in srgb, var(--detail-aura) 34%, var(--border));
+  border-radius: 16px;
+  box-shadow:
+    -18px 22px 58px rgba(0, 0, 0, 0.28),
+    0 0 0 1px color-mix(in srgb, var(--detail-aura) 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent);
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+  pointer-events: auto;
+  width: clamp(352px, 25vw, 430px);
+}
+
+.runtime-side-detail-head {
+  align-items: start;
+  border-bottom: 1px solid color-mix(in srgb, var(--detail-aura) 22%, var(--border));
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 4px 40px 10px 2px;
+  position: relative;
+}
+
+.runtime-side-detail-head h2,
+.runtime-side-detail-head p {
+  margin: 0;
+}
+
+.runtime-side-detail-head h2 {
+  color: var(--text);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.runtime-side-detail-head .eyebrow {
+  color: color-mix(in srgb, var(--detail-aura) 78%, var(--muted));
+}
+
+.runtime-side-detail-sheet .modal-close {
+  border-color: color-mix(in srgb, var(--detail-aura) 34%, var(--border));
+  color: color-mix(in srgb, var(--detail-aura) 70%, var(--text));
+}
+
+.runtime-side-detail-body {
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.runtime-side-detail-body > .insight-card,
+.runtime-side-detail-body > .config-section,
+.runtime-side-detail-body > .worldbuilding-panel {
+  animation: none;
+  box-shadow: none;
+  height: 100%;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.runtime-side-detail-body .character-card {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.runtime-side-detail-body .force-graph-wrap {
+  min-height: 0;
+}
+
+.runtime-side-detail-body .worldbuilding-panel {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.runtime-side-detail-body .world-seed {
+  max-height: 96px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.runtime-side-detail-body .world-seed::-webkit-scrollbar {
+  display: none;
+}
+
+.runtime-side-detail-body .worldbuilding-grid {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.runtime-side-detail-body .worldbuilding-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.runtime-side-detail-body .runtime-insight-card.compact-widget {
+  align-content: start;
+  max-height: none;
+}
+
+.runtime-side-detail-sheet.panel-wiki,
+.wiki-memory-side-detail {
+  --detail-aura: var(--mode-aura, var(--accent-2));
+}
+
+.runtime-side-detail-sheet.mode-fast,
+.wiki-memory-side-detail.mode-fast {
+  --detail-aura: #d8ecff;
+}
+
+.runtime-side-detail-sheet.mode-balanced,
+.wiki-memory-side-detail.mode-balanced {
+  --detail-aura: #35e7a6;
+}
+
+.runtime-side-detail-sheet.mode-deep,
+.wiki-memory-side-detail.mode-deep {
+  --detail-aura: #a778ff;
+}
+
+.wiki-memory-side-detail {
+  grid-template-rows: minmax(0, 1fr);
+  height: auto;
+  margin-top: clamp(4px, 1dvh, 10px);
+  max-height: min(720px, calc(100dvh - 104px));
+  min-height: 0;
+}
+
+.runtime-side-detail-body .wiki-memory-widget {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  min-height: 0;
+  padding: 0;
+}
+
+.runtime-side-detail-body .wiki-memory-widget > .widget-open-button {
+  display: none;
+}
+
+.runtime-side-detail-body .quality-monitor-widget {
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+}

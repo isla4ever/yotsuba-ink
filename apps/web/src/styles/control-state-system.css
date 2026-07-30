@@ -1,0 +1,129 @@
+/* Cross-surface control semantics. Feature files continue to own layout and domain color. */
+:is(.tech-button:not(.run-button), button.primary:not(.run-button)) {
+  background: linear-gradient(135deg, var(--color-action-secondary), var(--color-action-primary));
+  border-color: color-mix(in srgb, var(--color-action-primary) 68%, var(--color-border-subtle));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 16%, transparent),
+    0 6px 16px color-mix(in srgb, var(--color-action-primary) 16%, transparent);
+  color: var(--color-action-foreground);
+  min-height: var(--control-height-md);
+}
+
+:is(.tech-button:not(.run-button), button.primary:not(.run-button)):not(:disabled):hover {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-action-secondary) 88%, #fff),
+    color-mix(in srgb, var(--color-action-primary) 90%, #fff)
+  );
+  border-color: color-mix(in srgb, var(--color-action-primary) 82%, #fff);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent),
+    0 8px 20px color-mix(in srgb, var(--color-action-primary) 22%, transparent);
+}
+
+.mode-primary-action {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--mode-aura, var(--color-action-primary)) 86%, #fff),
+    var(--mode-aura-strong, var(--color-action-primary))
+  );
+  border-color: color-mix(in srgb, var(--mode-aura, var(--color-action-primary)) 66%, var(--color-border-subtle));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--mode-aura, var(--color-action-primary)) 16%, transparent);
+  color: #061018;
+  min-height: var(--control-height-md);
+}
+
+.mode-primary-action:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--color-action-primary)) 82%, #fff);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--mode-aura, var(--color-action-primary)) 22%, transparent);
+}
+
+:is(button.ghost, .tiny-action, .export-inline-action) {
+  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
+  border-color: var(--color-border-subtle);
+  box-shadow: none;
+  color: var(--color-text-secondary);
+  min-height: var(--control-height-sm);
+}
+
+:is(button.ghost, .tiny-action, .export-inline-action):not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-action-primary) 8%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-action-primary) 42%, var(--color-border-subtle));
+  color: var(--color-text-primary);
+}
+
+:is(.icon-button, .tech-icon-button, .modal-close, .square-action-button, .insight-edit-button) {
+  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  box-shadow: none;
+  color: var(--color-text-secondary);
+  height: var(--control-height-sm);
+  justify-content: center;
+  max-height: var(--control-height-sm);
+  max-width: var(--control-height-sm);
+  min-height: var(--control-height-sm);
+  min-width: var(--control-height-sm);
+  padding: 0;
+  width: var(--control-height-sm);
+}
+
+:is(.icon-button, .tech-icon-button, .modal-close, .square-action-button, .insight-edit-button):not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-action-primary) 9%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-action-primary) 44%, var(--color-border-subtle));
+  color: var(--color-text-primary);
+}
+
+.danger-action {
+  background: color-mix(in srgb, var(--color-status-danger) 12%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-status-danger) 48%, var(--color-border-subtle));
+  box-shadow: none;
+  color: color-mix(in srgb, var(--color-status-danger) 84%, var(--color-text-primary));
+  min-height: var(--control-height-md);
+}
+
+.danger-action:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-status-danger) 18%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-status-danger) 72%, var(--color-border-subtle));
+}
+
+:is(
+  button[aria-pressed="true"],
+  button[aria-checked="true"],
+  button[data-state="active"],
+  button[data-state="checked"]
+):not(.switch-root) {
+  border-color: color-mix(in srgb, var(--color-action-primary) 56%, var(--color-border-subtle));
+  box-shadow: inset 3px 0 0 var(--color-action-primary);
+  color: var(--color-text-primary);
+}
+
+.quality-mode-tabs > button[aria-pressed="true"] {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+button[aria-busy="true"] {
+  cursor: progress;
+  pointer-events: none;
+}
+
+[aria-busy="true"] :is(button, input, select, textarea):disabled {
+  cursor: progress;
+}
+
+:is(button, input, select, textarea):disabled {
+  box-shadow: none;
+  filter: saturate(0.7);
+}
+
+:is(button, input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--color-status-danger);
+}
+
+@media (hover: none) {
+  button:not(:disabled):hover,
+  :is(input, select, textarea):not(:disabled):not(:read-only):hover {
+    border-color: var(--color-border-subtle);
+  }
+}

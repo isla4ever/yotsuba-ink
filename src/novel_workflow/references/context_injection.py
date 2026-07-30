@@ -101,12 +101,12 @@ def merged_reference_summary(
 ) -> str:
     sections = []
     if web_results or web_message:
-        sections.append(f"联网参考（优先）\n{summary_from_search_results(web_results) or web_message}")
+        sections.append(f"联网参考（优先）\n{compact(summary_from_search_results(web_results) or web_message, 480)}")
     if knowledge_results or knowledge_message:
-        sections.append(f"用户知识库命中（补充）\n{summary_from_knowledge_results(knowledge_results, fallback=knowledge_message)}")
+        sections.append(f"用户知识库命中（补充）\n{compact(summary_from_knowledge_results(knowledge_results, fallback=knowledge_message), 480)}")
     if intent:
         sections.append(f"检索意图\n{intent}")
-    return "\n\n".join(section for section in sections if section.strip())
+    return compact("\n\n".join(section for section in sections if section.strip()), 1200)
 
 
 def summary_from_knowledge_results(results: list[Any], fallback: str = "") -> str:

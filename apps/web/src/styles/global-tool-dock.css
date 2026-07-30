@@ -1,0 +1,136 @@
+.global-tool-dock {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-surface-muted) 76%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  gap: 3px;
+  min-height: 40px;
+  padding: 2px;
+}
+
+.global-tool-dock > .control-tooltip-trigger {
+  align-items: center;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  position: relative;
+  width: 36px;
+}
+
+.global-tool-dock .dock-tool,
+.global-tool-dock .run-reset-button,
+.global-tool-dock .theme-mode-switch {
+  height: 36px;
+  min-height: 36px;
+  min-width: 36px;
+  width: 36px;
+}
+
+.global-tool-dock .dock-tool,
+.global-tool-dock .run-reset-button {
+  padding: 0;
+  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-feedback) var(--ease-standard);
+}
+
+.global-tool-dock .dock-tool:hover:not(:disabled),
+.global-tool-dock .run-reset-button:hover:not(:disabled),
+.global-tool-dock .theme-mode-switch:hover {
+  transform: scale(1.055);
+  z-index: 1;
+}
+
+.global-tool-dock .dock-tool.active {
+  background: color-mix(in srgb, var(--color-mode-primary) 12%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-mode-primary) 46%, var(--color-border-subtle));
+  color: var(--color-mode-primary);
+}
+
+.global-tool-dock .dock-tool:focus-visible,
+.global-tool-dock .run-reset-button:focus-visible,
+.global-tool-dock .theme-mode-switch:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.theme-mode-switch {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+}
+
+.theme-mode-switch:hover {
+  background: color-mix(in srgb, var(--color-mode-primary) 10%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, var(--color-mode-primary) 34%, var(--color-border-subtle));
+  color: var(--color-mode-primary);
+}
+
+.theme-mode-switch-track {
+  align-items: center;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  height: 24px;
+  justify-content: flex-start;
+  padding: 2px;
+  width: 30px;
+}
+
+.theme-mode-switch-thumb {
+  align-items: center;
+  background: var(--color-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--color-mode-primary) 44%, var(--color-border-subtle));
+  border-radius: 50%;
+  color: var(--color-mode-primary);
+  display: inline-flex;
+  height: 18px;
+  justify-content: center;
+  transform: translateX(0);
+  transition: transform var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  width: 18px;
+}
+
+.theme-mode-switch.light .theme-mode-switch-thumb {
+  transform: translateX(6px);
+}
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .global-tool-dock .dock-tool:hover:not(:disabled),
+  .global-tool-dock .run-reset-button:hover:not(:disabled),
+  .global-tool-dock .theme-mode-switch:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .global-tool-dock {
+    gap: 2px;
+    min-height: 34px;
+    padding: 1px;
+  }
+
+  .global-tool-dock > .control-tooltip-trigger {
+    height: 32px;
+    width: 32px;
+  }
+
+  .global-tool-dock .dock-tool,
+  .global-tool-dock .run-reset-button,
+  .global-tool-dock .theme-mode-switch {
+    height: 32px;
+    min-height: 32px;
+    min-width: 32px;
+    width: 32px;
+  }
+
+  .global-tool-dock .theme-mode-switch-track {
+    transform: scale(0.9);
+  }
+}

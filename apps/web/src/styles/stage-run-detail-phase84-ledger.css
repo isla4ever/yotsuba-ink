@@ -1,0 +1,118 @@
+/* Phase 8.4C selected chapter support surface: one handoff lane and three distinct writeback targets. */
+.detail-chapter-ledger {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 52%, transparent);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.24fr) minmax(0, 1fr);
+  min-height: 118px;
+  overflow: hidden;
+}
+
+.detail-chapter-ledger > header {
+  align-content: center;
+  border-right: 1px solid color-mix(in srgb, var(--border) 42%, transparent);
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.detail-chapter-ledger > header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.detail-chapter-ledger > header h3 {
+  color: var(--text);
+  font-size: 15px;
+  margin: 0;
+}
+
+.detail-chapter-ledger > header span {
+  color: var(--muted);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-blueprint-action {
+  align-items: center;
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 9%, var(--panel));
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 32%, var(--border));
+  border-radius: 6px;
+  color: var(--text);
+  display: inline-flex;
+  gap: 6px;
+  justify-self: start;
+}
+
+.detail-chapter-ledger-lanes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.detail-chapter-ledger-lanes > section,
+.detail-chapter-ledger-lanes > button {
+  align-content: start;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--border) 38%, transparent);
+  color: var(--text-soft);
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  text-align: left;
+}
+
+.detail-chapter-ledger-lanes > :first-child {
+  border-left: 0;
+}
+
+.detail-chapter-ledger-lanes > button {
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.detail-chapter-ledger-lanes > button:hover,
+.detail-chapter-ledger-lanes > button:focus-visible {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent);
+  color: var(--text);
+  outline: none;
+}
+
+.detail-chapter-ledger-lanes > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.detail-chapter-ledger-lanes span {
+  align-items: center;
+  color: var(--mode-aura, var(--accent-2));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 10px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.detail-chapter-ledger-lanes small {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 720;
+  margin-left: auto;
+}
+
+.detail-chapter-ledger-lanes p {
+  color: var(--text-soft);
+  display: -webkit-box;
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}

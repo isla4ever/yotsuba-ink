@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "fixture": "same-story-input-v1",
+  "stages": {
+    "info": {
+      "system_sha256": "4fe069dc36d3506a06aaca9b848b060e623253d41fd615c503f00e7cfcce8928",
+      "user_sha256": "37beca5b9b0a869c92c1fd8de2b1cb60ac9ba3b9797b8beb447e7e699375ba2f",
+      "render_sha256": "b9b8373960b47d259ec30031c89b079190ddd7decf23e00dbff6cb4ab7d6e58f",
+      "system_chars": 2271,
+      "user_chars": 2059,
+      "dropped_layers": [],
+      "system_headings": ["## 角色任务", "## 硬约束（不可违背，优先级最高）", "## 输出结构", "## 输出长度配置", "## 禁止事项"],
+      "user_headings": ["## 阶段 Prompt 模板", "## 质量 Rubric", "## 输入 Brief", "## 上游产物", "## 章节上下文包", "## 人物与阵营现状", "## 风格规格（Voice Spec）", "## 参考资料摘要"]
+    },
+    "summary": {
+      "system_sha256": "a00c68d56e6dc7e2791a2c59f6ca85d696f75a77cd34ccb3118f20b6e3765835",
+      "user_sha256": "4e0003ed32db7cfdd29ed34859247ca5db5fb55db013ebd6e4beb6ba4c3b1039",
+      "render_sha256": "03285f958b571311fbb00f77fc2db5fc07cd01398078011b305b721aad323bdc",
+      "system_chars": 1369,
+      "user_chars": 2318,
+      "dropped_layers": [],
+      "system_headings": ["## 角色任务", "## 硬约束（不可违背，优先级最高）", "## 输出结构", "## 输出长度配置", "## 禁止事项"],
+      "user_headings": ["## 阶段 Prompt 模板", "## 质量 Rubric", "## 输入 Brief", "## 上游产物", "## 章节上下文包", "## 人物与阵营现状", "## 风格规格（Voice Spec）", "## 定稿 Story Brief / 参考依据"]
+    },
+    "outline": {
+      "system_sha256": "696da508f2bb78f200f20226e1b5ee4dbc493371a8360f2e30774571ce7eb616",
+      "user_sha256": "7c4854abc28c236ac9eef57fcf112f7a8074b98f9f63d9420216126cbfd8b7b5",
+      "render_sha256": "08b129fc00dc515cacbadf239b0d88dd26e898a39feac36a1f412fcf0f3c7f84",
+      "system_chars": 2232,
+      "user_chars": 1434,
+      "dropped_layers": [],
+      "system_headings": ["## 角色任务", "## 硬约束（不可违背，优先级最高）", "## 输出结构", "## 输出长度配置", "## 禁止事项"],
+      "user_headings": ["## 阶段 Prompt 模板", "## 质量 Rubric", "## 输入 Brief", "## 上游产物", "## 章节上下文包", "## 人物与阵营现状", "## 风格规格（Voice Spec）", "## 定稿 Story Brief / 参考依据"]
+    },
+    "detail": {
+      "system_sha256": "f66d3cbeb9399faf9594a934c3eaba2113173e9f2192faebae599a218e6003fc",
+      "user_sha256": "07e1f2f4504306f8edd1d6430a57e47b90a6f31ed00280c2bfd926aa7b65f684",
+      "render_sha256": "2cf7ea54b934594902fc152dbc573c92d904cc71cd98a5b96e2dbd7eb30a566d",
+      "system_chars": 2169,
+      "user_chars": 1441,
+      "dropped_layers": [],
+      "system_headings": ["## 角色任务", "## 硬约束（不可违背，优先级最高）", "## 输出结构", "## 输出长度配置", "## 禁止事项"],
+      "user_headings": ["## 阶段 Prompt 模板", "## 质量 Rubric", "## 输入 Brief", "## 上游产物", "## 章节上下文包", "## 人物与阵营现状", "## 风格规格（Voice Spec）", "## 定稿 Story Brief / 参考依据"]
+    },
+    "text": {
+      "system_sha256": "93011fa247d02c5c504a4df044e2b3157e05af7e880218ee34ad6a4741f976f6",
+      "user_sha256": "34a2942dd8ab5f735f7c71ad7b7a1fabfbe1031843c1f6b3cb60018081d32ad1",
+      "render_sha256": "924dd650bb65d9daff58c768f356979b8a1ed6c4f87927c421767b471b559fae",
+      "system_chars": 1378,
+      "user_chars": 1810,
+      "dropped_layers": [],
+      "system_headings": ["## 角色任务", "## 硬约束（不可违背，优先级最高）", "## 输出结构", "## 输出长度配置", "## 禁止事项"],
+      "user_headings": ["## 阶段 Prompt 模板", "## 质量 Rubric", "## 输入 Brief", "## 上游产物", "## 章节上下文包", "## 人物与阵营现状（仅注入本章相关人物）", "## 风格规格（Voice Spec）", "## 定稿 Story Brief / 参考依据"]
+    },
+    "cover": {
+      "system_sha256": "f0b1a746f3129bd41ea7761d3b29c20eb55c6cce0aacd94928b886e59bcbc214",
+      "user_sha256": "aeec70db9d4293d8a836d5abcde6b2da2572b466468a38075c9a7cd4f24e291d",
+      "render_sha256": "199f12a4df5aa42010c58afe29f8369abce73016be8706b5493bc9cbedd0587c",
+      "system_chars": 1023,
+      "user_chars": 2426,
+      "dropped_layers": [],
+      "system_headings": ["## 角色任务", "## 硬约束（不可违背，优先级最高）", "## 输出结构", "## 输出长度配置", "## 禁止事项"],
+      "user_headings": ["## 阶段 Prompt 模板", "## 质量 Rubric", "## 输入 Brief", "## 上游产物", "## 章节上下文包", "## 人物与阵营现状", "## 风格规格（Voice Spec）", "## 定稿 Story Brief / 参考依据"]
+    }
+  }
+}

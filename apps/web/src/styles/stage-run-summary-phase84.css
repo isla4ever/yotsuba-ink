@@ -1,0 +1,199 @@
+/* Phase 8.4A: Summary is a manuscript decision surface, with structure and writeback in support. */
+.stage-contract-board.summary-board {
+  gap: 12px;
+  grid-template-columns: minmax(480px, 1.18fr) minmax(390px, 0.92fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  min-width: 0;
+}
+
+.summary-context-bar {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.32fr);
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.summary-context-story {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.summary-context-story > span,
+.summary-readiness-heading > span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.summary-context-story input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 34%, var(--border));
+  border-radius: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 760;
+  min-width: 0;
+  outline: 0;
+  padding: 5px 2px;
+  width: 100%;
+}
+
+.summary-context-story input:focus-visible {
+  border-bottom-color: var(--mode-aura, var(--accent-2));
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--mode-aura, var(--accent-2)) 24%, transparent);
+}
+
+.summary-context-story input[readonly] {
+  cursor: default;
+}
+
+.summary-readiness {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.summary-readiness-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.summary-readiness-heading strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.summary-readiness-track {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(8, minmax(8px, 1fr));
+}
+
+.summary-readiness-track i {
+  background: color-mix(in srgb, var(--border) 74%, transparent);
+  border-radius: 2px;
+  height: 3px;
+}
+
+.summary-readiness-track i.complete {
+  background: var(--mode-aura, var(--accent-2));
+}
+
+.summary-readiness small {
+  color: var(--color-status-warning, #e6b85c);
+  font-size: 9px;
+  font-weight: 760;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-readiness.ready small,
+.summary-readiness.ready .summary-readiness-heading > span {
+  color: var(--color-status-success, #58d29b);
+}
+
+.stage-contract-board.summary-board > .summary-manuscript-pane,
+.stage-contract-board.summary-board > .summary-side-workbench {
+  grid-row: 2 !important;
+}
+
+.stage-contract-board.summary-board > .summary-manuscript-pane {
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+}
+
+.summary-manuscript-head {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.summary-manuscript-mode {
+  align-items: center;
+  background: color-mix(in srgb, var(--panel-muted) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  border-radius: 6px;
+  color: var(--text-soft);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 850;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 9px;
+}
+
+.summary-manuscript-mode:hover,
+.summary-manuscript-mode:focus-visible,
+.summary-manuscript-mode[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 48%, var(--border));
+  color: var(--text);
+}
+
+.stage-contract-board.summary-board .summary-manuscript-editor {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) !important;
+  min-height: 0;
+  padding: 0;
+}
+
+.stage-contract-board.summary-board .summary-stream-paper {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.stage-contract-board.summary-board .summary-paper-readable,
+.stage-contract-board.summary-board .summary-paper-editor {
+  height: 100%;
+  max-height: none;
+  min-height: 0 !important;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.stage-contract-board.summary-board .summary-paper-readable {
+  padding: 20px 28px 28px;
+}
+
+.stage-contract-board.summary-board .summary-paper-readable p {
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 0 0 1em;
+}
+
+.stage-contract-board.summary-board .summary-paper-editor {
+  background: color-mix(in srgb, var(--panel) 93%, transparent);
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  font: 600 13px/1.9 Inter, ui-sans-serif, system-ui, sans-serif;
+  outline: 0;
+  padding: 20px 28px 28px;
+  resize: none;
+  width: 100%;
+}
+
+.stage-contract-board.summary-board .summary-stream-paper.editing {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--mode-aura, var(--accent-2)) 68%, transparent);
+}

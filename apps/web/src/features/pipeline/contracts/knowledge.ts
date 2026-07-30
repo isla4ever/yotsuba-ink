@@ -22,3 +22,10 @@ export type KnowledgeDeleteResponse = {
   backend_synced?: boolean;
   message?: string;
 };
+
+export type KnowledgeUploadResponse = {
+  document: KnowledgeDocument;
+  chunks?: Array<{ chunk_id: string }>;
+};
+
+export type KnowledgeUploadPhase = 'reading' | 'indexing';

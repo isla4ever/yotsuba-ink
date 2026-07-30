@@ -2,7 +2,7 @@
   "id": "prompt-summary",
   "name": "梗概 Prompt",
   "stage_type": "summary",
-  "content": "基于已定稿 Story Brief、世界观硬设定、人物种子和 Wiki 约束，生成全书梗概、主线、角色弧、长线伏笔和结局方向。",
+  "content": "基于已定稿 Story Brief、人物关系、世界观硬设定与下游约束，返回结构化 summary artifact。\n\n- one_liner 只概括主角、目标和核心阻力；full_synopsis 必须写清开局、升级、关键选择、代价、高潮、结局与余波，形成连续因果链，不能写成宣传简介。\n- act_structure 每一幕都给出 title、goal、turn；后一幕必须由前一幕转折触发。\n- core_conflict 说明主角目标、阻力系统、失败代价与时间/资源压力。\n- character_arcs 只能引用已确认人物，每项完整给出 name、arc、pressure、next，并与关键转折互相印证。\n- key_turns 每项给出 label、detail，说明它如何改变人物选择或故事状态；ending_resolution 必须结算核心冲突和主要人物承诺。\n- consistency_checks 逐项检查人物动机、世界规则、证据链、伏笔与结局承诺；不得新增未注册人物、地点或组织。",
   "variables": [
     "target_words",
     "structure"

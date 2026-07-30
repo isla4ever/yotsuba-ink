@@ -1,0 +1,281 @@
+.app-overlay-backdrop {
+  background: var(--overlay-backdrop);
+  inset: 0;
+  isolation: isolate;
+  overscroll-behavior: contain;
+  padding: var(--overlay-gutter);
+  pointer-events: auto;
+  position: fixed;
+  touch-action: none;
+  z-index: var(--z-overlay);
+}
+
+.app-overlay-backdrop:has(> .app-sheet-surface) {
+  padding: 0;
+}
+
+.app-radix-backdrop[data-state="open"] {
+  animation: appBackdropIn var(--duration-fast) var(--ease-standard) both;
+}
+
+.app-radix-backdrop[data-state="closed"],
+.app-radix-backdrop[data-exiting="true"] {
+  animation: appBackdropOut var(--duration-exit) var(--ease-standard) both;
+}
+
+.app-radix-dialog-presence[data-state="open"] {
+  animation: appDialogIn var(--duration-standard) var(--ease-decelerate) both;
+}
+
+.app-radix-dialog-presence[data-state="closed"],
+.app-radix-dialog-presence[data-exiting="true"] {
+  animation: appDialogOut var(--duration-fast) var(--ease-standard) both;
+}
+
+:where(.studio-wizard-backdrop, .knowledge-blocker-backdrop):not(.is-exiting) {
+  animation: appBackdropIn var(--duration-fast) var(--ease-standard) both;
+}
+
+:where(.studio-wizard-backdrop, .knowledge-blocker-backdrop):not(.is-exiting) > .app-dialog-surface {
+  animation: appDialogIn var(--duration-standard) var(--ease-decelerate) both;
+}
+
+:where(.studio-wizard-backdrop, .knowledge-blocker-backdrop).is-exiting {
+  animation: appBackdropOut var(--duration-exit) var(--ease-standard) both;
+  pointer-events: auto;
+}
+
+:where(.studio-wizard-backdrop, .knowledge-blocker-backdrop).is-exiting > .app-dialog-surface {
+  animation: appDialogOut var(--duration-fast) var(--ease-standard) both;
+}
+
+.app-radix-backdrop[data-exiting="true"] {
+  pointer-events: auto;
+}
+
+.app-radix-dialog-presence[data-exiting="true"] {
+  pointer-events: none;
+}
+
+.settings-dialog {
+  z-index: var(--z-dialog);
+}
+
+.app-dialog-surface,
+.app-sheet-surface {
+  max-height: calc(100dvh - (var(--overlay-gutter) * 2));
+  outline: none;
+  overscroll-behavior: contain;
+}
+
+/* Phase 11.1 surface v2 base: dialogs/sheets default to --surface-2 with card top
+   highlight. :where() keeps zero specificity so per-dialog styles win until each
+   page migrates in later slices. Shadows stay allowed on this overlay layer. */
+:where(.app-dialog-surface, .app-sheet-surface) {
+  background: var(--surface-2);
+  border: 1px solid var(--stroke-2);
+  box-shadow: var(--card-top-highlight), var(--shadow-panel);
+}
+
+.app-dialog-surface {
+  border-radius: var(--radius-surface);
+}
+
+.app-sheet-surface {
+  max-height: 100dvh;
+}
+
+.workspace-route-transition {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.workspace-route-surface {
+  inset: 0;
+  min-height: 0;
+  min-width: 0;
+  position: absolute;
+}
+
+.workspace-route-focus-region,
+.workspace-route-focus-region > * {
+  height: 100%;
+}
+
+.workspace-route-focus-region {
+  outline: none;
+}
+
+.app-dialog-surface:focus-visible,
+.app-sheet-surface:focus-visible {
+  box-shadow: var(--shadow-panel), var(--focus-ring);
+}
+
+.control-tooltip-trigger {
+  display: inline-flex;
+  position: relative;
+}
+
+.control-tooltip {
+  background: color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-panel);
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  left: 50%;
+  max-width: min(240px, calc(100vw - 24px));
+  opacity: 0;
+  padding: 7px 9px;
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  transform: translate(-50%, -2px);
+  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+  user-select: none;
+  visibility: hidden;
+  white-space: nowrap;
+  z-index: var(--z-tooltip);
+}
+
+.control-tooltip-trigger:hover .control-tooltip,
+.control-tooltip-trigger:focus-within .control-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+.header-utility-group .control-tooltip-trigger:last-child .control-tooltip {
+  left: auto;
+  right: 0;
+  transform: translateY(-2px);
+}
+
+.header-utility-group .control-tooltip-trigger:last-child:hover .control-tooltip,
+.header-utility-group .control-tooltip-trigger:last-child:focus-within .control-tooltip {
+  transform: translateY(0);
+}
+
+.app-feedback-state,
+.app-empty-state,
+.app-error-state {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-panel);
+  color: var(--color-text-muted);
+}
+
+.app-empty-state {
+  background: color-mix(in srgb, var(--color-surface-muted) 72%, transparent);
+}
+
+.app-error-state {
+  background: color-mix(in srgb, var(--color-status-danger) 7%, var(--color-surface-muted));
+  border-color: color-mix(in srgb, var(--color-status-danger) 42%, var(--color-border-subtle));
+}
+
+.app-feedback-state[role="alert"] {
+  color: var(--color-status-danger);
+}
+
+.app-feedback-action {
+  margin-top: var(--space-3);
+}
+
+.runtime-widget-empty {
+  background: color-mix(in srgb, var(--color-surface-muted) 62%, transparent);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+}
+
+.cockpit-detail-empty {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: var(--space-4);
+  text-align: left;
+}
+
+.cockpit-detail-empty strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.cockpit-detail-empty span,
+.cockpit-detail-empty:not(div) {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.history-empty-state {
+  align-content: center;
+  align-items: center;
+  display: grid;
+  gap: var(--space-2);
+  grid-column: 1 / -1;
+  justify-items: center;
+  min-height: 260px;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.history-empty-state h3,
+.history-empty-state p {
+  margin: 0;
+}
+
+.history-empty-state h3 {
+  color: var(--color-text-primary);
+  font-size: 16px;
+}
+
+.history-empty-state p {
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 360px;
+}
+
+.knowledge-manager-message.error {
+  padding: var(--space-2) var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .app-overlay-backdrop {
+    --overlay-gutter: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control-tooltip {
+    transition: none;
+  }
+}
+
+@keyframes appBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes appBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes appDialogIn {
+  from { opacity: 0; scale: 0.98; translate: 0 8px; }
+  to { opacity: 1; scale: 1; translate: 0 0; }
+}
+
+@keyframes appDialogOut {
+  from { opacity: 1; scale: 1; translate: 0 0; }
+  to { opacity: 0; scale: 0.99; translate: 0 4px; }
+}
+
+@keyframes historyDetailIn {
+  from { opacity: 0; translate: 0 4px; }
+  to { opacity: 1; translate: 0 0; }
+}

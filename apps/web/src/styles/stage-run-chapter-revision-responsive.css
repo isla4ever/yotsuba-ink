@@ -1,0 +1,57 @@
+@media (max-width: 980px) {
+  .chapter-selection-toolbar {
+    grid-template-columns: minmax(110px, 0.6fr) minmax(160px, 1fr);
+  }
+
+  .chapter-selection-toolbar.quality-repair-command {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .quality-repair-command > p {
+    grid-column: 1 / -1;
+  }
+
+  .chapter-selection-actions {
+    grid-column: 1 / -1;
+  }
+
+  .quality-repair-command .chapter-selection-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .chapter-selection-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chapter-selection-actions {
+    display: grid;
+    grid-column: auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chapter-selection-actions button {
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  .chapter-revision-compare {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+
+  .chapter-revision-compare > section + section {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .chapter-version-list article {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .chapter-version-list article > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

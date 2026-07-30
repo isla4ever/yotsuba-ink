@@ -1,0 +1,680 @@
+/* Phase 11.2 Studio Shell: /studio library page + dual-sidebar project chrome.
+   Surface system v2 exemplar page: surface-0..2, stroke tiers, card top
+   highlight, radius-control/surface, weight 400-500, tabular-nums metrics.
+   No glow, no lift, no new keyframes. */
+
+/* ---------- Shell frame ---------- */
+
+.product-shell.studio-shell {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.studio-shell .workbench-sidebar {
+  grid-row: 1;
+}
+
+.studio-shell .workspace-route-transition {
+  grid-row: 1;
+}
+
+.studio-workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 40px clamp(20px, 4vw, 56px) 64px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 1024px) {
+  .product-shell.studio-shell.has-sidebar > .workspace-route-transition {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+.studio-mobile-nav {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--card-top-highlight);
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.studio-mobile-brand,
+.studio-mobile-brand > div,
+.studio-mobile-nav nav {
+  align-items: center;
+  display: flex;
+}
+
+.studio-mobile-brand { gap: 8px; }
+.studio-mobile-brand > div { align-items: flex-start; flex-direction: column; }
+.studio-mobile-brand strong { font-size: 12px; font-weight: 500; }
+.studio-mobile-brand span:not(.brand-mark) { color: var(--muted); font-size: 10px; }
+.studio-mobile-nav nav { gap: 4px; }
+
+.studio-mobile-nav nav button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.studio-mobile-nav nav .studio-mobile-create {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 72%, white);
+  color: var(--accent-contrast, #04100c);
+}
+
+.studio-open-toast {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--stroke-2));
+  border-radius: var(--radius-control);
+  color: var(--danger);
+  display: flex;
+  font-size: 12px;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 9px 10px;
+}
+
+.studio-open-toast button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+@media (min-width: 1024px) {
+  .studio-mobile-nav { display: none; }
+}
+
+.studio-sidebar-brand {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  padding: 6px 8px 10px;
+}
+
+.studio-sidebar-brand .brand-mark {
+  flex: none;
+}
+
+.studio-sidebar-brand p {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.studio-sidebar-brand strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ---------- Section heads ---------- */
+
+.studio-section-head h1,
+.studio-section-head h2 {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.studio-section-head h2 {
+  font-size: 16px;
+}
+
+.studio-section-head p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.studio-inline-error {
+  border: 1px solid color-mix(in srgb, var(--danger, #e5484d) 40%, transparent);
+  border-radius: var(--radius-control);
+  color: var(--danger, #e5484d);
+  font-size: 12px;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+}
+
+/* ---------- Project card wall ---------- */
+
+.studio-card-wall {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin-top: 20px;
+}
+
+.studio-project-card {
+  background: var(--surface-2);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--card-top-highlight);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: 10px;
+  min-height: 168px;
+  padding: 16px 16px 14px;
+  position: relative;
+  text-align: left;
+  transition: border-color var(--duration-standard) var(--ease-standard), box-shadow var(--duration-standard) var(--ease-standard);
+}
+
+/* Hover contract: stroke enhancement + brighter top highlight only. */
+.studio-project-card:hover,
+.studio-project-card:focus-visible {
+  border-color: var(--stroke-3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.studio-project-card[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.studio-card-status.opening {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--stroke-2));
+  color: var(--accent);
+}
+
+@media (max-width: 1023px) {
+  .studio-workbench {
+    gap: 28px;
+    padding: 12px 14px 44px;
+  }
+}
+
+.studio-card-accent {
+  background: var(--project-accent);
+  border-radius: 2px;
+  display: block;
+  height: 3px;
+  width: 40px;
+}
+
+.studio-card-head {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.studio-card-head h3 {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-card-status {
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  flex: none;
+  font-size: 11px;
+  padding: 1px 8px;
+}
+
+.studio-card-status.archived {
+  opacity: 0.7;
+}
+
+.studio-card-summary {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-card-progress {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.studio-progress-dot {
+  background: var(--stroke-3);
+  border-radius: 50%;
+  display: block;
+  height: 6px;
+  width: 6px;
+}
+
+.studio-progress-dot.completed {
+  background: var(--project-accent);
+}
+
+.studio-progress-dot.current {
+  background: color-mix(in srgb, var(--project-accent) 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--project-accent) 24%, transparent);
+}
+
+.studio-card-meta {
+  color: var(--muted);
+  display: flex;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.studio-card-words {
+  color: var(--text);
+}
+
+.studio-new-card {
+  align-items: center;
+  background: transparent;
+  border: 1px dashed var(--stroke-3);
+  border-radius: var(--radius-surface);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: center;
+  min-height: 168px;
+  transition: border-color var(--duration-standard) var(--ease-standard), color var(--duration-standard) var(--ease-standard);
+}
+
+.studio-new-card:hover,
+.studio-new-card:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* ---------- Empty state ---------- */
+
+.studio-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12vh auto 0;
+  max-width: 460px;
+  text-align: center;
+}
+
+.studio-empty-state h2 {
+  font-size: 28px;
+  font-weight: 400;
+  margin: 0;
+}
+
+.studio-empty-state p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.studio-empty-state .tech-button {
+  align-self: center;
+}
+
+/* ---------- Template management ---------- */
+
+.studio-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.studio-template-card {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--card-top-highlight);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.studio-template-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.studio-template-info strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.studio-template-info span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.studio-template-info input {
+  background: var(--surface-0);
+  border: 1px solid var(--stroke-3);
+  border-radius: var(--radius-control);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.studio-template-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.studio-template-actions .ghost {
+  align-items: center;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+}
+
+/* ---------- Unarchived runs ---------- */
+
+.studio-unarchived-toggle {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  gap: 8px;
+  padding: 0;
+}
+
+.studio-unarchived-toggle svg {
+  align-self: center;
+  transition: transform var(--duration-standard) var(--ease-standard);
+}
+
+.studio-unarchived-toggle svg.open {
+  transform: rotate(180deg);
+}
+
+.studio-unarchived-toggle em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.studio-unarchived-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.studio-unarchived-item {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-surface);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+
+.studio-unarchived-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.studio-unarchived-info strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.studio-unarchived-info span {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-unarchived-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.studio-unarchived-actions .ghost {
+  align-items: center;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+}
+
+/* ---------- New-project wizard ---------- */
+
+.studio-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 460px;
+  padding: 22px;
+  width: min(460px, calc(100vw - 48px));
+}
+
+.studio-wizard h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.studio-wizard-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.studio-wizard-fields label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.studio-wizard-fields input {
+  background: var(--surface-0);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-control);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.studio-wizard-fields input:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.studio-wizard-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.studio-template-option {
+  align-items: baseline;
+  background: var(--surface-1);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--card-top-highlight);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  font: inherit;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.studio-template-option.selected {
+  border-color: var(--accent);
+}
+
+.studio-template-option strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.studio-template-option span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.studio-template-option em {
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  margin-left: auto;
+  padding: 0 8px;
+}
+
+.studio-wizard-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.studio-wizard-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+/* ---------- Project accent immersion (Creation Shell) ---------- */
+
+.product-shell.has-project-accent {
+  --project-accent: var(--color-mode-primary);
+}
+
+:root[data-theme="light"] .product-shell.has-project-accent {
+  --project-accent: var(--color-mode-primary);
+}
+
+/* Studio cards derive the same variable per-card from their own hue. */
+.studio-project-card {
+  --project-accent: var(--color-mode-primary);
+}
+
+:root[data-theme="light"] .studio-project-card {
+  --project-accent: var(--color-mode-primary);
+}
+
+/* Consumer 1: sidebar project header (name + accent mark + back-to-studio). */
+.sidebar-project-header {
+  align-items: center;
+  border-bottom: 1px solid var(--stroke-1);
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 6px 8px 10px;
+}
+
+.sidebar-project-accent {
+  background: var(--project-accent, var(--stroke-3));
+  border-radius: 50%;
+  display: block;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.sidebar-project-title {
+  min-width: 0;
+}
+
+.sidebar-project-title .sidebar-item-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-project-back {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  margin-left: auto;
+  padding: 4px;
+  transition: border-color var(--duration-standard) var(--ease-standard), color var(--duration-standard) var(--ease-standard);
+}
+
+.sidebar-project-back:hover,
+.sidebar-project-back:focus-visible {
+  border-color: var(--stroke-3);
+  color: var(--text);
+}
+
+.workbench-sidebar.collapsed .sidebar-project-title {
+  display: none;
+}
+
+/* Consumer 2: current-item indicator bar picks up the project accent. */
+.has-project-accent .workbench-sidebar-item {
+  position: relative;
+}
+
+.has-project-accent .workbench-sidebar-item.active::before {
+  background: var(--project-accent);
+  border-radius: 1px;
+  bottom: 6px;
+  content: "";
+  left: 0;
+  position: absolute;
+  top: 6px;
+  width: 2px;
+}

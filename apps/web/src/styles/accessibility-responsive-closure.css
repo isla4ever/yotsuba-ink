@@ -1,0 +1,254 @@
+:where(
+  a[href],
+  button,
+  input,
+  select,
+  textarea,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 2px solid var(--color-focus-ring) !important;
+  outline-offset: 2px;
+}
+
+:where(
+  .candidate-history-list,
+  .chapter-foreshadow-ledger,
+  .chapter-revision-compare p,
+  .chapter-table-body,
+  .chapter-version-list,
+  .character-deepening-form,
+  .character-deepening-list,
+  .character-dossier-scroll,
+  .character-dossier-list,
+  .character-info-baseline > div,
+  .cover-brief-surface,
+  .cover-prompt-surface textarea,
+  .cover-quality-ledger,
+  .detail-writeback-chapter-rail,
+  .detail-writeback-editor,
+  .history-list,
+  .export-chapter-ledger,
+  .export-manifest-table,
+  .export-validation-ledger,
+  .knowledge-manager-list,
+  .outline-carry-editor textarea,
+  .outline-beat-editor-nav,
+  .outline-ledger-rows,
+  .outline-ledger-shell textarea,
+  .outline-source-rail,
+  .outline-volume-rail,
+  .quality-inline-detail .quality-list.expanded,
+  .recommendation-character-grid,
+  .recommendation-chip-row,
+  .runtime-side-detail-body,
+  .runtime-side-detail-body .world-seed,
+  .runtime-side-detail-body .worldbuilding-grid,
+  .runtime-knowledge-list,
+  .stage-run-side,
+  .stage-run-side .config-section,
+  .summary-editor-fields textarea,
+  .summary-mini-fields,
+  .summary-mini-fields textarea,
+  .summary-beat-timeline,
+  .summary-paper-readable,
+  .summary-turn-ladder,
+  .variant-compare-grid article,
+  .wiki-memory-event-list,
+  .writeback-choice-list,
+  .writeback-paper,
+  .world-editor-workbench,
+  .world-editor-lane textarea,
+  .writing-side,
+  .writing-manuscript
+) {
+  scrollbar-color: color-mix(in srgb, var(--mode-aura) 40%, var(--border)) transparent;
+  scrollbar-width: thin !important;
+}
+
+:where(
+  .candidate-history-list,
+  .chapter-foreshadow-ledger,
+  .chapter-revision-compare p,
+  .chapter-table-body,
+  .chapter-version-list,
+  .character-deepening-form,
+  .character-deepening-list,
+  .character-dossier-scroll,
+  .character-dossier-list,
+  .character-info-baseline > div,
+  .cover-brief-surface,
+  .cover-prompt-surface textarea,
+  .cover-quality-ledger,
+  .detail-writeback-chapter-rail,
+  .detail-writeback-editor,
+  .history-list,
+  .export-chapter-ledger,
+  .export-manifest-table,
+  .export-validation-ledger,
+  .knowledge-manager-list,
+  .outline-carry-editor textarea,
+  .outline-beat-editor-nav,
+  .outline-ledger-rows,
+  .outline-ledger-shell textarea,
+  .outline-source-rail,
+  .outline-volume-rail,
+  .quality-inline-detail .quality-list.expanded,
+  .recommendation-character-grid,
+  .recommendation-chip-row,
+  .runtime-side-detail-body,
+  .runtime-side-detail-body .world-seed,
+  .runtime-side-detail-body .worldbuilding-grid,
+  .runtime-knowledge-list,
+  .stage-run-side,
+  .stage-run-side .config-section,
+  .summary-editor-fields textarea,
+  .summary-mini-fields,
+  .summary-mini-fields textarea,
+  .summary-beat-timeline,
+  .summary-paper-readable,
+  .summary-turn-ladder,
+  .variant-compare-grid article,
+  .wiki-memory-event-list,
+  .writeback-choice-list,
+  .writeback-paper,
+  .world-editor-workbench,
+  .world-editor-lane textarea,
+  .writing-side,
+  .writing-manuscript
+)::-webkit-scrollbar {
+  display: block !important;
+  height: 8px;
+  width: 8px;
+}
+
+:where(
+  .candidate-history-list,
+  .chapter-foreshadow-ledger,
+  .chapter-revision-compare p,
+  .chapter-table-body,
+  .chapter-version-list,
+  .character-deepening-form,
+  .character-deepening-list,
+  .character-dossier-scroll,
+  .character-dossier-list,
+  .character-info-baseline > div,
+  .cover-brief-surface,
+  .cover-prompt-surface textarea,
+  .cover-quality-ledger,
+  .detail-writeback-chapter-rail,
+  .detail-writeback-editor,
+  .history-list,
+  .export-chapter-ledger,
+  .export-manifest-table,
+  .export-validation-ledger,
+  .knowledge-manager-list,
+  .outline-carry-editor textarea,
+  .outline-beat-editor-nav,
+  .outline-ledger-rows,
+  .outline-ledger-shell textarea,
+  .outline-source-rail,
+  .outline-volume-rail,
+  .quality-inline-detail .quality-list.expanded,
+  .recommendation-character-grid,
+  .recommendation-chip-row,
+  .runtime-side-detail-body,
+  .runtime-side-detail-body .world-seed,
+  .runtime-side-detail-body .worldbuilding-grid,
+  .runtime-knowledge-list,
+  .stage-run-side,
+  .stage-run-side .config-section,
+  .summary-editor-fields textarea,
+  .summary-mini-fields,
+  .summary-mini-fields textarea,
+  .summary-beat-timeline,
+  .summary-paper-readable,
+  .summary-turn-ladder,
+  .variant-compare-grid article,
+  .wiki-memory-event-list,
+  .writeback-choice-list,
+  .writeback-paper,
+  .world-editor-workbench,
+  .world-editor-lane textarea,
+  .writing-side,
+  .writing-manuscript
+)::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--mode-aura) 36%, var(--border));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+:where(
+  .quality-mode-tabs,
+  .control-tooltip-trigger
+) :focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+
+  .control-tooltip {
+    transform: translate(-50%, 0);
+  }
+
+  .header-utility-group .control-tooltip-trigger:last-child .control-tooltip {
+    transform: none;
+  }
+}
+
+@media (max-width: 359px) {
+  .app-header,
+  .app-header.run-surface {
+    padding-inline: var(--space-2);
+  }
+
+  .creation-action-dock {
+    grid-template-columns: minmax(0, 134px) minmax(0, 1fr);
+  }
+
+  .quality-mode-tabs {
+    width: 134px;
+  }
+
+  .control-tooltip {
+    max-width: calc(100vw - 16px);
+    white-space: normal;
+  }
+
+  .header-utility-group .control-tooltip {
+    width: max-content;
+    white-space: nowrap;
+  }
+
+  .app-overlay-backdrop {
+    --overlay-gutter: var(--space-2);
+  }
+}
+
+@media (max-width: 440px) {
+  .settings-grid,
+  .model-option-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-grid label:first-child,
+  .model-option-field {
+    grid-column: span 1;
+  }
+}

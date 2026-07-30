@@ -1,0 +1,134 @@
+/* Phase 10.1b global command palette (Cmd/Ctrl+K): centered overlay, combobox + listbox semantics. */
+
+.command-palette-backdrop {
+  align-items: flex-start;
+  display: flex;
+  justify-content: center;
+  padding-top: clamp(48px, 16vh, 160px);
+  z-index: calc(var(--z-dialog) + 40);
+}
+
+.command-palette {
+  /* Phase 11.1 surface v2 takeover: floating menu tier (--surface-3), card top highlight. */
+  background: var(--surface-3);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--card-top-highlight), var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  max-height: min(460px, calc(100dvh - 96px));
+  overflow: hidden;
+  width: min(560px, 100%);
+}
+
+.command-palette-input-row {
+  align-items: center;
+  border-bottom: 1px solid var(--stroke-1);
+  color: var(--color-text-muted);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.command-palette-input-row:focus-within {
+  color: var(--color-text-secondary);
+}
+
+.command-palette-input-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.command-palette-input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 14px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+}
+
+.command-palette-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.command-palette-kbd {
+  background: color-mix(in srgb, var(--color-surface-muted) 82%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  flex: 0 0 auto;
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 7px;
+}
+
+.command-palette-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2);
+}
+
+.command-palette-group-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: var(--space-1) 0 2px;
+  padding: 0 10px;
+  text-transform: uppercase;
+}
+
+.command-palette-option {
+  align-items: baseline;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 8px 10px;
+}
+
+.command-palette-option-title {
+  color: var(--color-text-primary);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.command-palette-option-detail {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette-option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--color-mode-primary) 12%, transparent);
+}
+
+.command-palette-option.disabled {
+  cursor: not-allowed;
+  opacity: var(--control-disabled-opacity);
+}
+
+.command-palette-empty {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+  padding: 18px 12px;
+  text-align: center;
+}

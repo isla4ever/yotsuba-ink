@@ -1,10 +1,10 @@
 # Contributing
 
-Thanks for contributing to Novel Workflow.
+Thanks for contributing to Yotsuba Ink.
 
 ## What this project is
 
-Novel Workflow is an orchestration framework for long-form fiction production:
+Yotsuba Ink is an orchestration framework for long-form fiction production:
 
 - Story Brief approval gate
 - Story Bible / Wiki continuity layer
@@ -22,7 +22,7 @@ Novel Workflow is an orchestration framework for long-form fiction production:
 
 ## Before you open a PR
 
-1. Confirm the change belongs to the Novel Workflow product path.
+1. Confirm the change belongs to the Yotsuba Ink product path.
 2. Prefer refactoring mixed-responsibility files before adding more logic to them.
 3. Keep new modules narrow and well named.
 4. Preserve or improve tests.
@@ -30,8 +30,12 @@ Novel Workflow is an orchestration framework for long-form fiction production:
 ## Local checks
 
 ```bash
-cd apps/web && npm run build
-.venv/bin/python -m pytest tests/test_workflow_runner.py -q
+.venv/bin/python -m pytest -q
+cd apps/web
+npm test
+npm run build
+npm run audit:css
+npm run check:css-split
 ```
 
 ## Layout expectations

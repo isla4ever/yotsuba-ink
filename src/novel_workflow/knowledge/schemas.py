@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -70,7 +70,7 @@ class KnowledgeSearchResult(BaseModel):
     preview: str
     score: float
     source_type: str = "knowledge_base"
-    metadata: dict[str, str | int | float] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class KnowledgeSearchResponse(BaseModel):

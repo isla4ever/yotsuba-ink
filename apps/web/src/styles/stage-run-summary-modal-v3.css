@@ -1,0 +1,201 @@
+/* Summary modal v3: portal-safe mode tokens, flatter editing surfaces. */
+.artifact-detail-backdrop.mode-fast {
+  --mode-aura: #d8ecff;
+  --mode-aura-strong: #8fc7ff;
+  --mode-aura-soft: rgba(216, 236, 255, 0.13);
+}
+
+.artifact-detail-backdrop.mode-balanced {
+  --mode-aura: #35e7a6;
+  --mode-aura-strong: #22c984;
+  --mode-aura-soft: rgba(53, 231, 166, 0.13);
+}
+
+.artifact-detail-backdrop.mode-deep {
+  --mode-aura: #a778ff;
+  --mode-aura-strong: #8d5cff;
+  --mode-aura-soft: rgba(167, 120, 255, 0.14);
+}
+
+.artifact-detail-backdrop .summary-mini-dialog,
+.artifact-detail-backdrop .character-deepening-dialog {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 8%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--panel) 91%, transparent));
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 38%, var(--border));
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent);
+}
+
+.artifact-detail-backdrop .summary-mini-dialog {
+  border-radius: 14px;
+  gap: 14px;
+  max-height: min(620px, calc(100vh - 56px));
+  padding: 22px 24px 18px;
+}
+
+.artifact-detail-backdrop .summary-mini-dialog.beat {
+  width: min(720px, calc(100vw - 56px));
+}
+
+.artifact-detail-backdrop .summary-mini-dialog.turn {
+  width: min(620px, calc(100vw - 56px));
+}
+
+.artifact-detail-backdrop .summary-mini-head {
+  border-bottom: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, var(--border));
+  gap: 5px;
+  padding-bottom: 13px;
+}
+
+.artifact-detail-backdrop .summary-mini-head span,
+.artifact-detail-backdrop .character-deepening-title .eyebrow {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 82%, var(--text-soft));
+}
+
+.artifact-detail-backdrop .summary-mini-head h2 {
+  font-size: 25px;
+  letter-spacing: 0;
+}
+
+.artifact-detail-backdrop .summary-mini-fields.summary-beat-composer,
+.artifact-detail-backdrop .summary-mini-fields.summary-turn-composer {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 12px;
+  max-height: min(400px, calc(100vh - 250px));
+  padding: 0;
+}
+
+.artifact-detail-backdrop .summary-mini-fields.summary-beat-composer,
+.artifact-detail-backdrop .summary-mini-fields.summary-turn-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+}
+
+.summary-edit-ribbon {
+  align-items: stretch;
+  background: color-mix(in srgb, var(--panel-muted) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, var(--border));
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  min-height: 72px;
+  padding: 10px 12px;
+}
+
+.summary-edit-ribbon > b {
+  align-items: center;
+  align-self: center;
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 50%, var(--border));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 88%, var(--text));
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 950;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.summary-edit-ribbon label,
+.artifact-detail-backdrop .summary-mini-fields.summary-beat-composer label,
+.artifact-detail-backdrop .summary-mini-fields.summary-turn-composer label {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 0;
+}
+
+.summary-edit-ribbon label {
+  align-self: center;
+}
+
+.summary-edit-columns {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 210px;
+}
+
+.artifact-detail-backdrop .summary-mini-fields span {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 76%, var(--muted));
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.artifact-detail-backdrop .summary-mini-fields input,
+.artifact-detail-backdrop .summary-mini-fields textarea {
+  background: color-mix(in srgb, var(--panel-muted) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 11px 12px;
+}
+
+.artifact-detail-backdrop .summary-edit-ribbon input {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+  height: auto;
+  padding: 0;
+}
+
+.artifact-detail-backdrop .summary-edit-ribbon input:focus {
+  box-shadow: none;
+}
+
+.artifact-detail-backdrop .summary-mini-fields textarea {
+  min-height: 174px;
+  scrollbar-width: none;
+}
+
+.artifact-detail-backdrop .summary-mini-fields textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.artifact-detail-backdrop .summary-mini-fields input:focus,
+.artifact-detail-backdrop .summary-mini-fields textarea:focus {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 46%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, transparent);
+}
+
+.artifact-detail-backdrop .summary-turn-composer .turn-detail textarea {
+  min-height: 228px;
+}
+
+.artifact-detail-backdrop .summary-mini-actions,
+.artifact-detail-backdrop .character-deepening-dialog > .artifact-dialog-actions {
+  border-top-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 16%, var(--border));
+}
+
+.artifact-detail-backdrop .summary-mini-actions .tech-button,
+.artifact-detail-backdrop .character-deepening-dialog .tech-button {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mode-aura, var(--accent-2)) 72%, #fff), color-mix(in srgb, var(--mode-aura-strong, var(--accent-2)) 84%, #111827));
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 56%, transparent);
+  box-shadow:
+    0 10px 24px color-mix(in srgb, var(--mode-aura, var(--accent-2)) 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 20%, transparent);
+  color: color-mix(in srgb, #fff 92%, var(--text));
+}
+
+.artifact-detail-backdrop .modal-close {
+  border-color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 34%, var(--border));
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 78%, var(--text-soft));
+}
+
+.artifact-detail-backdrop .modal-close:hover {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 12%, transparent);
+}

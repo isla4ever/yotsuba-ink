@@ -27,6 +27,7 @@ get-pip.py
 
 # Training outputs and runtime artifacts
 outputs/
+output/
 checkpoints/
 *.pt
 *.bin
@@ -43,10 +44,16 @@ runtime/novel_workflow/runs/
 runtime/novel_workflow/wiki/
 runtime/novel_workflow/references/
 runtime/novel_workflow/knowledge/
+runtime/novel_workflow/projects/
+runtime/novel_workflow/real_gate_runs/
+runtime/novel_workflow/real_gate_wiki/
+runtime/novel_workflow/*.sqlite*
 
 # Frontend
 apps/web/node_modules/
 apps/web/dist/
+*.tsbuildinfo
+.playwright-cli/
 
 # OS
 .DS_Store

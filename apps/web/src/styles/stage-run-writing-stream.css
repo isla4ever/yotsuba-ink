@@ -1,0 +1,12 @@
+/* 可编辑态提示色只属于 textarea；流式 div（.writing-manuscript-streaming）不是可编辑面。 */
+.writing-stage-layout:not(.readonly) .writing-manuscript:not([readonly]):not(.writing-manuscript-streaming) {
+  background:
+    linear-gradient(90deg, transparent 0, transparent 47px, color-mix(in srgb, var(--accent-2) 14%, transparent) 48px, transparent 49px),
+    color-mix(in srgb, var(--panel) 97%, var(--accent-2));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .writing-chapter-list button.committing > svg {
+    animation: none;
+  }
+}
