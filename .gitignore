@@ -47,6 +47,7 @@ runtime/novel_workflow/knowledge/
 runtime/novel_workflow/projects/
 runtime/novel_workflow/real_gate_runs/
 runtime/novel_workflow/real_gate_wiki/
+runtime/novel_workflow/real_book_acceptance/
 runtime/novel_workflow/*.sqlite*
 
 # Frontend

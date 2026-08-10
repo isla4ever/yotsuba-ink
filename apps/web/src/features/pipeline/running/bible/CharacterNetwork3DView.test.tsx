@@ -18,13 +18,13 @@ vi.mock('react-force-graph-2d', () => ({ default: () => null }));
 
 const graph: CharacterGraph = {
   nodes: [
-    { id: 'p1', name: '沈默', role: '主角', faction: '调查组', faction_id: 'faction-调查组', status: '', tier: 'protagonist' },
-    { id: 'm1', name: '林岚', role: '搭档', faction: '黑市', faction_id: 'faction-黑市', status: '', tier: 'major' },
-    { id: 'n1', name: '摊贩', role: '线人', faction: '', status: '', tier: 'npc' },
+    { id: 'p1', name: '沈默', role: '主角', faction: '调查组', faction_id: 'faction-调查组', status: '', tier: 'protagonist', first_appearance_stage: 'text', first_appearance_chapter: '1' },
+    { id: 'm1', name: '林岚', role: '搭档', faction: '黑市', faction_id: 'faction-黑市', status: '', tier: 'major', first_appearance_stage: 'text', first_appearance_chapter: '1' },
+    { id: 'n1', name: '摊贩', role: '线人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'text', first_appearance_chapter: '2' },
   ],
   edges: [
-    { source: 'p1', target: 'm1', relation: '搭档', strength: 0.8, kind: 'ally', polarity: 'positive' },
-    { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, kind: 'trade' },
+    { source: 'p1', target: 'm1', relation: '搭档', strength: 0.8, kind: 'ally', polarity: 'positive', valid_from_stage: 'characters' },
+    { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, kind: 'trade', valid_from_stage: 'text', valid_from_chapter: '2' },
   ],
   updated_by: 'test',
 };

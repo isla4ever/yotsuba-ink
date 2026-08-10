@@ -8,7 +8,7 @@ describe('pipelineRouteFromPath', () => {
     expect(pipelineRouteFromPath('/studio/nested')).toBeNull();
     expect(isStudioRoute('/studio')).toBe(true);
     expect(isStudioRoute('/studios')).toBe(false);
-    expect(canonicalStageOrder).toEqual(['info', 'summary', 'outline', 'detail', 'text', 'cover', 'export']);
+    expect(canonicalStageOrder).toEqual(['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export']);
   });
 
   it('resolves planning with or without a trailing slash', () => {
@@ -23,6 +23,7 @@ describe('pipelineRouteFromPath', () => {
 
   it('resolves known stage routes', () => {
     expect(pipelineRouteFromPath('/run/info')).toEqual({ phase: 'running', stageId: 'info' });
+    expect(pipelineRouteFromPath('/run/characters')).toEqual({ phase: 'running', stageId: 'characters' });
     expect(pipelineRouteFromPath('/run/export/')).toEqual({ phase: 'running', stageId: 'export' });
   });
 

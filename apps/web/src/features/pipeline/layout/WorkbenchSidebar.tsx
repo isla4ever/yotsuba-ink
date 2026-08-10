@@ -123,12 +123,12 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
       <p className="workbench-sidebar-heading" id="sidebar-stage-heading">创作流程</p>
       <div aria-labelledby="sidebar-stage-heading" className="workbench-sidebar-group" role="group">
         {routePolicy.planningSurface === 'cockpit' ? (
-          <SidebarEntry collapsed={collapsed} tooltip="创作驾驶舱 · 查看七阶段实时状态">
+          <SidebarEntry collapsed={collapsed} tooltip="创作驾驶舱 · 查看八阶段实时状态">
             <button
               aria-current={run.routePhase === 'planning' ? 'page' : undefined}
               className={`workbench-sidebar-item${run.routePhase === 'planning' ? ' active' : ''}`}
               onClick={ui.navigatePlanning}
-              title="在创作驾驶舱查看七阶段实时状态"
+              title="在创作驾驶舱查看八阶段实时状态"
               type="button"
             >
               <span aria-hidden="true" className="sidebar-item-icon"><Layers size={16} /></span>
@@ -136,7 +136,8 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
               <span aria-hidden="true" className={`sidebar-status-dot ${run.running ? 'running' : run.runHasStarted ? 'done' : 'idle'}`} />
             </button>
           </SidebarEntry>
-        ) : stageItems.map((item) => {
+        ) : null}
+        {routePolicy.stageRoutes === 'all' ? stageItems.map((item) => {
           const Icon = stageIcons[item.id] ?? Layers;
           const current = run.routePhase === 'running' && run.routeStageId === item.id;
           return (
@@ -156,7 +157,7 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
               </button>
             </SidebarEntry>
           );
-        })}
+        }) : null}
       </div>
       {routePolicy.planningSurface === 'planning' ? (
         <>

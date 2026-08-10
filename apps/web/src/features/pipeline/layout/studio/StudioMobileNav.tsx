@@ -10,7 +10,7 @@ export function StudioMobileNav() {
   return (
     <header className="studio-mobile-nav">
       <div className="studio-mobile-brand">
-        <span aria-hidden="true" className="brand-mark">NW</span>
+        <span aria-hidden="true" className="brand-mark">YI</span>
         <div><strong>Yotsuba Ink</strong><span>作品工作室</span></div>
       </div>
       <nav aria-label="工作室移动导航">

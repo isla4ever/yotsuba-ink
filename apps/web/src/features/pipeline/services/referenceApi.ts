@@ -11,14 +11,14 @@ export async function searchWebReferences(query: string, maxResults = 5): Promis
 export async function searchKnowledgeReferences(input: {
   query: string;
   intent?: string;
-  projectId?: string;
+  projectId: string;
   docIds?: string[];
   topK?: number;
 }): Promise<KnowledgeSearchResponse> {
   return postJson<KnowledgeSearchResponse>('/api/knowledge/search', {
     query: input.query,
     intent: input.intent ?? '',
-    project_id: input.projectId ?? 'default',
+    project_id: input.projectId,
     doc_ids: input.docIds ?? [],
     top_k: input.topK ?? 6,
   });

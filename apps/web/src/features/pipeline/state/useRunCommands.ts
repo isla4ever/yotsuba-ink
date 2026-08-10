@@ -2,7 +2,6 @@ import { useRef, type Dispatch, type MutableRefObject } from 'react';
 import type { ProjectRecord, RunControlState, RunEvent, RunInputs, WorkflowDefinition } from '../contracts';
 import { getPreferredRunSource, isBackendRunSource, type RunSource } from '../lib/runSource';
 import { getProviderReadiness } from '../services/providerApi';
-import { pauseRunRequest, resumeRun } from '../services/runApi';
 import { buildRunInputs } from './runInputs';
 import { resolveRunCommandIntent } from './runCommandIntent';
 import type { RunAction, RunState } from './runReducer';
@@ -26,7 +25,6 @@ type CommandRunState = Pick<RunState,
 
 type RunCommandOptions = {
   dispatchRun: Dispatch<RunAction>;
-  emitEvent: (event: RunEvent) => void;
   eventsRef: MutableRefObject<RunEvent[]>;
   history: RunHistoryController;
   onSettingsRequired: () => void;
@@ -47,7 +45,6 @@ type RunCommandOptions = {
 export function useRunCommands(options: RunCommandOptions) {
   const {
     dispatchRun,
-    emitEvent,
     eventsRef,
     history,
     onSettingsRequired,
@@ -98,7 +95,7 @@ export function useRunCommands(options: RunCommandOptions) {
       return;
     }
     const exportCompleted = eventsRef.current.some(
-      (event) => event.type === 'node_completed' && event.node_id === 'export',
+      (event) => event.type === 'artifact.committed' && event.stage_id === 'export',
     );
     if (terminal === 'completed' && workflow.quality_mode === 'deep' && exportCompleted) {
       markExportCompletedAndStay();
@@ -112,7 +109,7 @@ export function useRunCommands(options: RunCommandOptions) {
       inputs,
       kind: 'existing',
       runId,
-      workflowId: workflow.id,
+      workflow,
     });
     if (terminal) settleRunControl(terminal);
   }
@@ -127,7 +124,10 @@ export function useRunCommands(options: RunCommandOptions) {
     const source = storedRunSource ?? runSource;
     setRunSource(source);
     try {
-      await consumeExistingRun(buildRunInputs(workflow, source, project), hydrated.activeRunId);
+      await consumeExistingRun(
+        hydrated.inputs ?? buildRunInputs(workflow, source, project),
+        hydrated.activeRunId,
+      );
     } catch (error) {
       if (isRunAbortError(error)) return;
       setRunControl(false, 'failed', false);
@@ -152,15 +152,11 @@ export function useRunCommands(options: RunCommandOptions) {
       return;
     }
     if (intent.type === 'continue') {
-      await continueAfterCheckpoint(intent.stageId, intent.fallbackNextStageId);
+      await continueAfterCheckpoint(intent.stageId);
       return;
     }
-    if (intent.type === 'resume') {
-      await resumeActiveRun();
-      return;
-    }
-    if (intent.type === 'pause') {
-      await pauseActiveRun();
+    if (intent.type === 'observe') {
+      await observeActiveRun();
       return;
     }
     if (startInFlightRef.current) return;
@@ -172,37 +168,14 @@ export function useRunCommands(options: RunCommandOptions) {
     }
   }
 
-  async function resumeActiveRun() {
-    const commandEpoch = commandEpochRef.current;
-    try {
-      await resumeRun(state.activeRunId);
-    } catch (error) {
-      onWarning(`恢复运行失败：${errorMessage(error)}`);
-      return;
-    }
-    if (commandEpochRef.current !== commandEpoch) return;
+  async function observeActiveRun() {
     setRunControl(false, 'running', true);
     try {
       await consumeExistingRun(runInputs, state.activeRunId);
     } catch (error) {
       if (isRunAbortError(error)) return;
       setRunControl(false, 'failed', false);
-      onWarning(`恢复运行失败：${errorMessage(error)}`);
-    }
-  }
-
-  async function pauseActiveRun() {
-    const commandEpoch = commandEpochRef.current;
-    dispatchRun({
-      type: 'control_changed',
-      control: { runControlState: 'stop_requested' },
-    });
-    try {
-      await pauseRunRequest(state.activeRunId);
-    } catch (error) {
-      if (commandEpochRef.current !== commandEpoch) return;
-      dispatchRun({ type: 'control_changed', control: { runControlState: 'running' } });
-      onWarning(`暂停请求失败：${errorMessage(error)}`);
+      onWarning(`同步运行状态失败：${errorMessage(error)}`);
     }
   }
 
@@ -239,7 +212,7 @@ export function useRunCommands(options: RunCommandOptions) {
         inputs: buildRunInputs(workflow, source, project),
         kind: 'new',
         runId,
-        workflowId: workflow.id,
+        workflow,
       });
       if (!terminal) return;
       settleRunControl(terminal);
@@ -251,15 +224,14 @@ export function useRunCommands(options: RunCommandOptions) {
     }
   }
 
-  async function continueAfterCheckpoint(stageId: string, fallbackNextStageId = '') {
+  async function continueAfterCheckpoint(stageId: string) {
     const commandEpoch = commandEpochRef.current;
     const resolvedStageId = stageDecision.beginContinuation(stageId, state.selectedId);
     if (resolvedStageId === 'export') {
       returnExportToPlanning();
       return;
     }
-    const nextStageId = fallbackNextStageId
-      || selectNextStageId(workflow.nodes, resolvedStageId);
+    const nextStageId = selectNextStageId(workflow.nodes, resolvedStageId);
     transitions.startSettlement({
       kind: workflow.quality_mode === 'balanced' && resolvedStageId === 'info'
         ? 'balanced_cockpit'
@@ -290,15 +262,6 @@ export function useRunCommands(options: RunCommandOptions) {
 
   function returnExportToPlanning() {
     markExportCompletedAndStay();
-    if (state.activeRunId) {
-      emitEvent({
-        type: 'run_completed',
-        run_id: state.activeRunId,
-        execution_mode: 'live',
-        state: { quality_mode: workflow.quality_mode, returned_to_workbench: true },
-        created_at: new Date().toISOString(),
-      });
-    }
     stageDecision.clearCheckpoint();
     dispatchRun({ type: 'run_returned_to_planning', stageId: 'info' });
     transitions.setAutomationCockpitReady(workflow.quality_mode !== 'deep');

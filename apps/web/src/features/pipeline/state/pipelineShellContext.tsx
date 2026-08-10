@@ -65,7 +65,7 @@ export type WorkflowConfigSlice = {
   knowledgeDocuments: KnowledgeDocument[];
   saveStatus: 'idle' | 'saving' | 'saved' | 'failed';
   routePolicy: ModeRoutePolicy;
-  /** Active project (Phase 11.2 Studio Shell); null for the unarchived legacy session. */
+  /** Active project; null while the user is on the Studio project selector. */
   project: ProjectRecord | null;
 };
 
@@ -97,7 +97,7 @@ export type UICommandSlice = {
   refreshHistory: () => Promise<void>;
   downloadHistoryExport: (item: RunHistoryItem, receipt?: ExportReceipt) => Promise<void>;
   openHistoryRun: (item: RunHistoryItem) => Promise<string>;
-  restoreHistoryCheckpoint: (item: RunHistoryItem) => Promise<string>;
+  branchHistoryRun: (item: RunHistoryItem) => Promise<string>;
   changeQualityMode: (mode: QualityMode) => void;
   /** Studio Shell (Phase 11.2). */
   navigateStudio: () => void;

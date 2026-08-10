@@ -182,7 +182,7 @@
   border-bottom: 1px solid color-mix(in srgb, var(--border) 24%, transparent);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(150px, 0.3fr) minmax(140px, 0.24fr) minmax(0, 0.46fr);
+  grid-template-columns: minmax(180px, 0.58fr) minmax(160px, 0.42fr);
   padding-bottom: 15px;
 }
 
@@ -363,4 +363,5 @@
   .chapter-paper-topline {
     grid-template-columns: minmax(0, 1fr);
   }
+
 }

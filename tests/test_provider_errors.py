@@ -7,10 +7,14 @@ import pytest
 import requests
 from openai import AsyncOpenAI
 
-from novel_workflow.providers.errors import ProviderResponseError, provider_http_error, public_provider_failure
+from novel_workflow.providers.errors import (
+    ProviderResponseError,
+    provider_http_error,
+    public_provider_failure,
+    public_provider_response_diagnostic,
+)
 from novel_workflow.providers.openai_compat import OpenAICompatibleTextProvider
 from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
-from novel_workflow.providers.stage_probe import probe_structured_stage
 from novel_workflow.workflows.schemas import ProviderProfile
 
 
@@ -42,6 +46,7 @@ def sdk_client(handler) -> AsyncOpenAI:
         (402, {"Response": {"Error": {"Code": "INSUFFICIENT_BALANCE"}}}, "insufficient_balance", "余额"),
         (404, {"error": {"message": "missing model"}}, "endpoint_or_model_unavailable", "模型"),
         (429, {"error": {"message": "too many requests"}}, "rate_limited", "稍后重试"),
+        (429, {"error": {"code": "1113", "message": "余额不足或无可用资源包"}}, "insufficient_balance", "余额"),
     ],
 )
 def test_http_failures_map_to_stable_actionable_public_errors(
@@ -78,6 +83,40 @@ def test_structured_balance_reason_is_recognized_without_exposing_upstream_body(
     assert "upstream-request-id" not in str(error)
 
 
+def test_provider_response_diagnostic_is_a_bounded_whitelist() -> None:
+    error = ProviderResponseError(
+        "json_parse_failed",
+        "invalid",
+        diagnostic_details={
+            "finish_reason": "stop",
+            "response_chars": 400,
+            "raw_response": "private prose",
+            "api_key": "private-key",
+            "structured_parse": {
+                "parsed_object_count": 2,
+                "schema_match_count": 1,
+                "selection": "unique_schema_match",
+                "response_sha256": "a" * 64,
+                "private_excerpt": "private prose",
+            },
+        },
+    )
+
+    diagnostic = public_provider_response_diagnostic(error)
+
+    assert diagnostic == {
+        "finish_reason": "stop",
+        "response_chars": 400,
+        "structured_parse": {
+            "parsed_object_count": 2,
+            "schema_match_count": 1,
+            "response_sha256": "a" * 64,
+            "selection": "unique_schema_match",
+        },
+    }
+    assert "private" not in str(diagnostic)
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("raised_error", "internal_code", "public_code"),
@@ -102,35 +141,51 @@ async def test_text_provider_preserves_timeout_and_network_categories(
         await client.close()
 
     assert raised.value.code == internal_code
+    assert raised.value.diagnostic_code in {"connect_error", "read_timeout"}
     assert public_provider_failure(raised.value).code == public_code
     assert "private network detail" not in public_provider_failure(raised.value).message
 
 
+def test_stage_probe_route_is_removed(tmp_path, monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from novel_workflow.api.app import create_app
+
+    monkeypatch.chdir(tmp_path)
+    client = TestClient(create_app())
+
+    response = client.post("/api/providers/stage-probe", json={})
+
+    assert response.status_code == 405
+
+
 @pytest.mark.asyncio
-async def test_stage_probe_returns_public_compatibility_failure(monkeypatch) -> None:
-    class IncompatibleProvider:
-        async def generate_structured(self, *args, **kwargs):
-            del args, kwargs
-            raise ProviderResponseError("response_shape_error", "internal response path")
+async def test_mimo_request_uses_api_contract_with_temperature_when_thinking_is_disabled():
+    class FakeClient:
+        def __init__(self):
+            self.calls = []
+            self.chat = type("Chat", (), {"completions": type("Completions", (), {"create": self.create})()})()
 
-    monkeypatch.setattr(
-        "novel_workflow.providers.stage_probe.OpenAICompatibleTextProvider.from_profile",
-        lambda **kwargs: IncompatibleProvider(),
+        async def create(self, **kwargs):
+            self.calls.append(kwargs)
+            return {"choices": [{"finish_reason": "stop", "message": {"content": "连接正常"}}]}
+
+    client = FakeClient()
+    provider = OpenAICompatibleTextProvider(
+        base_url="https://api.xiaomimimo.com/v1",
+        api_key="sk-test",
+        model="mimo-v2.5-pro",
+        client=client,
+        template_id="xiaomi-mimo-api-text",
     )
-    profile = ProviderProfile(
-        id="text-provider",
-        name="Text Provider",
-        kind="openai-compatible",
-        base_url="https://provider.example/v1",
-        default_model="model-a",
-    )
 
-    result = await probe_structured_stage(profile, api_key="secret", stage_id="info", max_tokens=256)
-
-    assert result.ok is False
-    assert result.error_code == "incompatible_response"
-    assert "OpenAI-compatible" in result.message
-    assert "internal response path" not in result.message
+    assert await provider.generate_text("请只回复：连接正常", task_name="smoke", context={}) == "连接正常"
+    request = client.calls[0]
+    assert request["max_completion_tokens"] == 1200
+    assert "max_tokens" not in request
+    assert request["temperature"] == 0.2
+    assert "top_p" not in request
+    assert request["extra_body"]["thinking"] == {"type": "disabled"}
 
 
 @pytest.mark.asyncio
@@ -195,3 +250,43 @@ def test_provider_test_api_returns_balance_code_without_sensitive_data(tmp_path,
     assert "private-provider.example" not in serialized
     assert "private upstream explanation" not in serialized
     assert "upstream-request-id" not in serialized
+
+
+def test_anthropic_evaluation_template_still_allows_connection_test(tmp_path, monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from novel_workflow.api.app import create_app
+
+    calls: list[dict[str, object]] = []
+
+    class SuccessfulProvider:
+        async def generate_text(self, prompt, *, task_name, context):
+            calls.append({"prompt": prompt, "task_name": task_name, "context": context})
+            return "连接正常。"
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "novel_workflow.api.routes.providers.OpenAICompatibleTextProvider.from_profile",
+        lambda **kwargs: SuccessfulProvider(),
+    )
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/providers/test",
+        json={
+            "provider": {
+                "id": "anthropic-evaluation",
+                "name": "Claude compatibility evaluation",
+                "kind": "openai-compatible",
+                "template_id": "anthropic-openai-text",
+                "base_url": "https://api.anthropic.com/v1",
+                "default_model": "claude-sonnet-5",
+                "enabled": True,
+            },
+            "api_key": "unit-test-secret",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert calls[0]["task_name"] == "provider_smoke_test"

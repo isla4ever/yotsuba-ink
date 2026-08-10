@@ -1,491 +1,91 @@
-# 小说流水线阶段产物合同
+# Yotsuba Ink vNext Stage Artifact Contract
 
-这份文档是 Yotsuba Ink 的产品主线约束。后续前端 UI、SSE 事件、模拟链路、真实模型编排、阶段路由和状态持久化，都必须先对齐这里的阶段语义，再进入实现。
+状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过；真实 Provider 已获“推送成功后执行”的授权但尚未执行，人工文学验收仍待完成。
 
-## 核心原则
+## 生产阶段
 
-- 不用 UI 空位反推功能。每个阶段先定义模型产物、用户决策、系统写回和下一阶段依赖，再设计页面。
-- 配置态只做启动前准备，不展示运行态观测模块。
-- 运行态按阶段动态展示面板，不把人物关系网、世界观、Wiki、质量阀门、知识库同时塞进所有页面。
-- 模型端返回结构化 artifact，前端渲染为可编辑表单、卡片、表格、时间线或正文编辑器，不直接把 JSON 倒给用户。
-- 梗概、大纲、细纲必须返回稳定字段对象，禁止要求后端从 markdown 长文、自由文本或模型解释语中再用正则清洗解析。
-- `Wiki` 是运行时事实账本，从章节细纲和正文阶段开始成为核心面板。
-- `质量阀门` 是执行评审层，从梗概阶段开始介入，正文阶段优先级最高。
-- `人物关系网` 和 `世界观` 是长期上下文观测，但在不同阶段权重不同。
-- 三档模式是不同工作方式，不只是 Token 档位：极速生产是单页自动 cockpit，平衡创作是 info 人工定稿后自动流水线，精细定稿是每个创作阶段都人工换稿、确认、再继续。
-- 版本对比不是精细模式默认能力；版本对比只属于平衡模式的可选开关，并且必须由用户主动点击“对比择优”后才触发。
+配置页不是运行阶段。LangGraph 只编译并执行下面这一条图：
 
-## 写作结构调研基准
+```text
+info -> characters -> summary -> outline -> detail -> text -> cover -> export
+```
 
-本产品的 summary / outline / detail 结构不是前端临时字段，而是模型端输出合同。调研基准固定为：
+| 阶段 | 唯一核心 Artifact | 用户决策 | 正式写回 | 下游依赖 |
+| --- | --- | --- | --- | --- |
+| `info` 创作立项 | `StoryBriefArtifact` | 题材承诺、世界前提、主题问题、结局承诺、叙事声音 | `ArtifactStore.info` | `characters`、`summary` |
+| `characters` 人物编排 | `CharacterBibleArtifact` | 主角、重要配角、功能角色、NPC 槽位的职责、关系、弧线、首次出现窗口 | `ArtifactStore.characters` | `summary`、`outline`、`detail`、`text` |
+| `summary` 全书梗概 | `SummaryArtifact` | 因果链、高潮、结局和人物结局是否成立 | `ArtifactStore.summary` | `outline` |
+| `outline` 分卷大纲 | `OutlineArtifact` | 各卷目标、转折、人物窗口、线程窗口和章节范围 | `ArtifactStore.outline` | `detail` |
+| `detail` 章节施工图 | `DetailArtifact` | 每章目的、场景转折、义务和跨章交接 | `ArtifactStore.detail` | `text`、`cover` |
+| `text` 正文 | `ChapterArtifact`（按章版本） | 接受、人工编辑、定向修订或保留分支 | `ChapterStore`，证据后进入 Outbox | 下一章、`cover`、`export` |
+| `cover` 封面 | `CoverArtifact` | 视觉 brief 和最终资产 | `ArtifactStore.cover`、AssetStore | `export` |
+| `export` 导出 | `ExportArtifact` | 格式、章节版本、封面和元数据 | `ExportStore` | 无 |
 
-- Jane Friedman 的小说 synopsis 写作规范：梗概要交代完整故事、人物选择、变化与结局，不是宣传简介，也不是一句话卖点。
-- Save the Cat / Reedsy 的 novel beat sheet：大纲适合用 opening、development、midpoint、climax、resolution 等节拍承载结构，不要求后端从长段卷纲里再抽节拍。
-- 章节细纲模板：每章应稳定围绕 POV、场景、目标、进入状态、冲突、风险、事实增量、伏笔、人物变化、章末钩子和连续性备注组织。
+每个阶段只有一个用户可编辑或批准的 Artifact。候选、审稿、预算、调用收据、checkpoint、Evidence、SSE 和写回状态不是 Artifact 字段。
 
-后端和模型 prompt 必须直接产出这些小字段。前端只负责编辑、展示和回写结构对象；不得把 markdown 大段文本、模型解释语或“自由发挥”的段落交给后端用正则二次清洗。
+## Artifact 分层
 
-## 页面与阶段总览
+### 核心 Artifact
 
-| 阶段 | 主内容 | 右侧面板 | 主要用户动作 |
-| --- | --- | --- | --- |
-| 配置 | 链路画板、知识库状态台、阶段配置 | 无运行观测 | 配置项目、知识库、模型与质量模式，启动 |
-| 小说信息推荐 | 书名、简介、世界观、人物信息编辑 | 世界观、人物关系网 | 换一版、编辑、确认推荐 |
-| 全书梗概 | 梗概编辑、结构时间线、关键转折 | 人物关系网、世界观、质量阀门 | 局部重写、确认继续 |
-| 分卷大纲 | 分卷卡、节奏条、卷内冲突推进 | 人物关系网、世界观、质量阀门 | 调整卷数、重写单卷、确认继续 |
-| 章节细纲 | 章节表、章节详情、伏笔和事实矩阵 | 人物关系网、世界观、质量阀门、Wiki | 单章重写、批量调整、确认继续 |
-| 正文生成 | 章节导航、正文编辑器、流式正文、修订历史 | 质量阀门、Wiki、人物关系网、世界观 | 暂停、继续、重写段落、选择版本 |
-| AI 封面 | 封面 brief、prompt、候选图、选中结果 | 封面质量摘要、导出准备 | 选方案、重生成、确认封面 |
-| 导出 | Manifest、格式选择、文件清单、校验结果 | 导出摘要、质量摘要 | 选择格式、校验、下载 |
+- `StoryBriefArtifact`：`title`、`premise`、`story_promise`、`world_rules`、`thematic_question`、`ending_promise`、`voice`、`cast_requirements`。
+- `CharacterBibleArtifact`：稳定 `character.id`、`tier`、`narrative_function`、目标、内在需求、三点弧线、首次出现窗口、硬边界；关系只引用已注册 id；NPC 只能是冻结槽位。
+- `SummaryArtifact`：稳定 `beats[]`（事件和后果）、`climax`、`resolution`、`character_outcomes[]`。
+- `OutlineArtifact`：连续卷窗口、`objective`、因果 `turns[]`、`ending_state`、人物窗口和线程窗口。
+- `DetailArtifact`：连续章节 `id/number`、`purpose`、POV id、场景（地点、目标、障碍、转折、结果）、义务和 handoff。
+- `ChapterArtifact`：章节 id、版本 id、标题、正文和 `author_status`。生成节点只可返回 `candidate`。
+- `CoverArtifact`：可执行 `brief` 和已选择资产 id；资产 URL、尺寸和生成收据属于 sidecar。
+- `ExportArtifact`：格式、已接受章节版本 id、封面资产 id 和导出元数据。
 
-## 三档模式主线
+### 确定性投影
 
-三档模式必须在配置态、运行态、Header 控制、阶段确认和 cockpit 形态上形成明确差异。不得只改变文案或 Token 参数。
+关系图、章节 cast、卷卡、节奏条、章节号、卷归属、交接链、引用集合、签名、字数软目标、Artifact 表单摘要和前端导航均由核心 Artifact、`BookScalePlan` 或领域账本派生，可删除后重建。投影不得反写核心 Artifact。
 
-### 极速生产
+### 运行时 sidecar
 
-极速生产默认进入工作台 cockpit。它的目标是让用户快速看到完整产物链路的推进感，而不是逐阶段审稿。
+`NarrativeRunState` 只保存 routing：`run_id`、阶段状态、Artifact ref、章节版本 ref、当前节点、decision ref、operation ref、失败证据 ref 和状态 revision。Provider receipt、token/cost、review lane、checkpoint id、interrupt、Evidence、Outbox 事务和 SSE 序列存放在各自的领域存储。
 
-- 配置态即 cockpit：左侧纵向阶段链路，中间运行日志和运行层小组件，右侧人物关系网、知识库和世界观入口。
-- 未启动时仍是配置态：可以切换模式，单击节点打开配置抽屉，双击节点不能进入阶段详情页。
-- 启动后不跳转页面，留在 cockpit 自动执行全链路。
-- 运行中主按钮为不可点击状态，例如“极速生产运行中”，不提供暂停/停止。
-- Header、左侧节点、运行日志和小组件都必须以同一组 SSE/mock 事件为事实源。
-- 完成后允许重置演示链路或回到配置态重新选择模式。
+### 窄调用 / 工具结果
 
-### 平衡创作
+标题候选、因果缺口、人物弧检查、连续性检查、章节 Evidence、封面资产生成等只服务一个节点，必须带输入签名和证据 ref，不能扩充主 Artifact，不能直接写 Canon/Wiki。
 
-平衡创作是默认生产型模式：信息推荐由用户定稿，后续自动化流水线运行。它比极速更稳，但不要求用户每步跟着走。
+### 删除字段
 
-- 配置态使用标准横向 Pipeline Canvas 和紧凑配置面板，不进入 cockpit。
-- 启动后进入 `/run/info`，显示信息推荐生成过程和可编辑结果。
-- 用户确认信息推荐后，右上角才变为绿色继续按钮。
-- 点击绿色继续后显示结算遮罩，并在遮罩中无感进入自动 cockpit。
-- info 之后的 summary/outline/detail/text/cover/export 自动执行，不强制逐页人工确认。
-- 平衡模式可提供“版本对比”开关；开关只影响支持对比的阶段，不得影响极速或精细模式。
-- 版本对比必须是用户主动点击“对比择优”后才触发，不得在生成完成后自动弹出强制对比。
+删除 `schema_version`、版本转换器、`new_characters`、自由文本人物/关系快照、`wiki_candidates`、`fact_reveals`、`foreshadow_actions`、自评分、UI 坐标、重复 synopsis/act/key-turn 字段、模型自动修复字段和所有 fallback 字段。正文后事实、Wiki、Canon 与伏笔变化都从正文 Evidence 生成提案。
 
-### 精细定稿
+## 人物编排边界
 
-精细定稿是专业人工审稿模式。它不默认版本对比，而是把每个创作阶段都变成类似信息推荐的“换稿 -> 定稿 -> 绿色继续”链路。
+`characters` 是正文前唯一角色注册表。`outline`、`detail`、`text` 只能引用稳定 `character_id`。新增角色、职责升级、关系重定向或首次出现窗口变化必须生成带触发证据和影响 Artifact 的 `CharacterChangeProposal`，由 LangGraph `interrupt()` 等待明确批准后创建新版本；拼写和展示名变化属于确定性投影，不是语义变更。
 
-- 配置态比平衡模式更专业，可展示更多可配置项、人工干预点和阶段策略；但仍不展示运行态观测全家桶。
-- 启动后进入 `/run/info`，后续每个创作阶段都进入对应 `/run/*` 详情页。
-- 每个阶段生成完成后进入等待态：Header 主按钮显示等待确认，不能直接进入下一阶段。
-- 阶段主内容必须提供“换一稿”和“确认定稿”。确认定稿后，右上角按钮才变成绿色继续。
-- “换一稿”必须提供 3 个方向建议，用户也可以输入自定义方向；建议应针对当前阶段产物，而不是泛泛的“更好/更爽/更完整”。
-- 点击“换一稿”后进入对比态：主内容区扩展为最多 3 栏候选，其他运行面板退出主体，只在对比 header 中以入口按钮打开弹窗查看。
-- 精细模式下用户自己选择定稿版本，不触发自动模型对比择优；模型只负责按用户选择的方向生成候选。
-- 信息推荐之后到 AI 封面之前，summary、outline、detail、text 都遵循同一套换稿/定稿/绿色继续合同。
-- AI 封面和导出可以有重生成、选择和确认，但不强制复用文本阶段的三栏换稿形态。
+主角和重要配角必须冻结完整档案；功能角色必须冻结剧情职责；必要 NPC 只能冻结用途、窗口和限制，允许在施工图中命名但不能升级职责。Fast 模式也必须在正文前产生版本和决策回执。
 
-## 换稿与版本对比合同
+## Memory、Wiki、Canon、RAG
 
-“换稿”和“版本对比”是两套不同交互，不能混用。
+- 用户上传知识库是前置 `info` 的 Source Pack。RAG 只在立项/规划阶段读取，结果带来源、签名和采用状态；正文节点禁止盲检索。
+- Worldbuilding 是创作设定；Character Graph 是角色与关系投影；Wiki 是正文 Evidence 驱动的事实账本；Canon 是用户批准后的事实权威；它们不能互相代替。
+- Evidence 先生成 proposal，用户或明确的写回节点批准后才进入 Canon/Wiki；Retrieval、proposal agent 和模型自评分没有写权限。
+- 字数只有软目标和合理容错。超出目标只生成诊断，不自动删改正文；硬门只检查合同、引用、状态和安全容量。
 
-### 换一稿
+## LangGraph、LangChain 和 Provider
 
-- 适用：信息推荐、精细模式下的梗概、分卷大纲、章节细纲、正文生成，以及封面重生成。
-- 触发：用户点击当前阶段的“换一稿”按钮。
-- 弹窗：显示 3 个当前阶段相关建议和一个自定义方向输入。
-- 生成：用户选择或输入方向后，系统生成新候选稿。
-- 展示：进入候选对比态，最多展示 3 栏；超过 3 个的更早版本进入历史候选。
-- 决策：用户选择其中一版作为当前稿，或继续换稿。
-- 退出：确认定稿后恢复单栏主内容和阶段侧栏，Header 变为绿色继续。
+LangGraph Graph API 是唯一生产运行时：一个 thread、一个持久 checkpointer、一个 `interrupt()`/`Command(resume=...)` 决策路径、一个事件投影和一个写回 Outbox。相邻章节顺序生成；同一冻结版本的审稿角色可用 `Send` 并行读取。
 
-### 平衡模式版本对比
+生产源码默认禁止直接使用 LangChain API：`pyproject.toml` 不直接依赖 `langchain*`，`src/` 不导入 `langchain`。LangGraph 传递安装的 `langchain-core` 只视为框架内部依赖，不成为 Yotsuba Ink 的模型、工具、Prompt、memory、structured output 或 Agent authority。若未来出现直接 LangGraph 子图与现有领域端口都无法覆盖的真实需求，必须先通过独立 RFC、源码 spike 和删除矩阵评审，不能在窄节点中顺手引入。
 
-- 只在平衡模式且配置开关开启时可用。
-- 适用阶段由配置决定，默认优先考虑梗概和正文，不覆盖所有阶段。
-- 生成完成后可以提示“可进行版本对比”，但不得自动进入对比态。
-- 用户点击“对比择优”后，主体进入最多 3 栏候选对比。
-- 对比态中的 header 显示候选历史入口、运行面板入口、退出对比按钮和确认择优按钮。
-- 点击“模型对比择优”才调用模型评审能力；评审完成后选中版本成为当前内容，恢复原本单栏布局。
-- 用户也可以不调用模型，手动选择一版作为当前内容。
+每个生产节点使用 Run 创建时冻结的 `ProviderBinding`（provider、model、temperature、max tokens、top-p、timeout、prompt、idempotency key）。没有隐式默认、Provider fallback、Reviewer fallback、schema alias、converter 或 legacy execution switch。Provider 失败进入 Graph failure/interrupt，由用户决定重试或取消。
 
-### 对比态布局
+Provider 结构化响应去除首尾空白后必须是一个完整 JSON object，只允许一次标准 JSON 解析；Markdown fence、解释文本、对象截取、语法 repair、字段 alias/converter、默认值注入和未知字段丢弃全部禁止。所有核心键必须显式出现，允许为空时返回空字符串或空数组。Outline 多卷按卷调用，Detail 每批最多 8 章，单元结果经 operation receipt、冻结目标和引用校验后才确定性聚合；部分结果不得写成候选 Artifact。Export 不调用 Provider，Fast 自动接受，Balanced/Deep 只允许确认或取消。
 
-- 对比态主内容区优先级最高，最多 3 栏，不允许右侧大面板继续挤占主体空间。
-- 人物关系网、世界观、Wiki、质量阀门、知识库都降级为对比 header 中的入口按钮，点击后以弹窗打开详情。
-- 对比态 header 只在进入候选/对比模式时出现；普通阶段页面不常驻这条 header。
-- 更早版本进入“历史候选”入口，用户可从历史中拉回某一版参与当前最多 3 栏对比。
-- 取消对比或确认定稿后，必须恢复原阶段布局，清理分栏状态。
+## 事件和 UI 投影
 
-## 配置阶段
+SSE 只投影稳定领域事件：`run.started/completed/failed`、`node.started/completed/failed`、`artifact.candidate_ready/committed`、`decision.required/resolved`、`review.started/completed/unavailable`、`evidence.proposed`、`writeback.queued/committed/failed`、`checkpoint.saved` 和 `branch.created`。事件 envelope 只有 event/run/thread/sequence/type/stage/node/chapter/status/payload ref/checkpoint ref；前端不得消费原始 Graph State。
 
-配置阶段的任务是让用户完成启动前准备。这里不展示世界观、人物关系网、Wiki 或质量阀门，因为这些是运行过程中产生和验证的观测能力。
+前端路由使用上述八个 stage id；阶段表单只编辑当前核心 Artifact；人物工作台读取 `CharacterBibleArtifact` 与其 change proposal；运行观察显示当前 node、并行 review、预算、checkpoint 和失败 evidence；写回状态只读取 `review.*`、`evidence.*`、`writeback.*` 事件。保存草稿不等于正式写回。
 
-### 用户可配置内容
+## 合同门
 
-- 小说基础：题材、目标字数、受众、风格、禁忌、主角偏好、世界类型。
-- 知识库：项目资料、参考资料、RAG 策略、联网参考开关。
-- 工作流：质量模式、模型/provider、阶段开关和高级参数。
-- 输出偏好：章节长度、分卷策略、正文语气、导出格式。
+每个迁移 Wave 必须同时证明新路径并删除旧路径：
 
-### 前端展示
-
-- 主体：横向创作链路画板。
-- 辅助：知识库状态台。
-- 右侧：常驻阶段配置区。
-- 极速生产配置态显示为 cockpit 工作台，强调轻量启动和全链路预览。
-- 平衡创作配置态显示为标准画布和必要配置，减少高级干预项，强调 info 定稿后自动化。
-- 精细定稿配置态显示为专业配置形态，可展开人工干预、换稿策略、阶段确认要求和可选高级参数。
-
-### 不应展示
-
-- 人物关系网。
-- 运行态世界观面板。
-- Wiki 事实层。
-- 质量监控面板。
-
-## 小说信息推荐
-
-这是定项目方向的阶段，不是过程日志页面。用户看到的应该是可编辑的小说设定定稿页。
-
-### 模型应返回
-
-- 书名候选：多个候选、默认选中项、自定义入口。
-- 小说简介：用于详情页、推广页和项目总览。
-- 详细世界观：时代、空间、组织、规则、社会矛盾、限制条件。
-- 人物信息：姓名、身份、背景、动机、关系、隐藏冲突、成长方向。
-- 人物关系：关系边、亲疏、敌友、利益、秘密。
-- 创作定位标签：题材、节奏、爽点、风格，仅作为轻量 tag。
-- 内部风险提示：可用于质量或重新生成方向，但不作为主 UI 大模块。
-
-### 前端展示
-
-- 主区：书名 tag 和自定义书名、小说简介、详细世界观编辑器、人物信息编辑表。
-- 右侧：世界观面板、人物关系网。
-
-### 不应展示
-
-- 推荐理由大模块。
-- 知识库依据大模块。
-- Wiki 事实层。
-- 质量阀门。
-- 世界观种子、人物种子、伏笔与约束等过程性中间名词。
-
-### 操作逻辑
-
-- 首次进入显示全局 Agent 加载遮罩，表达检索、理解和生成过程。
-- 生成完成后淡入可编辑内容。
-- “换一稿”打开弹窗，展示 3 个方向建议和自定义方向输入。
-- “确认推荐”后才进入梗概阶段；确认前不显示阶段总结、token 或字数切换弹窗。
-- 编辑世界观或人物后，右侧对应面板显示“同步中 -> 完成 -> 淡出”的轻反馈。
-
-### 当前实现与后端对接
-
-- Info 定稿对象与 `StoryBriefContract` 对齐：`selected_title`、`title_candidates`、`synopsis`、`worldbuilding_detail`、`characters`、`relationships`、`tags`、`downstream_constraints`、`risk_notes`。前端不得在编辑回写时丢失人物 `growth_direction` 或隐藏的下游约束。
-- 主区除书名、标签、简介和世界观摘要外，稳定展示人物档案 ledger；人物编辑和世界观编辑分别进入专用全局弹层，保存后只触发对应右侧面板的同步反馈。
-- “确认推荐”前由前端检查书名、简介、世界观和人物必填字段；提交后由后端 `validate_stage_artifact("info_recommend", artifact)` 再次校验。只有真实审批接口成功后才能显示确认成功并解锁继续。
-- Info 的“换一稿”与后续精细阶段使用同一组 `draft_regeneration_requested / draft_candidate_generated / draft_candidate_selected` 事件，但 Info 在平衡和精细模式都可使用，因为两种模式都存在 Info 人工闸门；极速模式不开放该入口。
-- 用户选择的换稿方向必须进入真实候选 prompt。每次最多生成 3 个带稳定 `candidate_id` 的候选；新一轮生成会把上一轮候选归入最多 12 条历史记录，历史候选仍可恢复并写回当前审批 Artifact。
-- 候选生成失败必须产生 `draft_regeneration_failed` 前端状态并退出三栏等待态，不允许依靠固定计时器伪装成功或让页面永久停留在生成中。
-- 候选对比只展示可读的书名、简介、人物/关系数量和标签，不展示原始 JSON。选择后恢复单栏 Info 编辑态，仍需用户点击“确认推荐”才能放行。
-
-## 全书梗概
-
-这是定故事主干的阶段。
-
-### 模型应返回
-
-- `one_liner`：一句话故事核心，只做顶部摘要，不替代完整梗概。
-- `full_synopsis`：覆盖完整故事推进、关键选择、人物变化和结局承诺的全书梗概；前端可用剧情节点命名展示，不强制显示“开端/发展/高潮/结局”模板词。
-- `act_structure[]`：三幕或多幕结构，每一项包含 `title`、`goal`、`turn`。
-- `core_conflict`：主线冲突、反派或阻力系统。
-- `character_arcs[]`：人物成长弧，每一项包含 `name`、`arc`、`pressure`、`next`。
-- `key_turns[]`：关键转折点，每一项包含 `label`、`detail`。
-- `ending_resolution`：结局方向、投稿项落点和后续余波。
-- `consistency_checks[]`：与世界观、人物设定、物证链的冲突检查结果。
-
-### 前端展示
-
-- 主区：梗概稿纸编辑器、结构节拍时间轴、关键转折轨、人物关系深化 ledger。
-- 右侧：人物关系网、世界观、质量阀门。
-- `one_liner` 只能作为顶部短摘要；主体必须展示并可编辑 `full_synopsis`。
-- 人物关系深化必须同时展示 info 阶段定稿的人物身份/简介基线，再展示 summary 阶段新增的 `character_arcs`、关系压力和后续影响。
-- 关键转折不能做无语义卡片堆叠，应以阶梯/轨道形式展示 `key_turns[]`，让用户理解故事推进顺序。
-- 流式生成时 `full_synopsis` 以稿纸正文行逐步淡入，不把每段 delta 包成独立 card；生成完成后正文必须继续可见，编辑入口可以折叠，但不能让内容消失或重复展示两份。
-
-### 操作逻辑
-
-- SSE 流式生成梗概段落和结构卡片。
-- 极速模式完成后自动进入下一阶段。
-- 平衡模式完成后自动进入下一阶段；若版本对比开关开启，只提示可对比，用户点击“对比择优”后才进入对比态。
-- 精细模式完成后等待人工定稿，提供“换一稿”和“确认定稿”；确认后 Header 才出现绿色继续按钮。
-
-### 当前实现与后端对接
-
-- Summary 当前稿由“生成/候选来源签名 + 用户编辑稿”组成。来源未变化时确认提交编辑稿；选择新候选后旧编辑稿自动失效，不能覆盖新候选。
-- `one_liner`、`full_synopsis`、`act_structure[]`、`core_conflict`、`character_arcs[]`、`key_turns[]`、`ending_resolution` 和 `consistency_checks[]` 都有真实编辑入口，并共同参与定稿完整度检查。
-- `character_arcs[]` 必须至少包含一项，每项的 `name`、`arc`、`pressure` 和 `next` 都必须完整；`name` 必须唯一引用 Info 已确认人物，后端审批会再次校验，禁止产生孤立角色。
-- Deep 模式只在用户确认后把编辑稿写入 `artifacts/approved_artifacts`；Fast 与 Balanced 在阶段自动确定后执行同一写回。确认前的草稿和候选不得写入 Memory、Story Bible 或人物图谱。
-- 最终 Summary 按顺序更新 Memory、Story Bible 人物档案、连续性摘要和人物图谱；人物档案保存 `arc/pressure/next`，图谱节点状态反映当前关系压力，Outline 及后续 Prompt 读取同一正式 Artifact。
-- 写回使用最终 Artifact 签名作为幂等标记。刷新、SSE 重连或服务恢复会补齐未完成写回，但同一稿件不会重复写 Memory；完成阶段恢复和等待确认恢复都遵守该规则。
-
-## 分卷大纲
-
-这是定中观节奏的阶段。
-
-### 模型应返回
-
-- `volumes[]`：分卷列表。
-- 每个 volume 必须包含 `title`、`chapter_range`、`volume_goal`、`rhythm`。
-- 每个 volume 必须包含结构节拍字段：`opening`、`development`、`midpoint`、`climax`、`resolution`。
-- 每个 volume 必须包含后续依赖字段：`character_progression`、`world_reveal`、`foreshadow_plan`。
-- 字段直接由模型返回，前端按 beat board 渲染，不从一段卷纲长文中二次抽取。
-
-### 当前前端实现与后端对接
-
-- 前端已将分卷大纲拆成两类编辑链路：`opening/development/midpoint/climax/resolution` 属于卷内节拍编辑；`character_progression/world_reveal/foreshadow_plan` 属于后续系统写回，不在同一个卷纲弹窗里混改。
-- 卷内节拍弹窗只编辑卷目标、节奏曲线和五个结构节拍；后端 prompt 应直接生成这些字段，不要求前端从长段卷纲里拆开。
-- `character_progression[]` 已收紧为 `{ character, related_to, relation, pressure, change, impact }`。人物必须引用 Info 已确认实体、双方不得相同、同卷关系不得重复；界面从 Info 关系和 Summary 人物弧建立编辑初值。
-- `world_reveal[]` 已收紧为 `{ anchor, reveal, rule, impact }`。`anchor` 必须是 Info 已确认 `worldbuilding_detail` 中的显式原文锚点，后端审批再次校验，避免产生无法对齐的世界观对象。
-- `foreshadow_plan[]` 已收紧为 `{ name, status, chapter_range, note }`，状态只允许投放、推进、回收或延后；同卷线索名不得重复。
-- 三个全局居中弹窗保存时只更新当前 Outline 编辑稿，并显示“定稿后写回”预览；不得在确认前声称人物图谱、世界观或伏笔账本已经更新。
-- Outline 当前稿使用“生成/候选来源签名 + 用户编辑稿”机制；选择新候选后旧编辑稿和三类预览自动失效。完整度检查覆盖每卷基础信息、五段节拍和三类结构数组，未完成时禁用 Deep 定稿。
-- Deep 只在人工确认后提交当前编辑稿；Fast/Balanced 自动确定后走同一最终写回。最终提交按 Artifact 签名幂等更新 Memory、Story Bible 分卷/人物档案、人物关系图、世界观揭示与硬规则、伏笔账本和连续性状态。
-- 正常运行、等待确认恢复、已确认恢复和已完成阶段恢复统一调用 Outline 最终写回；同一稿件不会因刷新或 SSE 重连重复写 Memory，Detail Prompt 读取正式 Outline Artifact。
-
-### 前端展示
-
-- 主区：分卷节奏条、横向 beat sheet、卷内冲突推进。
-- 右侧：人物关系网、世界观、质量阀门。
-- 大纲页面不得展示“实时补全过程”这类过程字段。流式信息只能作为当前卷/当前 beat 的轻量状态，不进入定稿 artifact。
-- `opening/development/midpoint/climax/resolution` 必须作为固定 beat 列展示，避免后端从一段卷纲自由文本里反向解析；`foreshadow_plan` 不进入节拍列，使用独立伏笔账本弹窗维护。
-- 分卷 beat 必须以横向节拍板或表格行展示，不允许每个 beat 变成互相堆叠的厚 card；详情弹窗展示结构字段本身，不展示无业务意义的过程回放。
-
-### 操作逻辑
-
-- 支持调整卷数、章节范围和单卷重写。
-- 质量阀门检查节奏失衡、重复冲突和人物弧断裂。
-- 极速模式逐卷自动流式定型。
-- 平衡模式自动生成并可在开关开启时由用户主动进入版本对比。
-- 精细模式每次生成后等待人工定稿，支持换一稿、候选分栏、历史候选和确认定稿。
-- 390px 窄屏下主工作台使用内部纵向滚动，五段节拍保持稳定高度并允许横向查看；三类承接按单列内容高度展开，弹窗不得越出视口。
-
-## 章节细纲
-
-这是定每章施工图的阶段，也是 Wiki 正式进入主链的阶段。
-
-### 模型应返回
-
-- `chapters[]`：章节表。
-- 每章必须包含 `chapter`、`pov`、`scene`、`goal`、`entry_state`、`conflict`、`stakes`、`hook`。
-- 每章必须包含后续依赖字段：`fact_reveals[]`、`foreshadow[]`、`character_shift`、`continuity_notes`、`wiki_candidates[]`。
-- `character_shift` 固定为 `{ character, related_to, relation, pressure, motivation, change, impact }`；`related_to/relation` 可同时留空，其余字段必填。
-- `fact_reveals[]` 固定为 `{ anchor, fact, impact }`，`wiki_candidates[]` 固定为 `{ title, fact, source_anchor }`。
-- `foreshadow[]` 固定为 `{ name, status, note }`，状态只允许投放、推进、回收或延后。
-- `fact_reveals` 写给世界观和 Wiki，`character_shift` 写给人物关系网，`continuity_notes` 写给正文上下文；不要把这些混在一个“章节说明”字段里。
-
-### 前端展示
-
-- 主区：高密度章节表、章节详情、伏笔和事实覆盖矩阵。
-- 右侧：人物关系网、世界观、质量阀门、Wiki。
-- 章节蓝图弹窗只展示 POV、场景、目标、进入状态、核心冲突、风险、章末钩子和连续性备注；人物、事实/Wiki 与伏笔使用独立结构化写回编辑器。
-- 不展示无合同意义的“实时补全过程”；SSE 只更新当前章节状态和可读字段预览。
-- 章节列表优先采用表格/施工清单密度，当前生成行可以高亮，但不得把每章做成大块 card 堆叠。
-
-### 当前前端实现与后端对接
-
-- 前端细纲页已采用“章节施工表 + 章节蓝图稿纸 + 专用写回弹窗”的结构，不再把每章做成大卡片，也不复用通用字段堆叠弹窗。
-- 章节施工表一行对应一章，稳定展示 `chapter`、`pov/scene`、`goal`、`conflict`、`wiki_candidates/fact_reveals`、`foreshadow/hook`；当前生成行只展示短 delta，不把过程日志写进 artifact。
-- 右侧写回账本跟随当前章节，分开展示事实/Wiki、伏笔触点与人物变化；`continuity_notes` 留在蓝图中作为正文交接。后端 loop 保持这些目标分离，不合成“章节说明”。
-- 章节蓝图弹窗只承载“这一章怎么写”的可读施工稿：视角人物、主要场景、场景进入、戏剧推进、正文交接。前端可以把结构字段渲染成段落稿纸，但保存时仍回到稳定字段对象。
-- `character_shift`、`fact_reveals/wiki_candidates`、`foreshadow` 不塞进同一个章节蓝图表单；它们分别进入人物变化、世界观/Wiki 事实、伏笔账本三个全局居中写回弹窗。
-- POV、人物变化主体和可选关系对象只能选择 Info 已确认人物；可选关系对象填写时必须同时填写关系定义，且不能与变化人物相同。
-- 世界观/Wiki 弹窗从 Info 世界观原文或 Outline 已确认 `world_reveal[].anchor` 中选择锚点，事实增量和 Wiki 候选分别维护多条结构记录。
-- 伏笔账本以 ledger 行维护线索、状态和说明；可以承接 Outline 计划，也允许 Detail 新增线索，正式写回时记录 `source_kind`。
-- `fact_reveals` 和 `wiki_candidates` 写入 Wiki/世界观候选；`foreshadow` 写入未回收伏笔账本；`character_shift` 写入人物关系网；`continuity_notes` 写入正文阶段 context packet。每个写回目标都要能在对应运行面板看到阶段标识，形成闭环。
-- 后端 prompt/context 设计应按章节数组逐章产出结构对象；禁止返回 markdown 大段细纲再由前端或后端二次拆字段。
-- Detail 当前稿与生成/候选来源签名绑定；蓝图和三类写回保存都回传完整当前稿，候选变化后旧稿和侧栏预览自动失效。
-- 完整度检查覆盖章节名唯一性、九项蓝图字段、POV/人物引用、人物变化、事实、Wiki 和伏笔；未完成时禁用定稿，后端审批再次执行合同和引用校验。
-- 确认前侧栏只显示“写回预览”。Deep 人工确认、Fast/Balanced 自动确定以及 pending/confirmed/completed 恢复路径统一调用 Detail 幂等最终提交，正式更新 Memory、Story Bible、人物图谱、世界观、Wiki 候选、伏笔账本和连续性状态。
-- 正文 `ChapterContextPacket.chapter_outline` 直接按章节索引读取结构化 Detail Artifact 并格式化，禁止把 Python dict 转成字符串后再用正则反向抽章节。
-
-### 操作逻辑
-
-- 支持单章重写、批量调整节奏和重新分配伏笔。
-- 确认后写入 Wiki 草案和正文生成上下文。
-- 极速模式按章节顺序自动生成并写入后续上下文。
-- 平衡模式自动生成，版本对比仅在配置开启且用户主动触发时进入。
-- 精细模式每个阶段产物完成后等待人工定稿；章节详情可打开查看，换稿候选最多 3 栏。
-- 390px 下命令区和写回入口改为单列稳定布局；章节施工表作为一个整体横向滚动，弹窗使用单一内部滚动区且不得越出视口。
-
-## 正文生成
-
-这是生产正文的阶段。质量阀门、Wiki 和上下文连续性优先级最高。
-
-### 模型应返回
-
-- 当前章节 context packet。
-- 正文流式 delta。
-- 章节完成稿。
-- 候选版本或修订版本。
-- 质量报告：节奏、人物一致性、事实一致性、语言风格。
-- Wiki 写回：新增事实、人物状态变化、地点变化、伏笔状态。
-- 章节摘要：用于下一章上下文压缩。
-
-章节 Context Packet 必须按已确认分卷大纲的 `chapter_range` 推导真实卷界，并保存 `volume_title`、`volume_chapter_range`、`volume_goal`、`next_volume_goal`、`previous_chapter_summary`、`previous_volume_ending` 与 `transition_directive`。不得再用固定“每 6 章一卷”猜测卷首卷末。
-
-模型的单章返回仍可兼容既有 `chapter_title/content/summary/wiki_writebacks/character_shift/foreshadow_updates`，但进入编排层后必须规范化为自包含 `ChapterArtifact`：
-
-- 身份与正文：`id/title/generated_title/content/words/status/version/commit_signature`。
-- 上下文与下游摘要：`context_packet/summary`。
-- 分层写回：`wiki_writebacks/character_shift/foreshadow_updates`。
-- 质量与版本：`quality_report/quality_recheck/writeback_proposal/revision_history/version_history`。`quality_recheck.repair_targets[]` 保存 finding、UTF-16 选区、修订方向、操作、章节版本和 Artifact 签名；`version_history` 保存可恢复的完整章节正文、摘要、版本、来源和 Artifact 签名，不保存递归历史。
-
-正文阶段顶层 Artifact 在运行中和完成后始终是结构对象，包含 `schema_version/status/target_chapters/chapters/context_packets/quality_reports/wiki_writebacks/chapter_summaries`；禁止运行中退化成拼接字符串，再在末尾更换数据类型。
-
-### 前端展示
-
-- 主区：章节导航、正文编辑器或阅读器、实时生成状态、修订历史。
-- 右侧：质量阀门、Wiki、人物关系网、世界观。
-- 正文 delta 以句子/短行缓冲后淡入，不按几个字一跳；光标跟随当前行末尾，内容左对齐，章节生成中自动切到当前章节。
-- 章节导航、当前章上下文和修订轨迹组成同一连续左栏，正文稿纸保持最大工作面；上下文必须按当前章节精确匹配，不能读取事件列表中的任意最新 Context Packet。
-
-### 操作逻辑
-
-- 支持暂停、继续、重写当前段、扩写、压缩、换风格。
-- 选区修订固定为 `rewrite/expand/compress/restyle` 四种操作。浏览器 `selectionStart/selectionEnd` 与后端均按 UTF-16 code unit 解释，复合字符边界不合法时必须拒绝，禁止错位替换。
-- 局部修订先生成候选，不立即覆盖正文。候选记录章节、选区、操作、方向、完整预览、基线版本、当前稿签名和候选签名；用户接受时再次校验已落盘签名、当前稿签名、版本和选区原文。
-- 已落盘稿与本地人工稿使用双签名并发保护：只有服务器正文仍等于生成候选时的已落盘基线，才允许把本地人工编辑和局部候选合并为新版本。旧页面、重复 request id 或已变化选区不得覆盖新正文。
-- 接受候选只替换原 `[start,end]` 选区，选区外正文逐字保持；接受请求幂等。接受后保存完整上一版本快照、`version += 1`、清空 `commit_signature`、设置 `summary_dirty=true` 并追加结构化修订记录，不提前写正式 Memory/Wiki。
-- 历史版本恢复不是版本号回退。当前 v3 恢复 v1 时创建 v4，并在恢复前保存 v3；正文和摘要从同一历史快照恢复，旧提交签名清空，同一恢复 request id 重复提交不会再次升版。
-- 平衡模式可在配置开启后支持候选版本对比；用户主动点击“对比择优”才触发模型评审。
-- 精细模式不默认模型择优，正文阶段像信息推荐一样支持换一稿、最多 3 栏候选、手动确认定稿。
-- Fast/Balanced 每章完成后自动提交 Wiki 与章节摘要；Deep 生成时只维护下一章所需的临时摘要，人工确认完整当前稿后才提交正式 Memory/Wiki/人物/伏笔写回。
-- 章节生成时正文只读；完成后允许直接编辑当前稿。正文人工修改会创建一个待定人工版本、清空旧提交签名并标记章节摘要待同步；摘要同步前完整度门禁禁止定稿。
-- 摘要编辑不能在前端本地清除 `summary_dirty`。用户显式执行“同步摘要并复检”后，后端同时校验已落盘签名、当前编辑稿签名、章节版本和摘要内容，再把摘要绑定到当前正文版本。
-- 摘要同步使用现有确定性质量引擎生成 `quality_recheck`；复检失败时保留当前稿但继续阻断定稿。复检通过后，从当前章节的 `wiki_writebacks/character_shift/foreshadow_updates` 生成版本绑定的 `writeback_proposal`，不得直接修改正式 Wiki、人物图谱或伏笔账本。
-- 每个复检 finding 同时生成版本绑定的 `repair_target`。`chapter_handoff/structure` 定位首个正文段，`foreshadowing` 定位末段，模板味和世界观冲突仅在证据可可靠映射时定位；无法可靠定位时只返回修订方向，禁止模糊替换正文。
-- repair target 的 `start/end` 与选区修订接口统一使用 UTF-16 code unit，选区最多 1200 units。前端必须验证章节 ID、版本、Artifact 签名和原文后再选中正文；点击定位不得自动调用 Provider，用户确认生成候选后继续复用既有预览与接受流程。
-- 写回提案状态固定为 `pending/accepted/rejected/blocked/not_required`。有结构化变化时用户必须接受或拒绝；接受只授权 Deep 正文定稿时正式写回，拒绝仍允许正文与摘要定稿，但对应结构化变化不得通过其他提取路径旁路进入 Canon。
-- Canon 事实不是普通 Wiki 文档计数：每条事实必须带稳定 `id/target/claim_key/fact/status/sources[]`，来源包含阶段、章节、版本和 Artifact 签名。同一 `target + claim_key` 出现不同事实时生成 `canon_conflict`，保留既有事实并要求用户选择“保留既有”或“采用新事实”；冲突未决不得覆盖 Canon。
-- Deep 确认提交与生成来源绑定的完整当前稿，不得回退提交原始 SSE Artifact。
-- 后端合同拒绝缺少章节 Context/摘要、`summary_dirty=true`、复检失败、提案未决或提案签名过期的 Artifact；确认后的正文、章节摘要、质量复检和正式写回必须属于同一 Artifact 签名。
-
-### 落盘与恢复
-
-- `drafting`：候选已经选定并持久化，恢复时从质量检查继续，不再调用正文 Provider。
-- `committing`：正文和提交签名已经持久化，恢复时只补齐 usage、质量、Memory、Wiki、Story Bible、世界观和连续性写回。
-- `completed`：已提交章节直接跳过，不再次生成、计费或写回。
-- Context Packet、章节候选和选中版本按章节 upsert；进度初始化保留已完成章，不从第 1 章重建。
-- 正文默认沿上一章结果连续续写；只有当前细纲的 POV、进入状态或连续性备注明确要求时才允许视角转移、场景/时间跳切或倒叙。任何非连续转场必须先落可感知锚点，并说明上一章或上一卷结果如何造成当前章进入状态；卷首不得重新开局，卷末必须结算本卷目标并向下一卷建立因果。
-- Memory 使用章节 output key 去重，Wiki 文档索引按稳定文档 ID 幂等，Story Bible 章节摘要/时间线和世界观影响按章节替换。
-- 部分完成的顶层 Artifact 仍保持结构对象；`node_completed` 只在所有目标章节成为 `completed` 后发出。
-- 局部修订事件固定为 `chapter_selection_revision_requested/generated/applied/failed`，版本恢复事件为 `chapter_version_restored`。`applied/restored` 事件携带完整正文 Artifact，刷新后必须以它恢复最新稿。
-- 摘要复检闭环事件固定为 `chapter_summary_synced`、`quality_recheck_completed`、`chapter_writeback_proposal_generated`、`chapter_writeback_proposal_accepted/rejected`；事件与 Run State、待审批 Artifact 在一次存储提交中落盘，刷新后恢复质量与提案状态。
-- 正文生成的十步业务动作统一通过 `chapter_pipeline_step_completed` 定位，`step=1..10` 对应章节定位、上下文装配、执行剧本、正文生成、合同校验、章节落盘、质量审计、章后处理、张力评分和章节结算。稳定落盘恢复不得重新补发已完成的前序步骤。
-- Run State 的 `recovery_state` 保存最后稳定 Checkpoint、Artifact 签名、失败范围、失败分类、连续次数和历史。失败后的刷新/SSE 重连不得自动调用 Provider；只有显式“继续创作”才能从 Checkpoint 解锁恢复。
-- 同一阶段或章节连续 3 次失败后打开熔断；熔断打开或不存在稳定 Checkpoint 时禁止隐式重跑。正文候选全部无效、质量阻断或最终合同失败时不得发出 `node_completed`，不得进入阶段确认，也不得执行 Memory/Wiki/Canon 正式写回。
-
-## AI 封面
-
-这是产物包装阶段，不展示创作观测全家桶。
-
-### 模型应返回
-
-- 封面 brief。
-- 视觉关键词。
-- 画面构图。
-- 文案建议。
-- 图片生成 prompt。
-- 候选方案 metadata。
-
-### 前端展示
-
-- 主区：封面 brief、prompt、候选图、选中结果。
-- 右侧：封面质量摘要、导出准备状态。
-
-## 导出
-
-这是交付阶段。
-
-### 模型或系统应返回
-
-- 导出 manifest。
-- 文件格式列表。
-- 章节清单。
-- 元数据。
-- 校验结果。
-- 下载包状态。
-
-### 前端展示
-
-- 主区：导出清单、格式选择、校验进度、下载入口。
-- 右侧：导出摘要、质量检查摘要。
-- 单章导出生成 `.md` 文件，多章导出生成 `.zip` 语义的包文件；前端 mock 阶段也必须触发下载文件，不能点击“生成导出包”后跳回控制台或进入 info 循环。
-- “下载预览”和“生成导出包”只给轻提示，不在内容区插入大块成功 card。
-
-## 横切系统边界
-
-### 知识库
-
-- 配置态和小说信息推荐阶段重点展示。
-- 后续阶段降级为 Header 图标入口或上下文引用。
-- 不负责质量判断、事实写回或阶段执行。
-
-### 世界观
-
-- 小说信息推荐阶段生成初始详细世界观。
-- 梗概、分卷、细纲和正文阶段根据产物逐步细化。
-- 前端可展示为面板和编辑器，但不要把“世界观种子”这类模型中间名词暴露给用户。
-
-### 人物关系网
-
-- 小说信息推荐阶段由人物表和关系边初始化。
-- 后续阶段随着梗概、分卷、细纲和正文写回演化。
-- 首屏必须稳定可见；支持拖拽、缩放、双击详情。
-
-### Wiki
-
-- 是事实账本，不是通用知识库。
-- 章节细纲开始成为核心面板，正文阶段优先级最高。
-- 记录硬事实、人物状态、地点状态、伏笔状态、章节摘要和连续性约束。
-
-### 质量阀门
-
-- 是执行评审层，不是事实持久化层。
-- 梗概阶段开始介入，正文阶段最重要。
-- 输出质量分数、阻断问题、可修订问题、修订指令和复检结果。
-
-## Header 与运行控制
-
-- 配置态 Header 中间展示配置完成度。
-- 运行态 Header 中间展示当前阶段节点、阶段内进度、状态、耗时、token 或字数摘要。
-- 暂停后按钮恢复蓝色“继续/启动”态。
-- 刷新运行页后恢复为可继续态，不伪装 SSE 仍在运行。
-- 阶段切换遮罩只在实际阶段完成或确认后出现。
-
-## 运行态恢复与 Cockpit 感知规则
-
-- 当前阶段默认走真实后端 SSE：前端通过 `/api/runs/stream` 消费 FastAPI domain runner 事件，生产链路不再使用前端 mock stream 或后端 mock provider。
-- 真实 SSE 事件必须作为唯一事实源：Header、cockpit 节点、运行日志、阶段页、结算遮罩、候选/对比态都从同一组事件派生，不允许各自用独立 timer 或局部假状态伪造进度。
-- 只有 info 阶段允许专属全局生成加载遮罩；summary、outline、detail、text、cover、export 都只能使用局部 loader 和 SSE/打字机式内容写入，不能再出现全屏生成遮罩。
-- 精细定稿下，`stage_checkpoint_ready` 只代表阶段产物生成完毕，不代表用户已定稿；Header 必须保持等待态，直到用户在阶段页点击“确认定稿”写入 `stage_artifact_confirmed` 后才变成绿色继续。
-- 精细模式的“换一稿”使用 `draft_regeneration_requested / draft_candidate_generated / draft_candidate_selected` 语义，由用户手动选择候选；不得复用平衡模式的 `variant_generated / best_variant_selected` 自动模型择优语义。
-- 平衡模式的版本对比只在配置开关允许且用户主动点击“对比择优”后触发；主流水线不得自动生成 variant 或自动弹出强制对比。
-- 平衡模式 info 定稿后进入自动 cockpit，过渡期按钮文案必须表达“自动流水线接续中/运行中”，不得显示精细模式的“等待阶段定稿”。
-- 极速 cockpit 未启动时仍是配置态：允许切换模式，单击节点打开配置抽屉，双击节点不得进入 `/run/*`。
-- 已启动 run 全程以 run store 与 SSE 事件为事实来源；`workspacePhase` 只表示当前界面形态，不能单独用于判断模式锁定或运行权限。
-- 刷新页面后必须通过 `GET /api/runs/{run_id}` 恢复事件、当前阶段、已完成节点、确认点和暂停状态；服务端找不到 run 时清空本地运行控制并回到配置态。
-- 极速和平衡自动 cockpit 的运行日志优先展示当前阶段产物流：梗概、分卷、细纲展示 `artifact_stream_delta`，正文展示 `chapter_delta`，Wiki 和质量事件只能作为辅助状态。
-- 真实 API 链路必须按 SSE 逐步输出，分卷和章节要一条一条定型，不能一次性灌入大块产物再由前端假装生成。
-- 所有运行计时必须基于服务端事件 `created_at` 或阶段结算 `elapsed_ms`，不得使用组件挂载时间作为事实来源；刷新后节点和 Header 计时应从原始 `node_started.created_at` 继续计算。
-- 测试态可以提供“重置运行链路”入口，但它只清空当前 run 控制、事件、确认点、结算状态和本地运行缓存，不清空质量模式、工作流配置、知识库和历史记录。
-- 重置时必须中止或隔离当前 SSE 消费，迟到事件不得重新污染已重置的 cockpit 节点状态。
-- 当前真实 API 小流量验收固定为 1 卷 3 章投稿项样例，保留 info -> summary -> outline -> detail -> text(前 3 章) -> cover -> export 完整阶段；通过后再扩大正文篇幅和章节数。
-
-## 后续开发检查清单
-
-任何阶段 UI 或链路改动提交前，必须回答：
-
-1. 这个阶段的模型结构化产物是什么？
-2. 用户在这个阶段需要做什么决策？
-3. 哪些信息会写回世界观、人物关系网、Wiki 或质量阀门？
-4. 下一阶段依赖哪些字段？
-5. 当前页面是否展示了阶段不需要的面板？
-6. 是否存在直接展示 JSON、过程中间名词或无意义大标题的情况？
-7. Header、路由、暂停/继续和阶段切换状态是否一致？
-8. 配置态和运行态是否被清晰分开？
+1. fake Provider 全图可重放；结构化输出、Artifact ref、decision、interrupt、checkpoint、SSE 和 Outbox 幂等测试通过。
+2. 静态扫描无 legacy/shadow/dual runtime、Detail v1/v2/v3、fallback、alias、converter 或旧 stage id 生产引用。
+3. projection 可删除重建；断线重连不影响执行；同一 operation/decision/writeback 恰好一次。
+4. 全量离线测试和前端构建通过后，才可在用户批准、限额和脱敏收据下进行新的真实 Provider Run。真实输出、文学连续性、成本和作者冷读另行验收。

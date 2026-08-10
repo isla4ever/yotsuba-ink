@@ -41,7 +41,16 @@ export function AiServiceSetupSection({ readiness, workflow, onReadinessRefresh,
           </span>
         </div>
         {failedChecks.length ? (
-          <ul>{failedChecks.slice(0, 4).map((check) => <li key={`${check.provider_id}-${check.expected_kind}`}>{check.message}</li>)}</ul>
+          <ul>{failedChecks.slice(0, 4).map((check) => <li key={`${check.provider_id}-${check.expected_kind}`}>
+            {check.model ? <strong>{check.model} · </strong> : null}{check.message}
+          </li>)}</ul>
+        ) : null}
+        {readiness.report?.ok ? (
+          <ul className="ai-service-model-assignments">
+            {readiness.report.checks.filter((check) => check.model).map((check) => (
+              <li key={`${check.provider_id}-${check.expected_kind}-model`}><span>{check.used_by.join('、')}</span><strong>{check.model}</strong></li>
+            ))}
+          </ul>
         ) : null}
       </div>
 

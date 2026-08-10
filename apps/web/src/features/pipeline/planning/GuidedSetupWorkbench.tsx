@@ -40,7 +40,7 @@ export function GuidedSetupWorkbench({
   workflow,
 }: Props) {
   const setup = useSetupFlow(workflow.id, steps);
-  const infoStage = workflow.nodes.find((stage) => stage.type === 'info_recommend');
+  const infoStage = workflow.nodes.find((stage) => stage.type === 'info');
   const activeIndex = steps.findIndex((step) => step.id === setup.flow.activeStepId);
   const onReview = setup.flow.activeStepId === 'review';
   const blocking = setup.currentStep?.issues.find((issue) => issue.severity === 'blocking');

@@ -11,15 +11,16 @@ import { buildRunEventIndex } from '../state/runEventIndex';
 import { modeRoutePolicy } from '../state/runPresentationState';
 import { stageRuntimeSummaryMap } from '../state/useStageRuntimes';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 
 const stages = [
-  { id: 'info', label: '创作立项定稿', type: 'info_recommend' as const },
+  { id: 'info', label: '创作立项定稿', type: 'info' as const },
   { id: 'summary', label: '梗概定稿', type: 'summary' as const },
-  { id: 'text', label: '正文生成', type: 'chapter_text' as const },
+  { id: 'text', label: '正文生成', type: 'text' as const },
 ];
 
 function event(type: string, nodeId: string): RunEvent {
-  return { type, node_id: nodeId } as RunEvent;
+  return runEvent(type, { run_id: 'run-1', stage_id: nodeId as RunEvent['stage_id'], node_id: `${nodeId}.generate_candidate` });
 }
 
 function runtimesFrom(events: RunEvent[]) {
@@ -39,7 +40,7 @@ describe('sidebarStageItems route policy', () => {
     expect(items[0].disabledReason).toBe('极速模式下阶段进度在驾驶舱内查看');
   });
 
-  it('keeps only the info stage reachable in balanced mode', () => {
+  it('keeps every stage workbench reachable in balanced mode', () => {
     const items = sidebarStageItems({
       policy: modeRoutePolicy('balanced', false),
       qualityMode: 'balanced',
@@ -47,10 +48,7 @@ describe('sidebarStageItems route policy', () => {
       stageRuntimes: {},
       stages,
     });
-    expect(items.find((item) => item.id === 'info')?.disabled).toBe(false);
-    const summary = items.find((item) => item.id === 'summary');
-    expect(summary?.disabled).toBe(true);
-    expect(summary?.disabledReason).toBe('平衡模式下后续阶段在驾驶舱内查看');
+    expect(items.every((item) => !item.disabled)).toBe(true);
   });
 
   it('disables deep-mode stages before the run starts and frees them after', () => {
@@ -67,9 +65,9 @@ describe('sidebarStageItems route policy', () => {
 describe('sidebarStageItems status derivation', () => {
   it('derives real stage status from run events instead of faking progress', () => {
     const events = [
-      event('node_started', 'summary'),
-      event('node_completed', 'info'),
-      event('node_started', 'info'),
+      event('node.started', 'summary'),
+      { ...event('artifact.committed', 'info'), payload: {}, node_id: 'info.commit_artifact' },
+      event('node.started', 'info'),
     ];
     const items = sidebarStageItems({
       policy: modeRoutePolicy('deep', false),
@@ -83,13 +81,16 @@ describe('sidebarStageItems status derivation', () => {
   });
 
   it('labels a lifecycle-complete Cover without an image asset as 待完善', () => {
-    const coverStages = [{ id: 'cover', label: 'AI 封面', type: 'cover_image' as const }];
-    const events = [{
-      type: 'node_completed',
+    const coverStages = [{ id: 'cover', label: 'AI 封面', type: 'cover' as const }];
+    const events = [runEvent('artifact.committed', {
       run_id: 'run-1',
-      node_id: 'cover',
-      result: { brief: '简报', prompt: 'prompt', candidates: [{ id: 'cover-1', image_url: '' }], selected_candidate_id: 'cover-1' },
-    }] as RunEvent[];
+      stage_id: 'cover',
+      node_id: 'cover.commit_artifact',
+      payload: {
+        brief: { concept: '简报', image_prompt: '雾港剪影', palette: ['#111827'], negative_constraints: [] },
+        selected_asset_id: '',
+      },
+    })];
     const items = sidebarStageItems({
       policy: modeRoutePolicy('deep', false),
       qualityMode: 'deep',

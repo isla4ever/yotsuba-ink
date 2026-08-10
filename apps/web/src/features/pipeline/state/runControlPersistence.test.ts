@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRunControlSaver, isRunControlFlushPoint } from './runControlPersistence';
 import type { StoredRunControlState } from './storage';
+import { runEvent } from '../contracts/runEventTestFactory';
 
 function snapshot(marker: number, overrides: Partial<StoredRunControlState> = {}): StoredRunControlState {
   return {
     activeRunId: 'run-1',
-    events: [{ type: 'chapter_delta', run_id: 'run-1', delta: `delta-${marker}` }],
+    events: [runEvent('node.started', { run_id: 'run-1', payload: { marker } })],
     paused: false,
     runControlState: 'running',
     selectedId: 'text',
@@ -27,12 +28,12 @@ describe('createRunControlSaver (F2)', () => {
 
     vi.advanceTimersByTime(1000);
     expect(writes).toHaveLength(1);
-    expect(writes[0].events?.[0]?.delta).toBe('delta-59');
+    expect(writes[0].events?.[0]?.payload?.marker).toBe(59);
 
     for (let i = 60; i < 120; i += 1) saver.schedule(snapshot(i));
     vi.advanceTimersByTime(1000);
     expect(writes).toHaveLength(2);
-    expect(writes[1].events?.[0]?.delta).toBe('delta-119');
+    expect(writes[1].events?.[0]?.payload?.marker).toBe(119);
   });
 
   it('flush persists the latest snapshot immediately without a later double write', () => {
@@ -43,7 +44,7 @@ describe('createRunControlSaver (F2)', () => {
     saver.schedule(snapshot(2));
     saver.flush();
     expect(writes).toHaveLength(1);
-    expect(writes[0].events?.[0]?.delta).toBe('delta-2');
+    expect(writes[0].events?.[0]?.payload?.marker).toBe(2);
 
     vi.advanceTimersByTime(5000);
     expect(writes).toHaveLength(1);
@@ -67,13 +68,13 @@ describe('isRunControlFlushPoint (F2)', () => {
     expect(isRunControlFlushPoint('paused')).toBe(true);
     expect(isRunControlFlushPoint('completed')).toBe(true);
     expect(isRunControlFlushPoint('failed')).toBe(true);
-    expect(isRunControlFlushPoint('running', 'run_paused')).toBe(true);
-    expect(isRunControlFlushPoint('running', 'run_failed')).toBe(true);
-    expect(isRunControlFlushPoint('running', 'run_recovery_required')).toBe(true);
+    expect(isRunControlFlushPoint('running', 'decision.required')).toBe(true);
+    expect(isRunControlFlushPoint('running', 'run.failed')).toBe(true);
+    expect(isRunControlFlushPoint('running', 'run.completed')).toBe(true);
   });
 
   it('keeps ordinary streaming events on the throttled path', () => {
-    expect(isRunControlFlushPoint('running', 'chapter_delta')).toBe(false);
+    expect(isRunControlFlushPoint('running', 'node.started')).toBe(false);
     expect(isRunControlFlushPoint('running')).toBe(false);
     expect(isRunControlFlushPoint('idle')).toBe(false);
   });

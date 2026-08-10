@@ -4,11 +4,11 @@
   overflow: hidden;
 }
 
-.stage-run-side.stage-info_recommend.panels-2 {
+.stage-run-side.stage-info.panels-2 {
   grid-template-rows: minmax(360px, 1.35fr) minmax(190px, 0.65fr);
 }
 
-.stage-run-side.stage-detail_outline.panels-2 {
+.stage-run-side.stage-detail.panels-2 {
   grid-template-rows: minmax(380px, 1fr) minmax(142px, auto) auto;
 }
 

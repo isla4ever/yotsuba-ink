@@ -1,10 +1,14 @@
 {
   "id": "prompt-cover",
   "name": "封面 Prompt",
-  "stage_type": "cover_image",
-  "content": "根据已定稿的小说信息、全书梗概、分卷结构和章节细纲返回结构化 cover planning artifact：封面 brief、视觉关键词、构图、文案建议、图片提示词和 3 个候选方案 metadata。封面规划在章节细纲定稿后与正文并行，不依赖全文完成；候选只返回稳定 id、构图、色板和质量说明，不得编造 image_url、Data URL 或图片已生成状态，真实图片由 ImageProvider 独立生成。",
+  "stage_type": "cover",
+  "content": "你是小说封面编辑。基于已定稿的 Story Brief、Character Bible、Summary、Outline 与 Detail，返回唯一的 CoverBrief。\n\n只返回 concept、image_prompt、palette、negative_constraints。image_prompt 只描述画面，不要求图片模型渲染书名、作者名、Logo、水印或装帧 mockup；不得编造图片 URL、资产 ID、候选数量或生成完成状态。",
   "variables": [
-    "cover_style",
-    "aspect_ratio"
+    "story",
+    "cast",
+    "narrative_arc",
+    "volume_objectives",
+    "chapter_motifs",
+    "revision_request"
   ]
 }

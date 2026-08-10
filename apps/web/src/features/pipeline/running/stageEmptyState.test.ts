@@ -3,13 +3,14 @@ import type { StageType } from '../contracts';
 import { stageEmptyStateAction, stageEmptyStateHint } from './stageEmptyState';
 
 const allStageTypes: StageType[] = [
-  'info_recommend',
+  'info',
+  'characters',
   'summary',
   'outline',
-  'detail_outline',
-  'chapter_text',
-  'cover_image',
-  'export_artifact',
+  'detail',
+  'text',
+  'cover',
+  'export',
 ];
 
 describe('stageEmptyStateHint (A2)', () => {
@@ -20,9 +21,9 @@ describe('stageEmptyStateHint (A2)', () => {
   });
 
   it('states the upstream gate for key stages', () => {
-    expect(stageEmptyStateHint('summary')).toContain('创作立项定稿');
-    expect(stageEmptyStateHint('chapter_text')).toContain('章节细纲');
-    expect(stageEmptyStateHint('export_artifact')).toContain('封面定稿');
+    expect(stageEmptyStateHint('summary')).toContain('人物圣经冻结');
+    expect(stageEmptyStateHint('text')).toContain('章节施工图冻结');
+    expect(stageEmptyStateHint('export')).toContain('封面资产选定');
   });
 });
 

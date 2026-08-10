@@ -7,6 +7,7 @@ from typing import Any
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
 from novel_workflow.providers.openai_compat import OpenAICompatibleTextProvider
+from novel_workflow.providers.templates import require_provider_template
 from novel_workflow.workflows.schemas import ModelSettings, ProviderProfile
 
 
@@ -62,12 +63,30 @@ class ProviderRegistry:
             if not profile.enabled:
                 continue
             if profile.kind == "openai-compatible":
-                provider = _text_provider_from_profile(profile, secret_resolver=secret_resolver) or OpenAICompatibleTextProvider.from_env()
+                try:
+                    template = require_provider_template(profile.template_id, profile.kind)
+                    if not template.execution_allowed or not template.workflow_execution_allowed:
+                        continue
+                except ValueError:
+                    continue
+                provider = _text_provider_from_profile(
+                    profile,
+                    secret_resolver=secret_resolver,
+                )
                 if provider is not None:
                     text_providers[profile.id] = provider
                     text_provider = provider
             elif profile.kind == "openai-compatible-image":
-                provider = _image_provider_from_profile(profile, secret_resolver=secret_resolver) or OpenAICompatibleImageProvider.from_env()
+                try:
+                    template = require_provider_template(profile.template_id, profile.kind)
+                    if not template.execution_allowed or not template.workflow_execution_allowed:
+                        continue
+                except ValueError:
+                    continue
+                provider = _image_provider_from_profile(
+                    profile,
+                    secret_resolver=secret_resolver,
+                )
                 if provider is not None:
                     image_providers[profile.id] = provider
                     image_provider = provider
@@ -77,8 +96,6 @@ class ProviderRegistry:
 
     def text_for(self, provider_profile_id: str, settings: ModelSettings | None = None) -> TextProvider:
         provider = self.text_providers.get(provider_profile_id)
-        if provider is None and provider_profile_id == "inherit":
-            provider = self.text_provider
         if provider is None:
             raise ProviderUnavailableError(f"Text provider is not configured: {provider_profile_id}")
         return _with_model_settings(provider, settings)

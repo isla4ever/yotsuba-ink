@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 import { infoArtifactSource } from './infoArtifactSource';
 
 describe('infoArtifactSource', () => {
@@ -12,11 +13,11 @@ describe('infoArtifactSource', () => {
   });
 
   it('falls back to the generated result when approval has not produced a local draft', () => {
-    const generated: RunEvent[] = [{ type: 'node_completed', run_id: 'run-info', node_id: 'info', result: { selected_title: 'generated title' } }];
+    const generated: RunEvent[] = [runEvent('artifact.candidate_ready', { run_id: 'run-info', stage_id: 'info', node_id: 'info.generate_candidate', payload: { title: 'generated title', premise: 'p', world_rules: ['r'] } })];
     expect(infoArtifactSource(generated, '', true)).toContain('generated title');
   });
 });
 
 function events(): RunEvent[] {
-  return [{ type: 'artifact_approved', run_id: 'run-info', node_id: 'info', artifact: { selected_title: 'confirmed title' } }];
+  return [runEvent('artifact.committed', { run_id: 'run-info', stage_id: 'info', node_id: 'info.commit_artifact', payload: { title: 'confirmed title', premise: 'p', world_rules: ['r'] } })];
 }

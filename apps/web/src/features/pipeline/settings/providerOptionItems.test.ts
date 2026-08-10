@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ProviderTemplate } from '../contracts';
-import { providerTemplateOptionItems } from './providerOptionItems';
+import {
+  providerTemplateOptionItems,
+  providerTemplateUsage,
+  providerTemplateUsageLabel,
+} from './providerOptionItems';
 
 function template(id: string, integration_tier: ProviderTemplate['integration_tier']): ProviderTemplate {
   return {
@@ -24,5 +28,22 @@ describe('provider option presentation', () => {
     expect(options.map((item) => item.value)).toEqual([
       'official-a', 'official-b', 'compatibility-a', 'gateway-a', 'custom-a',
     ]);
+  });
+
+  it('exposes production, evaluation and external-tool scope in option metadata', () => {
+    const production = template('production', 'official');
+    const evaluation = { ...template('evaluation', 'compatibility'), workflow_execution_allowed: false };
+    const external = { ...template('external', 'compatibility'), execution_allowed: false };
+    const options = providerTemplateOptionItems([production, evaluation, external]);
+
+    expect(options.map((item) => item.meta)).toEqual([
+      '生产可用 · 文本',
+      '仅评估 · 文本',
+      '外部工具专用 · 文本',
+    ]);
+    expect(providerTemplateUsage(production)).toBe('production');
+    expect(providerTemplateUsage(evaluation)).toBe('evaluation');
+    expect(providerTemplateUsage(external)).toBe('external');
+    expect(providerTemplateUsageLabel(evaluation)).toBe('仅评估');
   });
 });

@@ -22,6 +22,8 @@
 
 .writing-review-status.passed span,
 .writing-review-status.passed > strong { color: var(--color-status-success, #58d29b); }
+.writing-review-status.warning span,
+.writing-review-status.warning > strong { color: var(--warning); }
 .writing-review-status.blocked span,
 .writing-review-status.blocked > strong { color: var(--danger); }
 

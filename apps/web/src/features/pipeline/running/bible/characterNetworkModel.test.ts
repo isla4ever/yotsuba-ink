@@ -6,7 +6,6 @@ import {
   factionLegendEntries,
   filterGraphByTiers,
   graphAtTimelineTick,
-  hasMissingTimelineMarkers,
   networkTimelineTicks,
   tiersPresent,
   timelineViewpointLabel,
@@ -16,13 +15,13 @@ import type { CharacterGraph, CharacterTier } from '../../contracts';
 
 const graph: CharacterGraph = {
   nodes: [
-    { id: 'p1', name: '沈默', role: '主角', faction: '调查组', faction_id: 'faction-调查组', status: '追查中', tier: 'protagonist' },
-    { id: 'm1', name: '林岚', role: '搭档', faction: '调查组', faction_id: 'faction-调查组', status: '', tier: 'major' },
-    { id: 'n1', name: '摊贩', role: '街头线人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'detail_outline', first_appearance_chapter: '第3章' },
+    { id: 'p1', name: '沈默', role: '主角', faction: '调查组', faction_id: 'faction-调查组', status: '追查中', tier: 'protagonist', first_appearance_stage: 'text', first_appearance_chapter: '1' },
+    { id: 'm1', name: '林岚', role: '搭档', faction: '调查组', faction_id: 'faction-调查组', status: '', tier: 'major', first_appearance_stage: 'text', first_appearance_chapter: '1' },
+    { id: 'n1', name: '摊贩', role: '街头线人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'detail', first_appearance_chapter: '第3章' },
   ],
   edges: [
-    { source: 'p1', target: 'm1', relation: '搭档', strength: 0.8, kind: 'ally', polarity: 'positive' },
-    { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, kind: 'trade' },
+    { source: 'p1', target: 'm1', relation: '搭档', strength: 0.8, kind: 'ally', polarity: 'positive', valid_from_stage: 'characters' },
+    { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, kind: 'trade', valid_from_stage: 'detail' },
   ],
   factions: [{ id: 'faction-调查组', name: '调查组', stance: 'protagonist_side' }],
   updated_by: 'test',
@@ -75,24 +74,24 @@ const timelineGraph: CharacterGraph = {
   nodes: [
     { id: 'p1', name: '沈默', role: '主角', faction: '', status: '', tier: 'protagonist', first_appearance_stage: 'info' },
     { id: 's1', name: '陆遥', role: '卷一对手', faction: '', status: '', tier: 'supporting', first_appearance_stage: 'outline' },
-    { id: 'n1', name: '茶馆掌柜', role: '线人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'detail_outline', first_appearance_chapter: '第3章' },
-    { id: 'n2', name: '巡夜人', role: '路人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'detail_outline', first_appearance_chapter: '12' },
+    { id: 'n1', name: '茶馆掌柜', role: '线人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'detail', first_appearance_chapter: '第3章' },
+    { id: 'n2', name: '巡夜人', role: '路人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'detail', first_appearance_chapter: '12' },
   ],
   edges: [
     {
       source: 'p1', target: 's1', relation: '暗中较劲', strength: 0.6, valid_from_stage: 'outline',
       history: [{ change: '初次交锋', stage: 'outline' }, { change: '结为盟友', chapter: '第5章' }],
     },
-    { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, valid_from_stage: 'detail_outline', valid_from_chapter: '第3章' },
+    { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, valid_from_stage: 'detail', valid_from_chapter: '第3章' },
   ],
   updated_by: 'test',
 };
 
 describe('networkTimelineTicks', () => {
-  it('derives four fixed stage ticks, naturally sorted chapter ticks and a trailing current tick', () => {
+  it('derives five fixed planning ticks, naturally sorted chapter ticks and a trailing current tick', () => {
     const ticks = networkTimelineTicks(timelineGraph);
     expect(ticks.map((tick) => tick.label)).toEqual([
-      '基线 · 创作立项', '全书梗概', '分卷大纲', '章节细纲', '第3章', '第5章', '第12章', '当前',
+      '基线 · 创作立项', '人物编排', '全书梗概', '分卷大纲', '章节施工图', '第3章', '第5章', '第12章', '当前',
     ]);
     expect(ticks[ticks.length - 1].id).toBe(currentTickId);
   });
@@ -128,28 +127,12 @@ describe('graphAtTimelineTick', () => {
     expect(graphAtTimelineTick(timelineGraph, ticks, currentTickId)).toBe(timelineGraph);
   });
 
-  it('degrades unmarked legacy nodes and edges to baseline visibility and reports the gap', () => {
-    const legacy: CharacterGraph = {
-      edges: [{ relation: '旧关系', source: 'a', strength: 0.5, target: 'b' }],
-      nodes: [
-        { faction: '', id: 'a', name: '甲', role: '', status: '' },
-        { faction: '', id: 'b', name: '乙', role: '', status: '' },
-      ],
-      updated_by: 'test',
-    };
-    const legacyTicks = networkTimelineTicks(legacy);
-    const atBaseline = graphAtTimelineTick(legacy, legacyTicks, 'stage:info');
-    expect(atBaseline.nodes).toHaveLength(2);
-    expect(atBaseline.edges).toHaveLength(1);
-    expect(hasMissingTimelineMarkers(legacy)).toBe(true);
-    expect(hasMissingTimelineMarkers(timelineGraph)).toBe(false);
-  });
 });
 
 describe('timelineViewpointLabel', () => {
   it('labels stage and chapter viewpoints and stays silent on the current tick', () => {
     const ticks = networkTimelineTicks(timelineGraph);
-    expect(timelineViewpointLabel(ticks[1])).toBe('视点：全书梗概');
+    expect(timelineViewpointLabel(ticks[1])).toBe('视点：人物编排');
     expect(timelineViewpointLabel(ticks.find((tick) => tick.chapter === '12'))).toBe('视点：第12章');
     expect(timelineViewpointLabel(ticks[ticks.length - 1])).toBe('');
     expect(timelineViewpointLabel(undefined)).toBe('');

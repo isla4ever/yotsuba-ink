@@ -19,23 +19,24 @@ const summary = {
   project,
   latest_run: null,
   title: '雾城异闻',
-  status: 'awaiting_confirmation',
-  current_stage: { id: 'detail', label: '章节细纲' },
+  status: 'awaiting_decision',
+  current_stage: { id: 'detail', label: '章节施工图' },
   completed_stage_ids: ['info', 'summary', 'outline'],
   words: 42_000,
   updated_at: '2026-07-25T00:00:00Z',
 } as ProjectSummary;
 
 describe('ProjectCard', () => {
-  it('renders the seven-dot progress matrix from real stage facts plus words and status', () => {
+  it('renders the eight-dot progress matrix from real stage facts plus words and status', () => {
     const html = renderToStaticMarkup(
       <ProjectCard onOpen={() => undefined} project={project} summary={summary} />,
     );
     expect(html.match(/studio-progress-dot completed/g)).toHaveLength(3);
     expect(html.match(/studio-progress-dot current/g)).toHaveLength(1);
-    expect(html.match(/studio-progress-dot pending/g)).toHaveLength(3);
+    expect(html.match(/studio-progress-dot pending/g)).toHaveLength(4);
     expect(html).toContain('4.2 万字');
-    expect(html).toContain('待确认');
+    expect(html).toContain('待决策');
+    expect(html).toContain('八阶段进度');
     expect(html).toContain('--project-accent-hue:262');
   });
 });

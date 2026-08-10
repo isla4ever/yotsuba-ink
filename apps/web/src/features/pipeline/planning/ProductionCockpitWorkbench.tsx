@@ -56,10 +56,10 @@ export function ProductionCockpitWorkbench({
   const elapsedTick = useElapsedSeconds(stageStartKey);
   const elapsed = runtimeElapsedSeconds(runtime) ?? elapsedTick;
   const world = useMemo(() => extractWorldbuilding(events), [events]);
-  const wikiReads = events.filter((event) => event.type === 'memory_context_loaded').length;
-  const wikiWrites = events.filter((event) => event.type === 'memory_writeback_completed').length;
-  const qualityChecks = events.filter((event) => event.type === 'quality_check_completed').length;
-  const blockedChecks = events.filter((event) => event.type === 'quality_check_completed' && event.quality && !event.quality.passed).length;
+  const wikiReads = events.filter((event) => event.type === 'evidence.proposed').length;
+  const wikiWrites = events.filter((event) => event.type === 'writeback.committed').length;
+  const qualityChecks = events.filter((event) => event.type === 'review.completed' || event.type === 'review.unavailable').length;
+  const blockedChecks = events.filter((event) => event.type === 'review.unavailable' || event.type === 'decision.required').length;
   const knowledgeChunks = knowledgeDocuments.reduce((sum, doc) => sum + (doc.chunk_count || 0), 0);
   const referenceEvents = events.filter((event) => event.type.startsWith('rag_') || event.type.startsWith('reference_')).length;
   const wikiStatus = wikiStatusCopy(runHasStarted, wikiReads, wikiWrites);
@@ -164,7 +164,7 @@ export function ProductionCockpitWorkbench({
               <span className="cockpit-widget-copy">
                 <small>创作依据</small>
                 <strong>知识库资料台</strong>
-                <em>{knowledgeDocuments.length ? '项目资料已接入本次创作' : '暂无资料，信息推荐会使用默认输入与联网参考'}</em>
+                <em>{knowledgeDocuments.length ? '项目资料已接入前置规划' : '未选项目资料，创作立项不会触发知识库检索'}</em>
               </span>
               <span className="cockpit-widget-metrics">
                 <b>{knowledgeDocuments.length}</b>

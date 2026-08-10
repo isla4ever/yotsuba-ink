@@ -90,6 +90,7 @@ describe('provider API', () => {
       kind: provider.kind,
       models: ['model-a', 'model-b'],
       added_models: ['model-b'],
+      model_supported_parameters: {},
       error_code: '',
       message: '已读取 2 个上游模型，新增 1 个候选；未触发内容生成。',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));

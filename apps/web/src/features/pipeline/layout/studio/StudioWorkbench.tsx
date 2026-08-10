@@ -1,18 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ProjectRecord, ProjectSummary } from '../../contracts';
-import { useRunStateContext, useUICommandContext, useWorkflowConfigContext } from '../../state/pipelineShellContext';
+import { useUICommandContext, useWorkflowConfigContext } from '../../state/pipelineShellContext';
 import { useStudioProjects } from '../../state/useStudioProjects';
 import { NewProjectWizard } from './NewProjectWizard';
 import { ProjectCardWall } from './ProjectCardWall';
 import { StudioMobileNav } from './StudioMobileNav';
 import { TemplateManagerSection } from './TemplateManagerSection';
-import { UnarchivedRunsSection } from './UnarchivedRunsSection';
-import { unarchivedRuns } from './studioModel';
 
-/** Studio Shell main area: project card wall + new-project wizard + template management + unarchived runs. */
+/** Studio Shell main area: project card wall, new-project wizard, and template management. */
 export function StudioWorkbench() {
-  const run = useRunStateContext();
   const ui = useUICommandContext();
   const { qualityMode } = useWorkflowConfigContext();
   const studio = useStudioProjects(true);
@@ -23,13 +20,6 @@ export function StudioWorkbench() {
   const initialTemplateId = searchParams.get('template') ?? '';
   const [openingProjectId, setOpeningProjectId] = useState('');
   const [openError, setOpenError] = useState('');
-
-  // Studio reuses the shared run-history data as the unarchived source.
-  useEffect(() => {
-    void ui.refreshHistory();
-    // Refresh once per studio entry.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const studioViewRoute = templateView ? '/studio?view=templates' : '/studio';
   const openWizard = () => navigate(`${studioViewRoute}${templateView ? '&' : '?'}new=1`, { replace: false });
@@ -48,8 +38,6 @@ export function StudioWorkbench() {
       setOpeningProjectId('');
     }
   };
-
-  const legacyRuns = unarchivedRuns(run.historyItems, studio.archivedLinks);
 
   return (
     <div className="studio-workbench" data-testid="studio-workbench">
@@ -81,11 +69,6 @@ export function StudioWorkbench() {
               summaries={studio.summaries}
             />
           </section>
-          <UnarchivedRunsSection
-            onArchive={studio.archiveRun}
-            onOpenRun={ui.openHistoryRun}
-            runs={legacyRuns}
-          />
         </>
       )}
       <NewProjectWizard

@@ -4,14 +4,14 @@ import type { KnowledgeDocument, ProviderProfile, QualityMode, WorkflowStage } f
 import { stageLabelForUi } from '../lib/display';
 import { stageArtifactLabel, stageConfigurationReadiness } from '../lib/planningReadiness';
 import {
-  coverAspectRatio,
+  coverImageSize,
   derivedQualitySummary,
   hiddenStageField,
   memoryPolicySummary,
 } from '../lib/stageConfigurationPolicy';
 import { updateStageInputDefault } from '../lib/stageConfig';
 import { StageInputField } from './StageInputField';
-import { StageModelSection, StageVariantCompareSection } from './StageVariantCompareSection';
+import { StageModelSection } from './StageVariantCompareSection';
 
 type Props = {
   inputIdPrefix?: string;
@@ -54,10 +54,10 @@ export function StageInspector({
 
       <section className="config-section stage-primary-fields">
         <div className="config-section-heading">
-          <h3>{stage.type === 'info_recommend' ? '创作 Brief' : '阶段参数'}</h3>
+          <h3>{stage.type === 'info' ? '创作 Brief' : '阶段参数'}</h3>
           {readiness.total ? <span>{readiness.completed}/{readiness.total}</span> : null}
         </div>
-        {stage.type === 'info_recommend' ? (
+        {stage.type === 'info' ? (
           <InfoBriefEditor
             idPrefix={inputIdPrefix}
             knowledgeDocuments={knowledgeDocuments}
@@ -77,10 +77,8 @@ export function StageInspector({
             ))}
           </div>
         )}
-        {stage.type === 'cover_image' ? <p className="stage-static-setting">画面比例 <strong>{coverAspectRatio(stage)}</strong> · 当前封面交付规范固定</p> : null}
+        {stage.type === 'cover' ? <p className="stage-static-setting">图片尺寸 <strong>{coverImageSize(stage)}</strong> · 当前封面交付规范固定</p> : null}
       </section>
-
-      <StageVariantCompareSection mode={qualityMode} stage={stage} onChange={onChange} />
 
       <details className="config-disclosure" key={stage.id}>
         <summary>

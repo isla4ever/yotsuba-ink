@@ -1,6 +1,6 @@
 import { Activity, BarChart3, DatabaseZap, FileText, Globe2, ShieldCheck, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import type { KnowledgeDocument, QualityEvent, RunEvent, WorkflowStage } from '../contracts';
+import type { KnowledgeDocument, RunEvent, WorkflowStage } from '../contracts';
 import { extractWorldbuilding } from '../lib/stageConfig';
 import { backdropMotionVariants, dialogMotionVariants } from '../lib/motion';
 import { useOverlayDialog } from '../state/useOverlayDialog';
@@ -104,7 +104,7 @@ function KnowledgeDetail({ documents, events }: { documents: KnowledgeDocument[]
             <small>{doc.filename}</small>
           </article>
         ))}
-        {!documents.length ? <p className="cockpit-detail-empty app-empty-state">暂无项目资料。信息推荐会先使用默认题材输入与联网参考；上传资料后，这里会显示被命中的项目知识。</p> : null}
+        {!documents.length ? <p className="cockpit-detail-empty app-empty-state">暂无项目资料。只有上传并选中的知识库文档会在前置规划中参与检索。</p> : null}
       </div>
     </>
   );
@@ -112,7 +112,7 @@ function KnowledgeDetail({ documents, events }: { documents: KnowledgeDocument[]
 
 function WorldbuildingDetail({ events }: { events: RunEvent[] }) {
   const world = extractWorldbuilding(events);
-  if (!world.seed) return <CockpitDetailEmpty title="世界观尚未生成" detail="小说信息推荐确认后，这里会展示世界规则、风格基调和后续影响。" />;
+  if (!world.seed) return <CockpitDetailEmpty title="世界观尚未生成" detail="创作立项确认后，这里会展示世界规则、风格基调和后续影响。" />;
   return (
     <>
       <p className="eyebrow">设定资产</p>
@@ -128,8 +128,8 @@ function WorldbuildingDetail({ events }: { events: RunEvent[] }) {
 }
 
 function WikiDetail({ events }: { events: RunEvent[] }) {
-  const reads = events.filter((event) => event.type === 'memory_context_loaded');
-  const writes = events.filter((event) => event.type === 'memory_writeback_completed');
+  const reads = events.filter((event) => event.type === 'evidence.proposed');
+  const writes = events.filter((event) => event.type === 'writeback.committed');
   const records = [...reads, ...writes].slice(0, 14);
   return (
     <>
@@ -142,8 +142,8 @@ function WikiDetail({ events }: { events: RunEvent[] }) {
       <div className="cockpit-detail-list">
         {records.map((event, index) => (
           <article key={`${event.type}-${event.node_id}-${index}`}>
-            <strong>{event.type === 'memory_context_loaded' ? '读取约束' : '写回记忆'}</strong>
-            <span>{event.label ?? event.node_id ?? '运行阶段'}</span>
+            <strong>{event.type === 'evidence.proposed' ? '证据提案' : '正式写回'}</strong>
+            <span>{event.chapter_id || event.stage_id || event.node_id || '运行阶段'}</span>
             <small>{runEventLabel(event.type)}</small>
           </article>
         ))}
@@ -155,25 +155,23 @@ function WikiDetail({ events }: { events: RunEvent[] }) {
 
 function QualityDetail({ events }: { events: RunEvent[] }) {
   const qualityEvents = qualityEventsFor(events);
-  const avg = qualityEvents.reduce((sum, event) => sum + event.score, 0) / Math.max(1, qualityEvents.length);
-  const avgLabel = qualityEvents.length ? avg.toFixed(2) : '--';
-  const blocked = qualityEvents.filter((event) => !event.passed).length;
+  const blocked = qualityEvents.filter((event) => event.type === 'review.unavailable').length;
+  const findings = qualityEvents.reduce((total, event) => total + (Array.isArray(event.payload?.findings) ? event.payload.findings.length : 0), 0);
   return (
     <>
       <p className="eyebrow">质量检查</p>
       <h2><ShieldCheck size={20} />质量检查详情</h2>
       <div className="cockpit-detail-stats">
-        <span><strong>{avgLabel}</strong>均分</span>
+        <span><strong>{findings}</strong>发现</span>
         <span><strong>{blocked}</strong>风险</span>
         <span><strong>{qualityEvents.length}</strong>检查</span>
       </div>
-      <div className="cockpit-quality-meter"><i style={{ width: `${Math.min(100, avg * 100)}%` }} /></div>
       <div className="cockpit-detail-list quality">
         {qualityEvents.map((event) => (
-          <article className={event.passed ? 'passed' : 'blocked'} key={`${event.node_id}-${event.score}`}>
-            <strong><BarChart3 size={14} />{event.label}</strong>
-            <span>{event.score.toFixed(2)} / {event.min_score.toFixed(2)}</span>
-            <small>{event.warnings[0] ?? (event.passed ? '本次检查通过' : '未返回具体问题')}</small>
+          <article className={event.type === 'review.unavailable' ? 'blocked' : 'passed'} key={event.event_id}>
+            <strong><BarChart3 size={14} />{payloadText(event, 'role') || '审稿角色'}</strong>
+            <span>{event.type === 'review.unavailable' ? '不可用' : '审稿完成'}</span>
+            <small>{Array.isArray(event.payload?.findings) ? `${event.payload.findings.length} 个结构化发现` : '未返回发现'}</small>
           </article>
         ))}
         {!qualityEvents.length ? <CockpitDetailEmpty title="等待质量检查" detail="梗概阶段开始后，质量检查结果会出现在这里。" /> : null}
@@ -201,9 +199,10 @@ function CockpitDetailEmpty({ detail, title }: { detail: string; title: string }
 }
 
 function qualityEventsFor(events: RunEvent[]) {
-  const actual = events
-    .filter((event) => event.type === 'quality_check_completed')
-    .map((event) => event.quality)
-    .filter(Boolean) as QualityEvent[];
-  return actual;
+  return events.filter((event) => event.type === 'review.completed' || event.type === 'review.unavailable');
+}
+
+function payloadText(event: RunEvent, key: string) {
+  const value = event.payload?.[key];
+  return typeof value === 'string' ? value : '';
 }

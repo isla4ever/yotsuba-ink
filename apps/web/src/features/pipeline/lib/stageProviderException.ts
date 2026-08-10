@@ -9,11 +9,10 @@ export function stageHasProviderException(stage: WorkflowStage, providers: Provi
     || stage.provider_profile_id !== defaultText.id
     || stage.model_settings.model !== (assigned?.default_model ?? defaultText.default_model),
   );
-  const imageException = stage.type === 'cover_image' && Boolean(
+  const imageException = stage.type === 'cover' && Boolean(
     !defaultImage || stage.image_provider_profile_id !== defaultImage.id,
   );
-  const judgeException = stage.variant_policy.judge_provider_profile_id !== 'inherit';
-  return textException || imageException || judgeException;
+  return textException || imageException;
 }
 
 export function resetStageProviderException(stage: WorkflowStage, providers: ProviderProfile[]): WorkflowStage {
@@ -23,13 +22,8 @@ export function resetStageProviderException(stage: WorkflowStage, providers: Pro
   return {
     ...stage,
     provider_profile_id: defaultText.id,
-    image_provider_profile_id: stage.type === 'cover_image' && defaultImage ? defaultImage.id : stage.image_provider_profile_id,
+    image_provider_profile_id: stage.type === 'cover' && defaultImage ? defaultImage.id : stage.image_provider_profile_id,
     model_settings: { ...stage.model_settings, model: defaultText.default_model },
-    variant_policy: {
-      ...stage.variant_policy,
-      judge_provider_profile_id: 'inherit',
-      judge_model: defaultText.default_model,
-    },
   };
 }
 
@@ -39,6 +33,5 @@ export function stageProviderSummary(stage: WorkflowStage, providers: ProviderPr
 }
 
 function defaultProvider(providers: ProviderProfile[], kind: ProviderProfile['kind']) {
-  const candidates = providers.filter((provider) => provider.kind === kind);
-  return candidates.find((provider) => provider.is_global_default) ?? candidates[0];
+  return providers.find((provider) => provider.kind === kind && provider.is_global_default);
 }

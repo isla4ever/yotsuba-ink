@@ -1,66 +1,56 @@
 from __future__ import annotations
 
-from typing import Any
-
-from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel, Field
-
-from novel_workflow.api.bootstrap import list_provider_profiles
-from novel_workflow.orchestration.cover_asset_retry import CoverAssetRetryError, retry_cover_asset_candidate
-from novel_workflow.workflows.runner import NovelWorkflowRunner
-from novel_workflow.workflows.schemas import WorkflowDefinition
-from novel_workflow.workflows.templates import materialize_workflow_for_execution
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 
 
 router = APIRouter(prefix="/api/runs", tags=["cover-assets"])
 
 
-class CoverAssetRetryRequest(BaseModel):
-    candidate_id: str = Field(min_length=1, max_length=120)
-    request_id: str = Field(min_length=1, max_length=160)
+def _stores(request: Request):
+    return request.app.state.narrative_stores
+
+
+def _require_run(request: Request, run_id: str) -> None:
+    if not _stores(request).runs.exists(run_id):
+        raise HTTPException(status_code=404, detail=f"Unknown run: {run_id}")
+
+
+@router.get("/{run_id}/cover-assets")
+async def list_cover_assets(request: Request, run_id: str) -> dict[str, object]:
+    _require_run(request, run_id)
+    records = _stores(request).cover_assets.list(run_id)
+    latest_attempt = max((item.generation_attempt for item in records), default=0)
+    active = [item for item in records if item.generation_attempt == latest_attempt]
+    return {
+        "run_id": run_id,
+        "generation_attempt": latest_attempt,
+        "items": [
+            {
+                **record.model_dump(mode="json"),
+                "content_url": f"/api/runs/{run_id}/cover-assets/{record.asset_id}",
+            }
+            for record in active
+        ],
+    }
 
 
 @router.get("/{run_id}/cover-assets/{asset_id}")
 async def get_cover_asset(request: Request, run_id: str, asset_id: str) -> Response:
+    _require_run(request, run_id)
     try:
-        metadata, content = request.app.state.run_store.read_cover_asset(run_id, asset_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="封面资产不存在") from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        record, content = _stores(request).cover_assets.content(run_id, asset_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail="Unknown cover asset") from exc
     return Response(
         content=content,
-        media_type=str(metadata["mime_type"]),
+        media_type=record.mime_type,
         headers={
             "Cache-Control": "private, max-age=31536000, immutable",
-            "ETag": f'"{metadata["sha256"]}"',
+            "ETag": f'"{record.sha256}"',
             "X-Content-Type-Options": "nosniff",
         },
     )
 
 
-@router.post("/{run_id}/cover-assets/retry")
-async def retry_cover_asset(request: Request, run_id: str, payload: CoverAssetRetryRequest) -> dict[str, Any]:
-    try:
-        stored = request.app.state.run_store.read(run_id)
-        workflow = WorkflowDefinition.model_validate(stored["workflow"])
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="运行不存在") from exc
-    workflow.provider_profiles = list_provider_profiles(request.app)
-    workflow = materialize_workflow_for_execution(workflow)
-    runner = NovelWorkflowRunner(
-        providers=request.app.state.providers,
-        wiki_store=request.app.state.wiki_store,
-        run_store=request.app.state.run_store,
-    )
-    try:
-        result = await retry_cover_asset_candidate(
-            runner,
-            workflow,
-            run_id=run_id,
-            candidate_id=payload.candidate_id,
-            request_id=payload.request_id,
-        )
-    except CoverAssetRetryError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"ok": True, "run_id": run_id, **result}
+__all__ = ["router"]

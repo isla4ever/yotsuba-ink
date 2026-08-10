@@ -3,23 +3,25 @@ import { defaultWorkflow } from '../state/defaultWorkflow';
 import { resetStageProviderException, stageHasProviderException } from './stageProviderException';
 
 describe('stage provider exceptions', () => {
-  it('does not classify the shared fallback chain as a stage exception', () => {
-    const stage = {
-      ...defaultWorkflow.nodes[0],
-      fallback_targets: [{ provider_profile_id: 'backup', model: 'backup-model', enabled: true, priority: 1 }],
-    };
-
-    expect(stageHasProviderException(stage, defaultWorkflow.provider_profiles)).toBe(false);
-  });
-
-  it('preserves shared fallbacks when restoring the stage provider default', () => {
-    const fallback = { provider_profile_id: 'backup', model: 'backup-model', enabled: true, priority: 1 };
+  it('restores the explicit stage Provider binding to the configured default', () => {
     const stage = {
       ...defaultWorkflow.nodes[0],
       provider_profile_id: 'stage-provider',
-      fallback_targets: [fallback],
     };
 
-    expect(resetStageProviderException(stage, defaultWorkflow.provider_profiles).fallback_targets).toEqual([fallback]);
+    const restored = resetStageProviderException(stage, defaultWorkflow.provider_profiles);
+    expect(stageHasProviderException(stage, defaultWorkflow.provider_profiles)).toBe(true);
+    expect(restored.provider_profile_id).toBe(defaultWorkflow.provider_profiles[0].id);
+  });
+
+  it('does not infer a default from the first Provider of a kind', () => {
+    const providers = defaultWorkflow.provider_profiles.map((provider) => ({
+      ...provider,
+      is_global_default: false,
+    }));
+    const stage = defaultWorkflow.nodes[0];
+
+    expect(stageHasProviderException(stage, providers)).toBe(true);
+    expect(resetStageProviderException(stage, providers)).toBe(stage);
   });
 });

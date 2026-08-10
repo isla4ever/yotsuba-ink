@@ -33,12 +33,10 @@ export function CharacterForceGraphPanel({ artifactStatus, events, onEdit, quali
   const [selected, setSelected] = useState<CharacterNode | null>(null);
   const [panoramaOpen, setPanoramaOpen] = useState(false);
   const [graphSize, setGraphSize] = useState({ width: 300, height: 240 });
-  const latest = events.find((event) => event.type === 'character_graph_updated' && event.character_graph);
-  const graph = graphOverride ?? latest?.character_graph ?? { nodes: [], edges: [], updated_by: '' };
+  const graph = graphOverride ?? { nodes: [], edges: [], updated_by: '' };
   const graphKey = useMemo(() => characterGraphSignature(graph), [graph]);
-  const graphSyncIndex = events.findIndex((event) => event.type === 'character_graph_syncing');
-  const graphUpdatedIndex = events.findIndex((event) => event.type === 'character_graph_updated');
-  const generating = graphSyncIndex >= 0 && (graphUpdatedIndex < 0 || graphSyncIndex < graphUpdatedIndex);
+  const generating = events.some((event) => event.stage_id === 'characters' && event.type === 'node.started')
+    && !events.some((event) => event.stage_id === 'characters' && event.type === 'artifact.committed');
 
   const graphData = useMemo<{ nodes: GraphNode[]; links: GraphLink[] }>(() => {
     const positions = tierRingLayout(graph.nodes);

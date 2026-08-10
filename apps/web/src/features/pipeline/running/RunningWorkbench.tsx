@@ -20,10 +20,7 @@ type Props = {
   onOpenWorkbench?: () => void;
   onRegenerateBrief: (direction?: string) => Promise<boolean>;
   onConfirmStageArtifact: (stageId: string, artifact?: string) => Promise<boolean>;
-  onRegenerateStageDraft: (stageId: string, direction: string) => void;
-  onRequestVariantCompare: (stageId: string) => void;
-  onSelectBalancedVariant: (stageId: string, variantId: string, modelPicked?: boolean) => void;
-  onSelectDraftCandidate: (stageId: string, candidateKey: string) => void;
+  onRegenerateStageDraft: (stageId: string, direction: string, chapterId?: string) => void;
 };
 
 export function RunningWorkbench(props: Props) {

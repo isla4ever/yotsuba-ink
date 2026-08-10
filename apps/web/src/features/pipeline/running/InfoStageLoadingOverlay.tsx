@@ -16,7 +16,7 @@ export function InfoStageLoadingOverlay({ events, visible }: Props) {
     <LoadingOverlay
       className="info-stage-loading-overlay"
       detail={copy.detail}
-      eyebrow="小说信息推荐"
+      eyebrow="创作立项"
       open={visible}
       title={copy.title}
     >

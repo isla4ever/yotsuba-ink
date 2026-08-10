@@ -32,6 +32,8 @@ dependencies = [
     "uvicorn>=0.30.0",
     "pydantic>=2.7.0",
     "tiktoken>=0.8.0",
+    "langgraph>=1.2.7,<2.0.0",
+    "langgraph-checkpoint-sqlite>=3.1.0,<4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -45,7 +47,6 @@ Issues = "https://github.com/isla4ever/yotsuba-ink/issues"
 
 [project.scripts]
 novel-workflow-api = "novel_workflow.api.run:main"
-novel-workflow-provider-smoke = "novel_workflow.providers.smoke:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

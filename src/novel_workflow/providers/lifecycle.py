@@ -34,38 +34,6 @@ def provider_deletion_references(
     for workflow in workflows:
         for node in workflow.nodes:
             _append_node_references(references, workflow, node, provider.id)
-        for stage in workflow.stage_configs.values():
-            _append_reference(
-                references,
-                stage.provider_profile_id == provider.id,
-                f"{workflow.name} / {stage.node_id} 文本配置",
-            )
-            _append_reference(
-                references,
-                stage.image_provider_profile_id == provider.id,
-                f"{workflow.name} / {stage.node_id} 图片配置",
-            )
-            _append_reference(
-                references,
-                stage.variant_policy.judge_provider_profile_id == provider.id,
-                f"{workflow.name} / {stage.node_id} 版本评审",
-            )
-            _append_fallback_references(
-                references,
-                workflow.name,
-                stage.node_id,
-                provider.id,
-                stage.fallback_targets,
-                "文本备用",
-            )
-            _append_fallback_references(
-                references,
-                workflow.name,
-                stage.node_id,
-                provider.id,
-                stage.image_fallback_targets,
-                "图片备用",
-            )
     return references
 
 
@@ -80,29 +48,6 @@ def _append_node_references(references: list[str], workflow: WorkflowDefinition,
         node.image_provider_profile_id == provider_id,
         f"{workflow.name} / {node.label} 图片生成",
     )
-    _append_reference(
-        references,
-        node.variant_policy.judge_provider_profile_id == provider_id,
-        f"{workflow.name} / {node.label} 版本评审",
-    )
-    _append_fallback_references(references, workflow.name, node.label, provider_id, node.fallback_targets, "文本备用")
-    _append_fallback_references(references, workflow.name, node.label, provider_id, node.image_fallback_targets, "图片备用")
-
-
-def _append_fallback_references(
-    references: list[str],
-    workflow_name: str,
-    stage_label: str,
-    provider_id: str,
-    targets,
-    channel_label: str,
-) -> None:
-    for target in targets:
-        _append_reference(
-            references,
-            target.provider_profile_id == provider_id,
-            f"{workflow_name} / {stage_label} {channel_label} {target.priority}",
-        )
 
 
 def _append_reference(references: list[str], condition: bool, label: str) -> None:

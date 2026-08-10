@@ -186,8 +186,7 @@
   gap: 6px;
 }
 
-.model-review-head > strong { color: var(--text); font-size: 20px; font-variant-numeric: tabular-nums; }
-.model-review-head > strong > small { color: var(--muted); font-size: 12px; font-weight: 600; margin-left: 2px; }
+.model-review-head > small { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .model-review-version { color: var(--muted); font-size: 11px; }
 .model-review-dimensions { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .model-review-dimensions > li { display: grid; gap: 3px; }

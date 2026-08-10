@@ -9,7 +9,7 @@ type Props = RuntimeInsightContext & {
   compactPanelKeys: readonly RuntimePanelKey[];
   panelKeys: readonly RuntimePanelKey[];
   visible: boolean;
-  onEditInfo: (target: 'worldbuilding' | 'character') => void;
+  onEditInfo?: (target: 'worldbuilding' | 'character') => void;
   onOpenPanel: (panel: RuntimePanelKey) => void;
 };
 
@@ -38,7 +38,7 @@ export function RuntimeInsights({
               {...context}
               key={panel}
               panel={panel}
-              onEditInfo={activeStage.type === 'info_recommend' ? onEditInfo : undefined}
+              onEditInfo={activeStage.type === 'info' ? onEditInfo : undefined}
             />
           ))}
           {compactPanelKeys.length ? (
@@ -51,13 +51,12 @@ export function RuntimeInsights({
                 {compactPanelKeys.map((panel) => (
                   <RuntimeCompactTile
                     characterGraphOverride={context.characterGraphOverride}
-                    detailWritebacks={context.detailWritebacks}
+                    artifactProjection={context.artifactProjection}
                     events={context.events}
                     key={panel}
                     memoryEvents={context.memoryEvents}
-                    outlineWritebacks={context.outlineWritebacks}
                     panel={panel}
-                    summaryWritebacks={context.summaryWritebacks}
+                    writebackStatus={context.writebackStatus}
                     workflow={context.workflow}
                     onOpen={() => onOpenPanel(panel)}
                   />

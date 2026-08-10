@@ -2,10 +2,9 @@ import type { QualityMode, RunControlState, StageType } from '../contracts';
 import type { WorkspacePhase } from './runReducer';
 
 export type RunCommandIntent =
-  | { type: 'continue'; fallbackNextStageId?: string; stageId: string }
+  | { type: 'continue'; stageId: string }
   | { type: 'none' }
-  | { type: 'pause' }
-  | { type: 'resume' }
+  | { type: 'observe' }
   | { type: 'return_export' }
   | { type: 'start' };
 
@@ -32,11 +31,11 @@ export function resolveRunCommandIntent(params: {
   if (fastRunBusy) return { type: 'none' };
 
   if (runningWorkspace && params.infoContinueReady && activeRun) {
-    return { type: 'continue', stageId: 'info', fallbackNextStageId: 'summary' };
+    return { type: 'continue', stageId: 'info' };
   }
 
   if (runningWorkspace && params.checkpointContinueReady && activeRun) {
-    if (params.selectedStageType === 'export_artifact' || params.checkpointStageId === 'export') {
+    if (params.selectedStageType === 'export' || params.checkpointStageId === 'export') {
       return { type: 'return_export' };
     }
     return { type: 'continue', stageId: params.checkpointStageId };
@@ -46,11 +45,11 @@ export function resolveRunCommandIntent(params: {
     const deepCheckpointBlocked = params.qualityMode === 'deep'
       && Boolean(params.checkpointStageId)
       && !params.checkpointContinueReady;
-    return deepCheckpointBlocked ? { type: 'none' } : { type: 'resume' };
+    return deepCheckpointBlocked ? { type: 'none' } : { type: 'observe' };
   }
 
   if (runningWorkspace && params.running && activeRun) {
-    return params.qualityMode === 'fast' ? { type: 'none' } : { type: 'pause' };
+    return { type: 'none' };
   }
 
   return { type: 'start' };

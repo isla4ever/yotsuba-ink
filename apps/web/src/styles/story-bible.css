@@ -316,12 +316,6 @@
   color: var(--text);
 }
 
-.bible-timeline-degraded {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  margin: 0;
-}
-
 .bible-profile-viewpoint {
   color: var(--text-soft);
   font-family: var(--font-family-mono);
@@ -431,6 +425,17 @@
 @media (max-width: 1024px) {
   .bible-characters-body {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The 3D stage has a toolbar above its canvas; reserve that row explicitly
+     so the profile panel starts after the canvas instead of being overlapped
+     by the canvas min-height at narrow widths. */
+  .bible-characters-body-3d {
+    grid-template-rows: auto auto;
+  }
+
+  .bible-characters-body-3d .bible-network-3d-stage {
+    min-height: 408px;
   }
 
   .bible-network-canvas {

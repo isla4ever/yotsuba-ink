@@ -16,6 +16,7 @@ export type ProviderModelDiscoveryResult = {
   kind: ProviderProfile['kind'];
   models: string[];
   added_models: string[];
+  model_supported_parameters: Record<string, string[]>;
   error_code: string;
   message: string;
 };

@@ -29,7 +29,6 @@ export function useKnowledgeUploadQueue({ onDocumentsChanged, projectId }: Optio
     activeRef.current = true;
     setBusy(true);
     let successCount = 0;
-    let demoCount = 0;
     try {
       for (const file of files) {
         const id = knowledgeQueueId(file);
@@ -40,12 +39,10 @@ export function useKnowledgeUploadQueue({ onDocumentsChanged, projectId }: Optio
               message: phase === 'reading' ? '正在读取并编码文件' : '正在解析、分块并建立索引',
             });
           });
-          const demo = payload.document.backend === 'frontend-demo';
-          successCount += demo ? 0 : 1;
-          demoCount += demo ? 1 : 0;
+          successCount += 1;
           updateItem(id, {
-            status: demo ? 'demo' : 'done',
-            message: demo ? '本机服务不可用，未建立真实语义索引' : `${payload.document.chunk_count} 个片段已建立索引`,
+            status: 'done',
+            message: `${payload.document.chunk_count} 个片段已建立索引`,
           });
           filesRef.current.delete(id);
         } catch (error) {
@@ -58,10 +55,7 @@ export function useKnowledgeUploadQueue({ onDocumentsChanged, projectId }: Optio
         setMessage(`文件处理已结束，但资料列表刷新失败：${errorMessage(error)}`);
         return;
       }
-      const parts = [];
-      if (successCount) parts.push(`${successCount} 个文件已写入项目知识库`);
-      if (demoCount) parts.push(`${demoCount} 个文件仅保存在本机演示资料中`);
-      setMessage(parts.length ? `${parts.join('；')}。` : '上传失败，请查看队列并重试。');
+      setMessage(successCount ? `${successCount} 个文件已写入项目知识库。` : '上传失败，请查看队列并重试。');
     } finally {
       activeRef.current = false;
       setBusy(false);

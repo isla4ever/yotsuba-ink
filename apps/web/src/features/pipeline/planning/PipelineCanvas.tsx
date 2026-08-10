@@ -22,7 +22,6 @@ import {
   buildEdges,
   buildNodes,
   createCanvasLayout,
-  createQualityMap,
   isCanvasNodeActivationKey,
   isCanvasViewportInteractive,
   mergeLayoutNodes,
@@ -60,7 +59,6 @@ export function PipelineCanvas({
   runtimeLayersEnabled = true,
   onOpenStageConfig,
 }: Props) {
-  const latestQuality = useMemo(() => createQualityMap(events), [events]);
   const showCrosscutting = layoutVariant === 'cockpit-vertical' && workflow.canvas_layout?.crosscutting_visible !== false;
   const flowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
   const flowFrameRef = useRef<HTMLDivElement | null>(null);
@@ -70,15 +68,15 @@ export function PipelineCanvas({
   const [canvasView, setCanvasView] = useState<'deck' | 'graph'>('deck');
 
   const workflowNodeKey = useMemo(
-    () => workflow.nodes.map((stage) => `${stage.id}:${stage.label}:${stage.provider_profile_id}:${stage.model_settings.model}:${stage.quality_policy.min_score}:${JSON.stringify(stage.input_schema.map((field) => field.default))}`).join('|'),
+    () => workflow.nodes.map((stage) => `${stage.id}:${stage.label}:${stage.provider_profile_id}:${stage.model_settings.model}:${JSON.stringify(stage.input_schema.map((field) => field.default))}`).join('|'),
     [workflow.nodes],
   );
   const layoutKey = useMemo(() => JSON.stringify(workflow.canvas_layout?.nodes ?? {}), [workflow.canvas_layout?.nodes]);
   const runFitKey = useMemo(
-    () => events.filter((event) => event.node_id && (event.type.startsWith('node_') || event.type === 'stage_checkpoint_ready')).map((event) => `${event.type}:${event.node_id}`).slice(0, 8).join('|'),
+    () => events.filter((event) => event.stage_id && event.type.startsWith('node.')).map((event) => `${event.type}:${event.stage_id}:${event.node_id ?? ''}`).slice(0, 8).join('|'),
     [events],
   );
-  const initialNodes = useMemo(() => buildNodes(workflow, selectedId, events, latestQuality, showCrosscutting, layoutVariant, runtimeLayersEnabled), [events, latestQuality, layoutKey, layoutVariant, runtimeLayersEnabled, selectedId, showCrosscutting, workflowNodeKey]);
+  const initialNodes = useMemo(() => buildNodes(workflow, selectedId, events, showCrosscutting, layoutVariant, runtimeLayersEnabled), [events, layoutKey, layoutVariant, runtimeLayersEnabled, selectedId, showCrosscutting, workflowNodeKey]);
   const initialEdges = useMemo(() => buildEdges(workflow, events, selectedId, showCrosscutting, layoutVariant, runtimeLayersEnabled), [events, layoutVariant, runtimeLayersEnabled, selectedId, showCrosscutting, workflow.edges, workflowNodeKey]);
   const [nodes, setNodes] = useNodesState(initialNodes);
   const [edges, setEdges] = useEdgesState(initialEdges);
@@ -100,8 +98,8 @@ export function PipelineCanvas({
   }, [layoutVariant]);
 
   useEffect(() => {
-    setNodes((current) => mergeLayoutNodes(workflow, selectedId, events, latestQuality, current, showCrosscutting, layoutVariant, runtimeLayersEnabled));
-  }, [events, latestQuality, layoutKey, layoutVariant, runtimeLayersEnabled, selectedId, setNodes, showCrosscutting, workflowNodeKey]);
+    setNodes((current) => mergeLayoutNodes(workflow, selectedId, events, current, showCrosscutting, layoutVariant, runtimeLayersEnabled));
+  }, [events, layoutKey, layoutVariant, runtimeLayersEnabled, selectedId, setNodes, showCrosscutting, workflowNodeKey]);
 
   useEffect(() => {
     setLayoutLocked(workflow.canvas_layout?.locked ?? false);
@@ -189,7 +187,7 @@ export function PipelineCanvas({
       <div className="canvas-head">
         <div>
           <p className="eyebrow">创作流程</p>
-          <h2>{canvasView === 'deck' ? '七阶段稿件栈' : '创作阶段流程'}</h2>
+          <h2>{canvasView === 'deck' ? '八阶段稿件栈' : '创作阶段流程'}</h2>
         </div>
         <div className="pipeline-metrics">
           <CanvasStagePosition events={events} selectedId={selectedId} workflow={workflow} />

@@ -151,9 +151,6 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: She
             onRegenerateBrief={app.regenerateBrief}
             onConfirmStageArtifact={app.confirmStageArtifact}
             onRegenerateStageDraft={app.regenerateStageDraft}
-            onRequestVariantCompare={app.requestVariantCompare}
-            onSelectBalancedVariant={app.selectBalancedVariant}
-            onSelectDraftCandidate={app.selectDraftCandidate}
             settlementDwell={app.settlementDwell}
             settlementStageId={app.settlementStageId}
             workflow={app.workflow}
@@ -224,7 +221,7 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: She
       <Suspense fallback={null}>
         <KnowledgeBaseManagerDialog
           documents={app.knowledgeDocuments}
-          projectId={app.activeProject?.id ?? 'default'}
+          projectId={app.activeProject?.id ?? ''}
           qualityMode={app.workflow.quality_mode}
           onDeleted={app.handleKnowledgeDocumentDeleted}
           onDocumentsChange={app.setKnowledgeDocuments}

@@ -3,11 +3,7 @@ import { useState, type CSSProperties } from 'react';
 import type { RunEvent, WorkflowStage } from '../contracts';
 import { ButtonLoadingIndicator } from '../layout/ButtonLoadingIndicator';
 import { stageLabelForUi } from '../lib/display';
-import {
-  formatSettlementMs,
-  settlementNextStageLabel,
-  stageSettlementSummary,
-} from '../lib/stageSettlement';
+import { settlementNextStageLabel, stageSettlementSummary } from '../lib/stageSettlement';
 import { compactStreamPreview, splitStreamBlocks } from '../lib/streamText';
 import { useStreamReveal } from '../state/useStreamReveal';
 import { displayRunLogEvents, latestNodeStatus, type DisplayRunLogItem } from './cockpitRuntime';
@@ -81,16 +77,18 @@ export function CockpitRunLog({ activeStage, detailAvailable, elapsed, events, h
 }
 
 /**
- * Phase 12 D7 (fast/balanced): expandable settlement summary card for the most
- * recently settled stage — the pipeline keeps auto-advancing; expanding is
- * purely informational (real words / usage / elapsed / quality facts).
+ * The settlement card only shows facts emitted by the Graph envelope.
  */
 function CockpitSettlementCard({ events }: { events: RunEvent[] }) {
-  const settled = events.find((event) => event.type === 'stage_summary_ready' && event.node_id && event.node_id !== 'info');
+  const settled = events.find((event) => (
+    event.stage_id
+    && event.stage_id !== 'info'
+    && (event.type === 'checkpoint.saved' || event.type === 'artifact.committed')
+  ));
   const [expandedKey, setExpandedKey] = useState('');
-  if (!settled?.node_id) return null;
-  const stageId = settled.node_id;
-  const label = settled.label || settlementNextStageLabel(stageId);
+  if (!settled?.stage_id) return null;
+  const stageId = settled.stage_id;
+  const label = settlementNextStageLabel(stageId);
   const expanded = expandedKey === stageId;
   const summary = stageSettlementSummary(events, { id: stageId });
   return (
@@ -107,15 +105,23 @@ function CockpitSettlementCard({ events }: { events: RunEvent[] }) {
       </button>
       {expanded ? (
         <dl>
-          <div><dt>耗时</dt><dd>{summary.elapsedMs == null ? '暂无' : formatSettlementMs(summary.elapsedMs)}</dd></div>
-          <div><dt>用量</dt><dd>{summary.tokens == null ? '暂无' : summary.tokens.toLocaleString()}</dd></div>
-          <div><dt>成本</dt><dd>{summary.costUsd == null ? '暂无' : `$${summary.costUsd.toFixed(3)}`}</dd></div>
-          <div><dt>字数</dt><dd>{summary.words ? summary.words.toLocaleString() : '—'}</dd></div>
-          <div><dt>质量</dt><dd>{summary.qualityScore == null ? '暂无' : `Q ${summary.qualityScore.toFixed(2)} · ${summary.qualityFindings} 个发现`}</dd></div>
+          <div><dt>检查点</dt><dd>{summary.checkpointId || '等待保存'}</dd></div>
+          <div><dt>Artifact</dt><dd>{summary.committedArtifact ? '已提交' : '等待提交'}</dd></div>
+          <div><dt>审稿</dt><dd>{summary.reviewCount} 完成 · {summary.unavailableReviewCount} 不可用</dd></div>
+          <div><dt>写回</dt><dd>{writebackLabel(summary.writebackStatus)}</dd></div>
         </dl>
       ) : null}
     </div>
   );
+}
+
+function writebackLabel(status: ReturnType<typeof stageSettlementSummary>['writebackStatus']) {
+  return {
+    none: '未触发',
+    queued: '已排队',
+    committed: '已提交',
+    failed: '失败',
+  }[status];
 }
 
 function SmoothLogText({ active, value }: { active: boolean; value: string }) {

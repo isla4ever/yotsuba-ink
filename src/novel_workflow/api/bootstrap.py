@@ -7,36 +7,43 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from novel_workflow.knowledge import KnowledgeBase
-from novel_workflow.memory.wiki import WikiStore
 from novel_workflow.providers.registry import ProviderRegistry
+from novel_workflow.runtime.graph.execution_service import NarrativeExecutionService
+from novel_workflow.runtime.graph.provider_gateway import RegistryNarrativeProviderGateway
+from novel_workflow.archive import LegacyRunViewer
 from novel_workflow.references import ReferenceStore, TavilySearchClient
 from novel_workflow.storage.json_store import JsonStore
 from novel_workflow.storage.project_store import ProjectStore
 from novel_workflow.storage.provider_profile_store import ProviderProfileStore
 from novel_workflow.storage.provider_secret_store import ProviderSecretStore
-from novel_workflow.storage.run_store import RunStore
 from novel_workflow.workflows.schemas import PromptTemplate, ProviderProfile
 from novel_workflow.workflows.templates import default_prompt_templates, default_provider_profiles, default_workflow
 
 
 def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
     root = data_dir or Path("runtime/novel_workflow")
-    app.state.run_store = RunStore(root / "runs")
     app.state.workflow_store = JsonStore(root / "workflows")
-    app.state.project_store = ProjectStore(
-        root / "projects",
-        workflow_store=app.state.workflow_store,
-        run_store=app.state.run_store,
-    )
     app.state.provider_store = ProviderProfileStore(root / "provider_profiles.sqlite3")
     app.state.provider_secret_store = ProviderSecretStore(root / "provider_secrets.sqlite3")
     app.state.prompt_store = JsonStore(root / "prompts")
-    app.state.wiki_store = WikiStore(root / "wiki")
     app.state.reference_store = ReferenceStore(root / "references")
     app.state.reference_search = TavilySearchClient()
     app.state.knowledge_base = KnowledgeBase(root / "knowledge")
     app.state.providers = ProviderRegistry.from_env()
     seed_defaults(app)
+    app.state.narrative_execution = NarrativeExecutionService(
+        root / "native_runtime",
+        lambda: RegistryNarrativeProviderGateway(app.state.providers),
+    )
+    app.state.narrative_stores = app.state.narrative_execution.stores
+    app.state.project_store = ProjectStore(
+        root / "projects",
+        workflow_store=app.state.workflow_store,
+        run_repository=app.state.narrative_stores.runs,
+    )
+    # Historical runs are an offline, read-only surface and never share the
+    # production Run repository or graph checkpoint directory.
+    app.state.legacy_run_viewer = LegacyRunViewer(root / "archive")
 
 
 def seed_defaults(app: FastAPI) -> None:

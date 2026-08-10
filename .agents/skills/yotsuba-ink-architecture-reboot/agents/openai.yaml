@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yotsuba Ink Architecture Reboot"
+  short_description: "从单一权威路径重启 Yotsuba Ink 生产架构并删除旧路径"
+  default_prompt: "Use $yotsuba-ink-architecture-reboot to review or redesign Yotsuba Ink architecture from a single authoritative runtime."

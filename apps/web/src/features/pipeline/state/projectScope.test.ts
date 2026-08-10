@@ -1,12 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   activeProjectStorageKey,
-  archivedRunLinksStorageKey,
   loadActiveProjectLocally,
-  loadArchivedRunLinks,
-  projectIdForRun,
   saveActiveProjectLocally,
-  saveArchivedRunLink,
   setStorageProjectScope,
   storageScopedKey,
 } from './projectScope';
@@ -42,11 +38,11 @@ describe('project storage scope (mine 1)', () => {
     setStorageProjectScope('');
   });
 
-  it('scopes keys per project and keeps the bare legacy key for the unarchived session', () => {
+  it('requires a project id for every scoped storage key', () => {
     setStorageProjectScope('proj-1');
     expect(storageScopedKey('novel-workflow-quality-mode')).toBe('novel-workflow-quality-mode:proj-1');
     setStorageProjectScope('');
-    expect(storageScopedKey('novel-workflow-quality-mode')).toBe('novel-workflow-quality-mode');
+    expect(() => storageScopedKey('novel-workflow-quality-mode')).toThrow('active project');
     // Explicit override wins over the module scope (used by tests and callers with a project at hand).
     expect(storageScopedKey('k', 'proj-2')).toBe('k:proj-2');
   });
@@ -59,20 +55,5 @@ describe('project storage scope (mine 1)', () => {
     expect(loadActiveProjectLocally()).toEqual(project);
     saveActiveProjectLocally(null);
     expect(loadActiveProjectLocally()).toBeNull();
-  });
-
-  it('records archived-run links and resolves run ownership through them', () => {
-    const win = memoryWindow();
-    vi.stubGlobal('window', win);
-    saveArchivedRunLink('run-legacy', 'proj-1');
-    expect(loadArchivedRunLinks()).toEqual({ 'run-legacy': 'proj-1' });
-    expect(win.__store.has(archivedRunLinksStorageKey)).toBe(true);
-
-    // Real project id from run.json wins.
-    expect(projectIdForRun('proj-7', 'run-x', {})).toBe('proj-7');
-    // Legacy run (project_id == run_id) falls back to the archive link.
-    expect(projectIdForRun('run-legacy', 'run-legacy', { 'run-legacy': 'proj-1' })).toBe('proj-1');
-    // Unknown legacy run stays unarchived ('').
-    expect(projectIdForRun('', 'run-unknown', {})).toBe('');
   });
 });

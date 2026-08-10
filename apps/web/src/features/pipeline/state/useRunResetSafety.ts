@@ -1,5 +1,5 @@
 import { useEffect, useState, type MutableRefObject } from 'react';
-import type { RunEvent } from '../contracts';
+import type { RunEvent, RunInputs } from '../contracts';
 import type { RunSource } from '../lib/runSource';
 import type { RunState } from './runReducer';
 import { captureRunResetSnapshot, type RunResetSnapshot } from './runResetState';
@@ -12,6 +12,7 @@ type Props = {
   automationCockpitReady: boolean;
   decision: StageDecisionState;
   eventsRef: MutableRefObject<RunEvent[]>;
+  runInputs: RunInputs;
   onReset: () => void;
   onRestore: (hydrated: HydratedRunState, reconnect: boolean) => Promise<void>;
   runSource: RunSource;
@@ -23,6 +24,7 @@ export function useRunResetSafety({
   automationCockpitReady,
   decision,
   eventsRef,
+  runInputs,
   onReset,
   onRestore,
   runSource,
@@ -53,6 +55,7 @@ export function useRunResetSafety({
       automationCockpitReady,
       decision,
       events: eventsRef.current,
+      inputs: runInputs,
       runSource,
       state,
     });

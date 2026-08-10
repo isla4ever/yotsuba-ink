@@ -1,7 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { AlertCircle, CheckCircle2, Circle, Database, FileText, ShieldCheck, Sparkles, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { QualityEvent, RunEvent, WorkflowStage } from '../contracts';
+import type { RunEvent, WorkflowStage } from '../contracts';
 import { ButtonLoadingIndicator } from '../layout/ButtonLoadingIndicator';
 import { modelNameForUi, providerNameForUi, stageLabelForUi } from '../lib/display';
 import { stageArtifactLabel, stageConfigurationReadiness } from '../lib/planningReadiness';
@@ -12,7 +12,6 @@ export type StageNodeData = {
   index: number;
   selected: boolean;
   status: string;
-  quality?: QualityEvent;
   events: RunEvent[];
   presentation?: 'planning' | 'runtime';
   runtime?: NodeRuntimeState;
@@ -20,10 +19,11 @@ export type StageNodeData = {
 
 export function StageCompactNode({ data }: NodeProps) {
   const nodeData = data as unknown as StageNodeData;
-  const { stage, index, selected, status, quality, events, presentation = 'runtime', runtime } = nodeData;
-  const completed = events.some((event) => event.type === 'node_completed' && event.node_id === stage.id);
-  const memoryRead = events.some((event) => event.type === 'memory_context_loaded' && event.node_id === stage.id);
-  const memoryWrite = events.some((event) => event.type === 'memory_writeback_completed' && event.node_id === stage.id);
+  const { stage, index, selected, status, events, presentation = 'runtime', runtime } = nodeData;
+  const completed = events.some((event) => event.type === 'artifact.committed' && event.stage_id === stage.id);
+  const memoryRead = events.some((event) => event.type === 'evidence.proposed' && event.stage_id === stage.id);
+  const memoryWrite = events.some((event) => event.type === 'writeback.committed' && event.stage_id === stage.id);
+  const reviewed = events.some((event) => event.type === 'review.completed' && event.stage_id === stage.id);
   const elapsedLabel = useStageElapsedLabel(events, stage.id, status, runtime);
   const readiness = stageConfigurationReadiness(stage);
 
@@ -56,7 +56,7 @@ export function StageCompactNode({ data }: NodeProps) {
           <div className="node-badges">
             <span className={memoryRead ? 'on' : ''}><Database size={12} />读</span>
             <span className={memoryWrite ? 'on' : ''}><Database size={12} />写</span>
-            <span className={quality?.passed ? 'on' : quality ? 'warn' : ''}><ShieldCheck size={12} />{quality ? quality.score.toFixed(2) : stage.quality_policy.min_score.toFixed(2)}</span>
+            <span className={reviewed ? 'on' : ''}><ShieldCheck size={12} />{reviewed ? '已审稿' : '待审稿'}</span>
             <span className={completed ? 'on' : ''}><FileText size={12} />{completed ? '产物' : '待产物'}</span>
           </div>
         </>
@@ -70,8 +70,8 @@ export function StageCompactNode({ data }: NodeProps) {
 
 function useStageElapsedLabel(events: RunEvent[], stageId: string, status: string, runtime?: NodeRuntimeState) {
   const startKey = useMemo(() => {
-    const start = events.find((event) => event.type === 'node_started' && event.node_id === stageId);
-    return runtime?.startKey || (start ? `${start.run_id}-${start.node_id}-${start.label ?? ''}` : '');
+    const start = events.find((event) => event.type === 'node.started' && event.stage_id === stageId);
+    return runtime?.startKey || (start ? `${start.run_id}-${start.event_id}` : '');
   }, [events, runtime?.startKey, stageId]);
   const completedSeconds = runtime?.completedSeconds ?? null;
   const [tick, setTick] = useState(0);

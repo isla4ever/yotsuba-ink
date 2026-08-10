@@ -30,7 +30,7 @@ export function runtimeTextForUi(value?: string) {
 }
 
 export function stageLabelForUi(stage: Pick<WorkflowStage, 'label' | 'type'>) {
-  return stage.type === 'info_recommend' ? '小说信息推荐' : stage.label;
+  return stage.label;
 }
 
 export function formatHistoryTime(value: string) {

@@ -1,38 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import type { RunEvent } from '../contracts';
-import { latestResult, stageQualityScore, statusText } from './stageRunUtils';
+import { runEvent } from '../contracts/runEventTestFactory';
+import { latestResult, statusText } from './stageRunUtils';
 
-describe('stage run quality score', () => {
-  it('uses a real stage quality event instead of the configured threshold', () => {
-    const events: RunEvent[] = [
-      { type: 'quality_check_completed', run_id: 'run', node_id: 'summary', quality_report: { node_id: 'summary', node_type: 'summary', label: '梗概', score: 0.91, passed: true, mode: 'deep', findings: [], constraint_hits: [], revision_required: false } },
-    ];
-
-    expect(stageQualityScore(events, 'summary')).toBe(0.91);
-    expect(stageQualityScore(events, 'cover')).toBeNull();
+describe('stage Graph projections', () => {
+  it('does not call Cover complete before a selected asset exists', () => {
+    const events = [runEvent('artifact.committed', {
+      stage_id: 'cover',
+      node_id: 'cover.commit_artifact',
+      payload: { brief: { concept: '简报', image_prompt: '雾港', palette: ['灰'], negative_constraints: [] }, selected_asset_id: '' },
+    })];
+    expect(statusText({ id: 'cover', type: 'cover' }, events)).toBe('待完善');
   });
 
-  it('normalizes a real asset progress percentage', () => {
-    expect(stageQualityScore([{ type: 'asset_progress_updated', run_id: 'run', node_id: 'cover', score: 84 }], 'cover')).toBe(0.84);
-  });
-
-  it('does not call a Cover lifecycle complete before its selected image asset is ready', () => {
-    const events = [{
-      type: 'node_completed',
-      run_id: 'run',
-      node_id: 'cover',
-      result: { brief: '简报', prompt: 'prompt', candidates: [{ id: 'cover-1', image_url: '' }], selected_candidate_id: 'cover-1' },
-    }] as RunEvent[];
-    expect(statusText({ id: 'cover', type: 'cover_image' }, events)).toBe('待完善');
-  });
-
-  it('uses the persisted snapshot artifact when recovering a historical stage', () => {
-    const artifact = { full_synopsis: '恢复后的梗概' };
-    const events = [
-      { artifact, node_id: 'summary', run_id: 'run', type: 'artifact_validated' },
-      { node_id: 'summary', result: { full_synopsis: '旧事件梗概' }, run_id: 'run', type: 'node_completed' },
-    ] as RunEvent[];
-
+  it('reads the current vNext Artifact from payload', () => {
+    const artifact = { beats: [{ id: 'beat-1', phase: 'setup', event: '发现线索', consequence: '开始调查' }], climax: '公开真相', resolution: '调查结束', character_outcomes: [] };
+    const events = [runEvent('artifact.candidate_ready', {
+      stage_id: 'summary',
+      node_id: 'summary.generate_candidate',
+      payload: artifact,
+    })];
     expect(latestResult(events, 'summary')).toBe(JSON.stringify(artifact));
   });
 });

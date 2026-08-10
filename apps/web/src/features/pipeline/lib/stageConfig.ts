@@ -33,25 +33,6 @@ export function updateStageInputDefault(stage: WorkflowStage, key: string, value
   };
 }
 
-/**
- * Phase 12 B2: the brief keeps a single length control. The user picks the
- * word-count range (the finer choice); the coarse `target_length` tier is
- * derived from it so both prompt inputs stay consistent without asking twice.
- */
-export const targetLengthByWordsRange: Record<string, string> = {
-  '1-3 万字': '短篇',
-  '5-10 万字': '中篇',
-  '20-40 万字': '长篇',
-  '80-120 万字': '长篇',
-  '120 万字以上': '系列长篇',
-};
-
-export function applyTargetWordsRange(stage: WorkflowStage, range: string): WorkflowStage {
-  const next = updateStageInputDefault(stage, 'target_words_range', range);
-  const derived = targetLengthByWordsRange[range];
-  return derived ? updateStageInputDefault(next, 'target_length', derived) : next;
-}
-
 export function parseTagInput(value: string) {
   return value
     .split(/[,\n，、]/)
@@ -89,27 +70,17 @@ export function coerceFieldValue(field: InputField, raw: string | boolean) {
 }
 
 export function extractWorldbuilding(events: RunEvent[]): WorldbuildingView {
-  const latestInfo = events.find((event) => event.type === 'node_completed' && event.node_type === 'info_recommend');
-  const result = latestInfo?.result;
+  const latestInfo = events.find((event) => event.type === 'artifact.committed' && event.stage_id === 'info');
+  const result = latestInfo?.payload;
   if (!result) return defaultWorldbuilding;
 
-  if (typeof result === 'object' && result !== null) {
-    const record = result as Record<string, unknown>;
-    const seed = firstString(record.worldbuilding_detail, record.worldbuilding, record.world, record.world_seed);
-    return {
-      source: '小说推荐产物',
-      seed,
-      rules: arrayFrom(record.rules, record.constraints, record.hard_settings) || parseTagInput(seed),
-      tone: firstString(record.tone, record.style, record.genre),
-      impact: arrayFrom(record.impact, record.downstream_effects) || [],
-    };
-  }
-
-  const text = String(result);
+  const promise = recordFrom(result.story_promise);
   return {
-    ...defaultWorldbuilding,
-    source: '小说推荐产物',
-    seed: text.length > 180 ? `${text.slice(0, 180)}...` : text,
+    source: '创作立项 Artifact',
+    seed: firstString(result.premise),
+    rules: arrayFrom(result.world_rules) || [],
+    tone: firstString(promise?.tone),
+    impact: [firstString(result.thematic_question), firstString(result.ending_promise)].filter(Boolean),
   };
 }
 
@@ -126,4 +97,10 @@ function arrayFrom(...values: unknown[]) {
     if (typeof value === 'string' && value.trim()) return parseTagInput(value);
   }
   return null;
+}
+
+function recordFrom(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
 }

@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from novel_workflow.workflows.schemas import ProviderKind, ProviderProfile, WorkflowDefinition, WorkflowNode
+from novel_workflow.providers.template_contract import ProviderTemplate
 from novel_workflow.providers.templates import require_provider_template
 
 
@@ -21,6 +22,7 @@ class ProviderReadinessCheck(BaseModel):
     provider_id: str
     provider_name: str
     expected_kind: ProviderKind
+    model: str = ""
     used_by: list[str] = Field(default_factory=list)
     ready: bool
     issue_codes: list[str] = Field(default_factory=list)
@@ -40,6 +42,7 @@ class _ProviderUsage:
     provider_id: str
     label: str
     expected_kind: ProviderKind
+    model: str = ""
 
 
 def live_provider_readiness_report(
@@ -48,7 +51,9 @@ def live_provider_readiness_report(
     secret_resolver: Callable[[str], str | None] | None = None,
 ) -> ProviderReadinessReport:
     profiles = {profile.id: profile for profile in workflow.provider_profiles}
-    grouped_usages = _group_provider_usages(_provider_usages(workflow))
+    usages = _provider_usages(workflow)
+    grouped_usages = _group_provider_usages(usages)
+    grouped_models = _group_provider_models(usages)
     checks = [
         _provider_check(
             provider_id,
@@ -56,6 +61,8 @@ def live_provider_readiness_report(
             expected_kind=expected_kind,
             secret_resolver=secret_resolver,
             used_by=used_by,
+            model=", ".join(grouped_models.get((provider_id, expected_kind), [])),
+            models=grouped_models.get((provider_id, expected_kind), []),
         )
         for (provider_id, expected_kind), used_by in grouped_usages.items()
     ]
@@ -84,39 +91,20 @@ def ensure_live_provider_readiness(
 def _provider_usages(workflow: WorkflowDefinition) -> list[_ProviderUsage]:
     usages: list[_ProviderUsage] = []
     for node in workflow.nodes:
-        if node.type == "export_artifact":
+        if node.type == "export":
             continue
         usages.append(_ProviderUsage(
             provider_id=node.provider_profile_id,
             label=node.label,
             expected_kind="openai-compatible",
+            model=str(node.model_settings.model),
         ))
-        for target in sorted(node.fallback_targets, key=lambda item: item.priority):
-            if target.enabled:
-                usages.append(_ProviderUsage(
-                    provider_id=target.provider_profile_id,
-                    label=f"{node.label}文本备用 {target.priority}",
-                    expected_kind="openai-compatible",
-                ))
-        if node.type == "cover_image":
+        if node.type == "cover":
             usages.append(_ProviderUsage(
                 provider_id=node.image_provider_profile_id or "",
                 label=f"{node.label}图片生成",
                 expected_kind="openai-compatible-image",
-            ))
-            for target in sorted(node.image_fallback_targets, key=lambda item: item.priority):
-                if target.enabled:
-                    usages.append(_ProviderUsage(
-                        provider_id=target.provider_profile_id,
-                        label=f"{node.label}图片备用 {target.priority}",
-                        expected_kind="openai-compatible-image",
-                    ))
-        judge_provider_id = _explicit_judge_provider_id(node)
-        if judge_provider_id:
-            usages.append(_ProviderUsage(
-                provider_id=judge_provider_id,
-                label=f"{node.label}评审",
-                expected_kind="openai-compatible",
+                model="",
             ))
     return usages
 
@@ -130,11 +118,12 @@ def _group_provider_usages(usages: list[_ProviderUsage]) -> dict[tuple[str, Prov
     return grouped
 
 
-def _explicit_judge_provider_id(node: WorkflowNode) -> str:
-    if not node.variant_policy.enabled:
-        return ""
-    provider_id = node.variant_policy.judge_provider_profile_id
-    return provider_id if provider_id and provider_id != "inherit" else ""
+def _group_provider_models(usages: list[_ProviderUsage]) -> dict[tuple[str, ProviderKind], list[str]]:
+    grouped: dict[tuple[str, ProviderKind], list[str]] = {}
+    for usage in usages:
+        if usage.model:
+            grouped.setdefault((usage.provider_id, usage.expected_kind), []).append(usage.model)
+    return {key: list(dict.fromkeys(values)) for key, values in grouped.items()}
 
 
 def _provider_check(
@@ -144,8 +133,11 @@ def _provider_check(
     expected_kind: ProviderKind,
     secret_resolver: Callable[[str], str | None] | None,
     used_by: list[str],
+    model: str,
+    models: list[str],
 ) -> ProviderReadinessCheck:
     issue_codes: list[str] = []
+    template: ProviderTemplate | None = None
     if profile is None:
         issue_codes.append("provider_not_found")
     else:
@@ -154,13 +146,22 @@ def _provider_check(
         if profile.kind != expected_kind:
             issue_codes.append("provider_kind_mismatch")
         try:
-            require_provider_template(profile.template_id, profile.kind)
+            template = require_provider_template(profile.template_id, profile.kind)
+            if not template.execution_allowed:
+                issue_codes.append("provider_policy_blocked")
+            elif not template.workflow_execution_allowed:
+                issue_codes.append("provider_workflow_blocked")
         except ValueError:
             issue_codes.append("provider_template_invalid")
         if not profile.base_url.strip():
             issue_codes.append("base_url_missing")
         if not profile.default_model.strip():
             issue_codes.append("model_missing")
+        available_models = set(profile.model_options)
+        if models and available_models and any(item not in available_models for item in models):
+            issue_codes.append("model_not_discovered")
+        if template is not None and _models_lack_required_parameters(profile, template, models):
+            issue_codes.append("model_parameter_not_supported")
         if not _has_secret(profile, secret_resolver=secret_resolver):
             issue_codes.append("secret_missing")
     provider_name = profile.name if profile is not None else provider_id or "未指定 Provider"
@@ -168,6 +169,7 @@ def _provider_check(
         provider_id=provider_id,
         provider_name=provider_name,
         expected_kind=expected_kind,
+        model=model,
         used_by=used_by,
         ready=not issue_codes,
         issue_codes=issue_codes,
@@ -183,7 +185,11 @@ def _check_message(provider_name: str, issue_codes: list[str], used_by: list[str
         "provider_template_invalid": "厂商模板无效",
         "base_url_missing": "缺少 Base URL",
         "model_missing": "缺少模型",
+        "model_not_discovered": "阶段模型未在已发现目录中",
+        "model_parameter_not_supported": "阶段模型目录未声明所需结构化输出参数",
         "secret_missing": "缺少 API Key",
+        "provider_policy_blocked": "不允许用于应用后端（请改用按量计费 API）",
+        "provider_workflow_blocked": "只允许连接测试或模型评估，不能进入生产工作流",
     }
     if not issue_codes:
         return f"{provider_name} 配置完整"
@@ -202,3 +208,18 @@ def _has_secret(
     if saved:
         return True
     return bool(profile.api_key_env and os.environ.get(profile.api_key_env))
+
+
+def _models_lack_required_parameters(
+    profile: ProviderProfile,
+    template: ProviderTemplate,
+    models: list[str],
+) -> bool:
+    required = set(template.required_model_parameter_any_of)
+    if not required or not profile.model_supported_parameters:
+        return False
+    for model in models:
+        parameters = profile.model_supported_parameters.get(model)
+        if parameters is not None and required.isdisjoint(parameters):
+            return True
+    return False

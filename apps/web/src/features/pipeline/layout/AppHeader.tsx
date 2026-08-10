@@ -1,10 +1,8 @@
 import { Activity, CheckCircle2, TriangleAlert } from 'lucide-react';
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { BudgetStatusBar } from './BudgetStatusBar';
 import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 import { CreationActionDock } from './CreationActionDock';
 import { GlobalToolDock } from './GlobalToolDock';
-import { HeaderUsageStat } from './HeaderUsageStat';
 import { HeaderStageSwitcher } from './HeaderStageSwitcher';
 import { ProductNavigationRail } from './ProductNavigationRail';
 import { MODE_NOTICE_DWELL_MS, QualityModeTransitionOverlay } from './QualityModeTransitionOverlay';
@@ -12,6 +10,7 @@ import { runModeRevealTransition, type ModeRevealOrigin } from './modeRevealTran
 import { sidebarStageItems } from './workbenchSidebarModel';
 import { buildConfigProgress } from '../lib/configProgress';
 import { stagePositionEqual, stagePositionSummary } from '../lib/stageProgress';
+import { bibleSectionMeta } from '../lib/stageRoutes';
 import { useProviderReadinessContext } from '../settings/ProviderReadinessContext';
 import { useRunEventsSelector, useRunStateContext, useUICommandContext, useWorkflowConfigContext } from '../state/pipelineShellContext';
 import { type StageRunStatus } from '../state/runEventIndex';
@@ -44,7 +43,10 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
     () => buildConfigProgress(workflow, knowledgeDocuments, providerReadiness),
     [knowledgeDocuments, providerReadiness.report, providerReadiness.status, workflow],
   );
-  const isRunSurface = run.workspacePhase === 'running' && run.runHasStarted;
+  const isRunSurface = run.routePhase === 'running' && run.runHasStarted;
+  const bibleSurface = run.routePhase === 'bible' && run.routeBibleSection
+    ? bibleSectionMeta[run.routeBibleSection]
+    : null;
   const headerStageItems = useMemo(
     () => sidebarStageItems({
       policy: routePolicy,
@@ -88,7 +90,7 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
   const saveStatusLabel = saveStatusCopy[saveStatus];
 
   return (
-    <header className={`app-header ${isRunSurface ? 'run-surface' : ''}`}>
+    <header className={`app-header ${isRunSurface ? 'run-surface' : ''}${bibleSurface ? ' bible-surface' : ''}`}>
       <div className="header-brand">
         {sidebarVisible ? null : (
           <ProductNavigationRail
@@ -100,16 +102,17 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
             qualityMode={qualityMode}
           />
         )}
-        <div className="brand-mark">NW</div>
+        <div className="brand-mark">YI</div>
         <div>
           <p>Yotsuba Ink</p>
-          <strong>小说流水线平台</strong>
+          <strong>长篇创作工作台</strong>
         </div>
       </div>
 
       <CurrentSurfaceStatus
         configCompleted={configProgress.completed}
         configTotal={configProgress.items.length}
+        bibleSurface={bibleSurface}
         isRunSurface={isRunSurface}
         runtimeStatus={run.stageRuntimes[run.selectedStage.id]?.status ?? 'idle'}
         stages={workflow.nodes}
@@ -130,7 +133,6 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
         <CreationActionDock disabled={modeSwitchLocked} onQualityModeChange={handleQualityModeChange} />
       </div>
       <QualityModeTransitionOverlay mode={modeNotice} />
-      <BudgetStatusBar />
     </header>
   );
 });
@@ -142,6 +144,7 @@ function SaveStatusIcon({ status }: { status: SaveStatus }) {
 }
 
 function CurrentSurfaceStatus({
+  bibleSurface,
   configCompleted,
   configTotal,
   isRunSurface,
@@ -152,6 +155,7 @@ function CurrentSurfaceStatus({
   stage,
   stageSwitcher,
 }: {
+  bibleSurface: { label: string; detail: string } | null;
   configCompleted: number;
   configTotal: number;
   isRunSurface: boolean;
@@ -172,17 +176,20 @@ function CurrentSurfaceStatus({
         ? '需要复核'
         : '等待运行';
   return (
-    <div className={`header-surface-status ${isRunSurface ? 'runtime' : 'planning'} ${stageSwitcher ? 'has-stage-switcher' : ''}`}>
+    <div className={`header-surface-status ${bibleSurface ? 'bible' : isRunSurface ? 'runtime' : 'planning'} ${stageSwitcher ? 'has-stage-switcher' : ''}`}>
       <span className="header-surface-status-icon"><Activity size={15} /></span>
       <div className="header-surface-status-copy">
-        <strong>{isRunSurface ? stage.label : '创作准备'}</strong>
+        <strong>{bibleSurface?.label ?? (isRunSurface ? stage.label : '创作准备')}</strong>
         <span>
-          {isRunSurface ? `${runtimeLabel} · 当前工作台` : `已完成 ${configCompleted}/${configTotal} 项准备`}
+          {bibleSurface
+            ? 'Story Bible · 只读浏览'
+            : isRunSurface
+              ? `${runtimeLabel} · 当前工作台`
+              : `已完成 ${configCompleted}/${configTotal} 项准备`}
           {isRunSurface ? <HeaderStagePosition currentStageId={stage.id} stages={stages} /> : null}
         </span>
       </div>
       {stageSwitcher}
-      <HeaderUsageStat />
       <span aria-label={saveStatusLabel} className={`save-state ${saveStatus}`} role="status" title={saveStatusLabel}>
         <SaveStatusIcon status={saveStatus} />
       </span>

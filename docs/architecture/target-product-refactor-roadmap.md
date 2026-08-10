@@ -1,8 +1,8 @@
 # Yotsuba Ink 目标产品与重构路线图
 
-> 状态：长期目标方案；Phase 0-7 记录既有实施，Phase 8 为 UI/UX 全链路升级与真实验收，Phase 9 为下一轮产品壳层、布局和交互动效重构
+> 状态：长期目标方案；Phase 0-12 记录既有实施与体验重构，Phase 13 为文学质量、作者控制与投稿准备度升级
 >
-> 最近更新：2026-07-22
+> 最近更新：2026-07-30
 >
 > 适用范围：产品流程、前端工作台、运行状态、模型产物、SSE、记忆系统、质量系统、持久化与测试
 
@@ -34,6 +34,12 @@
 - `docs/architecture/phase-9-product-shell-and-surface-redesign.md`
 
 Phase 9 可以先完成规划、技术验证和无副作用的 UI 切片，但不得代替尚未完成的 Phase 8.8 真实 Provider 全链路验收，也不得通过视觉改造改变该验收的成功标准。
+
+正文的场景级文学意图、Context Packet v2、Voice Genome、生成/冷编辑分离、盲化偏好评审、作者来源账本与投稿前规则复核见：
+
+- `docs/architecture/phase-13-literary-quality-and-editorial-readiness.md`
+
+Phase 13 不新增创作阶段，不以 AI 检测分数为目标，也不承诺自动生成即可投稿。其内部子 Artifact 必须汇总回现有正文合同，真实 Provider 和中文人工盲评完成前不得宣称文学质量已经提升。
 
 ## 2. 产品决策摘要
 

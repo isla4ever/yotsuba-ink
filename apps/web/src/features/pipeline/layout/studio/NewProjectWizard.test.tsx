@@ -11,8 +11,6 @@ function workflow(overrides: Partial<WorkflowDefinition>): WorkflowDefinition {
     global_inputs: [],
     provider_profiles: [],
     prompt_templates: [],
-    stage_configs: {},
-    batch_policy: { enabled: false, count: 1, parallelism: 1 },
     quality_mode: 'balanced',
     nodes: [],
     edges: [],

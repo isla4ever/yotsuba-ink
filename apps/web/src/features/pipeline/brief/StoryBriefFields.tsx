@@ -2,11 +2,11 @@ import { useState } from 'react';
 import type { InputField, WorkflowStage } from '../contracts';
 import {
   addTagValue,
-  applyTargetWordsRange,
   coerceFieldValue,
   removeTagValue,
   updateStageInputDefault,
 } from '../lib/stageConfig';
+import { BookScaleTargetSection } from './BookScaleTargetSection';
 
 type Props = {
   idPrefix?: string;
@@ -14,9 +14,7 @@ type Props = {
   onChange: (stage: WorkflowStage) => void;
 };
 
-// Phase 12 B2: `target_length` is intentionally absent — the word-count range
-// is the single length control and the coarse tier derives from it.
-const briefFieldKeys = ['genre', 'target_words_range', 'audience', 'core_concept', 'keywords', 'taboos'];
+const briefFieldKeys = ['genre', 'audience', 'core_concept', 'keywords', 'taboos'];
 
 export function StoryBriefFields({ idPrefix = 'brief', stage, onChange }: Props) {
   const fields = briefFieldKeys
@@ -24,16 +22,13 @@ export function StoryBriefFields({ idPrefix = 'brief', stage, onChange }: Props)
     .filter(Boolean) as InputField[];
   return (
     <div className="brief-field-grid">
+      <BookScaleTargetSection idPrefix={idPrefix} stage={stage} onChange={onChange} />
       {fields.map((field) => (
         <BriefInput
           field={field}
           id={`${idPrefix}-${field.key}`}
           key={field.key}
-          onChange={(value) => onChange(
-            field.key === 'target_words_range'
-              ? applyTargetWordsRange(stage, String(value))
-              : updateStageInputDefault(stage, field.key, value),
-          )}
+          onChange={(value) => onChange(updateStageInputDefault(stage, field.key, value))}
         />
       ))}
     </div>

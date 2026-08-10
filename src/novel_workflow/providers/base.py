@@ -26,9 +26,15 @@ class TextProvider(ABC):
     async def generate_text(self, prompt: str, *, task_name: str, context: dict[str, Any]) -> str:
         raise NotImplementedError
 
-    async def generate_structured(self, prompt: str, *, task_name: str, context: dict[str, Any], schema: dict[str, Any] | None = None) -> Any:
-        del schema
-        return await self.generate_text(prompt, task_name=task_name, context=context)
+    async def generate_strict_structured(
+        self,
+        prompt: str,
+        *,
+        task_name: str,
+        context: dict[str, Any],
+        schema: dict[str, Any],
+    ) -> dict[str, Any]:
+        raise NotImplementedError("Provider does not implement strict structured output")
 
     async def stream_text(self, prompt: str, *, task_name: str, context: dict[str, Any]) -> AsyncIterator[str]:
         text = await self.generate_text(prompt, task_name=task_name, context=context)

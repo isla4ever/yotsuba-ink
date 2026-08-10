@@ -2,7 +2,6 @@ import { motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { backdropMotionVariants, sheetMotionVariants } from '../lib/motion';
-import { WikiMemoryPanel } from './insights/WikiMemoryPanel';
 import { RuntimeInsightPanel, type RuntimeInsightContext } from './RuntimeInsightPanel';
 import type { RuntimePanelKey } from './stageRuntimeLayout';
 import { useOverlayDialog } from '../state/useOverlayDialog';
@@ -56,16 +55,7 @@ export function RuntimeSideDetailSheet({ panel, onClose, ...context }: Props) {
           <button aria-label="关闭详情" className="modal-close" onClick={onClose} type="button"><X size={20} /></button>
         </header>
         <div className="runtime-side-detail-body">
-          {panel === 'wiki' ? (
-            <WikiMemoryPanel
-              embeddedDetail
-              events={[...context.events, ...context.memoryEvents]}
-              qualityMode={context.workflow.quality_mode}
-              stageEnrichment={context.detailWritebacks.foreshadow ? { label: '细纲伏笔账本预览', detail: context.detailWritebacks.foreshadow } : undefined}
-            />
-          ) : (
-            <RuntimeInsightPanel {...context} panel={panel} />
-          )}
+          <RuntimeInsightPanel {...context} panel={panel} />
         </div>
       </motion.aside>
     </motion.div>,

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#070a0d"/><stop offset="1" stop-color="#11191b"/></linearGradient>
+    <linearGradient id="sheet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d282a"/><stop offset="1" stop-color="#0b1012"/></linearGradient>
+    <linearGradient id="nib" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f1f6f1"/><stop offset=".55" stop-color="#82908e"/><stop offset="1" stop-color="#303a3b"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1600" height="720" fill="url(#bg)"/>
+  <g opacity=".26" stroke="#304144" fill="none"><path d="M0 610H1600M0 520H1600M0 430H1600M0 340H1600M0 250H1600"/><path d="M92 0v720M220 0v720M348 0v720M476 0v720M604 0v720"/></g>
+  <g transform="translate(86 126)" font-family="Arial, sans-serif">
+    <text fill="#d7ff4f" font-size="19" letter-spacing="7">YOTSUBA INK / LONG-FORM STUDIO</text>
+    <text y="96" fill="#edf4ee" font-size="60" font-weight="700">把灵感，写成长篇。</text>
+    <text y="150" fill="#9eaeaa" font-size="23">七阶段产物链，逐步编辑、确认与交付。</text>
+    <g transform="translate(0 224)">
+      <rect width="470" height="180" rx="8" fill="#0b1113" stroke="#2f4143" stroke-width="2"/>
+      <text x="30" y="45" fill="#d7ff4f" font-size="16" letter-spacing="4">SEVEN STAGE ARTIFACT WORKFLOW</text>
+      <path d="M32 88H430" stroke="#26373a" stroke-width="3"/>
+      <g fill="#d7ff4f"><circle cx="42" cy="88" r="6"/><circle cx="108" cy="88" r="6"/><circle cx="174" cy="88" r="6"/><circle cx="240" cy="88" r="6"/><circle cx="306" cy="88" r="6"/><circle cx="372" cy="88" r="6"/><circle cx="430" cy="88" r="6"/></g>
+      <text x="30" y="138" fill="#aab8b5" font-size="16">信息 · 梗概 · 大纲 · 细纲 · 正文 · 封面 · 导出</text>
+    </g>
+  </g>
+  <ellipse cx="1120" cy="586" rx="390" ry="70" fill="#000" opacity=".65" filter="url(#soft)"/>
+  <g transform="rotate(-8 1110 350)">
+    <rect x="800" y="178" width="600" height="380" rx="18" fill="#080c0e" stroke="#273639" stroke-width="5" transform="translate(-48 58)"/>
+    <rect x="800" y="178" width="600" height="380" rx="18" fill="#101719" stroke="#3a4d4f" stroke-width="5" transform="translate(-24 28)"/>
+    <rect x="800" y="178" width="600" height="380" rx="18" fill="url(#sheet)" stroke="#647775" stroke-width="5"/>
+    <path d="M1240 178h160v124z" fill="#0a0f11" stroke="#647775" stroke-width="4"/>
+    <path d="M862 270h410M862 328h318M862 386h370M862 444h286" stroke="#d7ff4f" stroke-width="8" stroke-linecap="round" opacity=".78"/>
+    <path d="M1280 284l86 146-80 130-80-130z" fill="url(#nib)" stroke="#d7ff4f" stroke-width="5"/>
+    <circle cx="1286" cy="430" r="25" fill="#090d0f" stroke="#d7ff4f" stroke-width="4"/>
+  </g>
+  <g transform="translate(1454 118) scale(.36)" fill="#d7ff4f">
+    <ellipse cy="-58" rx="42" ry="66"/><ellipse cx="58" rx="66" ry="42"/>
+    <ellipse cy="58" rx="42" ry="66"/><ellipse cx="-58" rx="66" ry="42"/>
+    <circle r="22" fill="#070a0d"/>
+  </g>
+</svg>

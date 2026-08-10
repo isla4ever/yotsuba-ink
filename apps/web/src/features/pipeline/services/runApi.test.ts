@@ -1,23 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  applyChapterSelectionRevision,
-  approveRunArtifact,
-  decideChapterWritebackProposal,
-  downloadRunExportPreview,
-  downloadRunExportPackage,
+  createRunStream,
+  getChapterVersion,
   getRun,
   isRunNotFoundError,
-  regenerateRunDraft,
+  resolveRunDecision,
   RunApiError,
-  syncChapterSummary,
 } from './runApi';
+import { defaultWorkflow } from '../state/defaultWorkflow';
+import { buildRunInputs } from '../state/runInputs';
 
-describe('run snapshot API', () => {
+describe('LangGraph run API', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('preserves a 404 so recovery can discard a stale local run', async () => {
+  it('preserves a 404 so a stale local observer can be discarded', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 404 })));
 
     const error = await getRun('missing-run').catch((reason: unknown) => reason);
@@ -36,163 +34,99 @@ describe('run snapshot API', () => {
     expect(isRunNotFoundError(received)).toBe(false);
   });
 
-  it('keeps the backend validation detail on mutation failures', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ detail: 'characters.0.relations: Field required' }),
-      { status: 409, headers: { 'Content-Type': 'application/json' } },
-    )));
-
-    const error = await regenerateRunDraft('run-1', 'workflow-1', 'info', '强化关系', 3)
-      .catch((reason: unknown) => reason);
-
-    expect(error).toBeInstanceOf(RunApiError);
-    expect((error as Error).message).toContain('characters.0.relations');
+  it('rejects Run creation without explicit project ownership', async () => {
+    await expect(createRunStream({} as never, { project_id: '' } as never)).rejects.toMatchObject({
+      message: 'A Run requires an active project',
+      status: 422,
+    });
   });
 
-  it('submits the current edited artifact to the stage approval endpoint', async () => {
+  it('freezes the explicit image binding and export preferences in the Run request', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('{}', {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }));
     vi.stubGlobal('fetch', fetchMock);
-    const editedArtifact = { full_synopsis: '人工编辑后的完整梗概' };
+    const inputs = buildRunInputs(defaultWorkflow, 'backend', { id: 'project-1', title: '雾港旧声' });
 
-    await approveRunArtifact('run-1', 'summary', 'summary', editedArtifact);
+    await createRunStream(defaultWorkflow, inputs, undefined, 'run-1');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/approve-artifact', expect.objectContaining({
-      body: JSON.stringify({
-        node_id: 'summary',
-        output_key: 'summary',
-        artifact: editedArtifact,
+    const createOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(String(createOptions.body));
+    expect(body.cover_asset_binding).toEqual({
+      provider_profile_id: 'openai-compatible-image',
+      model: 'gpt-image-2',
+      candidate_count: 3,
+      size: '1024x1536',
+      quality: 'medium',
+      timeout_seconds: 180,
+      failure_policy: 'fail_run',
+    });
+    expect(body.export_preferences).toEqual({ format: 'zip', author: '', version_note: '' });
+    expect(body.inputs).not.toHaveProperty('export_preferences');
+  });
+
+  it('submits an edited Artifact through the active graph decision', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const editedArtifact = {
+      beats: [],
+      climax: '高潮',
+      resolution: '结局',
+      character_outcomes: [],
+    };
+
+    await resolveRunDecision('run-1', 'decision-1', 'accept', 3, editedArtifact);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/runs/run-1/decisions/decision-1',
+      expect.objectContaining({
+        body: JSON.stringify({
+          action: 'accept',
+          domain_revision: 3,
+          artifact: editedArtifact,
+        }),
       }),
-    }));
+    );
   });
 
-  it('accepts a selection candidate through the dedicated chapter endpoint', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ artifact: {}, chapter: {} }), {
+  it('sends a trimmed direction with a targeted regeneration decision', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await applyChapterSelectionRevision('run-1', {
-      workflow_id: 'workflow-1',
-      node_id: 'text',
-      request_id: 'revision-request-1',
-      candidate_signature: 'a'.repeat(64),
-    });
+    await resolveRunDecision('run-1', 'chapter-decision-1', 'regenerate', 6, undefined, '  收紧追逐节奏  ');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/chapter-selection-revisions/apply', expect.objectContaining({
-      method: 'POST',
-      body: expect.stringContaining('revision-request-1'),
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/runs/run-1/decisions/chapter-decision-1',
+      expect.objectContaining({
+        body: JSON.stringify({
+          action: 'regenerate',
+          domain_revision: 6,
+          direction: '收紧追逐节奏',
+        }),
+      }),
+    );
   });
 
-  it('syncs a chapter summary through the versioned review endpoint', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ artifact: {}, chapter: {} }), {
+  it('resolves a chapter event reference through the immutable version API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ artifact: { content: '正文' } }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await syncChapterSummary('run-1', 'chapter-1', {
-      workflow_id: 'workflow-1',
-      node_id: 'text',
-      chapter_id: 'chapter-1',
-      summary: '同步后的章节摘要',
-      base_version: 2,
-      base_signature: 'a'.repeat(64),
-      persisted_signature: 'b'.repeat(64),
-      base_chapter: { id: 'chapter-1' },
-      request_id: 'summary-sync-request-1',
-    });
+    const result = await getChapterVersion('run-1', 'chapter-1', 'chapter-1-v1');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/chapters/chapter-1/sync-summary', expect.objectContaining({
-      method: 'POST',
-      body: expect.stringContaining('summary-sync-request-1'),
-    }));
-  });
-
-  it('sends explicit Canon conflict resolutions with proposal decisions', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ artifact: {}, chapter: {} }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await decideChapterWritebackProposal('run-1', 'chapter-1', {
-      workflow_id: 'workflow-1',
-      node_id: 'text',
-      chapter_id: 'chapter-1',
-      proposal_id: 'proposal-1',
-      proposal_signature: 'a'.repeat(64),
-      decision: 'accepted',
-      base_version: 2,
-      base_signature: 'b'.repeat(64),
-      request_id: 'proposal-request-1',
-      conflict_resolutions: { 'canon-conflict-1': 'keep_existing' },
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/chapters/chapter-1/writeback-proposal', expect.objectContaining({
-      body: expect.stringContaining('canon-conflict-1'),
-    }));
-  });
-
-  it('downloads an export package and decodes the UTF-8 filename', async () => {
-    const content = 'PK\u0003\u0004';
-    const sha256 = '8dcc7e601606217f3b754766511182a916b17e9a26a94c9d887104eba92e9bb2';
-    const fetchMock = vi.fn().mockResolvedValue(new Response(content, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': "attachment; filename=novel-export.zip; filename*=UTF-8''%E9%9B%BE%E6%B8%AF.zip",
-        'X-Export-Id': 'export-1',
-        'X-Export-Version': '3',
-        'X-Source-Snapshot-Id': 'snapshot-1',
-        'X-Artifact-Signature': 'artifact-signature-1',
-        'X-Selection-Digest': 'selection-digest-1',
-        'X-Export-Sha256': sha256,
-      },
-    }));
-    vi.stubGlobal('fetch', fetchMock);
-    const metadata = { title: '雾港', author: '林舟', bundle_name: '雾港投稿版', version_note: '编辑定稿版' };
-
-    const result = await downloadRunExportPackage('run-1', 'zip', ['chapter-1'], 'request-1', metadata);
-
-    expect(result).toMatchObject({
-      filename: '雾港.zip',
-      export_id: 'export-1',
-      version: 3,
-      snapshot_id: 'snapshot-1',
-      artifact_signature: 'artifact-signature-1',
-      selection_digest: 'selection-digest-1',
-      sha256,
-    });
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/export-package', expect.objectContaining({
-      body: JSON.stringify({ format: 'zip', chapter_ids: ['chapter-1'], request_id: 'request-1', metadata }),
-    }));
-  });
-
-  it('downloads a mutable preview without creating a final export receipt', async () => {
-    const content = '# preview';
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(content));
-    const sha256 = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-    const fetchMock = vi.fn().mockResolvedValue(new Response(content, {
-      status: 200,
-      headers: {
-        'Content-Disposition': "attachment; filename=novel-preview.md; filename*=UTF-8''%E9%9B%BE%E6%B8%AF-preview.md",
-        'X-Export-Mode': 'preview',
-        'X-Preview-Sha256': sha256,
-      },
-    }));
-    vi.stubGlobal('fetch', fetchMock);
-    const metadata = { title: '雾港', author: '', bundle_name: '雾港', version_note: '连载预览' };
-
-    const result = await downloadRunExportPreview('run-1', 'md', ['chapter-1'], metadata);
-
-    expect(result).toMatchObject({ filename: '雾港-preview.md', sha256 });
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/export-preview', expect.objectContaining({
-      body: JSON.stringify({ format: 'md', chapter_ids: ['chapter-1'], metadata }),
-    }));
+    expect(result.artifact.content).toBe('正文');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/runs/run-1/chapters/chapter-1/versions/chapter-1-v1',
+      { signal: undefined },
+    );
   });
 });

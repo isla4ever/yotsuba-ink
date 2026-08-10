@@ -6,7 +6,6 @@
 }
 
 .studio-projects,
-.studio-unarchived,
 .studio-templates {
   margin-inline: auto;
   max-width: 1220px;
@@ -126,14 +125,7 @@
 .studio-empty-state p { max-width: 420px; }
 .studio-empty-state .tech-button { align-self: flex-start; }
 
-.studio-unarchived-toggle {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  padding-bottom: 12px;
-  width: 100%;
-}
-
-.studio-template-card,
-.studio-unarchived-item {
+.studio-template-card {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.055), transparent 20px), rgba(12, 15, 14, 0.88);
   border-color: rgba(255, 255, 255, 0.13);
   border-radius: 6px;
@@ -150,8 +142,7 @@
 :root[data-theme="light"] .studio-workbench { background: var(--surface-0); }
 :root[data-theme="light"] .studio-project-card,
 :root[data-theme="light"] .studio-empty-state,
-:root[data-theme="light"] .studio-template-card,
-:root[data-theme="light"] .studio-unarchived-item {
+:root[data-theme="light"] .studio-template-card {
   background-color: var(--surface-2);
   border-color: var(--stroke-2);
 }

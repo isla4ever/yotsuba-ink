@@ -26,11 +26,11 @@ describe('reference API', () => {
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await searchKnowledgeReferences({ query: '记忆实验', intent: '只看设定', docIds: ['doc-a'], topK: 3 });
+    await searchKnowledgeReferences({ query: '记忆实验', intent: '只看设定', projectId: 'project-1', docIds: ['doc-a'], topK: 3 });
 
     expect(fetchMock).toHaveBeenCalledWith('/api/knowledge/search', expect.objectContaining({
       body: JSON.stringify({
-        query: '记忆实验', intent: '只看设定', project_id: 'default', doc_ids: ['doc-a'], top_k: 3,
+        query: '记忆实验', intent: '只看设定', project_id: 'project-1', doc_ids: ['doc-a'], top_k: 3,
       }),
     }));
   });

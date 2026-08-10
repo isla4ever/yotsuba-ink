@@ -1,6 +1,5 @@
-import type { ProjectRecord, RunInputs, WorkflowDefinition } from '../contracts';
-import { controlModeForQuality } from '../lib/qualityModes';
-import { executionModeForRunSource, type RunSource } from '../lib/runSource';
+import type { ProjectRecord, RunStartInputs, WorkflowDefinition } from '../contracts';
+import type { RunSource } from '../lib/runSource';
 import { stageInputDefaults } from '../lib/workflow';
 
 type RunProjectContext = Pick<ProjectRecord, 'id' | 'title'> | null;
@@ -11,21 +10,23 @@ function globalInputDefault(workflow: WorkflowDefinition, key: string): string {
 }
 
 /**
- * Phase 11.2 (mine 4): title comes from the active project (falling back to
+ * The title comes from the active project (falling back to
  * the workflow's own global_inputs default / name — never a hardcoded book
  * name), theme is derived from the Info-stage keywords, and project_id rides along
- * so the backend records real ownership instead of project_id == run_id.
+ * so the backend records explicit project ownership.
  */
 export function buildRunInputs(
   workflow: WorkflowDefinition,
   runSource: RunSource = 'backend',
   project: RunProjectContext = null,
-): RunInputs {
+): RunStartInputs {
   const stageConfigs = Object.fromEntries(workflow.nodes.map((stage) => [stage.id, stageInputDefaults(stage)]));
   const infoConfig = stageConfigs.info ?? {};
-  const textConfig = stageConfigs.text ?? {};
+  const targetMode = infoConfig.book_scale_target_mode === 'total_chapters' ? 'total_chapters' : 'total_chars';
+  const targetValue = Number(infoConfig.book_scale_target_value);
+  delete infoConfig.book_scale_target_mode;
+  delete infoConfig.book_scale_target_value;
   const exportConfig = stageConfigs.export ?? {};
-  const controlMode = controlModeForQuality(workflow.quality_mode);
   const title = project?.title?.trim() || globalInputDefault(workflow, 'title') || workflow.name;
   const theme = Array.isArray(infoConfig.keywords)
     ? infoConfig.keywords.map(String).filter(Boolean).join('、')
@@ -35,15 +36,17 @@ export function buildRunInputs(
     theme,
     project_id: project?.id ?? '',
     quality_mode: workflow.quality_mode,
-    execution_mode: executionModeForRunSource(runSource),
+    book_scale_target: {
+      target_mode: targetMode,
+      target_value: targetValue,
+    },
     run_intent: {
       project_brief: {
         title,
         theme,
         genre: infoConfig.genre,
-        target_length: infoConfig.target_length,
-        target_words_range: infoConfig.target_words_range,
         audience: infoConfig.audience,
+        narrative_profile: infoConfig.narrative_profile,
         core_concept: infoConfig.core_concept,
         keywords: infoConfig.keywords,
         taboos: infoConfig.taboos,
@@ -57,28 +60,11 @@ export function buildRunInputs(
         enable_web_search: infoConfig.enable_web_search,
         reference_summary: infoConfig.reference_summary,
       },
-      mode_policy: {
-        quality_mode: workflow.quality_mode,
-        control_mode: controlMode,
-        checkpoint_stages: workflow.quality_mode === 'fast'
-          ? []
-          : workflow.quality_mode === 'balanced'
-            ? ['info']
-            : workflow.nodes.filter((stage) => stage.id !== 'export').map((stage) => stage.id),
-      },
-      variant_strategy: {
-        enabled_stages: workflow.nodes.filter((stage) => stage.variant_policy.enabled).map((stage) => stage.id),
-        text_compare_enabled: textConfig.enable_version_compare,
-        candidate_count: textConfig.version_candidate_count,
-        judge_provider_profile_id: textConfig.judge_provider_profile_id,
-        judge_model: textConfig.judge_model,
-        dimensions: textConfig.compare_dimensions,
-      },
-      export_preferences: {
-        export_format: exportConfig.export_format,
-        manual_return_required: workflow.quality_mode === 'deep',
-      },
     },
-    stage_configs: stageConfigs,
+    export_preferences: {
+      format: String(exportConfig.export_format) as 'md' | 'json' | 'zip',
+      author: String(exportConfig.author ?? ''),
+      version_note: String(exportConfig.version_note ?? ''),
+    },
   };
 }

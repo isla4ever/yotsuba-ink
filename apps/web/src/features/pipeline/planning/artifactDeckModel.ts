@@ -20,47 +20,53 @@ export type ArtifactDeckItem = {
 type StageSemantics = Pick<ArtifactDeckItem, 'artifact' | 'decision' | 'nextDependency' | 'writeback'>;
 
 const stageSemantics: Record<WorkflowStage['type'], StageSemantics> = {
-  info_recommend: {
-    artifact: '方向 · 世界观 · 人物档案',
-    decision: '确认创作方向',
-    nextDependency: '创作方向 · 人物基线',
-    writeback: '世界观 · 人物关系网',
+  info: {
+    artifact: '前提 · 世界规则 · 叙事声音',
+    decision: '冻结创作契约',
+    nextDependency: '人物职责与规模约束',
+    writeback: 'Story Brief Artifact',
+  },
+  characters: {
+    artifact: '人物职责 · 关系 · 弧线 · 出场窗口',
+    decision: '冻结人物圣经',
+    nextDependency: '角色引用与人物结局约束',
+    writeback: 'Character Bible Artifact',
   },
   summary: {
-    artifact: '故事核心 · 全书梗概 · 关键转折',
-    decision: '确认全书结构',
-    nextDependency: '完整梗概 · 结构节点',
-    writeback: '人物关系网 · 世界观 · 质量阀门',
+    artifact: '故事节拍 · 高潮 · 结局 · 人物结果',
+    decision: '确认故事脊柱',
+    nextDependency: '因果节拍与人物结局',
+    writeback: 'Summary Artifact',
   },
   outline: {
-    artifact: '分卷目标 · 节奏 · 冲突推进',
-    decision: '确认分卷方案',
-    nextDependency: '分卷节拍 · 章节范围',
-    writeback: '人物关系网 · 世界观 · 伏笔账本',
+    artifact: '分卷目标 · 转折 · 人物与线索窗口',
+    decision: '冻结分卷方案',
+    nextDependency: '卷目标与章节窗口',
+    writeback: 'Outline Artifact',
   },
-  detail_outline: {
-    artifact: '章节蓝图 · 事实 · 伏笔账本',
+  detail: {
+    artifact: '章节目的 · 场景 · 义务 · 交接',
     decision: '确认章节施工图',
-    nextDependency: '章节蓝图 · 连续性上下文',
-    writeback: '人物关系网 · 世界观 · Wiki',
+    nextDependency: '冻结的章节执行计划',
+    writeback: 'Detail Artifact',
   },
-  chapter_text: {
-    artifact: '章节正文 · 修订 · 质量报告',
+  text: {
+    artifact: '章节正文 · 作者状态',
     decision: '确认当前定稿',
-    nextDependency: '正文定稿 · 质量结论',
-    writeback: 'Wiki · Canon · 人物关系网',
+    nextDependency: '已确认章节版本与证据',
+    writeback: 'Chapter Artifact · Evidence Outbox',
   },
-  cover_image: {
-    artifact: '封面简报 · 提示词 · 候选图',
+  cover: {
+    artifact: '封面简报 · 选定资产',
     decision: '选定封面资产',
-    nextDependency: '选定封面 · 出版元数据',
-    writeback: '封面资产 · 导出清单',
+    nextDependency: '封面资产引用',
+    writeback: 'Cover Artifact',
   },
-  export_artifact: {
-    artifact: '清单 · 文件 · 校验结果',
+  export: {
+    artifact: '格式 · 章节版本 · 封面 · 元数据',
     decision: '确认导出交付',
-    nextDependency: '已校验交付包',
-    writeback: '交付包 · 导出历史',
+    nextDependency: '流程完成',
+    writeback: 'Export Artifact',
   },
 };
 

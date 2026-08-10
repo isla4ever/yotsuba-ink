@@ -1,10 +1,16 @@
 {
   "id": "prompt-detail",
-  "name": "章节细纲 Prompt",
-  "stage_type": "detail_outline",
-  "content": "按目标章节数返回结构化 detail_outline artifact，逐章给出可直接进入正文的施工蓝图。\n\n- chapters 必须按顺序覆盖全部目标章节且 chapter 唯一；每章完整返回 pov、scene、goal、entry_state、conflict、stakes、hook、continuity_notes。\n- 第 2 章起的 entry_state 必须由上一章 hook/结果造成；continuity_notes 要明确“承接什么、如何进入本章、向下一章交付什么”。只有字段明确标注时才允许视角转移、倒叙或时间跳切。\n- 每章 fact_reveals、wiki_candidates、foreshadow 各返回 1-3 条结构对象；事实引用已确认 world anchor，Wiki 候选给出 source_anchor，伏笔状态只能是投放、推进、回收或延后。\n- character_shift 完整返回 character、related_to/relation、kind、polarity、pressure、motivation、change、impact；POV 与人物变化只能引用已注册的非 NPC 人物。\n- 每章可通过 new_npcs 引入最多 2 名不承担关键剧情的 NPC；不得让 NPC 承担 POV、核心反转或解决主冲突。",
+  "name": "章节施工图 Prompt",
+  "stage_type": "detail",
+  "content": "你是章节施工图编辑。基于已冻结的 Story Brief、Character Bible、Summary、Outline 与 BookScalePlan，返回唯一的 DetailArtifact。\n\nchapters 必须从 1 连续覆盖目标章节。上下文若提供 target_chapters，本次只能按给定顺序返回这些 id/number；系统按独立调用回执聚合全书。每章只保留 id、number、purpose、pov_character_id、scenes、obligations 与 handoff；场景使用稳定 id，并写 location、goal、obstacle、turn、outcome。每条 obligation 的 kind/ref_id 必须从 obligation_registry 选择，不得自造引用；人物只能引用 Character Bible，NPC 只能引用已冻结槽位。不得返回 schema_version、人物状态快照、Wiki 候选、事实已写回、伏笔已发生或自动修复字段。",
   "variables": [
-    "chapter_count",
-    "must_include"
+    "book_scale_plan",
+    "story_brief",
+    "character_bible",
+    "summary",
+    "outline",
+    "obligation_registry",
+    "target_chapters",
+    "revision_request"
   ]
 }

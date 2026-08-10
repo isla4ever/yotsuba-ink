@@ -1,0 +1,26 @@
+{
+  "provider_template": "deepseek-text",
+  "model": "deepseek-v4-pro",
+  "task_name": "chapter_postprocess",
+  "request_contract": {
+    "response_format": {
+      "type": "json_object"
+    },
+    "thinking": {
+      "type": "disabled"
+    },
+    "max_tokens": 2600
+  },
+  "response_diagnostic": {
+    "finish_reason": "stop",
+    "response_chars": 2132,
+    "response_sha256": "826f98185dff371903b30fc9d5d91b3a75aaafb756f91909f69678c6d70faa19",
+    "usage": {
+      "prompt_tokens": 2608,
+      "completion_tokens": 956,
+      "total_tokens": 3564,
+      "reasoning_tokens": 0
+    }
+  },
+  "content": "{\n  \"summary\": \"林汐音请顾海生分析旧录音，发现异常脉冲与预警编码相似，顾海生违规接入废弃节点恢复出母亲沈若棠的片段和坐标。林汐音随后在档案室调取删除记录，方敏春暗中提供旧数据卡，显示陈铭章以“传播干扰性声纹”为由签字删除。\",\n  \"wiki_writebacks\": [\n    {\n      \"target\": \"林汐音\",\n      \"claim_key\": \"母亲姓名\",\n      \"fact\": \"沈若棠\",\n      \"source_chapter\": \"第2章\"\n    },\n    {\n      \"target\": \"陈铭章\",\n      \"claim_key\": \"删除CH-0472-0906的理由\",\n      \"fact\": \"传播干扰性声纹，威胁集体安全\",\n      \"source_chapter\": \"第2章\"\n    },\n    {\n      \"target\": \"顾海生\",\n      \"claim_key\": \"协助恢复被删录音\",\n      \"fact\": \"利用废弃节点恢复CH-0472-0906部分录音，包含沈若棠声音和次声波脉冲坐标\",\n      \"source_chapter\": \"第2章\"\n    },\n    {\n      \"target\": \"方敏春\",\n      \"claim_key\": \"提供旧数据卡\",\n      \"fact\": \"向林汐音提供含沈若棠档案编号和删除记录的旧数据卡\",\n      \"source_chapter\": \"第2章\"\n    }\n  ],\n  \"character_shift\": \"林汐音确认母亲沈若棠的录音被陈铭章以“传播干扰性声纹”为由删除，获得旧潮道坐标，调查转入隐蔽阶段。顾海生违规操作后选择暂不上传记录。方敏春暗中递送关键证据，立场显现。\",\n  \"foreshadow_updates\": [],\n  \"context_carryover\": {\n    \"unresolved_actions\": [\n      \"林汐音计划次日对恢复的片段做进一步分析\",\n      \"林汐音准备查阅档案局删除日志（可能指更详细的操作记录）\",\n      \"顾海生暂未上报违规操作\"\n    ],\n    \"emotional_carryover\": [\n      \"林汐音对母亲录音被删的真相保持冷静但决心坚定\",\n      \"顾海生违规后的紧张与不安\",\n      \"方敏春谨慎而隐晦的关切与愧疚\"\n    ],\n    \"knowledge_delta\": [\n      {\n        \"holder\": \"林汐音\",\n        \"fact\": \"母亲沈若棠的录音CH-0472-0906被陈铭章以“传播干扰性声纹，威胁集体安全”为由删除，备份已销毁，但方敏春提供了旧数据卡\",\n        \"source\": \"档案删除记录和旧数据卡\"\n      },\n      {\n        \"holder\": \"顾海生\",\n        \"fact\": \"CH-0472-0906录音包含次声波脉冲，解码后为旧潮道第七段废弃灯塔西南方向的坐标\",\n        \"source\": \"废弃节点恢复的录音片段\"\n      },\n      {\n        \"holder\": \"林汐音\",\n        \"fact\": \"录音中母亲说“阿音，别松——”\",\n        \"source\": \"恢复的录音片段\"\n      }\n    ],\n    \"spatial_anchor\": [\n      \"技术局次声波分析室\",\n      \"档案室（灯管损坏）\",\n      \"旧潮道第七段废弃灯塔西南方向坐标\"\n    ],\n    \"motif_state\": [\n      {\n        \"motif\": \"照片与工牌凹痕\",\n        \"state\": \"林汐音将方敏春给的数据卡与母亲照片放在一起，工牌凹痕反复出现作为内心挣扎的触觉提示\"\n      }\n    ],\n    \"relationship_pressure\": [\n      {\n        \"pair\": \"林汐音与顾海生\",\n        \"pressure\": \"顾海生冒险协助林汐音，但违规操作带来信任与风险并存的紧张\"\n      },\n      {\n        \"pair\": \"林汐音与方敏春\",\n        \"pressure\": \"方敏春以隐晦方式提供关键帮助，既想保护林汐音又不敢公开对抗体制\"\n      }\n    ],\n    \"injury_and_inventory_state\": [\n      {\n        \"character\": \"林汐音\",\n        \"status\": \"持有母亲照片、工牌、方敏春给的旧数据卡（标签：沈若棠，CH-0472，0903-0906）\"\n      }\n    ]\n  }\n}"
+}

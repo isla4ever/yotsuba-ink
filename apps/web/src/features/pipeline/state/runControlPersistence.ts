@@ -10,8 +10,8 @@ export type RunControlSaver = {
 };
 
 /**
- * Phase 12 F2: SSE events (including per-token chapter_delta) arrive far faster
- * than the full run state should be serialized to localStorage. Writes are
+ * Graph SSE events can arrive faster than the full run state should be
+ * serialized to localStorage. Writes are
  * throttled to at most one per interval with a trailing write that always
  * persists the latest snapshot. Critical moments (pause/complete/fail,
  * beforeunload, unmount) call flush() so recovery state is never stale.
@@ -59,9 +59,7 @@ export function createRunControlSaver(
 /** Terminal or safety-relevant moments that must hit localStorage immediately. */
 export function isRunControlFlushPoint(runControlState: RunControlState, latestEventType?: string) {
   if (runControlState === 'paused' || runControlState === 'completed' || runControlState === 'failed') return true;
-  return latestEventType === 'run_paused'
-    || latestEventType === 'run_completed'
-    || latestEventType === 'run_failed'
-    || latestEventType === 'run_error'
-    || latestEventType === 'run_recovery_required';
+  return latestEventType === 'decision.required'
+    || latestEventType === 'run.completed'
+    || latestEventType === 'run.failed';
 }

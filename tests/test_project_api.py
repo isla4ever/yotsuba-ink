@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
 
 from novel_workflow.api.app import create_app
 from novel_workflow.storage.project_schemas import ACCENT_HUE_SEQUENCE, next_accent_hue
-from novel_workflow.workflows.schemas import NovelRunState
+from novel_workflow.workflows.book_scale_plan import build_book_scale_plan
 from novel_workflow.workflows.templates import default_workflow
 
 
@@ -14,19 +13,50 @@ def _client(tmp_path, monkeypatch) -> TestClient:
     return TestClient(create_app())
 
 
-def _configure_text_provider(client: TestClient) -> None:
-    provider = next(item for item in client.get("/api/providers").json() if item["id"] == "openai-compatible")
-    provider["base_url"] = "https://example.test"
-    provider["default_model"] = "deepseek-v4-pro-202606"
-    provider["enabled"] = True
-    client.post("/api/providers", json=provider)
-    client.post("/api/providers/openai-compatible/secret", json={"api_key": "unit-test-secret"})
-    image_provider = next(item for item in client.get("/api/providers").json() if item["id"] == "openai-compatible-image")
-    image_provider["base_url"] = "https://example.test"
-    image_provider["default_model"] = "gpt-image-1"
-    image_provider["enabled"] = True
-    client.post("/api/providers", json=image_provider)
-    client.post("/api/providers/openai-compatible-image/secret", json={"api_key": "unit-test-image-secret"})
+def _bindings() -> dict[str, dict[str, str]]:
+    return {
+        stage: {"provider_profile_id": "fake", "model": "fake-model"}
+        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
+    }
+
+
+def _delivery_contract() -> dict[str, object]:
+    return {
+        "cover_asset_binding": {
+            "provider_profile_id": "fake-image",
+            "model": "fake-image-model",
+            "candidate_count": 1,
+            "size": "1024x1536",
+            "quality": "medium",
+            "timeout_seconds": 180,
+            "failure_policy": "fail_run",
+        },
+        "export_preferences": {"format": "zip", "author": "", "version_note": ""},
+    }
+
+
+def _book_plan(chapter_count: int) -> dict[str, object]:
+    return build_book_scale_plan(
+        target_mode="total_chapters",
+        target_value=chapter_count,
+    ).model_dump(mode="json")
+
+
+def test_run_creation_rejects_inherited_provider_binding(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    project = client.post("/api/projects", json={"title": "显式绑定"}).json()
+    bindings = _bindings()
+    bindings["summary"] = {"provider_profile_id": "inherit", "model": "fake-model"}
+
+    response = client.post("/api/runs", json={
+        "run_id": "run-inherit-rejected",
+        "project_id": project["id"],
+        "book_scale_plan": _book_plan(1),
+        "provider_bindings": bindings,
+    })
+
+    assert response.status_code == 422
+    assert "explicit profile" in response.text
 
 
 def test_project_create_copies_template_workflow(tmp_path, monkeypatch):
@@ -71,9 +101,9 @@ def test_project_create_clears_narrative_seeds_while_template_keeps_demo(tmp_pat
     for key in ("keywords", "reference_keywords"):
         assert fields[key]["default"] == [], key
     assert fields["core_concept"]["required"] is True
-    # 结构性默认保留，故事字段以外的配置不受影响
+    # 结构性默认保留；体量不再寄存在阶段字段中。
     assert fields["genre"]["default"] == "悬疑"
-    assert fields["target_words_range"]["default"] == "80-120 万字"
+    assert "target_words_range" not in fields
     global_fields = {field["key"]: field["default"] for field in workflow["global_inputs"]}
     assert global_fields["title"] == ""
     assert set(global_fields) == {"title"}
@@ -117,7 +147,15 @@ def test_project_patch_updates_allowed_fields(tmp_path, monkeypatch):
 def test_project_delete_refuses_when_runs_exist_and_suggests_archive(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     project = client.post("/api/projects", json={"title": "有历史的作品"}).json()
-    client.app.state.run_store.create("run-guard-1", default_workflow(), {"title": "有历史的作品"}, project_id=project["id"])
+    created = client.post("/api/runs", json={
+        "run_id": "run-guard-1",
+        "project_id": project["id"],
+        "inputs": {"title": "有历史的作品"},
+        "book_scale_plan": _book_plan(1),
+        "provider_bindings": _bindings(),
+        **_delivery_contract(),
+    })
+    assert created.status_code == 200
 
     blocked = client.delete(f"/api/projects/{project['id']}")
     assert blocked.status_code == 409
@@ -140,88 +178,66 @@ def test_project_summary_aggregates_latest_run(tmp_path, monkeypatch):
     assert empty_summary["title"] == "聚合作品"
     assert empty_summary["words"] == 0
 
-    workflow = default_workflow()
     run_id = "summary-run-1"
-    store = client.app.state.run_store
-    store.create(run_id, workflow, {"project_id": project["id"], "title": "聚合作品"}, project_id=project["id"])
-    state = NovelRunState(
-        run_id=run_id,
-        project_id=project["id"],
-        workflow_id=workflow.id,
-        inputs={"project_id": project["id"], "title": "聚合作品"},
-        run_has_started=True,
-        current_stage_id="text",
-        current_stage_label="章节文本",
-        current_stage_type="chapter_text",
-        chapter_progress=[
-            {"volume": "第一卷", "chapter": "第1章", "status": "completed", "words": 2100},
-            {"volume": "第一卷", "chapter": "第2章", "status": "running", "words": 900},
-        ],
-    )
-    store.update_state(run_id, state)
+    response = client.post("/api/runs", json={
+        "run_id": run_id,
+        "project_id": project["id"],
+        "inputs": {"title": "聚合作品"},
+        "book_scale_plan": _book_plan(2),
+        "provider_bindings": _bindings(),
+        **_delivery_contract(),
+    })
+    assert response.status_code == 200
 
     summary = client.get(f"/api/projects/{project['id']}/summary").json()
     assert summary["latest_run"]["run_id"] == run_id
-    assert summary["status"] == "running"
-    assert summary["words"] == 3000
-    assert summary["current_stage"]["id"] == "text"
+    assert summary["status"] == "created"
+    assert summary["words"] == 0
+    assert summary["current_stage"] == {
+        "id": "info",
+        "label": "创作立项",
+        "type": "info",
+    }
     assert summary["project"]["id"] == project["id"]
     assert client.get("/api/projects/missing-project/summary").status_code == 404
 
 
 def test_run_request_project_id_threads_to_run_and_history(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
-    _configure_text_provider(client)
     project = client.post("/api/projects", json={"title": "贯通作品"}).json()
 
     created = client.post(
         "/api/runs",
-        json={"workflow_id": project["workflow_id"], "run_id": "thread-run-1", "project_id": project["id"], "inputs": {"title": "贯通作品"}},
+        json={
+            "run_id": "thread-run-1",
+            "project_id": project["id"],
+            "inputs": {"title": "贯通作品"},
+            "book_scale_plan": _book_plan(3),
+            "provider_bindings": _bindings(),
+            **_delivery_contract(),
+        },
     )
     assert created.status_code == 200
 
     stored = client.get("/api/runs/thread-run-1").json()
-    assert stored["project_id"] == project["id"]
-    assert stored["inputs"]["project_id"] == project["id"]
+    assert stored["definition"]["project_id"] == project["id"]
+    assert stored["definition"]["inputs"]["title"] == "贯通作品"
+    assert stored["definition"]["book_scale_plan"]["total_chapters"] == 3
+    assert stored["read_model"]["thread_id"] == "thread-run-1"
 
     history = client.get("/api/runs/history", params={"project_id": project["id"]}).json()
     assert [item["run_id"] for item in history["items"]] == ["thread-run-1"]
     assert history["items"][0]["project_id"] == project["id"]
+    assert history["items"][0]["current_stage"] == {
+        "id": "info",
+        "label": "创作立项",
+        "type": "info",
+    }
+    assert history["items"][0]["checkpoint_id"] == ""
+    assert history["items"][0]["can_branch"] is False
+    assert "state_revision" not in history["items"][0]
+    assert "latest_snapshot_id" not in history["items"][0]
 
     refreshed = client.get(f"/api/projects/{project['id']}").json()
     assert refreshed["latest_run_id"] == "thread-run-1"
     assert refreshed["updated_at"] >= project["updated_at"]
-
-
-def test_run_store_create_backfills_project_id(tmp_path):
-    from novel_workflow.storage.run_store import RunStore
-
-    store = RunStore(tmp_path / "runs")
-    workflow = default_workflow()
-    store.create("explicit-run", workflow, {}, project_id="proj-explicit")
-    assert store.read("explicit-run")["project_id"] == "proj-explicit"
-
-    store.create("inputs-run", workflow, {"project_id": "proj-from-inputs"})
-    assert store.read("inputs-run")["project_id"] == "proj-from-inputs"
-
-    store.create("legacy-run", workflow, {})
-    assert store.read("legacy-run")["project_id"] == "legacy-run"
-
-    summaries, _ = store.list_history(project_id="proj-explicit")
-    assert [item["run_id"] for item in summaries] == ["explicit-run"]
-
-
-def test_initial_stream_state_falls_back_to_stored_project_id(tmp_path):
-    from novel_workflow.orchestration.stream import _initial_state
-    from novel_workflow.storage.run_store import RunStore
-
-    store = RunStore(tmp_path / "runs")
-    workflow = default_workflow()
-    store.create("fallback-run", workflow, {}, project_id="proj-topline")
-
-    class _Runner:
-        run_store = store
-
-    state, resumed = _initial_state(_Runner(), workflow, "fallback-run", {})
-    assert resumed is False
-    assert state.project_id == "proj-topline"

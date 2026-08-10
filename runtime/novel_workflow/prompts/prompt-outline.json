@@ -2,9 +2,13 @@
   "id": "prompt-outline",
   "name": "分卷大纲 Prompt",
   "stage_type": "outline",
-  "content": "基于已确认梗概、Info 人物与世界观、未回收伏笔，返回结构化 outline artifact。\n\n- volumes 的 chapter_range 必须按顺序连续、互不重叠，并覆盖配置的目标章节；volume_goal 和 rhythm 要能指导该卷取舍。\n- 每卷必须完整返回 opening、development、midpoint、climax、resolution 五段节拍；每一拍由上一拍的结果推动，resolution 要结算本卷目标并为下一卷建立可执行因果。\n- character_progression 必须引用已确认人物或本卷 new_characters，并完整给出关系、kind、polarity、strength、压力、变化和影响。\n- new_characters 仅在确有结构职责时新增，最多 4 名且 tier 必须为 supporting，同时给出 faction、faction_stance/stance 与主角关系；不得新增主角级人物。\n- world_reveal 必须引用已确认世界观原文 anchor，并给出 reveal、rule、impact；不得改写既有硬规则。\n- foreshadow_plan 给出 name、status、chapter_range、note，状态只能是投放、推进、回收或延后，并能在对应章节范围实际执行。",
+  "content": "你是长篇小说结构编辑。基于已冻结的 Story Brief、Character Bible、Summary 与 BookScalePlan，返回唯一的 OutlineArtifact。\n\nvolumes 必须覆盖 BookScalePlan 的连续章区间，所有 chapter_window 统一使用 chapter:N 或 chapter:N-M。上下文若提供 target_volume，本次 volumes 只能返回该卷且 id/window 必须完全一致；系统按独立调用回执聚合全书。每卷只保留 objective、因果 turns、ending_state、character_windows 与 thread_windows；所有人物引用必须来自 Character Bible。不得新增人物，不返回 UI 节奏分数或与 turns 重复的五段文案。",
   "variables": [
-    "volume_count",
-    "chapters_per_volume"
+    "book_scale_plan",
+    "story_brief",
+    "character_bible",
+    "summary",
+    "target_volume",
+    "revision_request"
   ]
 }

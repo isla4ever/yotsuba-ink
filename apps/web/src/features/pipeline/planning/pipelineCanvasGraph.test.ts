@@ -25,18 +25,18 @@ describe('pipeline canvas interaction contract', () => {
 
 describe('cockpit runtime layer availability', () => {
   it('exposes planning stages as named keyboard actions', () => {
-    const nodes = buildNodes(defaultWorkflow, 'info', [], new Map(), false, 'planning', false);
+    const nodes = buildNodes(defaultWorkflow, 'info', [], false, 'planning', false);
     const info = nodes.find((node) => node.id === 'info');
     const summary = nodes.find((node) => node.id === 'summary');
 
     expect(info).toMatchObject({ ariaRole: 'button', focusable: true, selectable: true, selected: true });
-    expect(info?.ariaLabel).toContain('第 1 阶段，小说信息推荐');
+    expect(info?.ariaLabel).toContain('第 1 阶段，创作立项定稿');
     expect(info?.ariaLabel).toContain('当前选中');
-    expect(summary?.ariaLabel).toContain('第 2 阶段，全书梗概');
+    expect(summary?.ariaLabel).toContain('第 3 阶段，全书梗概');
   });
 
   it('marks Wiki and quality nodes unavailable before a run starts', () => {
-    const nodes = buildNodes(defaultWorkflow, 'info', [], new Map(), true, 'cockpit-vertical', false);
+    const nodes = buildNodes(defaultWorkflow, 'info', [], true, 'cockpit-vertical', false);
     const runtimeNodes = nodes.filter((node) => node.id === 'wiki-layer' || node.id === 'quality-layer');
     const info = nodes.find((node) => node.id === 'info');
 
@@ -53,7 +53,7 @@ describe('cockpit runtime layer availability', () => {
   });
 
   it('restores runtime layer interaction after the run starts', () => {
-    const nodes = buildNodes(defaultWorkflow, 'wiki-layer', [], new Map(), true, 'cockpit-vertical', true);
+    const nodes = buildNodes(defaultWorkflow, 'wiki-layer', [], true, 'cockpit-vertical', true);
     const wiki = nodes.find((node) => node.id === 'wiki-layer');
     const info = nodes.find((node) => node.id === 'info');
 

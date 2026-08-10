@@ -140,6 +140,103 @@
   min-height: 0;
 }
 
+.info-source-pack {
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.info-source-pack summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 5px 2px;
+}
+
+.info-source-pack-title,
+.info-source-pack-meta {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.info-source-pack-title {
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.info-source-pack-meta {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.info-source-pack-body {
+  display: grid;
+  gap: 8px;
+  padding: 0 2px var(--space-3);
+}
+
+.info-source-pack-body p,
+.info-source-pack-body small {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 10px;
+  gap: 6px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.info-source-pack-body ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.info-source-pack-body li {
+  border-left: 2px solid var(--color-accent);
+  display: grid;
+  gap: 2px;
+  padding-left: 8px;
+}
+
+.info-source-pack-body li label {
+  align-items: center;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+}
+
+.info-source-pack-body li input {
+  accent-color: var(--color-accent);
+  height: 13px;
+  margin: 0;
+  width: 13px;
+}
+
+.info-source-pack-body li label small {
+  color: var(--color-text-muted);
+  display: inline;
+  font-size: 9px;
+}
+
+.info-source-pack-body li strong {
+  color: var(--color-text-primary);
+  font-size: 10px;
+}
+
+.info-source-pack-body li span {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
 @media (max-height: 820px) and (min-width: 981px) {
   .info-brief-workbench {
     gap: var(--space-2);
@@ -272,7 +369,7 @@
     overflow: hidden;
   }
 
-  .stage-run-side.stage-info_recommend {
+  .stage-run-side.stage-info {
     height: max(420px, calc(100dvh - var(--shell-header-height) - 24px));
     min-height: max(420px, calc(100dvh - var(--shell-header-height) - 24px));
   }

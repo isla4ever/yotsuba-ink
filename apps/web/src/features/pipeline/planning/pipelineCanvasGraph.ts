@@ -1,6 +1,6 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import { CrosscuttingNode, StageCompactNode } from './StageCompactNode';
-import type { CanvasLayout, QualityEvent, RunEvent, WorkflowDefinition } from '../contracts';
+import type { CanvasLayout, RunEvent, WorkflowDefinition } from '../contracts';
 import { latestNodeStatus } from './cockpitRuntime';
 import { stageLabelForUi } from '../lib/display';
 import { stageArtifactLabel, stageConfigurationReadiness } from '../lib/planningReadiness';
@@ -18,31 +18,20 @@ export function isCanvasViewportInteractive(lockedViewport: boolean, layoutLocke
   return !lockedViewport && !layoutLocked;
 }
 
-export function createQualityMap(events: RunEvent[]) {
-  const map = new Map<string, QualityEvent>();
-  events.forEach((event) => {
-    if (event.type === 'quality_check_completed' && event.node_id && event.quality && !map.has(event.node_id)) {
-      map.set(event.node_id, event.quality);
-    }
-  });
-  return map;
-}
-
 export function mergeLayoutNodes(
   workflow: WorkflowDefinition,
   selectedId: string,
   events: RunEvent[],
-  latestQuality: Map<string, QualityEvent>,
   currentNodes: Node[],
   showCrosscutting = workflow.canvas_layout?.crosscutting_visible !== false,
   layoutVariant: PipelineLayoutVariant = 'planning',
   runtimeLayersEnabled = true,
 ): Node[] {
   if (layoutVariant === 'cockpit-vertical') {
-    return buildNodes(workflow, selectedId, events, latestQuality, showCrosscutting, layoutVariant, runtimeLayersEnabled);
+    return buildNodes(workflow, selectedId, events, showCrosscutting, layoutVariant, runtimeLayersEnabled);
   }
   const currentById = new Map(currentNodes.map((node) => [node.id, node]));
-  const next = buildNodes(workflow, selectedId, events, latestQuality, showCrosscutting, layoutVariant, runtimeLayersEnabled);
+  const next = buildNodes(workflow, selectedId, events, showCrosscutting, layoutVariant, runtimeLayersEnabled);
   return next.map((node) => {
     const current = currentById.get(node.id);
     return current ? { ...node, position: current.position ?? node.position } : node;
@@ -69,7 +58,6 @@ export function buildNodes(
   workflow: WorkflowDefinition,
   selectedId: string,
   events: RunEvent[],
-  latestQuality: Map<string, QualityEvent>,
   showCrosscutting = workflow.canvas_layout?.crosscutting_visible !== false,
   layoutVariant: PipelineLayoutVariant = 'planning',
   runtimeLayersEnabled = true,
@@ -93,7 +81,6 @@ export function buildNodes(
       index,
       selected: selectedId === stage.id,
       status: statusFor(stage.id, events),
-      quality: latestQuality.get(stage.id),
       events,
       presentation: useCockpitLayout ? 'runtime' : 'planning',
       runtime: latestNodeStatus(events, stage.id),
@@ -172,8 +159,8 @@ export function buildEdges(
     type: 'smoothstep' as const,
   }));
   if (!showCrosscutting) return mainEdges;
-  const wikiActive = runtimeLayersEnabled && (selectedId === 'wiki-layer' || events.some((event) => event.type === 'memory_context_loaded' || event.type === 'memory_writeback_completed'));
-  const qualityActive = runtimeLayersEnabled && (selectedId === 'quality-layer' || events.some((event) => event.type === 'quality_check_started' || event.type === 'quality_check_completed'));
+  const wikiActive = runtimeLayersEnabled && (selectedId === 'wiki-layer' || events.some((event) => event.type === 'evidence.proposed' || event.type === 'writeback.committed'));
+  const qualityActive = runtimeLayersEnabled && (selectedId === 'quality-layer' || events.some((event) => event.type === 'review.started' || event.type === 'review.completed'));
   const disabledClass = runtimeLayersEnabled ? '' : ' disabled';
   const crosscutting = crosscuttingTargetIds.flatMap((nodeId) => [
     {

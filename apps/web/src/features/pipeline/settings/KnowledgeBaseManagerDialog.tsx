@@ -58,7 +58,7 @@ export function KnowledgeBaseManagerDialog({ open, documents, qualityMode = 'bal
     setDeletingId(doc.doc_id);
     uploads.setMessage(`正在删除 ${doc.title} 并同步索引...`);
     try {
-      const result = await deleteKnowledgeDocument(doc.doc_id, doc.backend, projectId);
+      const result = await deleteKnowledgeDocument(doc.doc_id, projectId);
       onDeleted?.(doc.doc_id);
       await refresh();
       uploads.setMessage(result.message || `已删除 ${result.deleted_chunks ?? doc.chunk_count} 个片段。`);
@@ -168,7 +168,7 @@ export function KnowledgeBaseManagerDialog({ open, documents, qualityMode = 'bal
                 </div>
               ))}
             </div>
-            <p className="knowledge-manager-note">资料属于当前项目私有知识库。智能联网搜索开启时会同时检索这里的资料，联网内容优先，知识库命中作为补充约束。</p>
+            <p className="knowledge-manager-note">资料属于当前项目私有知识库。只有本次明确选中的文档会在前置规划中检索；命中内容保留来源，只作为创作参考。</p>
 
             <div className="knowledge-manager-list">
               {documents.length ? documents.map((doc) => (
@@ -176,7 +176,7 @@ export function KnowledgeBaseManagerDialog({ open, documents, qualityMode = 'bal
                   <FileText size={15} />
                   <div>
                     <strong>{doc.title}</strong>
-                    <span>{doc.chunk_count} 个内容片段 · {doc.backend === 'frontend-demo' ? '本机演示，未建立真实语义索引' : '已建立语义索引'}</span>
+                    <span>{doc.chunk_count} 个内容片段 · 已建立语义索引</span>
                     <p>{doc.preview || doc.capability_note || '暂无预览'}</p>
                   </div>
                   <button aria-label={`删除资料 ${doc.title}`} className="danger-icon-button" disabled={busy || Boolean(scheduledDelete)} onClick={() => setPendingDelete(doc)} title="删除并同步索引" type="button">

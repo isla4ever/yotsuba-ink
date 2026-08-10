@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+from fnmatch import fnmatchcase
 
 from novel_workflow.providers.image_templates import IMAGE_PROVIDER_TEMPLATES
 from novel_workflow.providers.template_contract import ProviderTemplate
@@ -20,8 +21,7 @@ def list_provider_templates() -> list[ProviderTemplate]:
 def provider_template(template_id: str, kind: ProviderKind) -> ProviderTemplate:
     template = _BY_ID.get(template_id)
     if template is None:
-        fallback_id = "openai-compatible-image" if kind == "openai-compatible-image" else "openai-compatible-text"
-        return _BY_ID[fallback_id]
+        raise ValueError(f"Unknown provider template: {template_id}")
     if template.kind != kind:
         raise ValueError(f"Provider template {template_id} does not support kind {kind}")
     return template
@@ -53,19 +53,34 @@ def image_request_parameters(
     quality: str,
 ) -> dict[str, object]:
     width, height = _image_dimensions(size)
+    capability = next(
+        (
+            item
+            for item in template.image_model_capabilities
+            if fnmatchcase(model.casefold(), item.model_pattern.casefold())
+        ),
+        None,
+    )
+    size_field = (
+        capability.image_size_field
+        if capability is not None and capability.image_size_field is not None
+        else template.image_size_field
+    )
     request: dict[str, object] = {"model": model, "prompt": prompt}
-    if template.image_size_field == "width_height":
+    if size_field == "width_height":
         request.update({"width": width, "height": height})
-    elif template.image_size_field == "aspect_ratio":
+    elif size_field == "aspect_ratio":
         divisor = math.gcd(width, height)
         request["aspect_ratio"] = f"{width // divisor}:{height // divisor}"
     else:
-        request[template.image_size_field] = f"{width}{template.image_size_separator}{height}"
+        request[size_field] = f"{width}{template.image_size_separator}{height}"
     if template.image_count_field != "none":
         request[template.image_count_field] = 1
     if template.supports_image_quality and quality:
         request["quality"] = quality
     request.update(template.image_static_parameters)
+    if capability is not None:
+        request.update(capability.image_static_parameters)
     return request
 
 

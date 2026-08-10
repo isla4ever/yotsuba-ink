@@ -3,7 +3,6 @@ import {
   downloadRunExportReceipt,
   listRunExports,
   listRunHistory,
-  restoreRunSnapshot,
 } from './runHistoryApi';
 
 describe('run history API', () => {
@@ -13,10 +12,24 @@ describe('run history API', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       items: [{
         run_id: 'run-1',
+        project_id: 'project-1',
         title: '服务端小说',
-        status: 'paused',
-        current_stage: { id: 'text', label: '正文生成', type: 'chapter_text' },
-        can_resume: true,
+        quality_mode: 'balanced',
+        status: 'awaiting_decision',
+        current_stage: { id: 'text', label: '正文', type: 'text' },
+        completed_stage_ids: ['info', 'characters', 'summary', 'outline', 'detail'],
+        created_at: '2026-08-11T00:00:00Z',
+        updated_at: '2026-08-11T00:01:00Z',
+        completed_at: '',
+        words: 1200,
+        total_tokens: 800,
+        estimated_cost_usd: 0.02,
+        summary: 'LangGraph 运行读模型',
+        can_branch: true,
+        checkpoint_id: 'checkpoint-1',
+        export_ready: false,
+        export_count: 0,
+        latest_export: null,
       }],
       next_cursor: 'next',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
@@ -24,26 +37,24 @@ describe('run history API', () => {
     const history = await listRunHistory({ limit: 12 });
 
     expect(history.items).toHaveLength(1);
-    expect(history.items[0]).toMatchObject({ run_id: 'run-1', title: '服务端小说', source: 'server' });
+    expect(history.items[0]).toMatchObject({
+      run_id: 'run-1',
+      title: '服务端小说',
+      status: 'awaiting_decision',
+      can_branch: true,
+      checkpoint_id: 'checkpoint-1',
+      source: 'server',
+    });
     expect(history.next_cursor).toBe('next');
   });
 
-  it('restores a snapshot with request id and expected revision', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      run_id: 'run-1', snapshot_id: 'snapshot-1', status: 'restored_paused', state_revision: 4,
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
-    vi.stubGlobal('fetch', fetchMock);
+  it('rejects a legacy history item instead of injecting vNext defaults', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      items: [{ run_id: 'legacy-run', status: 'paused' }],
+      next_cursor: '',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
 
-    await restoreRunSnapshot('run-1', {
-      snapshot_id: 'snapshot-1',
-      request_id: 'restore-request-1',
-      expected_revision: 3,
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/restore-snapshot', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ snapshot_id: 'snapshot-1', request_id: 'restore-request-1', expected_revision: 3 }),
-    }));
+    await expect(listRunHistory()).rejects.toThrow('vNext contract');
   });
 
   it('redownloads a stored export receipt with its UTF-8 filename', async () => {
@@ -79,20 +90,22 @@ describe('run history API', () => {
     })).rejects.toThrow('响应缺少 SHA-256');
   });
 
-  it('normalizes stored export receipts for stage recovery', async () => {
+  it('accepts only the vNext immutable export receipt', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       items: [{
         export_id: 'export-1',
         run_id: 'run-1',
-        request_id: 'request-1',
-        version: 2,
-        selection_digest: 'a'.repeat(64),
+        artifact_id: 'export-committed-1',
+        artifact_signature: 'a'.repeat(64),
         format: 'zip',
-        chapter_ids: ['chapter-2', 'chapter-1'],
-        metadata: { title: '雾港', bundle_name: '雾港终稿' },
+        chapter_version_ids: ['chapter-2-v1-accepted', 'chapter-1-v1-accepted'],
+        cover_asset_id: 'cover-abc',
+        metadata: { title: '雾港', author: '', version_note: '终稿' },
         filename: '雾港终稿.zip',
-        cover_asset: { candidate_id: 'cover-1', asset_id: 'cover-abc', sha256: 'b'.repeat(64) },
-        files: [{ path: '雾港终稿.zip', scope: 'package', size_bytes: 120, sha256: 'c'.repeat(64) }],
+        media_type: 'application/zip',
+        size_bytes: 120,
+        sha256: 'c'.repeat(64),
+        created_at: '2026-08-11T00:00:00Z',
       }],
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
 
@@ -100,13 +113,14 @@ describe('run history API', () => {
 
     expect(receipts[0]).toMatchObject({
       format: 'zip',
-      version: 2,
-      selection_digest: 'a'.repeat(64),
-      chapter_ids: ['chapter-2', 'chapter-1'],
-      metadata: { title: '雾港', author: '', bundle_name: '雾港终稿', version_note: '' },
+      artifact_id: 'export-committed-1',
+      artifact_signature: 'a'.repeat(64),
+      chapter_version_ids: ['chapter-2-v1-accepted', 'chapter-1-v1-accepted'],
+      metadata: { title: '雾港', author: '', version_note: '终稿' },
       filename: '雾港终稿.zip',
-      cover_asset: { candidate_id: 'cover-1', asset_id: 'cover-abc' },
-      files: [{ path: '雾港终稿.zip', scope: 'package', size_bytes: 120 }],
+      cover_asset_id: 'cover-abc',
+      media_type: 'application/zip',
+      size_bytes: 120,
     });
   });
 });

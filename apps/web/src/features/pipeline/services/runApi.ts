@@ -1,17 +1,9 @@
 import type {
-  ChapterRevisionBasePayload,
-  ChapterRevisionCandidate,
-  ChapterRevisionOperation,
-  ChapterReviewResponse,
-  ChapterSelection,
-  ChapterWritebackProposal,
-  ExportFormat,
-  ExportMetadata,
-  RunEvent,
+  GraphRunEnvelope,
   RunInputs,
+  WorkflowDefinition,
 } from '../contracts';
-import { verifyExportBlob } from './exportIntegrity';
-import type { StoredRunSnapshot } from '../state/runState';
+import { buildBookScalePlan } from '../lib/bookScalePlan';
 
 export class RunApiError extends Error {
   constructor(
@@ -23,228 +15,134 @@ export class RunApiError extends Error {
   }
 }
 
-export async function getRun(runId: string, signal?: AbortSignal): Promise<StoredRunSnapshot> {
+export async function getRun(runId: string, signal?: AbortSignal): Promise<GraphRunEnvelope> {
   const response = await fetch(`/api/runs/${runId}`, { signal });
   if (!response.ok) throw new RunApiError(`Unable to load run ${runId}`, response.status);
   return response.json();
+}
+
+export async function createRunBranch(
+  sourceRunId: string,
+  checkpointId: string,
+  targetRunId = `run-${crypto.randomUUID()}`,
+  signal?: AbortSignal,
+) {
+  const response = await postJson(`/api/runs/${sourceRunId}/branches`, {
+    target_run_id: targetRunId,
+    checkpoint_id: checkpointId,
+  }, signal);
+  return response.json() as Promise<{
+    run_id: string;
+    thread_id: string;
+    status: string;
+    source_run_id: string;
+    source_checkpoint_id: string;
+  }>;
 }
 
 export function isRunNotFoundError(error: unknown) {
   return error instanceof RunApiError && error.status === 404;
 }
 
-export async function resumeRun(runId: string) {
-  await postWithoutBody(`/api/runs/${runId}/resume`);
-}
-
-export async function advanceRun(runId: string) {
-  await postWithoutBody(`/api/runs/${runId}/advance`);
-}
-
-export async function replayStage(runId: string) {
-  await postWithoutBody(`/api/runs/${runId}/replay-stage`);
-}
-
-export async function pauseRunRequest(runId: string) {
-  await postWithoutBody(`/api/runs/${runId}/pause`);
-}
-
-export async function approveRunBrief(runId: string, artifact: unknown) {
-  await approveRunArtifact(runId, 'info', 'info_recommend', artifact);
-}
-
-export async function approveRunArtifact(runId: string, nodeId: string, outputKey: string, artifact: unknown) {
-  await postJson(`/api/runs/${runId}/approve-artifact`, {
-    node_id: nodeId,
-    output_key: outputKey,
-    artifact,
+export async function resolveRunDecision(
+  runId: string,
+  decisionId: string,
+  action: 'accept' | 'regenerate' | 'cancel',
+  domainRevision: number,
+  artifact?: Record<string, unknown>,
+  direction?: string,
+) {
+  await postJson(`/api/runs/${runId}/decisions/${encodeURIComponent(decisionId)}`, {
+    action,
+    domain_revision: domainRevision,
+    ...(artifact ? { artifact } : {}),
+    ...(direction?.trim() ? { direction: direction.trim() } : {}),
   });
 }
 
-export async function regenerateRunBrief(
-  runId: string,
-  workflowId: string,
-  inputs: RunInputs,
-): Promise<{ artifact?: unknown }> {
-  const response = await postJson(`/api/runs/${runId}/regenerate-brief`, {
-    workflow_id: workflowId,
-    inputs,
-  });
-  return response.json();
+export async function getArtifactRecord(runId: string, artifactId: string, signal?: AbortSignal) {
+  const response = await fetch(`/api/runs/${runId}/artifact-records/${encodeURIComponent(artifactId)}`, { signal });
+  if (!response.ok) throw await responseError(response, 'artifact record');
+  return response.json() as Promise<{ payload: Record<string, unknown> }>;
 }
 
-export async function regenerateRunDraft(
-  runId: string,
-  workflowId: string,
-  nodeId: string,
-  direction: string,
-  candidateCount = 3,
-  requestId = '',
-): Promise<{ events?: RunEvent[] }> {
-  const response = await postJson(`/api/runs/${runId}/regenerate-draft`, {
-    workflow_id: workflowId,
-    node_id: nodeId,
-    direction,
-    candidate_count: candidateCount,
-    request_id: requestId,
-  });
-  return response.json();
+export async function getChapterVersion(runId: string, chapterId: string, versionId: string, signal?: AbortSignal) {
+  const response = await fetch(`/api/runs/${runId}/chapters/${encodeURIComponent(chapterId)}/versions/${encodeURIComponent(versionId)}`, { signal });
+  if (!response.ok) throw await responseError(response, 'chapter version');
+  return response.json() as Promise<{ artifact: Record<string, unknown> }>;
 }
 
-export async function selectRunDraftCandidate(
-  runId: string,
-  workflowId: string,
-  nodeId: string,
-  section: string,
-): Promise<{ event?: RunEvent }> {
-  const response = await postJson(`/api/runs/${runId}/select-draft-candidate`, {
-    workflow_id: workflowId,
-    node_id: nodeId,
-    section,
-  });
-  return response.json();
-}
-
-export async function retryCoverAsset(
-  runId: string,
-  candidateId: string,
-  requestId: string,
-): Promise<{ artifact: unknown; events?: RunEvent[]; reused?: boolean }> {
-  const response = await postJson(`/api/runs/${runId}/cover-assets/retry`, {
-    candidate_id: candidateId,
-    request_id: requestId,
-  });
-  return response.json();
-}
-
-export async function generateChapterSelectionRevision(
-  runId: string,
-  payload: ChapterRevisionBasePayload & Omit<ChapterSelection, 'text'> & {
-    operation: ChapterRevisionOperation;
-    direction: string;
-    selected_text: string;
-  },
-): Promise<{ candidate: ChapterRevisionCandidate }> {
-  const response = await postJson(`/api/runs/${runId}/chapter-selection-revisions`, payload);
-  return response.json();
-}
-
-export async function applyChapterSelectionRevision(
-  runId: string,
-  payload: { workflow_id: string; node_id: string; request_id: string; candidate_signature: string },
-): Promise<{ artifact: unknown; chapter: Record<string, unknown> }> {
-  const response = await postJson(`/api/runs/${runId}/chapter-selection-revisions/apply`, payload);
-  return response.json();
-}
-
-export async function restoreChapterVersion(
-  runId: string,
-  payload: ChapterRevisionBasePayload & { version_id: string },
-): Promise<{ artifact: unknown; chapter: Record<string, unknown> }> {
-  const response = await postJson(`/api/runs/${runId}/chapter-versions/restore`, payload);
-  return response.json();
-}
-
-export async function syncChapterSummary(
-  runId: string,
-  chapterId: string,
-  payload: ChapterRevisionBasePayload & { summary: string },
-): Promise<ChapterReviewResponse> {
-  const response = await postJson(`/api/runs/${runId}/chapters/${chapterId}/sync-summary`, payload);
-  return response.json();
-}
-
-export async function decideChapterWritebackProposal(
-  runId: string,
-  chapterId: string,
-  payload: {
-    workflow_id: string;
-    node_id: string;
-    chapter_id: string;
-    proposal_id: string;
-    proposal_signature: string;
-    decision: 'accepted' | 'rejected';
-    base_version: number;
-    base_signature: string;
-    request_id: string;
-    conflict_resolutions?: NonNullable<ChapterWritebackProposal['conflict_resolutions']>;
-  },
-): Promise<ChapterReviewResponse> {
-  const response = await postJson(`/api/runs/${runId}/chapters/${chapterId}/writeback-proposal`, payload);
-  return response.json();
-}
-
-export async function createRunStream(workflowId: string, inputs: RunInputs, signal?: AbortSignal, runId?: string) {
-  const response = await postJson('/api/runs/stream', {
-    workflow_id: workflowId,
-    run_id: runId,
-    project_id: inputs.project_id || undefined,
-    inputs,
+export async function createRunStream(workflow: WorkflowDefinition, inputs: RunInputs, signal?: AbortSignal, runId?: string) {
+  if (!inputs.project_id) throw new RunApiError('A Run requires an active project', 422);
+  const target = 'book_scale_plan' in inputs
+    ? inputs.book_scale_plan
+    : buildBookScalePlan(inputs.book_scale_target.target_mode, inputs.book_scale_target.target_value);
+  const providerBindings = Object.fromEntries(workflow.nodes
+    .filter((stage) => stage.id !== 'export')
+    .map((stage) => [stage.id, {
+      provider_profile_id: stage.provider_profile_id,
+      model: stage.model_settings.model,
+      temperature: stage.model_settings.temperature,
+      max_tokens: stage.model_settings.max_tokens,
+      top_p: stage.model_settings.top_p,
+      timeout_seconds: stage.model_settings.timeout_seconds,
+      prompt_template: workflow.prompt_templates.find((item) => item.id === stage.prompt_template_id)?.content ?? '',
+    }]));
+  const coverStage = workflow.nodes.find((stage) => stage.id === 'cover');
+  const imageProvider = workflow.provider_profiles.find((provider) => (
+    provider.kind === 'openai-compatible-image'
+    && provider.id === coverStage?.image_provider_profile_id
+  ));
+  if (!coverStage?.image_provider_profile_id || !imageProvider?.default_model) {
+    throw new RunApiError('Cover requires an explicit image Provider and model', 422);
+  }
+  const coverConfig = Object.fromEntries(coverStage.input_schema.map((field) => [field.key, field.default]));
+  const candidateCount = Number(coverConfig.candidate_count);
+  const imageSize = String(coverConfig.image_size ?? '');
+  const imageQuality = String(coverConfig.image_quality ?? '');
+  if (!Number.isInteger(candidateCount) || candidateCount < 1 || candidateCount > 4) {
+    throw new RunApiError('Cover candidate count must be between 1 and 4', 422);
+  }
+  if (!/^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$/.test(imageSize)) {
+    throw new RunApiError('Cover image size is invalid', 422);
+  }
+  if (!['low', 'medium', 'high'].includes(imageQuality)) {
+    throw new RunApiError('Cover image quality is invalid', 422);
+  }
+  const { export_preferences: exportPreferences, ...projectInputs } = inputs;
+  if (!['md', 'json', 'zip'].includes(exportPreferences.format)) {
+    throw new RunApiError('Export format must be md, json, or zip', 422);
+  }
+  const id = runId || `run-${crypto.randomUUID()}`;
+  await postJson('/api/runs', {
+    run_id: id,
+    project_id: inputs.project_id,
+    workflow_revision: workflow.version,
+    quality_mode: inputs.quality_mode,
+    inputs: projectInputs,
+    book_scale_plan: target,
+    provider_bindings: providerBindings,
+    cover_asset_binding: {
+      provider_profile_id: coverStage.image_provider_profile_id,
+      model: imageProvider.default_model,
+      candidate_count: candidateCount,
+      size: imageSize,
+      quality: imageQuality,
+      timeout_seconds: 180,
+      failure_policy: 'fail_run',
+    },
+    export_preferences: exportPreferences,
   }, signal);
-  return response;
+  await postWithoutBody(`/api/runs/${id}/start`, signal);
+  return fetch(`/api/runs/${id}/events?after=0`, { method: 'GET', signal });
 }
 
-export async function streamExistingRun(runId: string, signal?: AbortSignal) {
-  return fetch(`/api/runs/${runId}/events`, { method: 'POST', signal });
+export async function streamExistingRun(runId: string, signal?: AbortSignal, after = 0) {
+  return fetch(`/api/runs/${runId}/events?after=${after}`, { method: 'GET', signal });
 }
 
-export async function downloadRunExportPackage(
-  runId: string,
-  format: ExportFormat,
-  chapterIds: string[],
-  requestId = '',
-  metadata?: ExportMetadata,
-  signal?: AbortSignal,
-): Promise<{ blob: Blob; filename: string; export_id: string; version: number; snapshot_id: string; artifact_signature: string; selection_digest: string; sha256: string }> {
-  const body: { format: ExportFormat; chapter_ids: string[]; metadata?: ExportMetadata; request_id?: string } = { format, chapter_ids: chapterIds };
-  if (requestId) body.request_id = requestId;
-  if (metadata) body.metadata = metadata;
-  const response = await postJson(`/api/runs/${runId}/export-package`, body, signal);
-  const disposition = response.headers.get('content-disposition') ?? '';
-  const sha256 = response.headers.get('x-export-sha256') ?? '';
-  const contentLength = response.headers.get('content-length');
-  const blob = await response.blob();
-  await verifyExportBlob(blob, {
-    expectedSizeBytes: contentLength == null ? undefined : Number(contentLength),
-    responseSha256: sha256,
-  });
-  return {
-    blob,
-    filename: filenameFromDisposition(disposition, `novel-export.${format}`),
-    export_id: response.headers.get('x-export-id') ?? '',
-    version: Number(response.headers.get('x-export-version') || 0),
-    snapshot_id: response.headers.get('x-source-snapshot-id') ?? '',
-    artifact_signature: response.headers.get('x-artifact-signature') ?? '',
-    selection_digest: response.headers.get('x-selection-digest') ?? '',
-    sha256,
-  };
-}
-
-export async function downloadRunExportPreview(
-  runId: string,
-  format: ExportFormat,
-  chapterIds: string[],
-  metadata?: ExportMetadata,
-  signal?: AbortSignal,
-): Promise<{ blob: Blob; filename: string; sha256: string }> {
-  const response = await postJson(`/api/runs/${runId}/export-preview`, {
-    format,
-    chapter_ids: chapterIds,
-    metadata,
-  }, signal);
-  const disposition = response.headers.get('content-disposition') ?? '';
-  const sha256 = response.headers.get('x-preview-sha256') ?? '';
-  const blob = await response.blob();
-  await verifyExportBlob(blob, { responseSha256: sha256 });
-  return {
-    blob,
-    filename: filenameFromDisposition(disposition, `novel-preview.${format}`),
-    sha256,
-  };
-}
-
-async function postWithoutBody(url: string) {
-  const response = await fetch(url, { method: 'POST' });
+async function postWithoutBody(url: string, signal?: AbortSignal) {
+  const response = await fetch(url, { method: 'POST', signal });
   if (!response.ok) throw await responseError(response, url);
   return response;
 }
@@ -269,26 +167,4 @@ async function responseError(response: Response, url: string) {
     detail = '';
   }
   return new RunApiError(detail || `Request failed: ${url} ${response.status}`, response.status);
-}
-
-function filenameFromDisposition(value: string, fallback: string) {
-  const encoded = value.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  if (encoded) {
-    try {
-      return decodeURIComponent(encoded);
-    } catch {
-      return fallback;
-    }
-  }
-  return value.match(/filename="?([^";]+)"?/i)?.[1] ?? fallback;
-}
-
-export function briefRegeneratedEvent(runId: string, artifact: unknown): RunEvent {
-  return {
-    type: 'brief_regenerated',
-    run_id: runId,
-    node_id: 'info',
-    node_type: 'info_recommend',
-    artifact,
-  };
 }

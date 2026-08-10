@@ -63,19 +63,11 @@ export function useProjectSession() {
     setActiveProjectState(project);
   }, []);
 
-  /** Mine 5: align the shell with the project that owns an opened run ('' = unarchived legacy run). */
+  /** Align the shell with the project that owns an opened Run. */
   const switchProjectContext = useCallback(async (projectId: string) => {
     if ((activeProjectRef.current?.id ?? '') === projectId) return;
-    if (!projectId) {
-      applyActiveProject(null);
-      return;
-    }
-    try {
-      applyActiveProject(await getProject(projectId));
-    } catch {
-      // Project record no longer exists: treat the run as unarchived.
-      applyActiveProject(null);
-    }
+    if (!projectId) throw new Error('Run is missing required project ownership');
+    applyActiveProject(await getProject(projectId));
   }, [applyActiveProject]);
 
   /**
@@ -90,7 +82,7 @@ export function useProjectSession() {
     const facts = deps.runFacts;
     const runActive = facts.running || ['starting', 'running', 'stop_requested'].includes(facts.runControlState);
     if (current?.id !== project.id && facts.activeRunId && runActive) {
-      deps.onWarning('当前运行仍在执行，请先暂停后再切换作品。');
+      deps.onWarning('当前运行仍在执行，请等待进入人工决策点或完成后再切换作品。');
       return { ok: false, stageId: '' };
     }
     if (current?.id === project.id) {
@@ -100,7 +92,7 @@ export function useProjectSession() {
     deps.cancelInitialRecovery();
     applyActiveProject(project);
     deps.clearRunState();
-    if (latestRun && latestRun.can_resume && latestRun.status !== 'running') {
+    if (latestRun && latestRun.can_branch && latestRun.status === 'awaiting_decision') {
       const stageId = await deps.openRun(latestRun);
       if (stageId) return { ok: true, stageId };
     }
@@ -131,9 +123,9 @@ export function useProjectSession() {
     }
   }, []);
 
-  // Boot-time hydration only: the active project's workflow (falling back to
-  // default), or the default workflow for the unarchived session. Project
-  // switches load their workflow through openProject instead.
+  // Boot-time hydration only: load the active project's workflow. Without an
+  // active project, the default workflow supports Studio project creation but
+  // does not restore or execute an unscoped Run.
   useEffect(() => {
     let active = true;
     const workflowId = activeProjectRef.current?.workflow_id ?? '';

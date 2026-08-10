@@ -35,6 +35,8 @@ export type ProviderReadinessCheck = {
   provider_id: string;
   provider_name: string;
   expected_kind: ProviderProfile['kind'];
+  /** Effective model(s) used by the materialized workflow. */
+  model?: string;
   used_by: string[];
   ready: boolean;
   issue_codes: string[];

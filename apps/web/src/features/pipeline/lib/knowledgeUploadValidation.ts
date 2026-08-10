@@ -1,7 +1,7 @@
 export type KnowledgeUploadQueueItem = {
   id: string;
   name: string;
-  status: 'waiting' | 'reading' | 'indexing' | 'done' | 'demo' | 'failed' | 'rejected';
+  status: 'waiting' | 'reading' | 'indexing' | 'done' | 'failed' | 'rejected';
   message: string;
 };
 
@@ -46,7 +46,6 @@ export function knowledgeUploadStatusLabel(status: KnowledgeUploadQueueItem['sta
   if (status === 'reading') return '读取文件';
   if (status === 'indexing') return '解析索引';
   if (status === 'done') return '完成';
-  if (status === 'demo') return '本机演示';
   if (status === 'failed') return '失败';
   return '已跳过';
 }

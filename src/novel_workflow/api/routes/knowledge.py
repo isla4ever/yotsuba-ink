@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from novel_workflow.knowledge import KnowledgeSearchRequest, KnowledgeUploadRequest
 
@@ -29,14 +29,24 @@ async def upload_knowledge_document(request: Request, payload: KnowledgeUploadRe
 
 
 @router.get("/documents")
-async def list_knowledge_documents(request: Request, project_id: str = "default") -> list[dict[str, object]]:
+async def list_knowledge_documents(
+    request: Request,
+    project_id: str = Query(min_length=1, max_length=240),
+) -> list[dict[str, object]]:
     return [document.model_dump() for document in request.app.state.knowledge_base.list_documents(project_id)]
 
 
 @router.get("/documents/{doc_id}")
-async def get_knowledge_document(request: Request, doc_id: str) -> dict[str, object]:
+async def get_knowledge_document(
+    request: Request,
+    doc_id: str,
+    project_id: str = Query(min_length=1, max_length=240),
+) -> dict[str, object]:
     try:
-        return request.app.state.knowledge_base.read_document(doc_id).model_dump()
+        document = request.app.state.knowledge_base.read_document(doc_id)
+        if document.project_id != project_id:
+            raise FileNotFoundError(doc_id)
+        return document.model_dump()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Unknown knowledge document: {doc_id}") from exc
 
@@ -47,5 +57,12 @@ async def search_knowledge(request: Request, payload: KnowledgeSearchRequest) ->
 
 
 @router.delete("/documents/{doc_id}")
-async def delete_knowledge_document(request: Request, doc_id: str) -> dict[str, object]:
-    return request.app.state.knowledge_base.delete_document(doc_id)
+async def delete_knowledge_document(
+    request: Request,
+    doc_id: str,
+    project_id: str = Query(min_length=1, max_length=240),
+) -> dict[str, object]:
+    try:
+        return request.app.state.knowledge_base.delete_document(doc_id, project_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Unknown knowledge document: {doc_id}") from exc

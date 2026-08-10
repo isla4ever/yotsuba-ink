@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from novel_workflow.api.bootstrap import list_provider_profiles, refresh_provider_registry
 from novel_workflow.providers.errors import public_provider_failure
-from novel_workflow.providers.model_discovery import discover_provider_models, merge_model_options
+from novel_workflow.providers.model_discovery import discover_provider_model_catalog, merge_model_options
 from novel_workflow.providers.templates import require_provider_template
 from novel_workflow.workflows.schemas import ProviderKind, ProviderProfile
 
@@ -25,6 +25,7 @@ class ProviderModelDiscoveryResult(BaseModel):
     kind: ProviderKind
     models: list[str] = Field(default_factory=list)
     added_models: list[str] = Field(default_factory=list)
+    model_supported_parameters: dict[str, list[str]] = Field(default_factory=dict)
     error_code: str = ""
     message: str
 
@@ -46,25 +47,39 @@ async def discover_models(
             "请先填写 Base URL，并保存 API Key 或配置环境变量",
         )
     try:
-        require_provider_template(profile.template_id, profile.kind)
+        template = require_provider_template(profile.template_id, profile.kind)
     except ValueError:
         return _failure(profile, "provider_template_invalid", "厂商模板无效，请重新选择模板并保存")
+    if not template.execution_allowed:
+        return _failure(profile, "provider_policy_blocked", template.execution_policy_note or "当前 Provider 不允许用于应用后端")
     try:
-        models = await discover_provider_models(profile, api_key=api_key)
+        catalog = await discover_provider_model_catalog(profile, api_key=api_key)
     except Exception as exc:
         failure = public_provider_failure(exc)
         return _failure(profile, failure.code, failure.message)
-    updated, added = merge_model_options(profile, models)
+    model_parameters = catalog.supported_parameters if template.discovers_model_parameters else {}
+    updated, added = merge_model_options(
+        profile,
+        catalog.models,
+        model_supported_parameters=model_parameters,
+    )
     request.app.state.provider_store.write(updated.id, updated.model_dump())
     refresh_provider_registry(request.app)
     capability_note = "；图片生成能力仍以厂商文档和最小产物验证为准" if profile.kind == "openai-compatible-image" else ""
+    if model_parameters:
+        structured_count = sum(
+            bool({"structured_outputs", "response_format"} & set(parameters))
+            for parameters in model_parameters.values()
+        )
+        capability_note += f"；{structured_count} 个模型声明结构化输出参数"
     return ProviderModelDiscoveryResult(
         ok=True,
         provider_id=profile.id,
         kind=profile.kind,
-        models=models,
+        models=catalog.models,
         added_models=added,
-        message=f"已读取 {len(models)} 个上游模型，新增 {len(added)} 个候选；未触发内容生成{capability_note}。",
+        model_supported_parameters=model_parameters,
+        message=f"已读取 {len(catalog.models)} 个上游模型，新增 {len(added)} 个候选；未触发内容生成{capability_note}。",
     )
 
 

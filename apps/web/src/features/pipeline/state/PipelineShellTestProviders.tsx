@@ -91,7 +91,7 @@ export function buildTestUICommands(overrides: Partial<UICommandSlice> = {}): UI
     refreshHistory: async () => undefined,
     requestNewProject: noop,
     resetRun: () => false,
-    restoreHistoryCheckpoint: async () => '',
+    branchHistoryRun: async () => '',
     runPrimaryAction: noop,
     saveWorkflowAsTemplate: async () => '',
     setNavigationOpen: noop,

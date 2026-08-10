@@ -9,7 +9,22 @@ from novel_workflow.providers.readiness import (
     ensure_live_provider_readiness,
     live_provider_readiness_report,
 )
+from novel_workflow.providers.registry import ProviderRegistry, ProviderUnavailableError
+from novel_workflow.workflows.schemas import ProviderProfile
 from novel_workflow.workflows.templates import default_workflow
+
+
+def _anthropic_evaluation_profile() -> ProviderProfile:
+    return ProviderProfile(
+        id="anthropic-evaluation",
+        name="Claude compatibility evaluation",
+        kind="openai-compatible",
+        template_id="anthropic-openai-text",
+        base_url="https://api.anthropic.com/v1",
+        default_model="claude-sonnet-5",
+        model_options=["claude-sonnet-5"],
+        enabled=True,
+    )
 
 
 def test_readiness_report_deduplicates_shared_stage_providers() -> None:
@@ -91,7 +106,8 @@ def test_readiness_api_is_configuration_only_and_does_not_create_a_run(tmp_path:
     image_check = next(check for check in payload["checks"] if check["expected_kind"] == "openai-compatible-image")
     assert text_check["ready"] is True
     assert image_check["issue_codes"] == ["base_url_missing", "secret_missing"]
-    assert not any((tmp_path / "runtime" / "novel_workflow" / "runs").iterdir())
+    runs_root = tmp_path / "runtime" / "novel_workflow" / "runs"
+    assert not runs_root.exists() or not any(runs_root.iterdir())
     assert "unit-test-secret" not in response.text
     assert "private-provider.example" not in response.text
 
@@ -107,7 +123,8 @@ def test_readiness_api_rejects_unknown_workflow_without_creating_state(tmp_path:
     response = client.post("/api/providers/readiness", json={"workflow_id": "missing-workflow"})
 
     assert response.status_code == 404
-    assert not any((tmp_path / "runtime" / "novel_workflow" / "runs").iterdir())
+    runs_root = tmp_path / "runtime" / "novel_workflow" / "runs"
+    assert not runs_root.exists() or not any(runs_root.iterdir())
 
 
 def test_provider_template_api_exposes_tokenhub_image_contract(tmp_path: Path, monkeypatch) -> None:
@@ -124,19 +141,24 @@ def test_provider_template_api_exposes_tokenhub_image_contract(tmp_path: Path, m
     template = next(item for item in response.json() if item["id"] == "tokenhub-hunyuan-image")
     assert template["base_url"] == "https://tokenhub.tencentmaas.com/v1"
     assert template["default_model"] == "hy-image-v3.0"
-    assert template["image_size_separator"] == ":"
-    assert template["image_size_field"] == "size"
-    assert template["image_count_field"] == "images"
-    assert template["image_response_field"] == "data"
+    assert template["docs_url"] == "https://cloud.tencent.com/document/product/1823/130080"
+    assert template["execution_allowed"] is False
+    assert "提交任务与查询任务" in template["execution_policy_note"]
     assert template["supports_image_quality"] is False
-    assert len(response.json()) == 28
+    gpt_image = next(item for item in response.json() if item["id"] == "gpt-image-2-gateway")
+    assert gpt_image["default_model"] == "gpt-image-2"
+    assert gpt_image["image_static_parameters"] == {"response_format": "b64_json"}
+    assert len(response.json()) == 32
     template_ids = {item["id"] for item in response.json()}
     assert {
         "deepseek-text",
+        "xiaomi-mimo-text",
+        "xiaomi-mimo-api-text",
         "dashscope-text",
         "siliconflow-text",
         "moonshot-text",
         "zhipu-text",
+        "zhipu-coding-plan",
         "openrouter-text",
         "zhipu-cogview-image",
         "siliconflow-image",
@@ -152,12 +174,325 @@ def test_provider_template_api_exposes_tokenhub_image_contract(tmp_path: Path, m
         "xai-image",
         "together-image",
     } <= template_ids
+    zhipu_coding_plan = next(item for item in response.json() if item["id"] == "zhipu-coding-plan")
+    assert zhipu_coding_plan["base_url"] == "https://open.bigmodel.cn/api/coding/paas/v4"
+    assert zhipu_coding_plan["default_model"] == "glm-5.2"
     anthropic = next(item for item in response.json() if item["id"] == "anthropic-openai-text")
     assert anthropic["integration_tier"] == "compatibility"
     assert anthropic["supports_response_format"] is False
     together = next(item for item in response.json() if item["id"] == "together-image")
     assert together["image_size_field"] == "width_height"
     assert together["image_static_parameters"]["response_format"] == "base64"
+    zhipu_image = next(item for item in response.json() if item["id"] == "zhipu-cogview-image")
+    assert zhipu_image["default_model"] == "glm-image"
+    assert zhipu_image["docs_url"].endswith("/image-generation/glm-image")
+    openrouter_image = next(item for item in response.json() if item["id"] == "openrouter-image")
+    assert openrouter_image["image_endpoint_path"] == "/images"
+    assert openrouter_image["models_endpoint_path"] == "/images/models"
+    assert "/guides/overview/multimodal/image-generation" in openrouter_image["docs_url"]
+
+
+def test_provider_templates_disable_unmetered_sdk_retries() -> None:
+    from novel_workflow.providers.templates import list_provider_templates
+
+    assert all(template.max_retries == 0 for template in list_provider_templates())
+
+
+@pytest.mark.parametrize(
+    ("parameters", "expected_ready"),
+    [
+        (["temperature", "max_tokens"], False),
+        (["response_format", "temperature"], True),
+        (["structured_outputs", "reasoning"], True),
+    ],
+)
+def test_openrouter_readiness_uses_discovered_parameter_hints(
+    parameters: list[str],
+    expected_ready: bool,
+) -> None:
+    workflow = default_workflow()
+    model = "openai/gpt-5.6"
+    profile = ProviderProfile(
+        id="openrouter-live",
+        name="OpenRouter",
+        kind="openai-compatible",
+        template_id="openrouter-text",
+        base_url="https://openrouter.ai/api/v1",
+        default_model=model,
+        model_options=[model],
+        model_supported_parameters={model: parameters},
+        enabled=True,
+    )
+    workflow.provider_profiles.append(profile)
+    for existing in workflow.provider_profiles:
+        existing.base_url = existing.base_url or "https://provider.example/v1"
+    for node in workflow.nodes:
+        if node.type != "export":
+            node.provider_profile_id = profile.id
+            node.model_settings.model = model
+
+    report = live_provider_readiness_report(workflow, secret_resolver=lambda _: "configured")
+    check = next(item for item in report.checks if item.provider_id == profile.id)
+
+    assert check.ready is expected_ready
+    assert ("model_parameter_not_supported" in check.issue_codes) is (not expected_ready)
+
+
+def test_policy_blocked_image_template_never_enters_provider_registry() -> None:
+    profile = ProviderProfile(
+        id="tokenhub-image-blocked",
+        name="TokenHub HY Image",
+        kind="openai-compatible-image",
+        template_id="tokenhub-hunyuan-image",
+        base_url="https://tokenhub.tencentmaas.com/v1",
+        default_model="hy-image-v3.0",
+        model_options=["hy-image-v3.0"],
+        enabled=True,
+    )
+
+    registry = ProviderRegistry.from_profiles(
+        [profile],
+        secret_resolver=lambda _: "configured-secret",
+    )
+
+    assert "tokenhub-image-blocked" not in registry.image_providers
+    with pytest.raises(ProviderUnavailableError):
+        registry.image_for("tokenhub-image-blocked")
+
+
+def test_anthropic_compatibility_is_blocked_by_workflow_readiness() -> None:
+    workflow = default_workflow()
+    profile = _anthropic_evaluation_profile()
+    workflow.provider_profiles.append(profile)
+    for node in workflow.nodes:
+        if node.type != "export":
+            node.provider_profile_id = profile.id
+            node.model_settings.model = profile.default_model
+
+    report = live_provider_readiness_report(
+        workflow,
+        secret_resolver=lambda provider_id: "configured" if provider_id == profile.id else None,
+    )
+    check = next(item for item in report.checks if item.provider_id == profile.id)
+
+    assert check.ready is False
+    assert "provider_workflow_blocked" in check.issue_codes
+    assert "provider_policy_blocked" not in check.issue_codes
+
+
+def test_anthropic_compatibility_never_enters_provider_registry() -> None:
+    profile = _anthropic_evaluation_profile()
+
+    registry = ProviderRegistry.from_profiles(
+        [profile],
+        secret_resolver=lambda _: "configured-secret",
+    )
+
+    assert profile.id not in registry.text_providers
+    with pytest.raises(ProviderUnavailableError):
+        registry.text_for(profile.id)
+
+
+def test_profile_registry_does_not_fall_back_to_global_environment(monkeypatch) -> None:
+    monkeypatch.setenv("NOVEL_LLM_BASE_URL", "https://environment.example/v1")
+    monkeypatch.setenv("NOVEL_LLM_API_KEY", "environment-secret")
+    profile = ProviderProfile(
+        id="frozen-profile",
+        name="Frozen profile",
+        kind="openai-compatible",
+        template_id="openai-compatible-text",
+        base_url="https://profile.example/v1",
+        default_model="profile-model",
+        enabled=True,
+    )
+
+    registry = ProviderRegistry.from_profiles([profile], secret_resolver=lambda _: None)
+
+    assert profile.id not in registry.text_providers
+    with pytest.raises(ProviderUnavailableError):
+        registry.text_for(profile.id)
+
+
+def test_provider_registry_rejects_runtime_inherit_selection(monkeypatch) -> None:
+    monkeypatch.setenv("NOVEL_LLM_BASE_URL", "https://environment.example/v1")
+    monkeypatch.setenv("NOVEL_LLM_API_KEY", "environment-secret")
+    registry = ProviderRegistry.from_env()
+
+    with pytest.raises(ProviderUnavailableError):
+        registry.text_for("inherit")
+
+
+def test_provider_stage_probe_route_does_not_exist() -> None:
+    from novel_workflow.api.app import create_app
+
+    routes = {
+        (route.path, method)
+        for route in create_app().routes
+        for method in getattr(route, "methods", set())
+    }
+
+    assert ("/api/providers/stage-probe", "POST") not in routes
+
+
+def test_provider_template_exposes_xiaomi_mimo_token_plan_contract() -> None:
+    from novel_workflow.providers.templates import provider_template
+
+    template = provider_template("xiaomi-mimo-text", "openai-compatible")
+
+    assert template.base_url == "https://token-plan-cn.xiaomimimo.com/v1"
+    assert template.default_model == "mimo-v2.5-pro"
+    assert template.model_options == ["mimo-v2.5-pro", "mimo-v2.5"]
+    assert template.api_key_env == "XIAOMI_MIMO_API_KEY"
+    assert template.supports_response_format is True
+    assert template.structured_output_mode == "json_object"
+    assert template.requires_json_example is True
+
+
+def test_new_project_templates_use_documented_stable_models() -> None:
+    from novel_workflow.providers.templates import provider_template
+
+    kimi = provider_template("moonshot-text", "openai-compatible")
+    qwen = provider_template("dashscope-text", "openai-compatible")
+
+    assert kimi.default_model == "kimi-k3"
+    assert kimi.model_options == ["kimi-k3", "kimi-k2.6"]
+    assert "kimi-k2.5" not in kimi.model_options
+    assert qwen.model_options == [
+        "qwen3.7-max",
+        "qwen3.7-plus",
+        "qwen3.7-flash",
+        "qwen3.6-flash",
+    ]
+
+    groq = provider_template("groq-text", "openai-compatible")
+    assert groq.model_options == [
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.6-27b",
+    ]
+    assert "llama-3.3-70b-versatile" not in groq.model_options
+    assert groq.max_tokens_field == "max_completion_tokens"
+
+    mistral = provider_template("mistral-text", "openai-compatible")
+    assert mistral.docs_url == "https://docs.mistral.ai/api/endpoint/chat"
+    assert mistral.supports_prompt_cache_key is True
+
+    kimi = provider_template("moonshot-text", "openai-compatible")
+    assert kimi.supports_prompt_cache_key is True
+
+
+def test_tokenhub_template_uses_pay_as_you_go_catalog_contract() -> None:
+    from novel_workflow.providers.templates import provider_template
+
+    template = provider_template("tokenhub-text", "openai-compatible")
+
+    assert template.base_url == "https://tokenhub.tencentmaas.com/v1"
+    assert template.default_model == "deepseek-v4-pro"
+    assert "deepseek-v4-pro-202606" not in template.model_options
+    assert {
+        "deepseek-v3.2",
+        "hy3",
+        "hy3-preview",
+        "glm-5.2",
+        "kimi-k3",
+        "minimax-m2.5",
+        "minimax-m2.7",
+        "qwen3.5-plus",
+    }.issubset(template.model_options)
+    assert template.integration_tier == "gateway"
+    assert template.docs_url == "https://cloud.tencent.com/document/product/1823/130079"
+    assert template.structured_output_mode == "json_schema"
+    assert template.supports_json_schema is True
+    assert template.requires_json_example is True
+
+
+def test_materialization_preserves_the_explicit_provider_and_model() -> None:
+    from novel_workflow.workflows.schemas import ProviderProfile
+    from novel_workflow.workflows.templates import materialize_workflow_for_execution
+
+    workflow = default_workflow()
+    workflow.provider_profiles.append(
+        ProviderProfile(
+            id="xiaomi-mimo-api-text",
+            name="小米 MiMo Token Plan",
+            kind="openai-compatible",
+            template_id="xiaomi-mimo-api-text",
+            base_url="https://api.xiaomimimo.com/v1",
+            default_model="mimo-v2.5-pro",
+            model_options=["mimo-v2.5-pro"],
+            enabled=True,
+        )
+    )
+    info = next(node for node in workflow.nodes if node.id == "info")
+    info.provider_profile_id = "xiaomi-mimo-api-text"
+    info.model_settings.model = "mimo-v2.5-pro"
+    live = materialize_workflow_for_execution(workflow)
+
+    live_info = next(node for node in live.nodes if node.id == "info")
+    assert live_info.provider_profile_id == "xiaomi-mimo-api-text"
+    assert live_info.model_settings.model == "mimo-v2.5-pro"
+
+    report = live_provider_readiness_report(live, secret_resolver=lambda _: "configured")
+
+    check = next(item for item in report.checks if item.provider_id == "xiaomi-mimo-api-text")
+    assert check.model == "mimo-v2.5-pro"
+    assert check.ready is True
+    assert "model_not_discovered" not in check.issue_codes
+
+
+def test_readiness_still_blocks_a_manually_selected_undiscovered_model() -> None:
+    from novel_workflow.workflows.schemas import ProviderProfile
+    from novel_workflow.workflows.templates import materialize_workflow_for_execution
+
+    workflow = default_workflow()
+    workflow.provider_profiles.append(
+        ProviderProfile(
+            id="xiaomi-mimo-api-text",
+            name="小米 MiMo API",
+            kind="openai-compatible",
+            template_id="xiaomi-mimo-api-text",
+            base_url="https://api.xiaomimimo.com/v1",
+            default_model="mimo-v2.5-pro",
+            model_options=["mimo-v2.5-pro"],
+            enabled=True,
+        )
+    )
+    live = materialize_workflow_for_execution(workflow)
+    live.nodes[0].provider_profile_id = "xiaomi-mimo-api-text"
+    live.nodes[0].model_settings.model = "mimo-v2.5"
+
+    report = live_provider_readiness_report(live, secret_resolver=lambda _: "configured")
+    check = next(item for item in report.checks if item.provider_id == "xiaomi-mimo-api-text")
+
+    assert check.ready is False
+    assert "model_not_discovered" in check.issue_codes
+
+
+def test_readiness_blocks_token_plan_for_application_execution() -> None:
+    from novel_workflow.workflows.schemas import ProviderProfile
+
+    workflow = default_workflow()
+    workflow.provider_profiles.append(
+        ProviderProfile(
+            id="xiaomi-mimo-token-plan",
+            name="小米 MiMo Token Plan",
+            kind="openai-compatible",
+            template_id="xiaomi-mimo-text",
+            base_url="https://token-plan-cn.xiaomimimo.com/v1",
+            default_model="mimo-v2.5-pro",
+            model_options=["mimo-v2.5-pro", "mimo-v2.5"],
+            enabled=True,
+        )
+    )
+    for node in workflow.nodes:
+        if node.type != "export":
+            node.provider_profile_id = "xiaomi-mimo-token-plan"
+    report = live_provider_readiness_report(workflow, secret_resolver=lambda _: "configured")
+    check = next(item for item in report.checks if item.provider_id == "xiaomi-mimo-token-plan")
+
+    assert check.ready is False
+    assert "provider_policy_blocked" in check.issue_codes
+    assert "按量计费 API" in check.message
 
 
 def test_vendor_api_roots_are_not_rewritten_to_openai_v1() -> None:

@@ -6,13 +6,14 @@ import type { StageType } from '../contracts';
  * the CTA label depends on whether a run has started yet.
  */
 const stageEmptyStateHints: Record<StageType, string> = {
-  info_recommend: '创作立项会在启动创作后自动生成，先回到创作规划完善故事起点。',
-  summary: '全书梗概会在创作立项定稿后自动生成。',
-  outline: '分卷大纲会在全书梗概定稿后自动生成。',
-  detail_outline: '章节细纲会在分卷大纲定稿后自动生成。',
-  chapter_text: '章节正文会在全部章节细纲完成并定稿后自动开始创作。',
-  cover_image: '封面方案会在章节正文定稿后自动生成。',
-  export_artifact: '导出文件会在封面定稿后自动整理生成。',
+  info: '创作契约会在启动创作后生成，先回到创作规划完善故事起点。',
+  characters: '人物圣经会在创作契约冻结后生成。',
+  summary: '故事脊柱会在人物圣经冻结后生成。',
+  outline: '分卷方案会在故事脊柱冻结后生成。',
+  detail: '章节施工图会在分卷方案冻结后生成。',
+  text: '章节正文会在章节施工图冻结后按顺序开始创作。',
+  cover: '封面方案会在章节正文定稿后生成。',
+  export: '导出产物会在封面资产选定后由系统整理。',
 };
 
 export function stageEmptyStateHint(type: StageType): string {

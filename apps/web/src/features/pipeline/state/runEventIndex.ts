@@ -2,7 +2,7 @@ import type { RunControlState, RunEvent } from '../contracts';
 
 /**
  * Phase 12 F6: incremental per-type / per-stage index over the newest-first
- * run event list. The reducer appends to it on every `event_received`, so hot
+ * Graph event list. The reducer appends to it on every `event_received`, so hot
  * selectors (run-active detection, recoverability, per-stage runtime status)
  * read O(1)/O(#stages) instead of re-scanning up to 500 events per render.
  */
@@ -12,12 +12,10 @@ export const RUN_EVENT_LIMIT = 500;
 export type StageRunStatus = 'idle' | 'running' | 'done' | 'attention' | 'failed';
 
 type StageLifecycle = {
-  /** Latest `node_*` event type for the stage (run-active semantics). */
+  /** Latest stable node event type for the stage (run-active semantics). */
   nodeEventType: string;
-  nodeEventPhase: string;
-  /** Latest status event (node_*, run_error, stage_artifact_confirmed, artifact_approved). */
+  /** Latest event that changes the stage delivery lifecycle. */
   statusEventType: string;
-  statusEventPhase: string;
   checkpointReady: boolean;
 };
 
@@ -62,46 +60,42 @@ function applyEvent(index: RunEventIndex, event: RunEvent) {
   index.size += 1;
   index.countsByType[event.type] = (index.countsByType[event.type] ?? 0) + 1;
   index.byType[event.type] = [event, ...(index.byType[event.type] ?? [])];
-  const stageId = event.node_id;
+  const stageId = event.stage_id || event.node_id?.split('.')[0];
   if (!stageId) return;
   index.byStage[stageId] = [event, ...(index.byStage[stageId] ?? [])];
   const lifecycle: StageLifecycle = {
     ...(index.lifecycleByStage[stageId] ?? {
       checkpointReady: false,
-      nodeEventPhase: '',
       nodeEventType: '',
-      statusEventPhase: '',
       statusEventType: '',
     }),
   };
-  if (event.type.startsWith('node_')) {
+  if (event.type.startsWith('node.')) {
     lifecycle.nodeEventType = event.type;
-    lifecycle.nodeEventPhase = String(event.phase ?? '');
   }
   if (isStageStatusEvent(event.type)) {
     lifecycle.statusEventType = event.type;
-    lifecycle.statusEventPhase = String(event.phase ?? '');
   }
-  if (event.type === 'stage_checkpoint_ready') lifecycle.checkpointReady = true;
+  if (event.type === 'checkpoint.saved' || stageCompletedBy(event)) lifecycle.checkpointReady = true;
   index.lifecycleByStage[stageId] = lifecycle;
 }
 
 function isStageStatusEvent(type: string) {
-  return type.startsWith('node_')
-    || type === 'run_error'
-    || type === 'stage_artifact_confirmed'
-    || type === 'artifact_approved';
+  return type.startsWith('node.')
+    || type === 'artifact.candidate_ready'
+    || type === 'artifact.committed'
+    || type === 'decision.required'
+    || type === 'run.failed';
 }
 
 /** Index-backed equivalent of `hasRunningNodeFromEvents` (runSelectors). */
 export function indexedRunningNodeExists(index: RunEventIndex): boolean {
   if (
-    (index.countsByType.run_completed ?? 0) > 0
-    || (index.countsByType.node_failed ?? 0) > 0
-    || (index.countsByType.run_recovery_required ?? 0) > 0
+    (index.countsByType['run.completed'] ?? 0) > 0
+    || (index.countsByType['run.failed'] ?? 0) > 0
   ) return false;
   return Object.values(index.lifecycleByStage).some((lifecycle) => (
-    lifecycle.nodeEventType === 'node_started' && lifecycle.nodeEventPhase !== 'finalizing'
+    lifecycle.nodeEventType === 'node.started'
   ));
 }
 
@@ -113,8 +107,8 @@ export function indexedHasRecoverableRun(
 ): boolean {
   if (!activeRunId) return false;
   if (runControlState === 'failed' || runControlState === 'completed') return false;
-  if ((index.countsByType.run_completed ?? 0) > 0) return false;
-  if ((index.countsByType.node_failed ?? 0) > 0 && runControlState !== 'paused') return false;
+  if ((index.countsByType['run.completed'] ?? 0) > 0) return false;
+  if ((index.countsByType['run.failed'] ?? 0) > 0) return false;
   return index.size > 0 || runControlState !== 'idle';
 }
 
@@ -123,9 +117,10 @@ export function indexedStageStatus(index: RunEventIndex, stageId: string): Stage
   const lifecycle = index.lifecycleByStage[stageId];
   if (!lifecycle || !lifecycle.statusEventType) return 'idle';
   const type = lifecycle.statusEventType;
-  if (type === 'node_failed' || type === 'run_error') return 'failed';
-  if (type === 'node_completed' || type === 'stage_artifact_confirmed' || type === 'artifact_approved') return 'done';
-  if (type === 'node_started') return lifecycle.statusEventPhase === 'finalizing' ? 'done' : 'running';
+  if (type === 'node.failed' || type === 'run.failed') return 'failed';
+  const latest = index.byStage[stageId]?.[0];
+  if (latest && stageCompletedBy(latest)) return 'done';
+  if (type === 'node.started' || type === 'node.completed' || type === 'artifact.candidate_ready' || type === 'decision.required') return 'running';
   return 'idle';
 }
 
@@ -133,12 +128,22 @@ export function indexedStageCheckpointReady(index: RunEventIndex, stageId: strin
   return Boolean(index.lifecycleByStage[stageId]?.checkpointReady);
 }
 
-/** Unique stage ids with a `node_completed` event, newest occurrence first. */
+/** Unique stage ids with a committed Artifact or an explicit stage-end node. */
 export function indexedCompletedStageIds(index: RunEventIndex): string[] {
-  const completed = index.byType.node_completed ?? [];
   const ids: string[] = [];
+  const completed = [
+    ...(index.byType['artifact.committed'] ?? []),
+    ...(index.byType['node.completed'] ?? []).filter(stageCompletedBy),
+  ];
   for (const event of completed) {
-    if (event.node_id && !ids.includes(event.node_id)) ids.push(event.node_id);
+    const stageId = event.stage_id || event.node_id?.split('.')[0];
+    if (stageId && !ids.includes(stageId)) ids.push(stageId);
   }
   return ids;
+}
+
+function stageCompletedBy(event: RunEvent) {
+  if (event.type === 'artifact.committed' && event.stage_id !== 'text') return true;
+  if (event.type !== 'node.completed') return false;
+  return event.node_id?.endsWith('.checkpoint_stage') || event.node_id === 'text.finish_chapters';
 }

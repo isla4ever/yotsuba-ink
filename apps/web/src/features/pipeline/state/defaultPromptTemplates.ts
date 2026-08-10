@@ -1,52 +1,65 @@
 import type { PromptTemplate } from '../contracts';
 
+type PromptStageId = Exclude<PromptTemplate['stage_type'], 'export'>;
+
+export const promptMaterialKeys: Record<PromptStageId, string[]> = {
+  info: ['project_brief', 'book_scale_plan', 'source_pack', 'revision_request'],
+  characters: ['book_scale_plan', 'story_brief', 'revision_request'],
+  summary: ['book_scale_plan', 'story_brief', 'character_bible', 'revision_request'],
+  outline: ['book_scale_plan', 'story_brief', 'character_bible', 'summary', 'target_volume', 'revision_request'],
+  detail: ['book_scale_plan', 'story_brief', 'character_bible', 'summary', 'outline', 'obligation_registry', 'target_chapters', 'revision_request'],
+  text: ['book_scale', 'story_constraints', 'character_bible', 'summary_commitments', 'volume_plan', 'chapter_plan', 'previous_handoff', 'previous_accepted_chapter', 'revision_request'],
+  cover: ['story', 'cast', 'narrative_arc', 'volume_objectives', 'chapter_motifs', 'revision_request'],
+};
+
 export const defaultPromptTemplates: PromptTemplate[] = [
   {
     id: 'prompt-info',
     name: '创作立项 Prompt',
-    stage_type: 'info_recommend',
-    content: `你是小说产品策划、类型小说编辑和故事架构师。请根据用户创作 Brief、参考资料摘要和禁忌，生成可被人工编辑定稿，并被后续梗概/大纲/细纲/正文持续约束的创作立项 Story Brief。
-
-输出必须是结构化对象，字段直接对齐 info artifact，不要返回需要后端二次解析的 Markdown 长文。必须包含 selected_title、title_candidates、synopsis、worldbuilding_detail、characters、relationships、tags、downstream_constraints、risk_notes 与 voice_spec。人物必须给出 tier、faction、faction_stance 和 growth_direction；关系必须给出 kind、polarity 与 strength。不要给空泛套话，不要把后续阶段需要的配角和 NPC 一次性塞进立项。`,
-    variables: ['genre', 'audience', 'keywords', 'core_concept', 'reference_summary'],
+    stage_type: 'info',
+    content: `你是类型小说立项编辑。只返回 StoryBriefArtifact：title、premise、story_promise、world_rules、thematic_question、ending_promise、voice 与 cast_requirements。人物职责只写需求槽位，不在本阶段注册人物；禁止返回额外字段。`,
+    variables: [...promptMaterialKeys.info],
+  },
+  {
+    id: 'prompt-characters',
+    name: '人物圣经 Prompt',
+    stage_type: 'characters',
+    content: `你是人物编排编辑。根据已确认 Story Brief 冻结 CharacterBibleArtifact：主角、重要配角、功能角色的职责/关系/弧线/首次出现窗口，以及必要 NPC 槽位。每个关系必须引用已注册 character id；后续阶段不得自行新增人物。只返回合同字段，不写 UI 状态或自评分。`,
+    variables: [...promptMaterialKeys.characters],
   },
   {
     id: 'prompt-summary',
     name: '梗概 Prompt',
     stage_type: 'summary',
-    content: `基于已定稿 Story Brief、人物关系、世界观硬设定与下游约束，返回结构化 summary artifact。
-
-full_synopsis 必须写清开局、升级、关键选择、代价、高潮、结局与余波，形成连续因果链，不能写成宣传简介；act_structure 后一幕由前一幕转折触发；character_arcs 只能引用已确认人物；key_turns 要说明如何改变人物选择或故事状态；ending_resolution 结算核心冲突；consistency_checks 检查人物动机、世界规则、证据链、伏笔与结局承诺。`,
-    variables: ['target_words', 'structure'],
+    content: `你是长篇小说因果编辑。基于已定稿 Story Brief 与 Character Bible 返回 SummaryArtifact 的 beats、climax、resolution、character_outcomes。character_outcomes 只能引用冻结 character_id，并覆盖全部主角与重要配角；只返回合同字段。`,
+    variables: [...promptMaterialKeys.summary],
   },
   {
     id: 'prompt-outline',
     name: '分卷大纲 Prompt',
     stage_type: 'outline',
-    content: `基于已确认梗概、Info 人物与世界观、未回收伏笔，返回结构化 outline artifact。
-
-chapter_range 必须连续、互不重叠并覆盖目标章节；每卷完整返回 opening、development、midpoint、climax、resolution，后一拍由前一拍结果推动，resolution 结算本卷目标并为下一卷建立因果。character_progression 引用已确认人物或本卷 new_characters；新增人物最多 4 名且 tier=supporting。world_reveal 引用已确认世界观 anchor；foreshadow_plan 只能使用投放、推进、回收或延后。`,
-    variables: ['volume_count', 'chapters_per_volume'],
+    content: `你是长篇小说节奏架构师。基于已确认 SummaryArtifact 与 Character Bible 返回 OutlineArtifact。章节数量和区间严格服从 BookScalePlan；所有人物只能引用 character_id，不得新增人物。`,
+    variables: [...promptMaterialKeys.outline],
   },
   {
     id: 'prompt-detail',
-    name: '章节细纲 Prompt',
-    stage_type: 'detail_outline',
-    content: `按目标章节数返回结构化 detail_outline artifact。第 2 章起的 entry_state 必须由上一章 hook 或结果造成；continuity_notes 明确承接内容、本章进入方式和下一章交付。只有字段明确标注时才允许视角转移、倒叙或时间跳切。每章 fact_reveals、wiki_candidates、foreshadow 各返回 1-3 条；character_shift 引用已注册非 NPC 人物；new_npcs 最多 2 名且不得承担 POV、核心反转或解决主冲突。`,
-    variables: ['chapter_count', 'must_include'],
+    name: '章节施工图 Prompt',
+    stage_type: 'detail',
+    content: `你是章节施工编辑。基于已确认 Summary、Outline、Character Bible 返回 DetailArtifact。每章只写 purpose、pov_character_id、scenes、obligations、handoff；章节 id/number 必须严格匹配 BookScalePlan，义务引用只能从 obligation_registry 选择，不得创建新人物、Wiki 或 Canon 写回。`,
+    variables: [...promptMaterialKeys.detail],
   },
   {
     id: 'prompt-text',
     name: '正文 Prompt',
-    stage_type: 'chapter_text',
-    content: `逐章按当前 Chapter Context Packet、已确认细纲和 Voice Spec 生成一个结构化章节产物。默认从上一章结果连续续写，开篇先用动作、后果、物证或人物反应兑现 previous_chapter_summary 与 transition_directive，再进入本章 entry_state。只有细纲明确标记时才允许视角转移、倒叙或时间跳切；卷首先承接 previous_volume_ending，卷末结算 volume_goal 并向 next_volume_goal 建立具体因果。summary 必须足以供下一章承接。`,
-    variables: ['chapter_words', 'pov'],
+    stage_type: 'text',
+    content: `你是成熟的类型小说作者。只返回当前 ChapterArtifact，正文 content 必须自然收束，author_status 固定为 candidate；只能引用冻结 Detail 与 Character Bible，不得新增人物，不做正文阶段 RAG 检索，不做自动删改或 Wiki/Canon 写回。`,
+    variables: [...promptMaterialKeys.text],
   },
   {
     id: 'prompt-cover',
     name: '封面 Prompt',
-    stage_type: 'cover_image',
-    content: '根据已定稿的小说信息、全书梗概、分卷结构和章节细纲返回结构化 cover planning artifact。封面规划在章节细纲定稿后与正文并行；候选只返回稳定 id、构图、色板和质量说明，不得编造 image_url、Data URL 或图片已生成状态，真实图片由 ImageProvider 独立生成。',
-    variables: ['cover_style', 'aspect_ratio'],
+    stage_type: 'cover',
+    content: '根据已定稿的小说信息、人物圣经、梗概、分卷结构和章节施工图返回唯一 CoverBrief，只含 concept、image_prompt、palette、negative_constraints；不得返回资产 ID、URL 或生成状态。',
+    variables: [...promptMaterialKeys.cover],
   },
 ];

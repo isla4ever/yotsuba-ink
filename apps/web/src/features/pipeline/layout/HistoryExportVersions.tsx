@@ -48,20 +48,20 @@ export function HistoryExportVersions({
       <div className="history-export-version-list">
         {receipts.map((receipt, index) => {
           const downloading = pendingAction.endsWith(`:${receipt.export_id}`);
-          const versionLabel = receipt.version ? `V${receipt.version}` : index === 0 ? '最新' : `V${receipts.length - index}`;
+          const versionLabel = index === 0 ? '最新' : `#${receipts.length - index}`;
           return (
             <article className="history-export-version" key={receipt.export_id}>
               <span className="history-export-version-index">{versionLabel}</span>
               <div className="history-export-version-main">
                 <strong title={receipt.filename}>{receipt.filename}</strong>
                 <span>
-                  {receipt.format.toUpperCase()} · {receipt.chapter_ids.length} 章 · {formatFileSize(receipt.size_bytes)} · {formatHistoryTime(receipt.created_at)}
+                  {receipt.format.toUpperCase()} · {receipt.chapter_version_ids.length} 章 · {formatFileSize(receipt.size_bytes)} · {formatHistoryTime(receipt.created_at)}
                 </span>
                 <small>
                   {receipt.metadata.author || '未署名'}
                   {receipt.metadata.version_note ? ` · ${receipt.metadata.version_note}` : ''}
-                  {receipt.cover_asset?.candidate_id ? ` · 封面 ${receipt.cover_asset.candidate_id}` : ''}
-                  {receipt.selection_digest ? ` · 选择 ${receipt.selection_digest.slice(0, 8)}` : ''}
+                  {receipt.cover_asset_id ? ` · 封面 ${receipt.cover_asset_id}` : ''}
+                  {receipt.artifact_signature ? ` · 产物 ${receipt.artifact_signature.slice(0, 8)}` : ''}
                   {receipt.sha256 ? ` · SHA ${receipt.sha256.slice(0, 8)}` : ''}
                 </small>
               </div>

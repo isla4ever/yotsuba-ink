@@ -5,7 +5,7 @@ describe('draft regeneration directions', () => {
   it('keeps three stage-specific suggestions', () => {
     expect(regenerationSuggestionsForStage({ type: 'summary' })).toHaveLength(3);
     expect(regenerationSuggestionsForStage({ type: 'outline' })[0]).toContain('卷内节拍');
-    expect(regenerationSuggestionsForStage({ type: 'chapter_text' })[2]).toContain('段尾追读');
+    expect(regenerationSuggestionsForStage({ type: 'text' })[2]).toContain('段尾追读');
   });
 
   it('uses a trimmed custom direction before the selected suggestion', () => {

@@ -20,8 +20,8 @@ export const reviewCreationModeCardId = 'setup-review-creation-mode';
 
 const storyFieldKeys = new Set([
   'genre',
-  'target_length',
-  'target_words_range',
+  'book_scale_target_mode',
+  'book_scale_target_value',
   'audience',
   'core_concept',
   'keywords',
@@ -36,6 +36,10 @@ const issueLabels: Record<string, string> = {
   base_url_missing: '缺少服务地址',
   model_missing: '缺少默认模型',
   secret_missing: '缺少 API Key',
+  model_not_discovered: '阶段模型不在已同步目录中',
+  model_parameter_not_supported: '模型缺少所需的结构化能力',
+  provider_policy_blocked: '当前服务不允许用于应用后端',
+  provider_workflow_blocked: '当前服务仅用于评估，不能运行生产工作流',
 };
 
 export function buildSetupSteps(input: SetupDerivationInput): SetupStep[] {
@@ -118,7 +122,7 @@ export function buildSettingsSections(input: SetupDerivationInput): SettingsSect
 }
 
 function infoStageOf(workflow: WorkflowDefinition) {
-  return workflow.nodes.find((stage) => stage.type === 'info_recommend');
+  return workflow.nodes.find((stage) => stage.type === 'info');
 }
 
 function storySetupIssues(info?: WorkflowStage): SetupIssue[] {
@@ -192,8 +196,14 @@ function hasConfiguredValue(field: InputField) {
 
 function storySummary(info?: WorkflowStage) {
   const genre = valueFor(info, 'genre') || '题材未定';
-  const length = valueFor(info, 'target_words_range') || valueFor(info, 'target_length') || '篇幅未定';
-  return `${genre} · ${length}`;
+  const mode = valueFor(info, 'book_scale_target_mode');
+  const value = Number(fieldFor(info, 'book_scale_target_value')?.default);
+  const scale = Number.isFinite(value) && value > 0
+    ? mode === 'total_chapters'
+      ? `${value.toLocaleString('zh-CN')} 章`
+      : `${value.toLocaleString('zh-CN')} 字`
+    : '体量未定';
+  return `${genre} · ${scale}`;
 }
 
 export function referenceSummary(info: WorkflowStage | undefined, documents: SetupDerivationInput['knowledgeDocuments']) {
@@ -230,9 +240,9 @@ function qualityModeLabel(mode: WorkflowDefinition['quality_mode']) {
 }
 
 function qualityModeImpact(mode: WorkflowDefinition['quality_mode']) {
-  if (mode === 'fast') return '全流程自动推进';
-  if (mode === 'deep') return '每个创作阶段都由你定稿';
-  return '立项定稿后自动推进';
+  if (mode === 'fast') return '阶段与章节决策自动接受';
+  if (mode === 'deep') return '逐阶段逐章确认 · 三路审稿必需';
+  return '逐阶段逐章确认 · 文风审稿可选';
 }
 
 export function referenceModeLabel(mode: string) {

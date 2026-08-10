@@ -44,10 +44,10 @@ describe('CommandPalette', () => {
     for (const label of ['导航', '全局', '外观']) expect(html).toContain(`aria-label="${label}"`);
   });
 
-  it('keeps policy-disabled stage commands visible but marks them disabled with the reason', () => {
+  it('keeps every balanced stage command available', () => {
     const html = renderPalette(true, { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', false) });
-    expect(html).toContain('aria-disabled="true"');
-    expect(html).toContain('平衡模式下后续阶段在驾驶舱内查看');
+    expect(html).not.toContain('平衡模式下后续阶段在驾驶舱内查看');
+    expect(html).toContain('全书梗概');
     const activeDescendant = html.match(/aria-activedescendant="([^"]+)"/)?.[1];
     expect(activeDescendant).toContain('stage-info');
   });

@@ -14,9 +14,14 @@ from openai import AsyncOpenAI
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider
 from novel_workflow.providers.errors import ProviderResponseError
-from novel_workflow.providers.openai_sdk import create_openai_client, translate_openai_error
-from novel_workflow.providers.templates import image_request_parameters, provider_template
-
+from novel_workflow.providers.openai_sdk import (
+    create_openai_client,
+    translate_openai_error,
+)
+from novel_workflow.providers.templates import (
+    image_request_parameters,
+    provider_template,
+)
 
 MAX_IMAGE_BYTES = 25 * 1024 * 1024
 
@@ -34,25 +39,28 @@ class OpenAICompatibleImageProvider(ImageProvider):
         template_id: str = "openai-compatible-image",
         client: AsyncOpenAI | None = None,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.template_id = template_id
+        self.template = provider_template(template_id, "openai-compatible-image")
+        self.base_url = normalize_image_base_url(
+            base_url,
+            endpoint_path=self.template.image_endpoint_path,
+        )
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
-        self.template_id = template_id
-        self.template = provider_template(template_id, "openai-compatible-image")
         self._client = client or create_openai_client(
-            base_url=base_url,
+            base_url=self.base_url,
             api_key=api_key,
             max_retries=self.template.max_retries,
         )
 
     @classmethod
-    def from_env(cls) -> "OpenAICompatibleImageProvider | None":
+    def from_env(cls) -> OpenAICompatibleImageProvider | None:
         import os
 
         base_url = os.environ.get("NOVEL_IMAGE_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
         api_key = os.environ.get("NOVEL_IMAGE_API_KEY") or os.environ.get("OPENAI_API_KEY")
-        model = os.environ.get("NOVEL_IMAGE_MODEL") or "gpt-image-1"
+        model = os.environ.get("NOVEL_IMAGE_MODEL") or "gpt-image-2"
         if not base_url or not api_key:
             return None
         return cls(base_url, api_key, model)
@@ -66,7 +74,7 @@ class OpenAICompatibleImageProvider(ImageProvider):
         model: str,
         timeout_seconds: int = 180,
         template_id: str = "openai-compatible-image",
-    ) -> "OpenAICompatibleImageProvider | None":
+    ) -> OpenAICompatibleImageProvider | None:
         if not base_url or not api_key or not model:
             return None
         return cls(base_url, api_key, model, timeout_seconds=timeout_seconds, template_id=template_id)
@@ -75,6 +83,7 @@ class OpenAICompatibleImageProvider(ImageProvider):
         model = str(context.get("model") or self.model)
         size = str(context.get("size") or "1024x1536")
         quality = str(context.get("quality") or "medium")
+        timeout_seconds = int(context.get("timeout_seconds") or self.timeout_seconds)
         idempotency_key = str(context.get("idempotency_key") or uuid4().hex)
         request = image_request_parameters(
             self.template,
@@ -89,10 +98,10 @@ class OpenAICompatibleImageProvider(ImageProvider):
                 self.template.image_endpoint_path,
                 cast_to=dict[str, Any],
                 body=request,
-                options={"headers": headers, "timeout": self.timeout_seconds},
+                options={"headers": headers, "timeout": timeout_seconds},
             )
         except Exception as exc:
-            raise translate_openai_error(exc, timeout_seconds=self.timeout_seconds) from exc
+            raise translate_openai_error(exc, timeout_seconds=timeout_seconds) from exc
         try:
             item = payload[self.template.image_response_field][0]
         except (KeyError, IndexError, TypeError) as exc:
@@ -136,9 +145,17 @@ class OpenAICompatibleImageProvider(ImageProvider):
             raise ProviderResponseError("empty_image", "Image provider returned neither image bytes nor a URL")
         _validate_remote_url(source_url)
         try:
-            return await asyncio.to_thread(_download_remote_image, source_url, self.timeout_seconds)
+            return await asyncio.to_thread(_download_remote_image, source_url, timeout_seconds)
         except requests.RequestException as exc:
             raise ProviderResponseError("asset_download_failed", "Unable to download generated image") from exc
+
+
+def normalize_image_base_url(base_url: str, *, endpoint_path: str) -> str:
+    normalized = base_url.rstrip("/")
+    suffix = "/" + endpoint_path.strip("/")
+    if suffix != "/" and normalized.endswith(suffix):
+        return normalized[: -len(suffix)]
+    return normalized
 
 
 def _bounded_content(content: bytes) -> bytes:
@@ -187,5 +204,7 @@ def _download_remote_image(source_url: str, timeout_seconds: int) -> tuple[bytes
             content.extend(chunk)
             if len(content) > MAX_IMAGE_BYTES:
                 raise ProviderResponseError("image_too_large", "Generated image exceeds the 25 MB limit")
-        mime_type = str(response.headers.get("content-type") or "").split(";", 1)[0]
-        return _bounded_content(bytes(content)), mime_type
+        # Remote image URLs do not carry a provider-declared media type. CDN
+        # Content-Type headers are advisory and may disagree with valid bytes;
+        # the asset store derives the canonical MIME from the image structure.
+        return _bounded_content(bytes(content)), ""

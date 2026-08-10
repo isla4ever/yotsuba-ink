@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 import type { HydratedRunState } from './runState';
 import { createInitialRunState, runReducer } from './runReducer';
 
 describe('run reducer', () => {
   it('creates the stable run state from stored control and events', () => {
-    const memory = event('memory_context_loaded', 'detail');
+    const memory = event('evidence.proposed', 'detail');
     const state = initialState({
       activeRunId: 'stored-run',
       events: [memory],
@@ -24,24 +25,24 @@ describe('run reducer', () => {
   it('starts a run atomically when the server confirms it', () => {
     const state = runReducer(initialState(), {
       type: 'event_received',
-      event: event('run_started', 'info'),
+      event: event('run.started', 'info'),
     });
 
     expect(state.activeRunId).toBe('reducer-test');
     expect(state.running).toBe(true);
     expect(state.paused).toBe(false);
     expect(state.runControlState).toBe('running');
-    expect(state.events[0].type).toBe('run_started');
+    expect(state.events[0].type).toBe('run.started');
   });
 
-  it('selects the active stage for navigation events but ignores finalizing starts', () => {
+  it('selects the active stage for Graph node events', () => {
     const started = runReducer(initialState(), {
       type: 'event_received',
-      event: event('node_started', 'summary'),
+      event: event('node.started', 'summary'),
     });
     const finalizing = runReducer(started, {
       type: 'event_received',
-      event: { ...event('node_started', 'outline'), phase: 'finalizing' },
+      event: event('node.completed', 'outline'),
     });
 
     expect(started.selectedId).toBe('summary');
@@ -55,27 +56,27 @@ describe('run reducer', () => {
     for (let index = 0; index < 45; index += 1) {
       state = runReducer(state, {
         type: 'event_received',
-        event: { ...event('memory_writeback_completed', 'text'), message: String(index) },
+        event: { ...event('writeback.committed', 'text'), payload: { message: String(index) } },
       });
     }
 
     expect(state.memoryEvents).toHaveLength(40);
-    expect(state.memoryEvents[0].message).toBe('44');
-    expect(state.memoryEvents[state.memoryEvents.length - 1]?.message).toBe('5');
+    expect(state.memoryEvents[0].payload?.message).toBe('44');
+    expect(state.memoryEvents[state.memoryEvents.length - 1]?.payload?.message).toBe('5');
   });
 
-  it('moves pause and resume fields together', () => {
+  it('moves pause and resume fields through the decision interrupt', () => {
     const running = runReducer(initialState(), {
       type: 'event_received',
-      event: event('run_started', 'text'),
+      event: event('run.started', 'text'),
     });
     const paused = runReducer(running, {
       type: 'event_received',
-      event: event('run_paused', 'text'),
+      event: event('decision.required', 'text'),
     });
     const resumed = runReducer(paused, {
       type: 'event_received',
-      event: event('run_resumed', 'text'),
+      event: event('decision.resolved', 'text'),
     });
 
     expect(paused).toMatchObject({ paused: true, running: false, runControlState: 'paused' });
@@ -85,80 +86,65 @@ describe('run reducer', () => {
   it('shows approval as waiting without inventing a completed run state', () => {
     const state = runReducer(initialState(), {
       type: 'event_received',
-      event: { ...event('approval_required', 'info'), artifact: { title: '候选标题' } },
+      event: { ...event('decision.required', 'info'), payload: { decision_type: 'stage_artifact_decision' } },
     });
 
     expect(state.selectedId).toBe('info');
-    expect(state.latestResult).toContain('等待你确认定稿');
-    expect(state.runControlState).toBe('idle');
+    expect(state.latestResult).toContain('等待你的决定');
+    expect(state.runControlState).toBe('paused');
   });
 
   it('keeps validation diagnostic until the terminal node failure arrives', () => {
     const invalid = runReducer(initialState(), {
       type: 'event_received',
-      event: { ...event('artifact_validation_failed', 'outline'), error: 'volumes 缺失' },
+      event: { ...event('evidence.proposed', 'outline'), payload: { message: 'volumes 缺失' } },
     });
     const failed = runReducer(invalid, {
       type: 'event_received',
-      event: { ...event('node_failed', 'outline'), error: '大纲生成失败' },
+      event: { ...event('node.failed', 'outline'), payload: { message: '大纲生成失败' } },
     });
 
     expect(invalid.runControlState).toBe('idle');
-    expect(invalid.latestResult).toContain('volumes 缺失');
+    expect(invalid.latestResult).toContain('正文证据提案');
     expect(failed.runControlState).toBe('failed');
     expect(failed.latestResult).toBe('大纲生成失败');
   });
 
-  it('keeps a recoverable node failure paused at the stable checkpoint', () => {
+  it('treats node failure as a Graph terminal failure without recovery flags', () => {
     const failed = runReducer(initialState({ activeRunId: 'recoverable-run', runControlState: 'running' }), {
       type: 'event_received',
       event: {
-        ...event('node_failed', 'outline'),
-        error: 'Provider timeout',
-        recovery_state: { status: 'degraded', needs_recovery: true },
+        ...event('node.failed', 'outline'),
+        payload: { message: 'Provider timeout' },
       },
     });
 
-    expect(failed).toMatchObject({ paused: true, running: false, runControlState: 'paused' });
+    expect(failed).toMatchObject({ paused: false, running: false, runControlState: 'failed' });
     expect(failed.latestResult).toContain('Provider timeout');
   });
 
-  it('keeps budget warnings from stopping an active run (D5: bar consumes the event)', () => {
-    const running = runReducer(initialState(), {
-      type: 'event_received',
-      event: event('run_started', 'summary'),
-    });
-    const warned = runReducer(running, {
-      type: 'event_received',
-      event: { ...event('stage_budget_warning', 'summary'), used_tokens: 8000, max_tokens: 10000 },
-    });
-
-    expect(warned).toMatchObject({ paused: false, running: true, runControlState: 'running' });
-    expect(warned.events[0]?.type).toBe('stage_budget_warning');
-  });
-
-  it('pauses immediately when a provider call is blocked by budget', () => {
+  it('pauses immediately when a Graph decision is required', () => {
     const blocked = runReducer(initialState({ runControlState: 'running' }), {
       type: 'event_received',
-      event: { ...event('run_budget_exceeded', 'text'), message: '本次运行 Token 预算已用尽' },
+      event: { ...event('decision.required', 'text'), payload: { decision_id: 'decision-1', domain_revision: 1 } },
     });
 
     expect(blocked).toMatchObject({ paused: true, running: false, runControlState: 'paused' });
   });
 
-  it('distinguishes completed runs from export-ready waiting', () => {
+  it('distinguishes a completed run from a saved export artifact', () => {
     const completed = runReducer(initialState(), {
       type: 'event_received',
-      event: event('run_completed', 'export'),
+      event: event('run.completed', 'export'),
     });
     const exportReady = runReducer(initialState(), {
       type: 'event_received',
-      event: event('run_export_ready', 'export'),
+      event: event('artifact.committed', 'export'),
     });
 
     expect(completed).toMatchObject({ running: false, runControlState: 'completed' });
-    expect(exportReady).toMatchObject({ running: false, runControlState: 'running' });
-    expect(exportReady.latestResult).toContain('等待人工下载');
+    expect(exportReady).toMatchObject({ running: false, runControlState: 'idle' });
+    expect(exportReady.latestResult).toContain('正式写回');
   });
 
   it('restores and resets all stable run fields as one transition', () => {
@@ -202,9 +188,10 @@ function initialState(overrides: Partial<Parameters<typeof createInitialRunState
 }
 
 function hydratedState(): HydratedRunState {
-  const memory = event('memory_context_loaded', 'cover');
+  const memory = event('evidence.proposed', 'cover');
   return {
     activeRunId: 'restored-run',
+    inputs: undefined,
     approvalDraft: '',
     approvalPending: false,
     approvalSource: '',
@@ -220,5 +207,5 @@ function hydratedState(): HydratedRunState {
 }
 
 function event(type: string, nodeId: string): RunEvent {
-  return { type, run_id: 'reducer-test', node_id: nodeId };
+  return runEvent(type, { run_id: 'reducer-test', stage_id: nodeId as RunEvent['stage_id'], node_id: `${nodeId}.test` });
 }

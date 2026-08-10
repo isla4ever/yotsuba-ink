@@ -11,7 +11,7 @@ KnowledgeParseStatus = Literal["indexed", "partial", "failed"]
 
 class KnowledgeDocument(BaseModel):
     doc_id: str
-    project_id: str = "default"
+    project_id: str = Field(min_length=1)
     title: str
     source_type: KnowledgeSourceType = "upload"
     filename: str = ""
@@ -29,7 +29,7 @@ class KnowledgeDocument(BaseModel):
 class KnowledgeChunk(BaseModel):
     chunk_id: str
     doc_id: str
-    project_id: str = "default"
+    project_id: str = Field(min_length=1)
     title: str
     section: str = ""
     text: str
@@ -50,14 +50,14 @@ class KnowledgeUploadRequest(BaseModel):
     content: str = Field(min_length=1)
     filename: str = "reference.txt"
     content_type: str = "text/plain"
-    project_id: str = "default"
+    project_id: str = Field(min_length=1)
     encoding: Literal["plain", "base64"] = "plain"
 
 
 class KnowledgeSearchRequest(BaseModel):
     query: str = Field(min_length=1)
     intent: str = ""
-    project_id: str = "default"
+    project_id: str = Field(min_length=1)
     doc_ids: list[str] = Field(default_factory=list)
     top_k: int = Field(default=5, ge=1, le=12)
 

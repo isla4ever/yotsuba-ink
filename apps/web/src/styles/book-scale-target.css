@@ -1,0 +1,209 @@
+.book-scale-target {
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: var(--radius-card);
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  overflow: hidden;
+  padding: 18px;
+  position: relative;
+}
+
+.book-scale-target::before {
+  background: linear-gradient(90deg, var(--accent), transparent 72%);
+  content: '';
+  height: 1px;
+  inset: 0 22% auto 0;
+  opacity: .72;
+  position: absolute;
+}
+
+.book-scale-target-head,
+.book-scale-target-control,
+.book-scale-target-control label > div,
+.book-scale-mode {
+  align-items: center;
+  display: flex;
+}
+
+.book-scale-target-head {
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.book-scale-target-head > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.book-scale-target-head span,
+.book-scale-target-control label > span,
+.book-scale-preview dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.book-scale-target-head strong {
+  font-size: 15px;
+}
+
+.book-scale-mode {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  gap: 2px;
+  padding: 3px;
+}
+
+.book-scale-mode button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 3px);
+  color: var(--muted);
+  display: inline-flex;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.book-scale-mode button.active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent);
+  color: var(--accent-2);
+}
+
+.book-scale-target-control {
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.book-scale-target-control label {
+  display: grid;
+  gap: 7px;
+  min-width: min(100%, 290px);
+}
+
+.book-scale-target-control label > div {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-radius: var(--radius-control);
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.book-scale-target-control input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.book-scale-target-control input:focus {
+  box-shadow: none;
+  outline: 0;
+}
+
+.book-scale-target-control label > div > span {
+  color: var(--accent-2);
+  font-size: 12px;
+}
+
+.book-scale-target-control > p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 20px 0 0;
+  max-width: 390px;
+}
+
+.book-scale-preview {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 14px;
+}
+
+.book-scale-preview > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 14px;
+}
+
+.book-scale-preview > div:first-child {
+  padding-left: 0;
+}
+
+.book-scale-preview > div + div {
+  border-left: 1px solid var(--border);
+}
+
+.book-scale-preview dd {
+  color: var(--text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .book-scale-target-head,
+  .book-scale-target-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .book-scale-mode {
+    align-self: stretch;
+  }
+
+  .book-scale-mode button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .book-scale-target-control > p {
+    margin: 0;
+  }
+
+  .book-scale-preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 14px;
+  }
+
+  .book-scale-preview > div {
+    padding: 0 10px;
+  }
+
+  .book-scale-preview > div:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .book-scale-target {
+    padding: 15px;
+  }
+
+  .book-scale-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .book-scale-preview > div,
+  .book-scale-preview > div:nth-child(3) {
+    border-left: 0;
+    padding: 0;
+  }
+}

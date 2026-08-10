@@ -44,7 +44,7 @@ export function DraftRegenerationDialog({ mode, onClose, onConfirm, open, stage 
           >
           <motion.section
             animate="animate"
-            aria-label={`${stage?.label ?? '小说信息推荐'}换一稿`}
+            aria-label={`${stage?.label ?? '创作立项'}换一稿`}
             aria-modal="true"
             className={`recommendation-dialog app-dialog-surface draft-regeneration-dialog mode-${mode}`}
             exit="exit"

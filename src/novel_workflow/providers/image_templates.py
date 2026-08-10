@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from novel_workflow.providers.template_contract import ProviderTemplate
-
+from novel_workflow.providers.template_contract import ImageModelCapabilityProfile, ProviderTemplate
 
 IMAGE_PROVIDER_TEMPLATES = (
     ProviderTemplate(
@@ -16,15 +15,28 @@ IMAGE_PROVIDER_TEMPLATES = (
         description="适合实现 /images/generations 的 OpenAI 兼容图片服务。",
     ),
     ProviderTemplate(
+        id="gpt-image-2-gateway",
+        label="GPT Image 2 兼容网关",
+        kind="openai-compatible-image",
+        base_url="",
+        default_model="gpt-image-2",
+        model_options=["gpt-image-2"],
+        api_key_env="NOVEL_IMAGE_API_KEY",
+        docs_url="https://platform.openai.com/docs/api-reference/images",
+        integration_tier="custom",
+        description="用于返回 data[0].b64_json 的 GPT Image 2 兼容网关。",
+        image_static_parameters={"response_format": "b64_json"},
+    ),
+    ProviderTemplate(
         id="openai-image",
         label="OpenAI 图片",
         kind="openai-compatible-image",
         base_url="https://api.openai.com/v1",
-        default_model="gpt-image-1.5",
-        model_options=["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"],
+        default_model="gpt-image-2",
+        model_options=["gpt-image-2"],
         api_key_env="OPENAI_API_KEY",
         docs_url="https://platform.openai.com/docs/api-reference/images",
-        description="OpenAI 官方 Images API。",
+        description="OpenAI 官方 Images API；默认使用当前 GPT Image 2。",
     ),
     ProviderTemplate(
         id="tokenhub-hunyuan-image",
@@ -34,23 +46,24 @@ IMAGE_PROVIDER_TEMPLATES = (
         default_model="hy-image-v3.0",
         model_options=["hy-image-v3.0"],
         api_key_env="NOVEL_IMAGE_API_KEY",
-        docs_url="https://cloud.tencent.com/document/product/1668/129429",
-        description="TokenHub 混元同步生图；尺寸使用冒号且数量字段为 images。",
-        image_size_separator=":",
-        image_count_field="images",
+        docs_url="https://cloud.tencent.com/document/product/1823/130080",
+        description="TokenHub HY-Image-V3.0 异步生图；需提交任务后轮询查询结果。",
         supports_image_quality=False,
+        execution_allowed=False,
+        execution_policy_note="HY-Image-V3.0 使用提交任务与查询任务两段式异步协议，当前同步图片适配器不能安全执行。",
     ),
     ProviderTemplate(
         id="zhipu-cogview-image",
-        label="智谱 CogView 图片",
+        label="智谱 GLM-Image / CogView 图片",
         kind="openai-compatible-image",
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        default_model="cogView-4-250304",
-        model_options=["cogView-4-250304", "cogview-4", "glm-image"],
+        default_model="glm-image",
+        model_options=["glm-image", "cogview-4-250304", "cogview-4"],
         api_key_env="ZHIPUAI_API_KEY",
-        docs_url="https://docs.bigmodel.cn/cn/guide/models/image-generation/cogview-4",
-        description="智谱 CogView 同步图片接口。",
+        docs_url="https://docs.bigmodel.cn/cn/guide/models/image-generation/glm-image",
+        description="智谱同步图片接口；默认使用 GLM-Image，并保留 CogView 兼容模型。",
         image_count_field="none",
+        image_static_parameters={"quality": "hd"},
     ),
     ProviderTemplate(
         id="siliconflow-image",
@@ -65,6 +78,7 @@ IMAGE_PROVIDER_TEMPLATES = (
         image_size_field="image_size",
         image_count_field="none",
         image_response_field="images",
+        models_query_parameters={"type": "image"},
         supports_image_quality=False,
     ),
     ProviderTemplate(
@@ -74,10 +88,11 @@ IMAGE_PROVIDER_TEMPLATES = (
         base_url="https://openrouter.ai/api/v1",
         default_model="",
         api_key_env="OPENROUTER_API_KEY",
-        docs_url="https://openrouter.ai/docs/features/multimodal/image-generation",
+        docs_url="https://openrouter.ai/docs/guides/overview/multimodal/image-generation",
         integration_tier="gateway",
         description="OpenRouter 独立图片端点；模型需从图片模型目录选择。",
-        image_size_field="resolution",
+        discovers_model_parameters=True,
+        image_size_field="size",
         image_endpoint_path="/images",
         models_endpoint_path="/images/models",
     ),
@@ -86,8 +101,8 @@ IMAGE_PROVIDER_TEMPLATES = (
         label="xAI Grok Imagine 图片",
         kind="openai-compatible-image",
         base_url="https://api.x.ai/v1",
-        default_model="grok-imagine-image",
-        model_options=["grok-imagine-image"],
+        default_model="grok-imagine-image-quality",
+        model_options=["grok-imagine-image-quality"],
         api_key_env="XAI_API_KEY",
         docs_url="https://docs.x.ai/developers/model-capabilities/images/generation",
         description="xAI 官方图片端点；产品尺寸会转换为宽高比并请求 1k Base64 结果。",
@@ -109,9 +124,24 @@ IMAGE_PROVIDER_TEMPLATES = (
         api_key_env="TOGETHER_API_KEY",
         docs_url="https://docs.together.ai/reference/post-images-generations",
         integration_tier="compatibility",
-        description="Together Images API；尺寸拆为 width/height，并请求 PNG Base64 结果。",
+        capability_docs=[
+            "https://docs.together.ai/docs/inference/images/parameters",
+        ],
+        description="Together Images API；尺寸参数按图片模型选择，并请求 PNG Base64 结果。",
         image_size_field="width_height",
         image_static_parameters={"response_format": "base64", "output_format": "png"},
+        image_model_capabilities=[
+            ImageModelCapabilityProfile(
+                model_pattern="black-forest-labs/FLUX.1-kontext-*",
+                capability_docs=["https://docs.together.ai/docs/inference/images/parameters"],
+                evidence_status="conservative",
+                evidence_note=(
+                    "Together 参数页的概述与示例存在差异；仅 Kontext 保留 aspect_ratio，"
+                    "Schnell 依据 API Schema、参数表和示例使用 width/height。"
+                ),
+                image_size_field="aspect_ratio",
+            ),
+        ],
         supports_image_quality=False,
     ),
 )

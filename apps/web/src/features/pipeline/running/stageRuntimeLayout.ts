@@ -8,9 +8,13 @@ export type StageRuntimeLayout = Readonly<{
 }>;
 
 export const stageRuntimeLayout = {
-  info_recommend: {
+  info: {
     primary: [],
     compact: [],
+  },
+  characters: {
+    primary: [],
+    compact: ['character'],
   },
   summary: {
     primary: [],
@@ -20,19 +24,19 @@ export const stageRuntimeLayout = {
     primary: [],
     compact: ['character', 'worldbuilding', 'quality'],
   },
-  detail_outline: {
+  detail: {
     primary: [],
-    compact: ['character', 'worldbuilding', 'wiki', 'quality'],
+    compact: ['character', 'worldbuilding', 'quality'],
   },
-  chapter_text: {
+  text: {
+    primary: [],
+    compact: ['quality', 'wiki', 'character', 'worldbuilding'],
+  },
+  cover: {
     primary: [],
     compact: [],
   },
-  cover_image: {
-    primary: [],
-    compact: [],
-  },
-  export_artifact: {
+  export: {
     primary: [],
     compact: [],
   },

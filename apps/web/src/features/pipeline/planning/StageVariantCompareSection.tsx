@@ -1,5 +1,5 @@
 import { BadgeCheck, RotateCcw } from 'lucide-react';
-import type { ProviderProfile, QualityMode, WorkflowStage } from '../contracts';
+import type { ProviderProfile, WorkflowStage } from '../contracts';
 import { modelNameForUi } from '../lib/display';
 import {
   clampTemperature,
@@ -7,7 +7,6 @@ import {
   temperaturePresetFor,
   temperaturePresets,
 } from '../lib/stageConfigurationPolicy';
-import { removePrimaryFromFallbacks } from '../lib/providerFallback';
 import { resetStageProviderException, stageHasProviderException, stageProviderSummary } from '../lib/stageProviderException';
 import { ModelOptionInput } from '../settings/fields/ModelOptionInput';
 import { OptionField } from '../settings/fields/OptionField';
@@ -42,30 +41,27 @@ export function StageModelSection({ stage, providers, onAddModelOption, onChange
         </button>
       ) : null}
       <OptionField
-        label={stage.type === 'cover_image' ? '封面规划文本服务' : '文本生成服务'}
+        label={stage.type === 'cover' ? '封面规划文本服务' : '文本生成服务'}
         options={providerOptionItems(textProviders)}
         value={stage.provider_profile_id}
         onValueChange={(providerId) => {
           const provider = textProviders.find((item) => item.id === providerId);
           const nextModel = provider?.default_model ?? stage.model_settings.model;
-          onChange(removePrimaryFromFallbacks({
+          onChange({
             ...stage,
             provider_profile_id: providerId,
             model_settings: { ...stage.model_settings, model: nextModel },
-            variant_policy: stage.variant_policy.judge_provider_profile_id === 'inherit'
-              ? { ...stage.variant_policy, judge_model: nextModel }
-              : stage.variant_policy,
-          }, 'text', providerId));
+          });
         }}
       />
-      {stage.type === 'cover_image' ? (
+      {stage.type === 'cover' ? (
         <OptionField
           label="封面生成服务"
           options={providerOptionItems(imageProviders)}
           status={imageProvider ? 'ready' : 'warning'}
           statusText={imageProvider ? `图片模型 ${modelNameForUi(imageProvider.default_model)}` : '尚未连接图片服务'}
           value={stage.image_provider_profile_id ?? ''}
-          onValueChange={(providerId) => onChange(removePrimaryFromFallbacks({ ...stage, image_provider_profile_id: providerId }, 'image', providerId))}
+          onValueChange={(providerId) => onChange({ ...stage, image_provider_profile_id: providerId })}
         />
       ) : null}
       <ModelOptionInput
@@ -77,9 +73,6 @@ export function StageModelSection({ stage, providers, onAddModelOption, onChange
         onChange={(model) => onChange({
           ...stage,
           model_settings: { ...stage.model_settings, model },
-          variant_policy: stage.variant_policy.judge_provider_profile_id === 'inherit'
-            ? { ...stage.variant_policy, judge_model: model }
-            : stage.variant_policy,
         })}
       />
       <div className="stage-temperature-control">
@@ -135,59 +128,10 @@ export function StageModelSection({ stage, providers, onAddModelOption, onChange
   );
 }
 
-export function StageVariantCompareSection({
-  mode,
-  stage,
-  onChange,
-}: {
-  mode: QualityMode;
-  stage: WorkflowStage;
-  onChange: (stage: WorkflowStage) => void;
-}) {
-  if (stage.type !== 'chapter_text' || mode !== 'balanced') return null;
-  const enabled = Boolean(getField(stage, 'enable_version_compare')?.default);
-  const count = Math.max(2, Math.min(3, Number(getField(stage, 'version_candidate_count')?.default ?? 2)));
-
-  return (
-    <section className="config-section version-compare-section">
-      <div className="version-compare-head">
-        <span><strong>多版本比对</strong><small>正文可主动生成多个候选并评审，用量按候选数增加</small></span>
-        <label className="inline-switch">
-          <input checked={enabled} type="checkbox" onChange={(event) => onChange(updateVersionCompare(stage, event.target.checked, count))} />
-          <span>{enabled ? '已开启' : '已关闭'}</span>
-        </label>
-      </div>
-      {enabled ? (
-        <div className="version-count-control">
-          <span>候选数</span>
-          <div role="group" aria-label="候选版本数">
-            {[2, 3].map((value) => (
-              <button aria-pressed={count === value} key={value} type="button" onClick={() => onChange(updateVersionCompare(stage, true, value))}>{value} 版</button>
-            ))}
-          </div>
-          <small>评审继承正文服务与模型：{modelNameForUi(stage.model_settings.model)}</small>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function getField(stage: WorkflowStage, key: string) {
-  return stage.input_schema.find((field) => field.key === key);
-}
-
 function updateField(stage: WorkflowStage, key: string, value: unknown): WorkflowStage {
   return {
     ...stage,
     input_schema: stage.input_schema.map((field) => (field.key === key ? { ...field, default: value } : field)),
-  };
-}
-
-function updateVersionCompare(stage: WorkflowStage, enabled: boolean, count: number) {
-  const next = updateField(updateField(stage, 'enable_version_compare', enabled), 'version_candidate_count', count);
-  return {
-    ...next,
-    variant_policy: { ...next.variant_policy, enabled, candidate_count: enabled ? count : 1, retry_on_fail: enabled },
   };
 }
 

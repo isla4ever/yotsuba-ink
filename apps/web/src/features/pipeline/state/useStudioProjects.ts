@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ProjectRecord, ProjectSummary, RunHistoryItem, WorkflowDefinition } from '../contracts';
+import type { ProjectRecord, ProjectSummary, WorkflowDefinition } from '../contracts';
 import { createProject, listProjects, getProjectSummary } from '../services/projectApi';
 import {
   deleteWorkflowDefinition,
@@ -7,7 +7,6 @@ import {
   listWorkflowDefinitions,
   saveWorkflowDefinition,
 } from '../services/workflowApi';
-import { loadArchivedRunLinks, saveArchivedRunLink } from './projectScope';
 import { defaultTemplateId, selectableTemplates } from '../layout/studio/newProjectWizardModel';
 import { mapWithConcurrency } from '../layout/studio/studioModel';
 
@@ -21,7 +20,6 @@ export function useStudioProjects(active: boolean) {
   const [error, setError] = useState('');
   const [templates, setTemplates] = useState<WorkflowDefinition[]>([]);
   const [templateError, setTemplateError] = useState('');
-  const [archivedLinks, setArchivedLinks] = useState<Record<string, string>>(() => loadArchivedRunLinks());
   const requestSeq = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -62,7 +60,6 @@ export function useStudioProjects(active: boolean) {
 
   useEffect(() => {
     if (!active) return;
-    setArchivedLinks(loadArchivedRunLinks());
     void refresh();
     void refreshTemplates();
   }, [active, refresh, refreshTemplates]);
@@ -76,23 +73,6 @@ export function useStudioProjects(active: boolean) {
     setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
     return project;
   }, []);
-
-  /**
-   * Archiving a legacy run: creates a real Project record and links the run
-   * locally. The historical run record itself is left untouched (its
-   * project_id cannot be backfilled) — no fake migration.
-   */
-  const archiveRun = useCallback(async (run: RunHistoryItem) => {
-    const project = await createProject({
-      title: run.title || '未命名作品',
-      summary: `由历史运行归档（${run.run_id}）。历史运行仍按原记录保存。`,
-    });
-    saveArchivedRunLink(run.run_id, project.id);
-    setArchivedLinks(loadArchivedRunLinks());
-    setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
-    void refresh();
-    return project;
-  }, [refresh]);
 
   const duplicateTemplate = useCallback(async (workflowId: string, name: string) => {
     try {
@@ -128,8 +108,6 @@ export function useStudioProjects(active: boolean) {
   }, [refreshTemplates]);
 
   return {
-    archivedLinks,
-    archiveRun,
     create,
     duplicateTemplate,
     error,

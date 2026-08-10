@@ -39,7 +39,7 @@ export function RecommendationRegenerateDialog({ open, onClose, onConfirm }: Pro
             initial="initial"
             role="dialog"
             aria-modal="true"
-            aria-label="调整小说信息推荐"
+            aria-label="调整创作立项"
             onClick={(event) => event.stopPropagation()}
             ref={dialogRef}
             tabIndex={-1}

@@ -86,14 +86,14 @@ export function decisionStateForPausedStream(
   events: RunEvent[],
 ): StageDecisionState {
   const pauseEvent = events.find(
-    (event) => event.type === 'approval_required' || event.type === 'run_paused',
+    (event) => event.type === 'decision.required',
   );
-  if (!pauseEvent || pauseEvent.type === 'run_paused') return state;
+  if (!pauseEvent) return state;
   return {
     ...state,
     approvalPending: true,
     checkpointContinueReady: false,
-    checkpointStageId: pauseEvent.node_id ?? '',
+      checkpointStageId: pauseEvent.stage_id ?? '',
     infoContinueReady: false,
   };
 }
@@ -102,54 +102,24 @@ export function stageDecisionStateForEvent(
   state: StageDecisionState,
   event: RunEvent,
 ): StageDecisionState {
-  if (event.type === 'approval_required') {
-    const approvalDraft = formatResult(event.artifact ?? event.result ?? '');
+  if (event.type === 'decision.required') {
+    const stageId = event.stage_id || event.node_id?.split('.')[0] || 'info';
     return {
       ...state,
-      approvalDraft,
       approvalPending: true,
-      approvalSource: event.node_id === 'info' ? approvalDraft : state.approvalSource,
       checkpointContinueReady: false,
-      checkpointStageId: event.node_id ?? 'info',
+      checkpointStageId: stageId,
       infoContinueReady: false,
     };
   }
-  if (event.type === 'artifact_approved') {
-    const approvalDraft = formatResult(event.artifact ?? state.approvalDraft);
-    return {
-      ...infoApprovedState(state),
-      approvalDraft,
-      approvalSource: event.node_id === 'info' ? approvalDraft : state.approvalSource,
-    };
+  if (event.type === 'artifact.candidate_ready' && event.stage_id === 'info' && event.payload) {
+    const approvalDraft = formatResult(event.payload);
+    return { ...state, approvalDraft, approvalSource: approvalDraft };
   }
-  if (event.type === 'stage_artifact_confirmed' && event.node_id) {
-    return event.node_id === 'info'
+  if (event.type === 'artifact.committed' && event.stage_id) {
+    return event.stage_id === 'info'
       ? infoApprovedState(state)
-      : stageConfirmedState(state, event.node_id);
-  }
-  if (event.type === 'brief_regenerated') {
-    const approvalDraft = formatResult(event.artifact ?? '');
-    return {
-      ...state,
-      approvalDraft,
-      approvalPending: true,
-      approvalSource: approvalDraft,
-      checkpointContinueReady: false,
-      checkpointStageId: event.node_id ?? 'info',
-      infoContinueReady: false,
-    };
-  }
-  if (event.type === 'draft_candidate_selected' && event.node_id === 'info') {
-    const approvalDraft = formatResult(event.artifact ?? state.approvalDraft);
-    return {
-      ...state,
-      approvalDraft,
-      approvalPending: true,
-      approvalSource: approvalDraft,
-      checkpointContinueReady: false,
-      checkpointStageId: 'info',
-      infoContinueReady: false,
-    };
+      : stageConfirmedState(state, event.stage_id);
   }
   return state;
 }

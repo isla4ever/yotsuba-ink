@@ -50,7 +50,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     openProject,
     refreshHistory,
     resetRunControl,
-    restoreHistoryCheckpoint,
+    branchHistoryRun,
     returnExportToPlanning,
     runControlState,
     runHasStarted,
@@ -255,13 +255,13 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
         if (reset) navigate('/planning', { replace: true });
         return reset;
       },
-      restoreHistoryCheckpoint: async (item) => {
-        const stageId = await restoreHistoryCheckpoint(item);
+      branchHistoryRun: async (item) => {
+        const stageId = await branchHistoryRun(item);
         if (stageId) navigate(routeForStage(stageId), { replace: false });
         return stageId;
       },
       runPrimaryAction: () => {
-        if (checkpointContinueReady && headerStage.type === 'export_artifact') {
+        if (checkpointContinueReady && headerStage.type === 'export') {
           returnExportToPlanning();
           navigate('/planning', { replace: true });
           return;
@@ -284,7 +284,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     activeNavigationItem, checkpointContinueReady, commandPaletteOpen, dismissRunResetUndo,
     downloadHistoryExport, handleQualityModeChange, headerStage, knowledgeManagerOpen,
     navigate, navigationItems, navigationOpen, openHistoryRun, openProject, refreshHistory, resetRunControl,
-    restoreHistoryCheckpoint, returnExportToPlanning, routePolicy, runWorkflow, saveWorkflowAsTemplate, selectedStage.id,
+    branchHistoryRun, returnExportToPlanning, routePolicy, runWorkflow, saveWorkflowAsTemplate, selectedStage.id,
     setApiWarning, setKnowledgeManagerOpen, setSettingsOpen, setTheme, settingsOpen,
     routePhase,
     sidebarPreference.expanded, sidebarPreference.toggle, sidebarViewport.desktop, theme, undoRunReset,

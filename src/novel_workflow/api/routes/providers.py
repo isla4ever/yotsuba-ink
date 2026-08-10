@@ -3,8 +3,6 @@ from __future__ import annotations
 import os
 
 from fastapi import APIRouter, HTTPException, Request
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 from novel_workflow.api.bootstrap import list_provider_profiles, refresh_provider_registry
@@ -13,7 +11,6 @@ from novel_workflow.providers.lifecycle import assign_global_default, provider_d
 from novel_workflow.providers.openai_compat import OpenAICompatibleTextProvider
 from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
 from novel_workflow.providers.readiness import ProviderReadinessReport, live_provider_readiness_report
-from novel_workflow.providers.stage_probe import StageProbeResult, probe_structured_stage
 from novel_workflow.providers.templates import ProviderTemplate, list_provider_templates, require_provider_template
 from novel_workflow.workflows.schemas import ProviderKind, ProviderProfile, WorkflowDefinition
 from novel_workflow.workflows.templates import materialize_workflow_for_execution
@@ -45,14 +42,6 @@ class ProviderTestResult(BaseModel):
     error_code: str = ""
     message: str
     response_preview: str = ""
-
-
-class ProviderStageProbeRequest(BaseModel):
-    provider_id: str = "openai-compatible"
-    stage_id: str = "info"
-    api_key: str = ""
-    inputs: dict[str, object] = Field(default_factory=dict)
-    max_tokens: Optional[int] = Field(default=None, ge=256, le=6000)
 
 
 class ProviderReadinessRequest(BaseModel):
@@ -99,6 +88,12 @@ async def save_provider(request: Request, provider: ProviderProfile) -> Provider
                 status_code=409,
                 detail=_provider_in_use_message("不能更改仍被使用的 Provider 类型", references),
             )
+    model_supported_parameters = (
+        existing.model_supported_parameters
+        if existing is not None and existing.template_id == provider.template_id
+        else {}
+    )
+    provider = provider.model_copy(update={"model_supported_parameters": model_supported_parameters})
     request.app.state.provider_store.write(provider.id, provider.model_dump())
     refresh_provider_registry(request.app)
     return provider
@@ -158,6 +153,12 @@ async def test_provider(request: Request, payload: ProviderTestRequest) -> Provi
     provider = payload.provider
     if not provider.enabled:
         return ProviderTestResult(ok=False, provider_id=provider.id, kind=provider.kind, error_code="provider_disabled", message="Provider 未启用")
+    try:
+        template = require_provider_template(provider.template_id, provider.kind)
+    except ValueError:
+        return ProviderTestResult(ok=False, provider_id=provider.id, kind=provider.kind, error_code="provider_template_invalid", message="厂商模板无效，请重新选择模板并保存")
+    if not template.execution_allowed:
+        return ProviderTestResult(ok=False, provider_id=provider.id, kind=provider.kind, error_code="provider_policy_blocked", message=template.execution_policy_note or "当前 Provider 不允许用于应用后端")
     api_key = _resolve_api_key(request, provider, payload.api_key)
     if not provider.base_url.strip() or not provider.default_model.strip() or not api_key:
         return ProviderTestResult(
@@ -195,7 +196,7 @@ async def test_provider(request: Request, payload: ProviderTestRequest) -> Provi
         api_key=api_key,
         model=provider.default_model,
         temperature=0,
-        max_tokens=32,
+        max_tokens=256,
         timeout_seconds=30,
         template_id=provider.template_id,
     )
@@ -229,17 +230,6 @@ async def provider_readiness(request: Request, payload: ProviderReadinessRequest
         workflow,
         secret_resolver=request.app.state.provider_secret_store.get_api_key,
     )
-
-
-@router.post("/stage-probe")
-async def probe_provider_stage(request: Request, payload: ProviderStageProbeRequest) -> StageProbeResult:
-    profile = _provider_or_404(request.app, payload.provider_id)
-    if profile.kind != "openai-compatible":
-        return StageProbeResult(ok=False, provider_id=profile.id, stage_id=payload.stage_id, stage_type="", error_code="unsupported_provider", message="结构化阶段探针仅支持 OpenAI-compatible 文本模型")
-    api_key = _resolve_api_key(request, profile, payload.api_key)
-    if not profile.base_url.strip() or not profile.default_model.strip() or not api_key:
-        return StageProbeResult(ok=False, provider_id=profile.id, stage_id=payload.stage_id, stage_type="", error_code="provider_incomplete", message="请先填写 Base URL 和模型，并保存 API Key 或配置环境变量")
-    return await probe_structured_stage(profile, api_key=api_key, stage_id=payload.stage_id, inputs=payload.inputs, max_tokens=payload.max_tokens)
 
 
 def _ensure_provider_exists(app, provider_id: str) -> None:

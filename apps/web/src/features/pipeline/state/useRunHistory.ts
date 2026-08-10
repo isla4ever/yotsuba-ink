@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { RunEvent, RunHistoryItem, WorkflowDefinition } from '../contracts';
 import { listRunHistory } from '../services/runHistoryApi';
-import {
-  historyItemFromEvents,
-  loadLocalRunHistory,
-  saveLocalRunHistory,
-} from './storage';
 
 export function useRunHistory() {
-  const [items, setItems] = useState<RunHistoryItem[]>(() => loadLocalRunHistory());
+  const [items, setItems] = useState<RunHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -17,7 +12,6 @@ export function useRunHistory() {
     try {
       const response = await listRunHistory({ limit: 24 }, signal);
       setItems(response.items);
-      saveLocalRunHistory(response.items);
       setError('');
     } catch (reason) {
       if (isAbortError(reason)) return;
@@ -33,25 +27,11 @@ export function useRunHistory() {
     return () => controller.abort();
   }, [refresh]);
 
-  const record = useCallback((events: RunEvent[], workflow: WorkflowDefinition) => {
-    const item = historyItemFromEvents(events, workflow);
-    if (!item) return;
-    setItems((current) => {
-      const next = mergeRunHistory(current, item);
-      saveLocalRunHistory(next);
-      return next;
-    });
+  const record = useCallback((_events: RunEvent[], _workflow: WorkflowDefinition) => {
     void refresh();
   }, [refresh]);
 
   return { error, items, loading, record, refresh };
-}
-
-export function mergeRunHistory(
-  current: RunHistoryItem[],
-  item: RunHistoryItem,
-) {
-  return [item, ...current.filter((entry) => entry.run_id !== item.run_id)].slice(0, 24);
 }
 
 export type RunHistoryController = ReturnType<typeof useRunHistory>;

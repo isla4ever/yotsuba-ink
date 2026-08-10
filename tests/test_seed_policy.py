@@ -61,21 +61,16 @@ def test_scrub_clears_narrative_seeds_and_keeps_structural_defaults():
     global_fields = {field["key"]: field for field in scrubbed["global_inputs"]}
     assert global_fields["title"]["default"] == ""
 
-    # 结构性默认（篇幅档位、模式、数值参数）保留
+    # 结构性默认保留；成书体量由独立 BookScalePlan 管理。
     assert info["genre"]["default"] == "悬疑"
-    assert info["target_words_range"]["default"] == "80-120 万字"
+    assert "target_words_range" not in info
     assert info["reference_mode"]["default"] == "smart_search"
     assert info["enable_web_search"]["default"] is True
-    assert summary["target_words"]["default"] == 1200
+    assert "target_words" not in summary
     assert summary["structure"]["default"] == "起承转合"
     assert set(global_fields) == {"title"}
 
-    # stage_configs 中的 input_schema 镜像同步清空，避免双真相源
-    info_config = {field["key"]: field for field in scrubbed["stage_configs"]["info"]["input_schema"]}
-    assert info_config["core_concept"]["default"] == ""
-    assert info_config["keywords"]["default"] == []
-    summary_config = {field["key"]: field for field in scrubbed["stage_configs"]["summary"]["input_schema"]}
-    assert summary_config["ending_direction"]["default"] == ""
+    assert "stage_configs" not in scrubbed
 
     # 清空结果仍是合法工作流
     WorkflowDefinition.model_validate(scrubbed)

@@ -9,7 +9,6 @@ import {
   factionLegendEntries,
   filterGraphByTiers,
   graphAtTimelineTick,
-  hasMissingTimelineMarkers,
   networkTimelineTicks,
   nodeInFaction,
   stanceLabels,
@@ -50,7 +49,6 @@ export function CharactersSection({ events, workflow }: Props) {
 
   const { graph, source } = useMemo(() => bibleCharacterGraph(events, workflow), [events, workflow]);
   const ticks = useMemo(() => networkTimelineTicks(graph), [graph]);
-  const degraded = useMemo(() => hasMissingTimelineMarkers(graph), [graph]);
   const activeTickId = ticks.some((tick) => tick.id === tickId) ? tickId : currentTickId;
   const timeGraph = useMemo(() => graphAtTimelineTick(graph, ticks, activeTickId), [graph, ticks, activeTickId]);
   const visibleGraph = useMemo(() => filterGraphByTiers(timeGraph, hiddenTiers), [timeGraph, hiddenTiers]);
@@ -63,7 +61,7 @@ export function CharactersSection({ events, workflow }: Props) {
   if (source === 'empty') {
     return (
       <section className="bible-section bible-section-empty">
-        <p className="bible-empty-note">人物基线尚未建立——在创作立项阶段生成人物档案与关系后，这里会展示全书人物关系网。</p>
+        <p className="bible-empty-note">人物基线尚未建立——人物圣经阶段冻结角色职责、关系、弧线与出场窗口后，这里会展示全书人物关系网。</p>
       </section>
     );
   }
@@ -170,7 +168,7 @@ export function CharactersSection({ events, workflow }: Props) {
         ) : null}
         <CharacterProfilePanel graph={timeGraph} onSelect={selectNode} selectedId={selectedId} viewpoint={viewpoint} />
       </div>
-      <NetworkTimeline activeId={activeTickId} degraded={degraded} onSelect={setTickId} ticks={ticks} />
+      <NetworkTimeline activeId={activeTickId} onSelect={setTickId} ticks={ticks} />
       <p className="bible-source-note">{sourceNotes[source]}</p>
     </section>
   );

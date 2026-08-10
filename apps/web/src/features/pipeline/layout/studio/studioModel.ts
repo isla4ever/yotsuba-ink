@@ -1,10 +1,11 @@
-import type { ProjectSummary, RunHistoryItem } from '../../contracts';
+import type { ProjectSummary } from '../../contracts';
 import { canonicalStageOrder } from '../../lib/stageRoutes';
 
 /** Pure derivations for the Studio Shell (Phase 11.2). */
 
 export const studioStageLabels: Record<string, string> = {
   info: '立项',
+  characters: '人物',
   summary: '梗概',
   outline: '大纲',
   detail: '细纲',
@@ -17,7 +18,7 @@ export type StageDotStatus = 'completed' | 'current' | 'pending';
 
 export type StageDot = { id: string; label: string; status: StageDotStatus };
 
-/** Seven-stage progress dots derived from real run facts (completed_stage_ids / current_stage). */
+/** Eight-stage progress dots derived from real Run read-model facts. */
 export function stageProgressDots(summary: Pick<ProjectSummary, 'completed_stage_ids' | 'current_stage'> | null): StageDot[] {
   const completed = new Set(summary?.completed_stage_ids ?? []);
   const currentId = String(summary?.current_stage?.id ?? '');
@@ -31,26 +32,14 @@ export function stageProgressDots(summary: Pick<ProjectSummary, 'completed_stage
 export const projectRunStatusLabels: Record<string, string> = {
   created: '已创建',
   running: '运行中',
-  paused: '已暂停',
-  awaiting_confirmation: '待确认',
-  recovery_required: '需恢复',
+  awaiting_decision: '待决策',
   failed: '失败',
   completed: '已完成',
+  cancelled: '已取消',
 };
 
 export function runStatusLabel(status: string): string {
   return projectRunStatusLabels[status] ?? '';
-}
-
-/**
- * Legacy runs (project_id missing or equal to run_id) that have not been
- * archived into a project yet — shown in the "未归档运行" group.
- */
-export function unarchivedRuns(items: RunHistoryItem[], archivedLinks: Record<string, string>): RunHistoryItem[] {
-  return items.filter((item) => {
-    const legacy = !item.project_id || item.project_id === item.run_id;
-    return legacy && !archivedLinks[item.run_id];
-  });
 }
 
 export function relativeTimeLabel(iso: string, now = Date.now()): string {

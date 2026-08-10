@@ -40,7 +40,7 @@ export function ProjectCard({ opening = false, project, summary, onOpen }: CardP
         </span>
       </div>
       <p className="studio-card-summary">{project.summary || summary?.latest_run?.summary || '尚未填写概要。'}</p>
-      <div aria-label="七阶段进度" className="studio-card-progress" role="img">
+      <div aria-label="八阶段进度" className="studio-card-progress" role="img">
         {dots.map((dot) => (
           <span
             aria-hidden="true"

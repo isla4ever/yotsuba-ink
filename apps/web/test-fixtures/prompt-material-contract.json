@@ -1,0 +1,9 @@
+{
+  "info": ["project_brief", "book_scale_plan", "source_pack", "revision_request"],
+  "characters": ["book_scale_plan", "story_brief", "revision_request"],
+  "summary": ["book_scale_plan", "story_brief", "character_bible", "revision_request"],
+  "outline": ["book_scale_plan", "story_brief", "character_bible", "summary", "target_volume", "revision_request"],
+  "detail": ["book_scale_plan", "story_brief", "character_bible", "summary", "outline", "obligation_registry", "target_chapters", "revision_request"],
+  "text": ["book_scale", "story_constraints", "character_bible", "summary_commitments", "volume_plan", "chapter_plan", "previous_handoff", "previous_accepted_chapter", "revision_request"],
+  "cover": ["story", "cast", "narrative_arc", "volume_objectives", "chapter_motifs", "revision_request"]
+}

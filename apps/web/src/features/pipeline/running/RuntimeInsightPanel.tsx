@@ -1,19 +1,13 @@
 import { BarChart3, DatabaseZap, Globe2, Network } from 'lucide-react';
-import type { ChapterQualityRepairTarget, CharacterGraph, KnowledgeDocument, RunEvent, WorkflowDefinition } from '../contracts';
+import type { CharacterGraph, KnowledgeDocument, RunEvent, WorkflowDefinition } from '../contracts';
 import type { WorldbuildingView } from '../lib/stageConfig';
 import { WorldbuildingPanel } from '../planning/insights/WorldbuildingPanel';
 import { CharacterForceGraphPanel } from './insights/CharacterForceGraphPanel';
-import { QualityMonitorPanel } from './insights/QualityMonitorPanel';
 import { RuntimeKnowledgePanel } from './insights/RuntimeKnowledgePanel';
-import { WikiMemoryPanel } from './insights/WikiMemoryPanel';
 import type { RuntimePanelKey } from './stageRuntimeLayout';
-import type { ChapterReviewInsight } from './writingArtifactModel';
-import type { InfoEditorTarget } from './infoRecommendationModel';
-import { coverStageSummary } from './coverPresentation';
-import { exportStageSummary } from './exportSummaryModel';
-import { coverArtifact, exportArtifact } from './stageArtifacts';
+import type { RuntimeStageProjection, RuntimeWritebackStatus } from './runtimeArtifactProjection';
+import { parseCoverArtifact, parseExportArtifact } from './artifactsVnext';
 
-export type RuntimeWritebacks = Partial<Record<'character' | 'worldbuilding' | 'foreshadow', string>>;
 export type InfoArtifactDisplayStatus = 'draft' | 'confirmed';
 
 export type RuntimeInsightContext = {
@@ -24,17 +18,14 @@ export type RuntimeInsightContext = {
   workflow: WorkflowDefinition;
   characterGraphOverride?: CharacterGraph;
   infoWorldbuilding?: WorldbuildingView;
-  summaryWritebacks: RuntimeWritebacks;
-  outlineWritebacks: RuntimeWritebacks;
-  detailWritebacks: RuntimeWritebacks;
-  chapterReview?: ChapterReviewInsight;
+  artifactProjection: RuntimeStageProjection;
+  writebackStatus: RuntimeWritebackStatus;
   onOpenKnowledgeManager: () => void;
-  onRepairQualityFinding?: (target: ChapterQualityRepairTarget) => void;
 };
 
 type RuntimeInsightPanelProps = RuntimeInsightContext & {
   panel: RuntimePanelKey;
-  onEditInfo?: (target: InfoEditorTarget) => void;
+  onEditInfo?: (target: 'worldbuilding' | 'character') => void;
 };
 
 export function RuntimeInsightPanel({
@@ -46,13 +37,10 @@ export function RuntimeInsightPanel({
   workflow,
   characterGraphOverride,
   infoWorldbuilding,
-  outlineWritebacks,
-  summaryWritebacks,
-  detailWritebacks,
-  chapterReview,
+  artifactProjection,
+  writebackStatus,
   onEditInfo,
   onOpenKnowledgeManager,
-  onRepairQualityFinding,
 }: RuntimeInsightPanelProps) {
   if (panel === 'character') {
     return (
@@ -61,15 +49,9 @@ export function RuntimeInsightPanel({
         graphOverride={characterGraphOverride}
         onEdit={onEditInfo ? () => onEditInfo('character') : undefined}
         qualityMode={workflow.quality_mode}
-        stageEnrichment={detailWritebacks.character
-          ? { label: '细纲人物变化预览', detail: detailWritebacks.character }
-          : outlineWritebacks.character
-            ? { label: '分卷人物承接预览', detail: outlineWritebacks.character }
-            : summaryWritebacks.character
-              ? { label: '梗概人物深化', detail: summaryWritebacks.character }
-              : chapterReview?.proposal?.counts.character
-                ? { label: `${chapterReview.chapter}人物提案`, detail: '待正文定稿后写入人物关系网' }
-                : undefined}
+        stageEnrichment={artifactProjection.character
+          ? { label: '当前 Artifact 人物引用', detail: artifactProjection.character }
+          : undefined}
         artifactStatus={infoArtifactStatus}
       />
     );
@@ -79,11 +61,9 @@ export function RuntimeInsightPanel({
       <WorldbuildingPanel
         events={events}
         onEdit={onEditInfo ? () => onEditInfo('worldbuilding') : undefined}
-        stageEnrichment={detailWritebacks.worldbuilding
-          ? { label: '细纲事实写回预览', detail: detailWritebacks.worldbuilding }
-          : outlineWritebacks.worldbuilding
-            ? { label: '世界观揭示预览', detail: outlineWritebacks.worldbuilding }
-            : undefined}
+        stageEnrichment={artifactProjection.worldbuilding
+          ? { label: '当前 Artifact 世界规则引用', detail: artifactProjection.worldbuilding }
+          : undefined}
         artifactStatus={infoArtifactStatus}
         worldbuilding={infoWorldbuilding}
       />
@@ -93,29 +73,35 @@ export function RuntimeInsightPanel({
     return <RuntimeKnowledgePanel documents={knowledgeDocuments} events={events} onOpenKnowledge={onOpenKnowledgeManager} />;
   }
   if (panel === 'wiki') {
-    return (
-      <WikiMemoryPanel
-        chapterReview={chapterReview}
-        events={[...events, ...memoryEvents]}
-        qualityMode={workflow.quality_mode}
-        stageEnrichment={detailWritebacks.foreshadow ? { label: '细纲伏笔账本预览', detail: detailWritebacks.foreshadow } : undefined}
-      />
-    );
+    const writebacks = [...events, ...memoryEvents].filter((event) => event.type.startsWith('writeback.'));
+    return <EventStatusPanel
+      title="Wiki 与 Canon 写回"
+      description={artifactProjection.foreshadow || `${writebackStatus.label}${writebackStatus.transactionId ? ` · ${writebackStatus.transactionId}` : ''}`}
+      events={writebacks}
+    />;
   }
   if (panel === 'coverQuality') {
-    const completed = events.find((event) => event.type === 'node_completed' && event.node_id === 'cover');
-    const result = completed?.result ? (typeof completed.result === 'string' ? completed.result : JSON.stringify(completed.result)) : '';
-    const progress = events.find((event) => event.type === 'asset_progress_updated' && event.node_id === 'cover');
-    const summary = coverStageSummary(coverArtifact(result), progress?.score);
-    return <StageSummaryPanel title="封面交付摘要" description={summary.description} metrics={summary.metrics} />;
+    const completed = events.find((event) => event.type === 'artifact.committed' && event.stage_id === 'cover');
+    const result = completed?.payload ? JSON.stringify(completed.payload) : '';
+    const artifact = parseCoverArtifact(result).artifact;
+    return <StageSummaryPanel
+      title="封面交付摘要"
+      description={artifact?.brief.concept || '等待封面 Artifact'}
+      metrics={[artifact?.selected_asset_id ? '已选择正式资产' : '尚未选择正式资产']}
+    />;
   }
   if (panel === 'exportSummary') {
-    const completed = events.find((event) => event.type === 'node_completed' && event.node_id === 'export');
-    const result = completed?.result ? (typeof completed.result === 'string' ? completed.result : JSON.stringify(completed.result)) : '';
-    const summary = exportStageSummary(exportArtifact(result));
-    return <StageSummaryPanel title="导出摘要" description={summary.description} metrics={summary.metrics} />;
+    const completed = events.find((event) => event.type === 'artifact.committed' && event.stage_id === 'export');
+    const result = completed?.payload ? JSON.stringify(completed.payload) : '';
+    const artifact = parseExportArtifact(result).artifact;
+    return <StageSummaryPanel
+      title="导出摘要"
+      description={artifact ? `${artifact.format.toUpperCase()} 交付包` : '等待导出 Artifact'}
+      metrics={artifact ? [`${artifact.chapter_version_ids.length} 个章节版本`, artifact.cover_asset_id ? '包含封面资产' : '无封面资产'] : ['尚未生成清单']}
+    />;
   }
-  return <QualityMonitorPanel chapterReview={chapterReview} events={events} stages={workflow.nodes} onRepairQualityFinding={onRepairQualityFinding} />;
+  const reviews = events.filter((event) => event.type.startsWith('review.') || event.type === 'decision.required');
+  return <EventStatusPanel title="审稿与人工质量门" description="只展示 Graph 已发出的审稿结果和 interrupt。" events={reviews} />;
 }
 
 export function RuntimeCompactTile({
@@ -123,32 +109,28 @@ export function RuntimeCompactTile({
   memoryEvents,
   panel,
   characterGraphOverride,
-  detailWritebacks,
-  outlineWritebacks,
-  summaryWritebacks,
+  artifactProjection,
+  writebackStatus,
   workflow,
   onOpen,
-}: Pick<RuntimeInsightContext, 'events' | 'memoryEvents' | 'characterGraphOverride' | 'detailWritebacks' | 'outlineWritebacks' | 'summaryWritebacks' | 'workflow'> & {
+}: Pick<RuntimeInsightContext, 'events' | 'memoryEvents' | 'characterGraphOverride' | 'artifactProjection' | 'writebackStatus' | 'workflow'> & {
   panel: RuntimePanelKey;
   onOpen: () => void;
 }) {
-  const qualityCount = events.filter((event) => event.type === 'quality_check_completed').length;
-  const wikiCount = [...events, ...memoryEvents].filter((event) => event.type === 'memory_context_loaded' || event.type === 'memory_writeback_completed').length;
-  const eventGraph = events.find((event) => event.type === 'character_graph_updated' && event.character_graph)?.character_graph;
-  const graph = characterGraphOverride ?? eventGraph;
+  const qualityCount = events.filter((event) => event.type === 'review.completed' || event.type === 'review.unavailable').length;
+  const wikiCount = [...events, ...memoryEvents].filter((event) => event.type === 'evidence.proposed' || event.type === 'writeback.committed').length;
+  const graph = characterGraphOverride;
   const characterMetric = graph
-    ? `${graph.nodes.length} 人 · ${graph.edges.length} 关系`
-    : '暂无关系数据';
-  const worldbuildingMetric = detailWritebacks.worldbuilding
-    ? '细纲事实待定稿'
-    : outlineWritebacks.worldbuilding
-      ? '分卷揭示待定稿'
+    ? `已冻结 ${graph.nodes.length} 人 · ${graph.edges.length} 关系`
+    : '暂无已冻结关系';
+  const worldbuildingMetric = artifactProjection.worldbuilding
+    ? '当前阶段引用世界规则'
       : '打开设定摘要';
   const config = {
-    character: { icon: Network, title: '人物关系', metric: summaryWritebacks.character || outlineWritebacks.character || detailWritebacks.character ? '有阶段变化待定稿' : characterMetric },
+    character: { icon: Network, title: '人物关系', metric: artifactProjection.character ? '当前阶段引用冻结人物' : characterMetric },
     worldbuilding: { icon: Globe2, title: '世界观', metric: worldbuildingMetric },
     quality: { icon: BarChart3, title: '质量检查', metric: qualityCount ? `${qualityCount} 项检查` : '暂无检查' },
-    wiki: { icon: DatabaseZap, title: 'Wiki 事实层', metric: `${wikiCount} 事件` },
+    wiki: { icon: DatabaseZap, title: 'Wiki 事实层', metric: writebackStatus.status === 'not_proposed' ? `${wikiCount} 事件` : writebackStatus.label },
     knowledge: { icon: DatabaseZap, title: '知识库', metric: '参考入口' },
     coverQuality: { icon: BarChart3, title: '封面质量', metric: '已合并主区' },
     exportSummary: { icon: DatabaseZap, title: '导出摘要', metric: '已合并主区' },
@@ -162,6 +144,21 @@ export function RuntimeCompactTile({
         <small>{config.metric}</small>
       </span>
     </button>
+  );
+}
+
+function EventStatusPanel({ title, description, events }: { title: string; description: string; events: RunEvent[] }) {
+  return (
+    <section className="config-section runtime-insight-card stage-summary-insight">
+      <h3>{title}</h3>
+      <p>{description}</p>
+      <div className="chip-grid">
+        {events.slice(0, 6).map((event) => (
+          <span key={event.event_id}>{event.chapter_id || event.stage_id || 'run'} · {event.type}</span>
+        ))}
+        {!events.length ? <span>暂无运行事件</span> : null}
+      </div>
+    </section>
   );
 }
 

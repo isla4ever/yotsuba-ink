@@ -1,6 +1,6 @@
 export type KnowledgeDocument = {
   doc_id: string;
-  project_id?: string;
+  project_id: string;
   title: string;
   filename: string;
   content_type?: string;

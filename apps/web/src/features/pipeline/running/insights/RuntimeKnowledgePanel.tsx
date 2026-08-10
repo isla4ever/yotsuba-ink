@@ -34,7 +34,7 @@ export function RuntimeKnowledgePanel({ documents, events, onOpenKnowledge }: Pr
           </article>
         ))}
         {!documents.length ? (
-          <p className="muted">暂无项目资料。信息推荐会先使用默认题材输入与联网参考；上传资料后，这里会显示被命中的项目知识。</p>
+          <p className="muted">暂无项目资料。创作立项只使用故事输入与已确认的前置参考；上传并选中资料后才会检索项目知识库。</p>
         ) : null}
       </div>
     </section>

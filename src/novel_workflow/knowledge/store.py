@@ -35,7 +35,7 @@ class KnowledgeBase:
         content: bytes,
         filename: str,
         content_type: str = "text/plain",
-        project_id: str = "default",
+        project_id: str,
         source_type: str = "upload",
     ) -> KnowledgeUploadResponse:
         doc_id = f"kb-{uuid4().hex[:12]}"
@@ -64,20 +64,18 @@ class KnowledgeBase:
             self.redis.upsert_chunks(chunks)
         return KnowledgeUploadResponse(document=document, chunks=chunks)
 
-    def list_documents(self, project_id: str = "default") -> list[KnowledgeDocument]:
+    def list_documents(self, project_id: str) -> list[KnowledgeDocument]:
         documents = [KnowledgeDocument.model_validate(item) for item in self.documents.list()]
         return [item for item in documents if item.project_id == project_id]
 
     def read_document(self, doc_id: str) -> KnowledgeDocument:
         return KnowledgeDocument.model_validate(self.documents.read(doc_id))
 
-    def delete_document(self, doc_id: str) -> dict[str, object]:
-        project_id = "default"
+    def delete_document(self, doc_id: str, project_id: str) -> dict[str, object]:
+        document = self.read_document(doc_id)
+        if document.project_id != project_id:
+            raise FileNotFoundError(doc_id)
         deleted_chunks = 0
-        try:
-            project_id = self.read_document(doc_id).project_id
-        except FileNotFoundError:
-            pass
         self.documents.delete(doc_id)
         for chunk in list(self.chunks.list()):
             if chunk.get("doc_id") == doc_id:
@@ -97,14 +95,22 @@ class KnowledgeBase:
 
     def search(self, request: KnowledgeSearchRequest) -> KnowledgeSearchResponse:
         query_rewrite = rewrite_query(request.query, request.intent)
-        if self.redis and self.redis.available:
-            results = self.redis.search(request)
+        if self.redis:
+            if self.redis.available:
+                results = self.redis.search(request)
+                return KnowledgeSearchResponse(
+                    backend="redis-hybrid",
+                    backend_available=True,
+                    query_rewrite=query_rewrite,
+                    message="Redis hybrid 检索完成。",
+                    results=results,
+                )
             return KnowledgeSearchResponse(
                 backend="redis-hybrid",
-                backend_available=True,
+                backend_available=False,
                 query_rewrite=query_rewrite,
-                message="Redis hybrid 检索完成。",
-                results=results,
+                message=self.redis.message,
+                results=[],
             )
 
         query_keywords = keywords(query_rewrite)
@@ -112,7 +118,7 @@ class KnowledgeBase:
         chunks = [
             KnowledgeChunk.model_validate(item)
             for item in self.chunks.list()
-            if item.get("project_id", "default") == request.project_id
+            if item["project_id"] == request.project_id
         ]
         if request.doc_ids:
             allowed = set(request.doc_ids)
@@ -141,10 +147,6 @@ class KnowledgeBase:
         message = "本地知识库检索完成；当前使用轻量 hybrid 检索。"
         backend_available = True
         backend = "local-hybrid"
-        if self.redis:
-            message = self.redis.message
-            backend_available = False
-            backend = "redis-hybrid"
         if not results:
             message = f"{message} 知识库暂无命中。可上传 TXT/MD/HTML，或安装 Docling 后解析 PDF/DOCX 等格式。"
         return KnowledgeSearchResponse(backend=backend, backend_available=backend_available, query_rewrite=query_rewrite, message=message, results=results)
@@ -152,7 +154,7 @@ class KnowledgeBase:
     @property
     def backend_name(self) -> str:
         if self.redis:
-            return "redis-hybrid" if self.redis.available else "redis-unavailable"
+            return "redis-hybrid"
         return "local-hybrid"
 
 

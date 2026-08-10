@@ -360,6 +360,34 @@
   padding-left: 28px;
 }
 
+.ai-service-model-assignments {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.ai-service-model-assignments li {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.ai-service-model-assignments li span {
+  color: var(--color-text-muted);
+  display: block;
+  min-width: 0;
+}
+
+.ai-service-model-assignments li strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .ai-service-actions,
 .guided-setup-actions,
 .guided-setup-actions > div {

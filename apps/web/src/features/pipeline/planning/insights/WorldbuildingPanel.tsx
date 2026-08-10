@@ -35,7 +35,7 @@ export function WorldbuildingPanel({ artifactStatus, events, onEdit, stageEnrich
           <span>{stageEnrichment.detail}</span>
         </div>
       ) : null}
-      {hasWorld ? <p className="world-seed">{world.seed}</p> : <div className="runtime-widget-empty">等待小说信息推荐生成世界观。</div>}
+      {hasWorld ? <p className="world-seed">{world.seed}</p> : <div className="runtime-widget-empty">等待创作立项生成世界规则。</div>}
       {hasWorld ? <div className="worldbuilding-grid">
         <article>
           <strong>硬设定</strong>

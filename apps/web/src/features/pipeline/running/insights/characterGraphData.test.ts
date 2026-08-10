@@ -12,11 +12,11 @@ describe('character graph data', () => {
 
   it('places tiers on concentric rings: protagonist center, major inner, supporting mid, minor/npc outer', () => {
     const positions = tierRingLayout([
-      { tier: 'protagonist', role: '主角' },
-      { tier: 'major', role: '要角' },
-      { tier: 'supporting', role: '配角' },
-      { tier: 'minor', role: '小角色' },
-      { tier: 'npc', role: '路人' },
+      { tier: 'protagonist' },
+      { tier: 'major' },
+      { tier: 'supporting' },
+      { tier: 'minor' },
+      { tier: 'npc' },
     ]);
     const radius = (index: number) => Math.hypot(positions[index].initialX, positions[index].initialY);
 
@@ -28,7 +28,7 @@ describe('character graph data', () => {
   });
 
   it('spreads any node count uniformly within a ring instead of reusing 7 hardcoded points', () => {
-    const positions = tierRingLayout(Array.from({ length: 12 }, () => ({ tier: 'supporting' as const, role: '配角' })));
+    const positions = tierRingLayout(Array.from({ length: 12 }, () => ({ tier: 'supporting' as const })));
 
     const keys = new Set(positions.map((point) => `${point.initialX},${point.initialY}`));
     expect(keys.size).toBe(12);
@@ -37,10 +37,8 @@ describe('character graph data', () => {
     });
   });
 
-  it('sizes nodes by tier with legacy role fallback', () => {
-    expect(tierNodeValue({ tier: 'protagonist', role: '' })).toBeGreaterThan(tierNodeValue({ tier: 'major', role: '' }));
-    expect(tierNodeValue({ tier: 'major', role: '' })).toBeGreaterThan(tierNodeValue({ tier: 'npc', role: '' }));
-    expect(tierNodeValue({ role: '男主角·调查员' })).toBe(tierNodeValue({ tier: 'protagonist', role: '' }));
-    expect(tierNodeValue({ role: '证人' })).toBe(tierNodeValue({ tier: 'supporting', role: '' }));
+  it('sizes nodes only from the required tier contract', () => {
+    expect(tierNodeValue({ tier: 'protagonist' })).toBeGreaterThan(tierNodeValue({ tier: 'major' }));
+    expect(tierNodeValue({ tier: 'major' })).toBeGreaterThan(tierNodeValue({ tier: 'npc' }));
   });
 });

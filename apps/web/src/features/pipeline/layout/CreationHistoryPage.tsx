@@ -40,7 +40,7 @@ export function CreationHistoryPage() {
   }
 
   return (
-    <section aria-labelledby="history-page-title" className="history-page">
+    <section aria-labelledby="history-page-title" className={`history-page mode-${selected?.quality_mode ?? 'balanced'}`}>
       <StudioMobileNav />
       <header className="history-page-head">
         <div>
@@ -100,7 +100,7 @@ export function CreationHistoryPage() {
             <section className="history-record-summary">
               <div><CheckCircle2 size={15} /><strong>{stageLabel(selected)} · 运行快照</strong></div>
               <p>{selected.summary || '当前阶段状态已保存，尚无额外摘要。'}</p>
-              <span>{selected.latest_snapshot_id ? `稳定快照 ${selected.latest_snapshot_id.slice(-18)}` : '暂无稳定快照'}</span>
+              <span>{selected.checkpoint_id ? `图检查点 ${selected.checkpoint_id.slice(-18)}` : '暂无图检查点'}</span>
             </section>
 
             <dl className="history-record-metrics">
@@ -124,9 +124,9 @@ export function CreationHistoryPage() {
             />
 
             <footer className="history-record-actions">
-              {selected.status === 'recovery_required' ? (
-                <LoadingButton className="mode-primary-action" disabled={Boolean(pendingAction) || !selected.latest_snapshot_id} loading={pendingAction.startsWith('restore:')} loadingLabel="正在恢复" onClick={() => void runAction(`restore:${selected.run_id}`, () => ui.restoreHistoryCheckpoint(selected))}>
-                  <RotateCcw size={14} />恢复稳定检查点
+              {selected.status === 'awaiting_decision' && selected.can_branch ? (
+                <LoadingButton className="mode-primary-action" disabled={Boolean(pendingAction) || !selected.checkpoint_id} loading={pendingAction.startsWith('branch:')} loadingLabel="正在创建" onClick={() => void runAction(`branch:${selected.run_id}`, () => ui.branchHistoryRun(selected))}>
+                  <RotateCcw size={14} />从检查点新建分支
                 </LoadingButton>
               ) : selected.status === 'completed' ? null : (
                 <LoadingButton className="mode-primary-action" disabled={Boolean(pendingAction) || (selected.status === 'running' && run.activeRunId !== selected.run_id)} loading={pendingAction.startsWith('open:')} loadingLabel="正在打开" onClick={() => void runAction(`open:${selected.run_id}`, () => ui.openHistoryRun(selected))}>
@@ -170,8 +170,9 @@ function HistoryEmpty() {
 }
 
 const stageSteps = [
-  { id: 'info', label: '立项' }, { id: 'summary', label: '梗概' }, { id: 'outline', label: '大纲' },
-  { id: 'detail', label: '细纲' }, { id: 'text', label: '正文' }, { id: 'cover', label: '封面' }, { id: 'export', label: '导出' },
+  { id: 'info', label: '创作立项' }, { id: 'characters', label: '人物编排' }, { id: 'summary', label: '全书梗概' },
+  { id: 'outline', label: '分卷大纲' }, { id: 'detail', label: '章节施工图' }, { id: 'text', label: '正文' },
+  { id: 'cover', label: '封面' }, { id: 'export', label: '导出' },
 ];
 
 function activeStageIndex(stageId: string, completed: string[]) {
@@ -188,7 +189,7 @@ function stageLabel(item: RunHistoryItem) {
 }
 
 function statusLabel(status: RunHistoryItem['status']) {
-  return ({ created: '已创建', running: '进行中', paused: '已暂停', awaiting_confirmation: '待确认', recovery_required: '待恢复', failed: '失败', completed: '已完成' } satisfies Record<RunHistoryItem['status'], string>)[status];
+  return ({ created: '已创建', running: '进行中', awaiting_decision: '待决策', failed: '失败', completed: '已完成', cancelled: '已取消' } satisfies Record<RunHistoryItem['status'], string>)[status];
 }
 
 function presentHistoryError(error: string) {

@@ -100,7 +100,7 @@ export function SetupReviewSection({
         {blocked.length ? (
           <><AlertTriangle size={17} /><span><strong>还有 {blocked.length} 项启动条件需要处理</strong><small>先处理上方标记的问题；已填写内容会继续自动保存。</small></span></>
         ) : (
-          <><CheckCircle2 size={17} /><span><strong>可以开始创作</strong><small>{mode.intervention}，运行中随时可以暂停，或在人工定稿点确认定稿。</small></span></>
+          <><CheckCircle2 size={17} /><span><strong>可以开始创作</strong><small>{mode.intervention}；运行会持续到下一决策点或完成。</small></span></>
         )}
       </div>
     </section>

@@ -2,6 +2,7 @@ import { TERM } from './terminology';
 
 const stageToRoute: Record<string, string> = {
   info: 'info',
+  characters: 'characters',
   summary: 'summary',
   outline: 'outline',
   detail: 'detail',
@@ -12,7 +13,7 @@ const stageToRoute: Record<string, string> = {
 
 const routeToStage = Object.fromEntries(Object.entries(stageToRoute).map(([stageId, segment]) => [segment, stageId]));
 
-/** Canonical seven-stage order (used by Studio progress dots and stage derivations). */
+/** Canonical eight-stage order shared with the LangGraph production graph. */
 export const canonicalStageOrder = Object.keys(stageToRoute);
 
 /** Studio Shell (Phase 11.2): the multi-project library and the app's default landing route. */

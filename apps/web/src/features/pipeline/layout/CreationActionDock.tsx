@@ -4,7 +4,7 @@ import type { ModeRevealOrigin } from './modeRevealTransition';
 import { useRunStateContext, useWorkflowConfigContext, useUICommandContext } from '../state/pipelineShellContext';
 import { runActionPresentation } from '../state/runPresentationState';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Clock3, CornerUpLeft, Pause, Play, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, Clock3, CornerUpLeft, Play, type LucideIcon } from 'lucide-react';
 import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 
 type Props = {
@@ -36,24 +36,22 @@ export function CreationActionDock({ disabled, onQualityModeChange }: Props) {
     transitioning: run.transitioning,
     workspacePhase: run.workspacePhase,
   });
-  const loading = action.key === 'running-locked' || action.key === 'pause-pending';
+  const loading = action.key === 'running-locked';
   const iconState: RunButtonIconState = action.key === 'awaiting-confirmation'
       ? { Icon: Clock3, key: 'awaiting', size: 16 }
       : action.key === 'return'
         ? { Icon: CornerUpLeft, key: 'return', size: 17 }
         : action.key === 'continue' || action.key === 'resume'
           ? { Icon: CheckCircle2, key: 'continue', size: 17 }
-          : action.key === 'pause'
-            ? { Icon: Pause, key: 'pause', size: 16 }
-            : { Icon: Play, key: 'start', size: 17 };
+          : { Icon: Play, key: 'start', size: 17 };
   const RunIcon = iconState.Icon;
   return (
     <div className={`creation-action-dock mode-${qualityMode} state-${action.visualState}${disabled ? ' locked' : ''}`}>
       <QualityModeTabs disabled={disabled} value={qualityMode} onChange={onQualityModeChange} />
       <button
-        aria-busy={action.key === 'running-locked' || action.key === 'pause-pending'}
+        aria-busy={action.key === 'running-locked'}
         aria-label={action.label}
-        className={`run-button tech-button compact-run-action header-run-action ${action.visualState} ${action.key === 'pause-pending' ? 'pending' : ''}`}
+        className={`run-button tech-button compact-run-action header-run-action ${action.visualState}`}
         disabled={action.disabled}
         onClick={runPrimaryAction}
         title={action.title}

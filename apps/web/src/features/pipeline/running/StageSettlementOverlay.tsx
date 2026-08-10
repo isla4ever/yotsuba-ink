@@ -1,10 +1,6 @@
-import { Activity, ArrowRight, Clock3, Coins, FileText, Gauge, ShieldCheck } from 'lucide-react';
+import { Activity, DatabaseZap, FileCheck2, Save, ShieldCheck } from 'lucide-react';
 import type { RunEvent, WorkflowStage } from '../contracts';
-import {
-  formatSettlementMs,
-  settlementNextStageLabel,
-  stageSettlementSummary,
-} from '../lib/stageSettlement';
+import { stageSettlementSummary } from '../lib/stageSettlement';
 import { SETTLEMENT_DWELL_MS } from '../state/useRunTransitions';
 import { LiquidGlassOverlay } from './LiquidGlassOverlay';
 
@@ -26,7 +22,6 @@ const RING_RADIUS = 8;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export function StageSettlementOverlay({ dwell = false, events, onContinue, open, stage }: Props) {
-  // Phase 12 D1: real usage arrives as stage_usage_updated / stage_usage_finalized.
   const summary = stageSettlementSummary(events, stage);
   return (
     <LiquidGlassOverlay className="stage-settlement-overlay" open={open}>
@@ -34,20 +29,13 @@ export function StageSettlementOverlay({ dwell = false, events, onContinue, open
         <p className="eyebrow">阶段结算</p>
         <h2><Activity size={20} />{stage.label} 完成结算</h2>
         <div className="stage-settlement-metrics">
-          <span><Clock3 size={13} />{summary.elapsedMs == null ? '暂无' : formatSettlementMs(summary.elapsedMs)}</span>
-          <span><Gauge size={13} />{summary.tokens == null ? '暂无' : `用量 ${summary.tokens.toLocaleString()}`}</span>
-          <span><Coins size={13} />{summary.costUsd == null ? '暂无' : `$${summary.costUsd.toFixed(3)}`}</span>
-          <span><FileText size={13} />{summary.words ? `${summary.words.toLocaleString()} 字` : '产物已写入'}</span>
-          {summary.qualityScore != null ? (
-            <span><ShieldCheck size={13} />Q {summary.qualityScore.toFixed(2)}</span>
-          ) : null}
+          <span><Save size={13} />{summary.checkpointId ? '检查点已保存' : '等待检查点'}</span>
+          <span><FileCheck2 size={13} />{summary.committedArtifact ? 'Artifact 已提交' : 'Artifact 待提交'}</span>
+          <span><ShieldCheck size={13} />{summary.reviewCount} 项审稿完成</span>
+          <span><DatabaseZap size={13} />写回 {writebackLabel(summary.writebackStatus)}</span>
         </div>
-        <p>
-          {summary.qualityScore != null
-            ? `质量检查 Q ${summary.qualityScore.toFixed(2)} · ${summary.qualityFindings} 个发现`
-            : summary.message || '产物已完成，正在准备进入下一阶段。'}
-        </p>
-        <small>{summary.nextStep ? `即将进入：${settlementNextStageLabel(summary.nextStep)}` : '正在完成阶段交接'}</small>
+        <p>{summary.unavailableReviewCount ? `${summary.unavailableReviewCount} 个审稿角色不可用，等待 Graph 质量门处理。` : '阶段状态来自 LangGraph 事件与检查点。'}</p>
+        <small>Graph 将按已冻结的边继续推进</small>
         {dwell && onContinue ? (
           <div className="stage-settlement-actions">
             <button autoFocus className="tech-button stage-settlement-continue" onClick={onContinue} type="button">
@@ -60,6 +48,10 @@ export function StageSettlementOverlay({ dwell = false, events, onContinue, open
       </div>
     </LiquidGlassOverlay>
   );
+}
+
+function writebackLabel(status: ReturnType<typeof stageSettlementSummary>['writebackStatus']) {
+  return { none: '未触发', queued: '已排队', committed: '已提交', failed: '失败' }[status];
 }
 
 /**

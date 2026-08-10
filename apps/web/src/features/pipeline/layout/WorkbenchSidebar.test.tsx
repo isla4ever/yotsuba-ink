@@ -5,6 +5,7 @@ import { PipelineShellTestProviders } from '../state/PipelineShellTestProviders'
 import type { RunStateSlice, UICommandSlice, WorkflowConfigSlice } from '../state/pipelineShellContext';
 import { modeRoutePolicy } from '../state/runPresentationState';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 
 function renderSidebar(overrides: {
   runState?: Partial<RunStateSlice>;
@@ -13,7 +14,7 @@ function renderSidebar(overrides: {
 } = {}) {
   return renderToStaticMarkup(
     <PipelineShellTestProviders
-      events={[{ type: 'node_completed', node_id: 'info' } as RunEvent]}
+      events={[runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {} })]}
       runState={{
         runHasStarted: true,
         routePhase: 'running',
@@ -47,7 +48,7 @@ describe('WorkbenchSidebar', () => {
     expect(html).toContain('搜索 / 命令');
   });
 
-  it('collapses policy-blocked stages into one reachable cockpit entry', () => {
+  it('shows the balanced cockpit together with every stage workbench', () => {
     const html = renderSidebar({
       runState: { routePhase: 'planning', routeStageId: '' },
       workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', true) },
@@ -55,11 +56,12 @@ describe('WorkbenchSidebar', () => {
     expect(html).toContain('创作驾驶舱');
     expect(html).not.toContain('创作规划');
     expect(html).not.toContain('disabled=""');
-    expect(html).not.toContain('章节细纲');
+    expect(html).toContain('人物圣经');
+    expect(html).toContain('章节施工图');
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
   });
 
-  it('shows planning stages before balanced automation takeover without a second active cockpit entry', () => {
+  it('shows planning and all stages before a balanced run starts', () => {
     const html = renderSidebar({
       runState: { routePhase: 'planning', routeStageId: '', runHasStarted: false },
       workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', false) },

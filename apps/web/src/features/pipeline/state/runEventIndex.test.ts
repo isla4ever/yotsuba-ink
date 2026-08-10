@@ -13,19 +13,24 @@ import { createInitialRunState, runReducer } from './runReducer';
 import { hasRecoverableRun, hasRunningNodeFromEvents } from './runSelectors';
 import { latestNodeStatus } from '../planning/cockpitRuntime';
 import type { RunControlState, RunEvent } from '../contracts';
+import { runEvent as makeRunEvent } from '../contracts/runEventTestFactory';
 
-const stageIds = ['info', 'summary', 'outline', 'detail', 'text', 'cover', 'export'];
+const stageIds = ['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export'];
 
 function event(type: string, nodeId = '', extra: Partial<RunEvent> = {}): RunEvent {
-  return { type, run_id: 'run-1', ...(nodeId ? { node_id: nodeId } : {}), ...extra } as RunEvent;
+  return makeRunEvent(type, {
+    run_id: 'run-1',
+    ...(nodeId ? { stage_id: nodeId as RunEvent['stage_id'], node_id: `${nodeId}.generate_candidate` } : {}),
+    ...extra,
+  });
 }
 
 /** Deterministic pseudo-random event stream covering the hot selector inputs. */
 function syntheticStream(length: number): RunEvent[] {
   const types = [
-    'node_started', 'node_completed', 'artifact_stream_delta', 'chapter_delta',
-    'stage_usage_updated', 'quality_check_completed', 'stage_checkpoint_ready',
-    'stage_artifact_confirmed', 'artifact_approved', 'memory_context_loaded',
+    'node.started', 'node.completed', 'checkpoint.saved', 'review.started',
+    'review.completed', 'artifact.candidate_ready', 'decision.required',
+    'writeback.queued', 'writeback.committed', 'checkpoint.saved',
   ];
   const chronological: RunEvent[] = [];
   let seed = 42;
@@ -33,8 +38,7 @@ function syntheticStream(length: number): RunEvent[] {
     seed = (seed * 1103515245 + 12345) % 2147483648;
     const type = types[seed % types.length];
     const nodeId = stageIds[seed % stageIds.length];
-    const phase = seed % 7 === 0 ? 'finalizing' : undefined;
-    chronological.push(event(type, nodeId, phase ? { phase } : {}));
+    chronological.push(event(type, nodeId));
   }
   return chronological;
 }
@@ -48,15 +52,14 @@ describe('runEventIndex (F6)', () => {
     expect(appended).toEqual(rebuilt);
   });
 
-  it('index selectors match the legacy event scans on a synthetic run', () => {
+  it('index selectors match direct stable-event scans on a synthetic run', () => {
     const streams: RunEvent[][] = [
       [],
-      [event('node_started', 'info')],
-      [event('node_started', 'info', { phase: 'finalizing' })],
-      [event('node_completed', 'info'), event('node_started', 'info')],
-      [event('run_completed'), event('node_started', 'text')],
-      [event('node_failed', 'text'), event('node_started', 'text')],
-      [event('run_recovery_required'), event('node_started', 'summary')],
+      [event('node.started', 'info')],
+      [event('artifact.committed', 'info', { node_id: 'info.commit_artifact', payload: {} })],
+      [event('node.completed', 'info'), event('node.started', 'info')],
+      [event('run.completed'), event('node.started', 'text')],
+      [event('run.failed', 'text'), event('node.started', 'text')],
       [...syntheticStream(80)].reverse(),
     ];
     const controls: RunControlState[] = ['idle', 'running', 'paused', 'completed', 'failed'];
@@ -73,12 +76,12 @@ describe('runEventIndex (F6)', () => {
     }
   });
 
-  it('derives completed stage ids from real node_completed events (D4 source)', () => {
+  it('derives completed stage ids from committed Artifacts', () => {
     const newestFirst = [
-      event('node_completed', 'summary'),
-      event('node_completed', 'info'),
-      event('node_completed', 'info'),
-      event('node_started', 'outline'),
+      event('artifact.committed', 'summary', { node_id: 'summary.commit_artifact', payload: {} }),
+      event('artifact.committed', 'info', { node_id: 'info.commit_artifact', payload: {} }),
+      event('artifact.committed', 'info', { node_id: 'info.commit_artifact', payload: {} }),
+      event('node.started', 'outline'),
     ];
     expect(indexedCompletedStageIds(buildRunEventIndex(newestFirst))).toEqual(['summary', 'info']);
   });

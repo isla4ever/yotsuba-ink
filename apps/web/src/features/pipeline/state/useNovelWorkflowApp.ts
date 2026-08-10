@@ -118,17 +118,13 @@ export function useNovelWorkflowApp() {
   );
   const stageDecision = useStageDecision({
     activeRunId: runState.activeRunId,
-    emitEvent: applyEvent,
     eventsRef,
     onWarning: setApiWarning,
-    runSource,
-    setRunControl,
     workflow,
   });
   const stream = useRunStreamController(applyEvent);
   const commands = useRunCommands({
     dispatchRun,
-    emitEvent: applyEvent,
     eventsRef,
     history,
     onSettingsRequired: () => setSettingsOpen(true),
@@ -150,6 +146,7 @@ export function useNovelWorkflowApp() {
     eventsRef,
     onReset: commands.resetRunControl,
     onRestore: commands.restoreRecoveredRun,
+    runInputs,
     runSource,
     setRunSource,
     state: runState,
@@ -169,10 +166,6 @@ export function useNovelWorkflowApp() {
     onDiscard: commands.clearRunState,
     onRestore: commands.restoreRecoveredRun,
     onSettled: () => setRunRecoveryHydrated(true),
-    onWorkflow: (runWorkflow) => {
-      suppressWorkflowSave(runWorkflow);
-      setWorkflow(runWorkflow);
-    },
     onWarning: setApiWarning,
   });
   const historyActions = useRunHistoryActions({
@@ -184,9 +177,7 @@ export function useNovelWorkflowApp() {
     onWarning: setApiWarning,
     runControlState: runState.runControlState,
     running: runState.running,
-    suppressWorkflowSave,
     setRunSource,
-    setWorkflow,
     stopActiveStream: stream.invalidate,
   });
 
@@ -212,6 +203,7 @@ export function useNovelWorkflowApp() {
 
   useEffect(() => {
     setKnowledgeDocuments([]);
+    if (!activeProject?.id) return;
     void refreshKnowledgeDocuments().catch((error) => {
       setApiWarning(error instanceof Error ? `知识库列表加载失败：${error.message}` : '知识库列表加载失败。');
     });
@@ -224,6 +216,7 @@ export function useNovelWorkflowApp() {
     runControlSaver.schedule({
       activeRunId: runState.activeRunId,
       events: eventsRef.current,
+      inputs: runInputs,
       paused: runState.paused,
       runSource,
       runControlState: runState.runControlState,
@@ -253,7 +246,11 @@ export function useNovelWorkflowApp() {
   }, [runControlSaver]);
 
   async function refreshKnowledgeDocuments() {
-    setKnowledgeDocuments(await listKnowledgeDocuments(activeProject?.id ?? 'default'));
+    if (!activeProject?.id) {
+      setKnowledgeDocuments([]);
+      return;
+    }
+    setKnowledgeDocuments(await listKnowledgeDocuments(activeProject.id));
   }
 
   function applyEvent(event: RunEvent) {
@@ -262,20 +259,6 @@ export function useNovelWorkflowApp() {
     stageDecision.applyEvent(event);
     const navigationStageId = stageIdForRunEventNavigation(event);
     if (navigationStageId) transitions.notifyStageNavigation(navigationStageId);
-    if (
-      event.type === 'stage_summary_ready'
-      && event.node_id
-      && event.node_id !== 'info'
-      && workflow.quality_mode !== 'deep'
-    ) {
-      // Fast/balanced auto-advance never blocks (D7); the cockpit surfaces an
-      // expandable settlement summary card instead of a dwelling overlay.
-      transitions.startSettlement({
-        kind: 'cockpit_auto',
-        nextStageId: String(event.next_step ?? ''),
-        stageId: event.node_id,
-      });
-    }
   }
 
   return {
@@ -302,7 +285,7 @@ export function useNovelWorkflowApp() {
     downloadHistoryExport: historyActions.downloadExport,
     openHistoryRun: historyActions.openRun,
     openProject: projectSession.openProject,
-    restoreHistoryCheckpoint: historyActions.restoreCheckpoint,
+    branchHistoryRun: historyActions.branchFromCheckpoint,
     saveWorkflowAsTemplate: projectSession.saveWorkflowAsTemplate,
     sessionHydrated: workflowHydrated && runRecoveryHydrated,
     // Phase 12 F6: index-backed hot selectors — these run on every app render,
@@ -319,7 +302,6 @@ export function useNovelWorkflowApp() {
     returnExportToPlanning: commands.returnExportToPlanning,
     regenerateBrief: stageDecision.regenerateBrief,
     regenerateStageDraft: stageDecision.regenerateStageDraft,
-    requestVariantCompare: stageDecision.requestVariantCompare,
     runWorkflow: commands.runWorkflow,
     saveStatus,
     selectedStage,
@@ -342,8 +324,6 @@ export function useNovelWorkflowApp() {
     workflow,
     approveBrief: stageDecision.approveBrief,
     confirmStageArtifact: stageDecision.confirmStageArtifact,
-    selectBalancedVariant: stageDecision.selectBalancedVariant,
-    selectDraftCandidate: stageDecision.selectDraftCandidate,
   };
 }
 

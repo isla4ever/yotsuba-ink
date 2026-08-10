@@ -66,7 +66,7 @@ describe('setup progress derivation (Phase 12 A4 three-step flow)', () => {
     let workflow = updateInfoField(defaultWorkflow, 'reference_mode', 'knowledge_base');
     workflow = updateInfoField(workflow, 'knowledge_base_doc_ids', ['missing-doc']);
     const documents: KnowledgeDocument[] = [{
-      doc_id: 'ready-doc', title: 'Ready', filename: 'ready.md', chunk_count: 1,
+      doc_id: 'ready-doc', project_id: 'project-1', title: 'Ready', filename: 'ready.md', chunk_count: 1,
       status: 'ready', parser: 'text', preview: '',
     }];
     const steps = buildSetupSteps({ workflow, knowledgeDocuments: documents, readiness: readyReport });

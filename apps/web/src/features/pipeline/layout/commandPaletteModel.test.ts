@@ -13,17 +13,18 @@ import { buildRunEventIndex } from '../state/runEventIndex';
 import { modeRoutePolicy } from '../state/runPresentationState';
 import { stageRuntimeSummaryMap } from '../state/useStageRuntimes';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 
 const stages = [
-  { id: 'info', label: '创作立项定稿', type: 'info_recommend' as const },
+  { id: 'info', label: '创作立项定稿', type: 'info' as const },
   { id: 'summary', label: '梗概定稿', type: 'summary' as const },
-  { id: 'text', label: '正文生成', type: 'chapter_text' as const },
+  { id: 'text', label: '正文生成', type: 'text' as const },
 ];
 
 function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
   return {
     stageRuntimes: stageRuntimeSummaryMap(
-      buildRunEventIndex([{ type: 'node_completed', node_id: 'info' } as RunEvent]),
+      buildRunEventIndex([runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {} })]),
       stages,
     ),
     policy: modeRoutePolicy('deep', false),
@@ -37,14 +38,14 @@ function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
 }
 
 describe('buildPaletteCommands', () => {
-  it('derives stage commands with real status and keeps policy-disabled stages visible with a reason', () => {
+  it('derives stage commands with real status and keeps all balanced workbenches reachable', () => {
     const commands = buildPaletteCommands(context({ policy: modeRoutePolicy('balanced', false), qualityMode: 'balanced' }));
     const info = commands.find((command) => command.id === 'stage:info');
     const summary = commands.find((command) => command.id === 'stage:summary');
     expect(info?.disabled).toBe(false);
     expect(info?.detail).toBe('已完成');
-    expect(summary?.disabled).toBe(true);
-    expect(summary?.disabledReason).toBe('平衡模式下后续阶段在驾驶舱内查看');
+    expect(summary?.disabled).toBe(false);
+    expect(summary?.disabledReason).toBe('');
   });
 
   it('exposes the Studio Shell commands 返回工作室 and 新建作品 (Phase 11.2)', () => {
@@ -110,7 +111,7 @@ describe('movePaletteHighlight', () => {
     expect(movePaletteHighlight(commands, enabledIds[0], 1)).toBe(enabledIds[1]);
     expect(movePaletteHighlight(commands, enabledIds[0], -1)).toBe(enabledIds[enabledIds.length - 1]);
     expect(movePaletteHighlight(commands, enabledIds[enabledIds.length - 1], 1)).toBe(enabledIds[0]);
-    expect(enabledIds).not.toContain('stage:summary');
+    expect(enabledIds).toContain('stage:summary');
   });
 });
 

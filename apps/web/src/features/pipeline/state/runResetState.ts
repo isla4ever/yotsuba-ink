@@ -1,4 +1,4 @@
-import type { RunEvent } from '../contracts';
+import type { RunEvent, RunInputs } from '../contracts';
 import type { RunSource } from '../lib/runSource';
 import type { RunState } from './runReducer';
 import { hydrateLocalRunControl, type HydratedRunState } from './runState';
@@ -20,12 +20,14 @@ export function captureRunResetSnapshot({
   automationCockpitReady,
   decision,
   events,
+  inputs,
   runSource,
   state,
 }: {
   automationCockpitReady: boolean;
   decision: StageDecisionState;
   events: RunEvent[];
+  inputs?: RunInputs;
   runSource: RunSource;
   state: ResettableRunState;
 }): RunResetSnapshot | null {
@@ -33,6 +35,7 @@ export function captureRunResetSnapshot({
   const hydrated = hydrateLocalRunControl({
     activeRunId: state.activeRunId,
     events,
+    inputs,
     paused: state.paused,
     runControlState: state.runControlState,
     selectedId: state.selectedId,

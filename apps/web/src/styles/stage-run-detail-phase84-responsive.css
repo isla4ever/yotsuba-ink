@@ -9,7 +9,7 @@
   }
 
   .stage-run-main.detail-main,
-  .stage-run-side.stage-detail_outline {
+  .stage-run-side.stage-detail {
     height: max(680px, calc(100dvh - var(--shell-header-height) - 24px));
     min-height: max(680px, calc(100dvh - var(--shell-header-height) - 24px));
   }

@@ -8,7 +8,6 @@ import { useDialogExitPresence } from '../state/useDialogExitPresence';
 import { useUnsavedDraftGuard } from '../state/useUnsavedDraftGuard';
 import { ProviderCreateControl } from './ProviderCreateControl';
 import { ProviderEditor } from './ProviderEditor';
-import { GlobalFallbackChainEditor } from './GlobalFallbackChainEditor';
 import { OptionField } from './fields/OptionField';
 import { providerOptionItems } from './providerOptionItems';
 import {
@@ -136,8 +135,6 @@ export function ProviderManagerSheet({ open, workflow, onOpenChange, onReadiness
                   }}
                 />
               </div>
-
-              <GlobalFallbackChainEditor workflow={workflow} onChange={onWorkflowChange} />
 
               <div className="provider-manager-create">
                 <span><KeyRound size={15} />新增服务</span>

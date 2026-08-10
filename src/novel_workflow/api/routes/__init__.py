@@ -1,8 +1,5 @@
-from novel_workflow.api.routes.cover_assets import router as cover_assets_router
 from novel_workflow.api.routes.knowledge import router as knowledge_router
-from novel_workflow.api.routes.chapter_revisions import router as chapter_revisions_router
-from novel_workflow.api.routes.chapter_reviews import router as chapter_reviews_router
-from novel_workflow.api.routes.exports import router as exports_router
+from novel_workflow.api.routes.cover_assets import router as cover_assets_router
 from novel_workflow.api.routes.projects import router as projects_router
 from novel_workflow.api.routes.prompts import router as prompts_router
 from novel_workflow.api.routes.provider_models import router as provider_models_router
@@ -13,10 +10,8 @@ from novel_workflow.api.routes.runs import router as runs_router
 from novel_workflow.api.routes.workflow import router as workflow_router
 
 __all__ = [
+    "archive_runs_router",
     "cover_assets_router",
-    "chapter_revisions_router",
-    "chapter_reviews_router",
-    "exports_router",
     "knowledge_router",
     "projects_router",
     "prompts_router",
@@ -27,3 +22,4 @@ __all__ = [
     "runs_router",
     "workflow_router",
 ]
+from novel_workflow.api.routes.archive_runs import router as archive_runs_router

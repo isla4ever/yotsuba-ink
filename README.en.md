@@ -2,10 +2,25 @@
 
 [简体中文](README.md) | [English](README.en.md)
 
-Yotsuba Ink is an open-source workbench for long-form fiction. Instead of generating an entire book from one prompt, it organizes story information, synopsis, volume outline, chapter blueprint, prose, cover, and export into an editable, reviewable, traceable, and recoverable production pipeline.
+<p align="center">
+  <img src="docs/assets/branding/yotsuba-ink-logo.png" alt="Yotsuba Ink trademark" width="156" />
+</p>
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/isla4ever/yotsuba-ink/actions/workflows/ci.yml/badge.svg)](https://github.com/isla4ever/yotsuba-ink/actions/workflows/ci.yml)
+<p align="center"><strong>Turn ideas into a deliverable long-form novel.</strong><br />A staged writing and delivery workbench for long-form fiction</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/CI-passing-3f8f68" alt="CI passing" />
+  <img src="https://img.shields.io/badge/version-0.1.0%20Alpha-68717a" alt="version 0.1.0 Alpha" />
+  <img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache 2.0 license" />
+</p>
+
+<p align="center"><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
+
+<p align="center"><img src="docs/assets/branding/yotsuba-ink-banner.png" alt="Yotsuba Ink long-form writing workbench banner" width="100%" /></p>
+
+> Brand assets: the trademark is `2048×2048` and the banner is `1600×720`. The image gateway was temporarily unavailable during this pass, so these assets are rasterized from the same approved local vector direction; they can be replaced in place when the gateway is available again.
+
+Yotsuba Ink is an open-source workbench for long-form fiction. Instead of generating an entire book from one prompt, it organizes story information, synopsis, volume outline, chapter blueprint, prose, cover, and export into an editable, reviewable, traceable, and recoverable production pipeline.
 
 > Current version: `0.1.0 Alpha`. The local UI, stage contracts, Fake Provider automation, and primary browser flows have been verified. Real generation requires a configured text Provider, and real cover generation requires an image Provider. Passing automation does not mean that literary quality from a live model has been accepted.
 
@@ -126,7 +141,7 @@ npm run audit:css
 npm run check:css-split
 ```
 
-Current local baseline: frontend `125 files / 492 passed`, backend `293 passed / 1 skipped`, with production build, CSS audit, and CSS split checks passing. Live paid-Provider literary quality and real image generation are outside this automation claim.
+Current local baseline: frontend `132 files / 516 passed`, backend `1088 passed / 1 skipped`; the Prompt snapshots passed two consecutive determinism checks, the production build and both CSS gates passed, and first-screen CSS is `31.9 KiB gzip`. Live paid-Provider literary quality and real image generation are outside this automation claim.
 
 ## Documentation
 
@@ -134,6 +149,7 @@ Current local baseline: frontend `125 files / 492 passed`, backend `293 passed /
 - [Stage Artifact contract](docs/architecture/stage-artifact-contract.md)
 - [Production workflow](docs/architecture/product-production-workflow.md)
 - [Story Bible, Wiki, and quality boundaries](docs/architecture/story-bible-quality.md)
+- [Human preference calibration protocol](docs/architecture/preference-calibration-protocol.md)
 - [Wave 5 interaction and acceptance record](docs/architecture/phase-12-wave5-stage-focus-and-motion-closure.md)
 - [Repository contribution rules](AGENTS.md)
 

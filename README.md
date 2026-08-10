@@ -2,10 +2,25 @@
 
 [简体中文](README.md) | [English](README.en.md)
 
-Yotsuba Ink 是一个面向长篇小说的开源创作工作台。它不追求一次提示词生成整本书，而是把小说信息、全书梗概、分卷大纲、章节细纲、正文、封面和导出组织成可编辑、可确认、可追溯、可恢复的生产链路。
+<p align="center">
+  <img src="docs/assets/branding/yotsuba-ink-logo.png" alt="Yotsuba Ink 商标" width="156" />
+</p>
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/isla4ever/yotsuba-ink/actions/workflows/ci.yml/badge.svg)](https://github.com/isla4ever/yotsuba-ink/actions/workflows/ci.yml)
+<p align="center"><strong>把灵感，写成可交付的长篇。</strong><br />面向长篇小说的阶段化创作与交付工作台</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/CI-passing-3f8f68" alt="CI passing" />
+  <img src="https://img.shields.io/badge/version-0.1.0%20Alpha-68717a" alt="version 0.1.0 Alpha" />
+  <img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache 2.0 license" />
+</p>
+
+<p align="center"><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
+
+<p align="center"><img src="docs/assets/branding/yotsuba-ink-banner.png" alt="Yotsuba Ink 长篇创作工作台营销横幅" width="100%" /></p>
+
+> 品牌资产：商标为 `2048×2048`，横幅为 `1600×720`。本轮图像网关暂不可用，当前资产由同一设计提示生成的本地矢量稿渲染而来；不影响应用功能，网关恢复后可直接替换同名文件。
+
+Yotsuba Ink 是一个面向长篇小说的开源创作工作台。它不追求一次提示词生成整本书，而是把小说信息、全书梗概、分卷大纲、章节细纲、正文、封面和导出组织成可编辑、可确认、可追溯、可恢复的生产链路。
 
 > 当前版本：`0.1.0 Alpha`。本地 UI、阶段合同、Fake Provider 自动化和主要浏览器链路已经完成验证；真实创作需要配置文本 Provider，真实封面需要额外配置图片 Provider。自动化通过不代表真实模型的文学质量已经验收。
 
@@ -126,7 +141,7 @@ npm run audit:css
 npm run check:css-split
 ```
 
-当前本地基线：前端 `125 files / 492 passed`，后端 `293 passed / 1 skipped`，生产构建、CSS 审计和 CSS 分包检查通过。真实付费 Provider 的跨卷文学质量与真实图片生成不包含在这组自动化结论中。
+当前本地基线：前端 `132 files / 516 passed`，后端 `1088 passed / 1 skipped`；Prompt 快照连续两次确定性验证通过，生产构建、CSS 审计和 CSS 分包检查通过，首屏 CSS 为 `31.9 KiB gzip`。真实付费 Provider 的跨卷文学质量与真实图片生成不包含在这组自动化结论中。
 
 ## 关键文档
 
@@ -134,6 +149,7 @@ npm run check:css-split
 - [阶段 Artifact 合同](docs/architecture/stage-artifact-contract.md)
 - [生产工作流](docs/architecture/product-production-workflow.md)
 - [Story Bible、Wiki 与质量边界](docs/architecture/story-bible-quality.md)
+- [人工偏好校准协议](docs/architecture/preference-calibration-protocol.md)
 - [Wave 5 交互与验收记录](docs/architecture/phase-12-wave5-stage-focus-and-motion-closure.md)
 - [仓库协作规则](AGENTS.md)
 

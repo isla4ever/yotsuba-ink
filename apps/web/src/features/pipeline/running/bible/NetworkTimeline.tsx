@@ -6,8 +6,6 @@ type Props = {
   ticks: TimelineTick[];
   activeId: string;
   onSelect: (tickId: string) => void;
-  /** True when the run has nodes/edges without temporal markers (legacy data). */
-  degraded: boolean;
 };
 
 /**
@@ -17,7 +15,7 @@ type Props = {
  * tabindex so the group is a single tab stop. Selecting a tick is a pure local
  * filter — there is no autoplay and no looping motion.
  */
-export function NetworkTimeline({ activeId, degraded, onSelect, ticks }: Props) {
+export function NetworkTimeline({ activeId, onSelect, ticks }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const activeIndex = Math.max(0, ticks.findIndex((tick) => tick.id === activeId));
 
@@ -61,9 +59,6 @@ export function NetworkTimeline({ activeId, degraded, onSelect, ticks }: Props) 
           </button>
         ))}
       </div>
-      {degraded ? (
-        <p className="bible-timeline-degraded">该运行缺少时序标记（旧数据），回放按基线显示。</p>
-      ) : null}
     </div>
   );
 }

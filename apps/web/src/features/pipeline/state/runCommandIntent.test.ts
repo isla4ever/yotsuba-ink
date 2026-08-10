@@ -23,7 +23,6 @@ describe('run command intent', () => {
     }))).toEqual({
       type: 'continue',
       stageId: 'info',
-      fallbackNextStageId: 'summary',
     });
   });
 
@@ -34,7 +33,7 @@ describe('run command intent', () => {
       checkpointStageId: 'export',
       paused: true,
       qualityMode: 'deep',
-      selectedStageType: 'export_artifact',
+      selectedStageType: 'export',
       workspacePhase: 'running',
     }))).toEqual({ type: 'return_export' });
   });
@@ -49,19 +48,19 @@ describe('run command intent', () => {
     }))).toEqual({ type: 'none' });
   });
 
-  it('resumes an ordinary safe pause and pauses an active balanced run', () => {
+  it('observes an interrupted run and leaves an active run under Graph ownership', () => {
     expect(resolveRunCommandIntent(context({
       activeRunId: 'paused-run',
       paused: true,
       workspacePhase: 'running',
-    }))).toEqual({ type: 'resume' });
+    }))).toEqual({ type: 'observe' });
 
     expect(resolveRunCommandIntent(context({
       activeRunId: 'running-run',
       runControlState: 'running',
       running: true,
       workspacePhase: 'running',
-    }))).toEqual({ type: 'pause' });
+    }))).toEqual({ type: 'none' });
   });
 
   it('starts only when no active command state takes precedence', () => {
@@ -79,7 +78,7 @@ function context(overrides: Partial<IntentParams> = {}): IntentParams {
     qualityMode: 'balanced',
     runControlState: 'idle',
     running: false,
-    selectedStageType: 'info_recommend',
+    selectedStageType: 'info',
     workspacePhase: 'planning',
     ...overrides,
   };

@@ -1,4 +1,3 @@
-import { nodeTier } from '../characterGraphSemantics';
 import { factionColor, unaffiliatedColor } from '../insights/characterGraphData';
 import type {
   CharacterEdge,
@@ -8,6 +7,7 @@ import type {
   FactionStance,
   RelationKind,
   RelationPolarity,
+  NarrativeStageId,
 } from '../../contracts';
 
 export const tierOrder: CharacterTier[] = ['protagonist', 'major', 'supporting', 'minor', 'npc'];
@@ -32,29 +32,27 @@ export const stanceLabels: Record<FactionStance, string> = {
   protagonist_side: '主角阵营', antagonist_side: '敌对阵营', neutral: '中立', hidden: '隐藏立场',
 };
 
-const appearanceStageLabels: Record<string, string> = {
-  info: '创作立项', info_recommend: '创作立项', summary: '全书梗概', outline: '分卷大纲',
-  detail: '章节细纲', detail_outline: '章节细纲', text: '正文创作', chapter_text: '正文创作',
+const appearanceStageLabels: Record<NarrativeStageId, string> = {
+  info: '创作立项', characters: '人物编排', summary: '全书梗概', outline: '分卷大纲',
+  detail: '章节施工图', text: '正文创作', cover: '封面', export: '导出',
 };
 
 export function appearanceLabel(node: Pick<CharacterNode, 'first_appearance_stage' | 'first_appearance_chapter'>) {
-  const stage = (node.first_appearance_stage ?? '').trim();
+  const stage = node.first_appearance_stage;
   const chapter = (node.first_appearance_chapter ?? '').trim();
-  if (!stage && !chapter) return '';
-  const stageLabel = stage ? appearanceStageLabels[stage] ?? stage : '';
-  return [stageLabel, chapter].filter(Boolean).join(' · ');
+  return [appearanceStageLabels[stage], chapter].filter(Boolean).join(' · ');
 }
 
 /** Tiers that actually occur in the graph, in canonical order. */
 export function tiersPresent(graph: CharacterGraph): CharacterTier[] {
-  const present = new Set(graph.nodes.map((node) => nodeTier(node)));
+  const present = new Set(graph.nodes.map((node) => node.tier));
   return tierOrder.filter((tier) => present.has(tier));
 }
 
 /** Hides nodes on the given tiers and drops edges that lose an endpoint. */
 export function filterGraphByTiers(graph: CharacterGraph, hiddenTiers: ReadonlySet<CharacterTier>): CharacterGraph {
   if (!hiddenTiers.size) return graph;
-  const nodes = graph.nodes.filter((node) => !hiddenTiers.has(nodeTier(node)));
+  const nodes = graph.nodes.filter((node) => !hiddenTiers.has(node.tier));
   const visible = new Set(nodes.map((node) => node.id));
   return {
     ...graph,
@@ -139,7 +137,7 @@ export function characterProfile(graph: CharacterGraph, nodeId: string): Charact
         strength: edge.strength,
       };
     });
-  return { node, relations, tier: nodeTier(node) };
+  return { node, relations, tier: node.tier };
 }
 
 /** Edge palette by polarity, shared by the 3D panorama; neutral doubles as the missing-data color. */
@@ -177,17 +175,18 @@ export const currentTickId = 'current';
 
 const timelineStageTicks: TimelineTick[] = [
   { id: 'stage:info', label: '基线 · 创作立项', type: 'stage' },
+  { id: 'stage:characters', label: '人物编排', type: 'stage' },
   { id: 'stage:summary', label: '全书梗概', type: 'stage' },
   { id: 'stage:outline', label: '分卷大纲', type: 'stage' },
-  { id: 'stage:detail', label: '章节细纲', type: 'stage' },
+  { id: 'stage:detail', label: '章节施工图', type: 'stage' },
 ];
 
-/** Stage-name → fixed tick index (indices 0–3 of the four stage ticks). */
+/** Stage-name → fixed tick index (indices 0–4 of the five planning ticks). */
 const stageTickIndex: Record<string, number> = {
-  info: 0, info_recommend: 0, summary: 1, outline: 2, detail: 3, detail_outline: 3,
+  info: 0, characters: 1, summary: 2, outline: 3, detail: 4,
 };
 
-const textStageNames = new Set(['text', 'chapter_text']);
+const textStageNames = new Set(['text']);
 
 function chapterNumber(chapter: string) {
   const match = chapter.match(/\d+/);
@@ -204,7 +203,7 @@ function collectChapter(target: Set<string>, value: string | undefined) {
 }
 
 /**
- * Tick axis: four fixed stage ticks, then every chapter that appears in
+ * Tick axis: five fixed stage ticks, then every chapter that appears in
  * first_appearance_chapter / valid_from_chapter / history[].chapter in natural
  * order, then「当前」(the full graph).
  */
@@ -223,8 +222,8 @@ export function networkTimelineTicks(graph: CharacterGraph): TimelineTick[] {
 
 /**
  * Tick position of a temporal marker. Chapters win over stages; a text-stage
- * marker without a chapter only exists「当前」; empty markers (legacy runs)
- * degrade to the baseline tick — always visible, never fabricated.
+ * marker without a chapter only exists「当前」. Invalid empty or unknown
+ * markers violate the vNext projection contract and are rejected.
  */
 function markerTickIndex(ticks: TimelineTick[], stage: string | undefined, chapter: string | undefined) {
   const chapterKey = (chapter ?? '').trim();
@@ -235,16 +234,7 @@ function markerTickIndex(ticks: TimelineTick[], stage: string | undefined, chapt
   const stageKey = (stage ?? '').trim();
   if (stageKey in stageTickIndex) return stageTickIndex[stageKey];
   if (textStageNames.has(stageKey)) return ticks.length - 1;
-  return 0;
-}
-
-/** True when any node/edge lacks temporal markers entirely — the UI must disclose baseline degradation. */
-export function hasMissingTimelineMarkers(graph: CharacterGraph): boolean {
-  const missing = (stage?: string, chapter?: string) => !(stage ?? '').trim() && !(chapter ?? '').trim();
-  return (
-    graph.nodes.some((node) => missing(node.first_appearance_stage, node.first_appearance_chapter))
-    || graph.edges.some((edge) => missing(edge.valid_from_stage, edge.valid_from_chapter))
-  );
+  throw new Error(`Unsupported character timeline marker: ${stageKey || '(empty)'}`);
 }
 
 /** Relation text as of the tick: the latest history change at or before it, else the edge's own relation. */

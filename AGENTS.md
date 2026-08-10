@@ -49,9 +49,11 @@ Reference aggregation, orchestration, quality logic, and persistence rules belon
 
 ## Size Guardrails
 
-- Normal source files should stay around `200-250` lines.
-- Heavy modules may reach `300` lines when justified.
-- Split files by responsibility before adding more behavior past that range.
+- File size is a maintainability signal, not a mechanical limit.
+- Normal source files should usually stay around `250-350` lines when the responsibility remains clear.
+- Cohesive, implementation-heavy modules may reach roughly `450-500` lines when keeping the behavior together improves correctness, testability, or readability.
+- Files above that range require a responsibility review, but must not be split only to satisfy a line count.
+- Split when a file mixes independently changing responsibilities, becomes difficult to test in isolation, creates frequent merge conflicts, or requires unrelated knowledge to understand. Do not trade a complete implementation for artificial brevity or excessive indirection.
 
 ## Working Rules
 

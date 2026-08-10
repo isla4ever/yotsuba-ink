@@ -1,7 +1,6 @@
 import { useState, type MutableRefObject } from 'react';
-import type { RunControlState, RunEvent, WorkflowDefinition } from '../contracts';
-import { isBackendRunSource, type RunSource } from '../lib/runSource';
-import { approveRunArtifact } from '../services/runApi';
+import type { RunEvent, WorkflowDefinition } from '../contracts';
+import { resolveRunDecision } from '../services/runApi';
 import type { HydratedRunState } from './runState';
 import {
   parseApprovalArtifact,
@@ -12,13 +11,11 @@ import {
   continuationStartedState,
   decisionStateForPausedStream,
   exportReadyState,
-  infoApprovedState,
   initialStageDecisionState,
   restoreStageDecisionState,
   stageDecisionStateForEvent,
-  stageConfirmedState,
 } from './stageDecisionState';
-import { useStageCandidates } from './useStageCandidates';
+import { useStageRegeneration } from './useStageRegeneration';
 import {
   clearInfoApprovalDraft,
   loadInfoApprovalDraft,
@@ -27,31 +24,20 @@ import {
 
 type StageDecisionOptions = {
   activeRunId: string;
-  emitEvent: (event: RunEvent) => void;
   eventsRef: MutableRefObject<RunEvent[]>;
   onWarning: (message: string) => void;
-  runSource: RunSource;
-  setRunControl: (control: {
-    paused: boolean;
-    runControlState: RunControlState;
-    running: boolean;
-  }) => void;
   workflow: WorkflowDefinition;
 };
 
 export function useStageDecision({
   activeRunId,
-  emitEvent,
   eventsRef,
   onWarning,
-  runSource,
-  setRunControl,
   workflow,
 }: StageDecisionOptions) {
   const [state, setState] = useState(initialStageDecisionState);
-  const candidates = useStageCandidates({
+  const regeneration = useStageRegeneration({
     activeRunId,
-    emitEvent,
     eventsRef,
     onWarning,
     workflow,
@@ -74,7 +60,7 @@ export function useStageDecision({
 
   function reset() {
     clearInfoApprovalDraft(activeRunId);
-    candidates.resetCandidates();
+    regeneration.resetRegeneration();
     setState(initialStageDecisionState);
   }
 
@@ -83,9 +69,7 @@ export function useStageDecision({
   }
 
   function applyEvent(event: RunEvent) {
-    if (event.type === 'artifact_approved' && event.node_id === 'info') {
-      clearInfoApprovalDraft(event.run_id || activeRunId);
-    }
+    if (event.type === 'artifact.committed' && event.stage_id === 'info') clearInfoApprovalDraft(event.run_id || activeRunId);
     setState((current) => {
       const next = stageDecisionStateForEvent(current, event);
       if (!isInfoSourceEvent(event) || !next.approvalPending || !next.approvalSource) return next;
@@ -111,7 +95,7 @@ export function useStageDecision({
   }
 
   function markExportReady() {
-    candidates.resetCandidates();
+    regeneration.resetRegeneration();
     setState((current) => exportReadyState(current));
   }
 
@@ -122,38 +106,19 @@ export function useStageDecision({
   async function approveBrief(artifact: string) {
     if (!activeRunId) return false;
     const parsedArtifact = parseApprovalArtifact(artifact);
-    if (isBackendRunSource(runSource)) {
-      try {
-        await approveRunArtifact(activeRunId, 'info', 'info_recommend', parsedArtifact);
-      } catch (error) {
-        onWarning(`信息推荐定稿提交失败：${errorMessage(error)}`);
-        return false;
-      }
+    try {
+      await submitGraphDecision('info', 'accept', parsedArtifact);
+    } catch (error) {
+      onWarning(`创作立项定稿提交失败：${errorMessage(error)}`);
+      return false;
     }
     clearInfoApprovalDraft(activeRunId);
-    setState((current) => infoApprovedState({
-      ...current,
-      approvalDraft: artifact,
-      approvalSource: artifact,
-    }));
-    setRunControl({ paused: true, runControlState: 'paused', running: false });
-    if (!isBackendRunSource(runSource)) {
-      emitEvent({
-        type: 'artifact_approved',
-        run_id: activeRunId,
-        node_id: 'info',
-        node_type: 'info_recommend',
-        output_key: 'info_recommend',
-        artifact: parsedArtifact,
-        created_at: new Date().toISOString(),
-      });
-    }
     return true;
   }
 
   async function regenerateBrief(direction = '强化悬疑钩子与人物关系') {
     if (!activeRunId || !state.approvalPending) return false;
-    return candidates.regenerateStageDraft('info', direction);
+    return regeneration.regenerateStageDraft('info', direction);
   }
 
   async function confirmStageArtifact(stageId: string, editedArtifact?: string) {
@@ -163,38 +128,17 @@ export function useStageDecision({
     const artifact = editedArtifact?.trim()
       ? parseApprovalArtifact(editedArtifact)
       : selectLatestStageArtifact(eventsRef.current, stage.id) ?? {};
-    if (isBackendRunSource(runSource)) {
-      try {
-        await approveRunArtifact(
-          activeRunId,
-          stage.id,
-          stage.output_key || stage.id,
-          artifact,
-        );
-      } catch (error) {
-        onWarning(`${stage.label} 定稿提交失败：${errorMessage(error)}`);
-        return false;
-      }
-    } else {
-      emitEvent({
-        type: 'stage_artifact_confirmed',
-        run_id: activeRunId,
-        node_id: stage.id,
-        node_type: stage.type,
-        label: stage.label,
-        output_key: stage.output_key,
-        artifact,
-        message: `${stage.label} 已人工定稿。`,
-        created_at: new Date().toISOString(),
-      });
+    try {
+      await submitGraphDecision(stage.id, 'accept', artifact);
+    } catch (error) {
+      onWarning(`${stage.label} 定稿提交失败：${errorMessage(error)}`);
+      return false;
     }
-    setState((current) => stageConfirmedState(current, stage.id));
-    setRunControl({ paused: true, runControlState: 'paused', running: false });
     return true;
   }
 
   return {
-    ...candidates,
+    ...regeneration,
     applyEvent,
     approveBrief,
     beginContinuation,
@@ -208,6 +152,32 @@ export function useStageDecision({
     state,
     syncPausedStream,
   };
+
+  async function submitGraphDecision(
+    stageId: string,
+    action: 'accept' | 'regenerate' | 'cancel',
+    artifact?: unknown,
+  ) {
+    const event = eventsRef.current.find((item) => (
+      item.type === 'decision.required'
+      && (item.stage_id || item.node_id?.split('.')[0]) === stageId
+    ));
+    const payload = event?.payload;
+    const decisionId = typeof payload?.decision_id === 'string' ? payload.decision_id : '';
+    const revision = Number(payload?.domain_revision);
+    if (!decisionId || !Number.isInteger(revision) || revision < 0) {
+      throw new Error('当前阶段没有可提交的 LangGraph interrupt');
+    }
+    await resolveRunDecision(
+      activeRunId,
+      decisionId,
+      action,
+      revision,
+      artifact && typeof artifact === 'object' && !Array.isArray(artifact)
+        ? artifact as Record<string, unknown>
+        : undefined,
+    );
+  }
 }
 
 export type StageDecisionController = ReturnType<typeof useStageDecision>;
@@ -217,9 +187,5 @@ function errorMessage(error: unknown) {
 }
 
 function isInfoSourceEvent(event: RunEvent) {
-  return event.node_id === 'info' && [
-    'approval_required',
-    'brief_regenerated',
-    'draft_candidate_selected',
-  ].includes(event.type);
+  return event.stage_id === 'info' && event.type === 'artifact.candidate_ready';
 }

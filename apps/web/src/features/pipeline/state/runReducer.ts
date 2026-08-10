@@ -161,9 +161,8 @@ export function runReducer(state: RunState, action: RunAction): RunState {
 }
 
 export function stageIdForRunEventNavigation(event: RunEvent): string {
-  if (!event.node_id) return '';
-  if (event.type === 'node_started' && event.phase !== 'finalizing') return event.node_id;
-  if (event.type === 'approval_required' || event.type === 'phase_changed') return event.node_id;
+  if (!event.stage_id) return '';
+  if (event.type === 'node.started' || event.type === 'decision.required') return event.stage_id;
   return '';
 }
 
@@ -195,90 +194,57 @@ function stateForRunEvent(state: RunState, event: RunEvent): RunState {
 
 function applyEventEffect(state: RunState, event: RunEvent): RunState {
   switch (event.type) {
-    case 'run_started':
+    case 'run.started':
       return { ...state, paused: false, runControlState: 'running', running: true };
-    case 'run_blocked': {
-      const reason = event.reason ?? '当前知识库为空，请先上传资料。';
-      return {
-        ...state,
-        knowledgePrompt: reason,
-        knowledgePromptOpen: true,
-        latestResult: event.reason ?? '需要先补充知识库资料才能继续。',
-      };
-    }
-    case 'approval_required':
-      return { ...state, latestResult: '创作立项已生成，等待你确认定稿。' };
-    case 'artifact_approved':
-    case 'stage_artifact_confirmed':
-      return { ...state, latestResult: `${event.label ?? '阶段产物'}已定稿，流水线继续推进。` };
-    case 'brief_regenerated':
-      return { ...state, latestResult: '已换一稿创作立项草稿，等待你确认。' };
-    case 'draft_candidate_selected':
-      return { ...state, latestResult: formatResult(event.artifact ?? event.preview ?? event.message ?? '') };
-    case 'run_paused':
-      return { ...state, latestResult: '已在安全点暂停，可调整模式后继续。', paused: true, runControlState: 'paused', running: false };
-    case 'run_resumed':
-      return { ...state, latestResult: '已恢复创作。', paused: false, runControlState: 'running', running: true };
-    case 'run_checkpoint_recovery_requested':
-      return { ...state, latestResult: '已解锁最后稳定检查点，准备恢复创作。', paused: false, runControlState: 'running', running: true };
-    case 'run_recovery_required':
-      return { ...state, latestResult: event.message ?? '运行已暂停，请从最后稳定检查点恢复。', paused: true, runControlState: 'paused', running: false };
-    case 'stage_checkpoint_ready':
-      return { ...state, latestResult: `${event.label ?? event.node_id} 已完成，准备进入下一阶段。` };
-    case 'artifact_validation_failed':
-      return { ...state, latestResult: `阶段产物结构检查未通过：${event.message ?? event.error ?? '请检查模型输出结构'}` };
-    case 'stage_replay_requested':
-      return { ...state, latestResult: '当前阶段展示内容已刷新。' };
-    case 'quality_check_completed':
-      return { ...state, latestResult: qualityResult(event) };
-    case 'revision_directive_created':
-      return { ...state, latestResult: `已生成局部修订指令：${event.directive?.issue ?? '质量问题待修复'}` };
-    case 'manual_intervention_required':
-      return { ...state, latestResult: event.reason ?? '发现需要你处理的质量问题，运行已暂停。', paused: true, runControlState: 'paused', running: false };
-    // Phase 12 D5: budget warnings no longer write the dead `latestResult`
-    // string — the header budget status bar consumes these events directly.
-    case 'stage_budget_exceeded':
-    case 'run_budget_exceeded':
-      return { ...state, paused: true, runControlState: 'paused', running: false };
-    case 'chapter_progress_updated':
-      return { ...state, latestResult: chapterProgressResult(event) };
-    case 'node_completed':
-      return { ...state, latestResult: formatResult(event.result) };
-    case 'run_error':
-    case 'run_failed':
-      if (event.recovery_state?.needs_recovery) {
-        return { ...state, latestResult: event.message ?? event.error ?? '运行已暂停，请从最后稳定检查点恢复。', paused: true, runControlState: 'paused', running: false };
-      }
-      return { ...state, latestResult: event.error ?? '运行失败', paused: false, runControlState: 'failed', running: false };
-    case 'run_completed':
+    case 'decision.required':
+      return { ...state, latestResult: '阶段产物等待你的决定。', paused: true, runControlState: 'paused', running: false };
+    case 'decision.resolved':
+      return { ...state, latestResult: '决定已确认，流水线继续推进。', paused: false, runControlState: 'running', running: true };
+    case 'artifact.candidate_ready':
+      return { ...state, latestResult: formatResult(event.payload ?? '') };
+    case 'artifact.committed':
+      return { ...state, latestResult: '阶段产物已正式写回。' };
+    case 'checkpoint.saved':
+      return { ...state, latestResult: '运行检查点已保存。' };
+    case 'review.completed':
+      return { ...state, latestResult: '审稿已完成。' };
+    case 'review.unavailable':
+      return { ...state, latestResult: '审稿角色不可用，等待 Graph 决策。' };
+    case 'evidence.proposed':
+      return { ...state, latestResult: '正文证据提案已生成。' };
+    case 'writeback.queued':
+      return { ...state, latestResult: '正式写回已进入事务队列。' };
+    case 'writeback.committed':
+      return { ...state, latestResult: '正式写回事务已提交。' };
+    case 'writeback.failed':
+      return { ...state, latestResult: payloadMessage(event) || '正式写回事务失败。' };
+    case 'node.completed':
+      return state;
+    case 'run.failed':
+      return { ...state, latestResult: payloadMessage(event) || payloadCode(event) || '运行失败', paused: false, runControlState: 'failed', running: false };
+    case 'run.completed':
       return { ...state, latestResult: '流水线已完成。', paused: false, runControlState: 'completed', running: false };
-    case 'run_export_ready':
-      return { ...state, latestResult: '导出产物已准备好，等待人工下载或返回工作台。', paused: false, runControlState: 'running', running: false };
-    case 'node_failed':
-      if (event.recovery_state?.needs_recovery) {
-        return { ...state, latestResult: event.message ?? event.error ?? '本阶段执行失败，等待从稳定检查点恢复。', paused: true, runControlState: 'paused', running: false };
-      }
-      return { ...state, latestResult: event.error ?? '本阶段执行失败', runControlState: 'failed' };
+    case 'node.failed':
+      return { ...state, latestResult: payloadMessage(event) || payloadCode(event) || '本阶段执行失败', paused: false, runControlState: 'failed', running: false };
     default:
       return state;
   }
 }
 
+function payloadMessage(event: RunEvent) {
+  const value = event.payload?.message;
+  return typeof value === 'string' ? value : '';
+}
+
+function payloadCode(event: RunEvent) {
+  const value = event.payload?.code;
+  return typeof value === 'string' ? value : '';
+}
+
 function isMemoryEvent(event: RunEvent) {
-  return event.type === 'memory_context_loaded' || event.type === 'memory_writeback_completed';
+  return event.type === 'evidence.proposed' || event.type.startsWith('writeback.');
 }
 
 function stageTarget(stageId: string): InspectorTarget {
   return { kind: 'stage', id: stageId };
-}
-
-function qualityResult(event: RunEvent) {
-  return event.quality_report
-    ? `质量检查完成：Q ${event.quality_report.score.toFixed(2)}，发现 ${event.quality_report.findings.length} 个问题。`
-    : formatResult(event.quality ?? event);
-}
-
-function chapterProgressResult(event: RunEvent) {
-  const completed = event.chapters?.filter((item) => item.status === 'completed').length ?? 0;
-  return `正文进度已更新：${completed}/${event.chapters?.length ?? 0} 章`;
 }

@@ -1,5 +1,4 @@
 import { appearanceLabel, nodeColor, relationSemantics, tierLabels } from './characterNetworkModel';
-import { nodeTier } from '../characterGraphSemantics';
 import type { CharacterGraph } from '../../contracts';
 
 type Props = {
@@ -33,7 +32,7 @@ export function CharacterLedger({ graph, onSelect, selectedId }: Props) {
                   <span aria-hidden="true" className="bible-ledger-dot" style={{ background: nodeColor(node) }} />
                   <span className="bible-ledger-name">{node.name}</span>
                   <span className="bible-ledger-meta">
-                    {tierLabels[nodeTier(node)]}
+                    {tierLabels[node.tier]}
                     {node.faction?.trim() ? ` · ${node.faction}` : ' · 未标注阵营'}
                     {appearance ? ` · ${appearance}` : ''}
                   </span>

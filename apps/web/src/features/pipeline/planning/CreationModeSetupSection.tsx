@@ -22,7 +22,7 @@ export function CreationModeSetupSection({ context = 'review', value, onChange }
         <header>
           <p className="eyebrow">创作控制</p>
           <h2 id={titleId} tabIndex={-1}>修改创作模式</h2>
-          <p>这里决定自动推进范围和人工定稿点，不改变故事设定，也不会在切换时创建运行。</p>
+          <p>这里决定 LangGraph 的决策策略与审稿必需性，不改变故事设定，也不会在切换时创建运行。</p>
         </header>
       ) : null}
       <div aria-label="创作模式" className="setup-mode-options" role="radiogroup">

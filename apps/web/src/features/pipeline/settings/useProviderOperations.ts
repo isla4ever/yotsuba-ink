@@ -158,6 +158,7 @@ export function useProviderOperations({ onOperationSucceeded, onProviderCreated,
       onProviderUpdatedRef.current({
         ...provider,
         model_options: Array.from(new Set([provider.default_model, ...(provider.model_options ?? []), ...result.models].filter(Boolean))),
+        model_supported_parameters: result.model_supported_parameters,
       });
       mark(provider.id, { type: 'ok', message: result.message });
       onOperationSucceededRef.current?.();

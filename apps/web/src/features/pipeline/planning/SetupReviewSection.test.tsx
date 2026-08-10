@@ -5,7 +5,7 @@ import { defaultWorkflow } from '../state/defaultWorkflow';
 import { reviewReferenceCardId } from '../lib/setupProgress';
 import { SetupReviewSection, withReferenceSummary } from './SetupReviewSection';
 
-const infoStage = defaultWorkflow.nodes.find((stage) => stage.type === 'info_recommend') as WorkflowStage;
+const infoStage = defaultWorkflow.nodes.find((stage) => stage.type === 'info') as WorkflowStage;
 
 function completeSteps(): SetupStep[] {
   return [
@@ -39,7 +39,7 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
     expect(html).toContain('创作模式');
     // The mode card quotes qualityModeProfiles for the one-line difference.
     expect(html).toContain('平衡');
-    expect(html).toContain('仅信息推荐定稿');
+    expect(html).toContain('逐阶段与逐章确认');
     // Ledger lists the real steps with edit affordances.
     expect(html).toContain('修改故事起点');
     expect(html).toContain('修改连接 AI 服务');

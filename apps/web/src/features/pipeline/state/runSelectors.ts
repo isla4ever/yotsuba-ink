@@ -6,7 +6,7 @@ export function sortRunEventsNewestFirst(events: RunEvent[]) {
 
 export function selectMemoryEvents(events: RunEvent[]) {
   return events
-    .filter((event) => event.type === 'memory_context_loaded' || event.type === 'memory_writeback_completed')
+    .filter((event) => event.type === 'evidence.proposed' || event.type.startsWith('writeback.'))
     .slice(0, 40);
 }
 
@@ -29,19 +29,21 @@ export function selectStageToResume(
   selectedStageId: string,
 ) {
   const runningStage = events.find((event) => (
-    event.type === 'node_started'
-    && event.node_id
+    event.type === 'node.started'
+    && stageIdForEvent(event)
     && !events.find((candidate) => (
       candidate.node_id === event.node_id
-      && (candidate.type === 'node_completed' || candidate.type === 'node_failed')
+      && (candidate.type === 'node.completed' || candidate.type === 'node.failed')
     ))
-  ))?.node_id;
-  if (runningStage) return runningStage;
+  ));
+  const runningStageId = runningStage ? stageIdForEvent(runningStage) : '';
+  if (runningStageId) return runningStageId;
 
   const completedStage = events.find(
-    (event) => event.type === 'node_completed' && event.node_id,
-  )?.node_id ?? '';
-  return selectNextStageId(stages, completedStage) || selectedStageId || 'info';
+    (event) => event.type === 'artifact.committed' && event.stage_id !== 'text',
+  );
+  const completedStageId = completedStage ? stageIdForEvent(completedStage) : '';
+  return selectNextStageId(stages, completedStageId) || selectedStageId || 'info';
 }
 
 export function selectCheckpointStageId(
@@ -52,32 +54,30 @@ export function selectCheckpointStageId(
 ) {
   if (requestedStageId && stageExists(stages, requestedStageId)) return requestedStageId;
   const latestConfirmed = events.find((event) => (
-    event.type === 'stage_artifact_confirmed'
-    && Boolean(event.node_id)
-    && stageExists(stages, event.node_id ?? '')
+    event.type === 'artifact.committed'
+    && Boolean(stageIdForEvent(event))
+    && stageExists(stages, stageIdForEvent(event))
   ));
-  if (latestConfirmed?.node_id) return latestConfirmed.node_id;
+  if (latestConfirmed) return stageIdForEvent(latestConfirmed);
   const latestCheckpoint = selectLatestCheckpointEvent(events, stages);
-  if (latestCheckpoint?.node_id) return latestCheckpoint.node_id;
+  if (latestCheckpoint) return stageIdForEvent(latestCheckpoint);
   if (selectedStageId && stageExists(stages, selectedStageId)) return selectedStageId;
   return 'info';
 }
 
 export function selectLatestStageArtifact(events: RunEvent[], stageId: string) {
-  const selectedCandidate = events.find(
-    (event) => event.type === 'draft_candidate_selected' && event.node_id === stageId,
-  );
-  if (selectedCandidate?.artifact) return selectedCandidate.artifact;
-  return events.find(
-    (event) => event.type === 'node_completed' && event.node_id === stageId,
-  )?.result;
+  return events.find((event) => (
+    ['artifact.candidate_ready', 'artifact.committed'].includes(event.type)
+    && stageIdForEvent(event) === stageId
+    && event.payload != null
+  ))?.payload;
 }
 
 export function selectLatestCheckpointEvent(events: RunEvent[], stages: WorkflowStage[]) {
   return events.find((event) => (
-    event.type === 'stage_checkpoint_ready'
-    && Boolean(event.node_id)
-    && stageExists(stages, event.node_id ?? '')
+    (event.type === 'checkpoint.saved' || stageCompletedBy(event))
+    && Boolean(stageIdForEvent(event))
+    && stageExists(stages, stageIdForEvent(event))
   ));
 }
 
@@ -88,19 +88,18 @@ export function hasRecoverableRun(
 ) {
   if (!activeRunId) return false;
   if (runControlState === 'failed' || runControlState === 'completed') return false;
-  if (events.some((event) => event.type === 'run_completed')) return false;
-  if (events.some((event) => event.type === 'node_failed') && runControlState !== 'paused') return false;
+  if (events.some((event) => event.type === 'run.completed' || event.type === 'run.failed')) return false;
   return events.length > 0 || runControlState !== 'idle';
 }
 
 export function hasRunningNodeFromEvents(events: RunEvent[]) {
-  if (events.some((event) => event.type === 'run_completed' || event.type === 'node_failed' || event.type === 'run_recovery_required')) return false;
+  if (events.some((event) => event.type === 'run.completed' || event.type === 'run.failed')) return false;
   const nodeIds = [...new Set(events.map((event) => event.node_id).filter(Boolean) as string[])];
   return nodeIds.some((nodeId) => {
     const latestNodeEvent = events.find(
-      (event) => event.node_id === nodeId && event.type.startsWith('node_'),
+      (event) => event.node_id === nodeId && event.type.startsWith('node.'),
     );
-    return latestNodeEvent?.type === 'node_started' && latestNodeEvent.phase !== 'finalizing';
+    return latestNodeEvent?.type === 'node.started';
   });
 }
 
@@ -160,6 +159,17 @@ export function parseApprovalArtifact(value: string) {
 }
 
 function eventTime(event: RunEvent) {
-  const createdAt = event.created_at ? Date.parse(event.created_at) : 0;
+  const createdAt = Date.parse(event.occurred_at);
   return Number.isFinite(createdAt) ? createdAt : 0;
+}
+
+function stageIdForEvent(event: RunEvent) {
+  return event.stage_id || event.node_id?.split('.')[0] || '';
+}
+
+function stageCompletedBy(event: RunEvent) {
+  if (event.type === 'artifact.committed' && event.stage_id !== 'text') return true;
+  return event.type === 'node.completed' && (
+    event.node_id?.endsWith('.checkpoint_stage') || event.node_id === 'text.finish_chapters'
+  );
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ProviderProfile, ProviderTemplate } from '../contracts';
 import { defaultWorkflow } from '../state/defaultWorkflow';
-import { applyProviderTemplate, globalFallbackTargets, providerDeletionBlockReason, providerProfileFromTemplate, replaceProviderProfile, withGlobalFallbackProviders, withoutProviderProfile, withoutStageProviderExceptions } from './settingsWorkflow';
+import { applyProviderTemplate, providerDeletionBlockReason, providerProfileFromTemplate, replaceProviderProfile, withoutProviderProfile, withoutStageProviderExceptions } from './settingsWorkflow';
 
 const provider: ProviderProfile = {
   id: 'image-provider',
@@ -12,6 +12,7 @@ const provider: ProviderProfile = {
   api_key_env: 'NOVEL_IMAGE_API_KEY',
   default_model: 'old-model',
   model_options: ['old-model'],
+  model_supported_parameters: { 'old-model': ['response_format'] },
   enabled: true,
 };
 
@@ -46,6 +47,7 @@ describe('provider templates', () => {
       base_url: template.base_url,
       default_model: template.default_model,
       model_options: ['hy-image-v3.0'],
+      model_supported_parameters: {},
     });
   });
 
@@ -73,13 +75,10 @@ describe('provider templates', () => {
       quality_mode: 'balanced' as const, edges: [],
       nodes: [
         {
-          id: 'cover', type: 'cover_image' as const, label: 'Cover', params: {}, input_refs: [], output_key: 'cover',
-          memory_policy: { read: false, write: false, scope: 'project' as const, kinds: [] },
+          id: 'cover', type: 'cover' as const, label: 'Cover',
           provider_profile_id: provider.id, image_provider_profile_id: provider.id,
           model_settings: { model: 'old-model', temperature: 0.2, max_tokens: 100, top_p: 1, timeout_seconds: 30 },
-          prompt_template_id: '', input_schema: [], output_schema: {},
-          quality_policy: { min_score: 0.8, retry_on_fail: false, require_human_review: false, checks: [] },
-          variant_policy: { enabled: false, candidate_count: 1, judge_provider_profile_id: 'inherit', judge_model: 'old-model', dimensions: [], retry_on_fail: false },
+          prompt_template_id: '', input_schema: [],
         },
       ],
     };
@@ -87,7 +86,6 @@ describe('provider templates', () => {
     const updated = replaceProviderProfile(workflow, next);
 
     expect(updated.nodes[0].model_settings.model).toBe('hy-image-v3.0');
-    expect(updated.nodes[0].variant_policy.judge_model).toBe('old-model');
   });
 
   it('blocks deletion for defaults and stage assignments, but removes unused profiles', () => {
@@ -97,13 +95,10 @@ describe('provider templates', () => {
       prompt_templates: [], stage_configs: {}, batch_policy: { enabled: false, count: 1, parallelism: 1 },
       quality_mode: 'balanced' as const, edges: [],
       nodes: [{
-        id: 'cover', type: 'cover_image' as const, label: 'Cover', params: {}, input_refs: [], output_key: 'cover',
-        memory_policy: { read: false, write: false, scope: 'project' as const, kinds: [] },
+        id: 'cover', type: 'cover' as const, label: 'Cover',
         provider_profile_id: 'text-provider', image_provider_profile_id: provider.id,
         model_settings: { model: 'old-model', temperature: 0.2, max_tokens: 100, top_p: 1, timeout_seconds: 30 },
-        prompt_template_id: '', input_schema: [], output_schema: {},
-        quality_policy: { min_score: 0.8, retry_on_fail: false, require_human_review: false, checks: [] },
-        variant_policy: { enabled: false, candidate_count: 1, judge_provider_profile_id: 'inherit', judge_model: 'old-model', dimensions: [], retry_on_fail: false },
+        prompt_template_id: '', input_schema: [],
       }],
     };
 
@@ -112,22 +107,17 @@ describe('provider templates', () => {
     expect(withoutProviderProfile(workflow, unused.id).provider_profiles.map((item) => item.id)).toEqual([provider.id]);
   });
 
-  it('restores stage service exceptions without changing shared fallback or stage policies', () => {
+  it('restores stage service exceptions without changing stage policies', () => {
     const text = { ...provider, id: 'text-default', kind: 'openai-compatible' as const, is_global_default: true, default_model: 'text-model' };
     const workflow = {
       id: 'workflow', name: 'Workflow', version: '1', global_inputs: [], provider_profiles: [text, { ...provider, is_global_default: true }],
       prompt_templates: [], stage_configs: {}, batch_policy: { enabled: false, count: 1, parallelism: 1 },
       quality_mode: 'balanced' as const, edges: [],
       nodes: [{
-        id: 'cover', type: 'cover_image' as const, label: 'Cover', params: {}, input_refs: [], output_key: 'cover',
-        memory_policy: { read: false, write: false, scope: 'project' as const, kinds: [] },
+        id: 'cover', type: 'cover' as const, label: 'Cover',
         provider_profile_id: 'other-text', image_provider_profile_id: 'other-image',
-        fallback_targets: [{ provider_profile_id: 'other-text', model: 'backup', enabled: true, priority: 1 }],
-        image_fallback_targets: [],
         model_settings: { model: 'other-model', temperature: 0.2, max_tokens: 100, top_p: 1, timeout_seconds: 30 },
-        prompt_template_id: '', input_schema: [], output_schema: {},
-        quality_policy: { min_score: 0.8, retry_on_fail: false, require_human_review: false, checks: [] },
-        variant_policy: { enabled: false, candidate_count: 1, judge_provider_profile_id: 'other-text', judge_model: 'judge', dimensions: [], retry_on_fail: false },
+        prompt_template_id: '', input_schema: [],
       }],
     };
 
@@ -136,33 +126,18 @@ describe('provider templates', () => {
     expect(updated.nodes[0]).toMatchObject({
       provider_profile_id: 'text-default', image_provider_profile_id: 'image-provider',
       model_settings: { model: 'text-model', temperature: 0.2 },
-      variant_policy: { judge_provider_profile_id: 'inherit', judge_model: 'text-model' },
     });
-    expect(updated.nodes[0].fallback_targets?.[0].enabled).toBe(true);
-  });
-});
-
-describe('global fallback projection', () => {
-  it('projects one ordered text chain to every stage', () => {
-    const backupA = { ...defaultWorkflow.provider_profiles[0], id: 'backup-a', name: '备用 A', default_model: 'model-a', is_global_default: false };
-    const backupB = { ...defaultWorkflow.provider_profiles[0], id: 'backup-b', name: '备用 B', default_model: 'model-b', is_global_default: false };
-    const workflow = { ...defaultWorkflow, provider_profiles: [...defaultWorkflow.provider_profiles, backupA, backupB] };
-
-    const updated = withGlobalFallbackProviders(workflow, 'text', [backupB.id, backupA.id]);
-
-    expect(globalFallbackTargets(updated, 'text').map((target) => target.provider_profile_id)).toEqual(['backup-b', 'backup-a']);
-    expect(updated.nodes.every((stage) => stage.fallback_targets?.map((target) => target.priority).join(',') === '1,2')).toBe(true);
-    expect(updated.nodes[0].fallback_targets?.map((target) => target.model)).toEqual(['model-b', 'model-a']);
   });
 
-  it('projects image fallbacks only to the cover stage', () => {
-    const image = defaultWorkflow.provider_profiles.find((item) => item.kind === 'openai-compatible-image')!;
-    const backup = { ...image, id: 'image-backup', name: '封面备用', is_global_default: false };
-    const workflow = { ...defaultWorkflow, provider_profiles: [...defaultWorkflow.provider_profiles, backup] };
+  it('does not reset bindings when no explicit global Provider exists', () => {
+    const workflow = {
+      ...defaultWorkflow,
+      provider_profiles: defaultWorkflow.provider_profiles.map((item) => ({
+        ...item,
+        is_global_default: false,
+      })),
+    };
 
-    const updated = withGlobalFallbackProviders(workflow, 'image', [backup.id]);
-
-    expect(updated.nodes.find((stage) => stage.id === 'cover')?.image_fallback_targets?.[0].provider_profile_id).toBe('image-backup');
-    expect(updated.nodes.filter((stage) => stage.id !== 'cover').every((stage) => !stage.image_fallback_targets?.length)).toBe(true);
+    expect(withoutStageProviderExceptions(workflow)).toBe(workflow);
   });
 });

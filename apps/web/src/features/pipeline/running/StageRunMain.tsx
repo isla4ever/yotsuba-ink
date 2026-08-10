@@ -1,54 +1,45 @@
 import { BookOpenText, PanelLeftOpen } from 'lucide-react';
-import type { ChapterQualityRepairTarget, RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
+import type { GraphRunDefinition, RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
 import { qualityModeProfiles } from '../lib/qualityModes';
-import { InfoRecommendationView } from './InfoRecommendationView';
-import { BalancedVariantFocus, StageDecisionControls } from './StageDecisionControls';
-import { StageCandidateCompare } from './StageCandidateCompare';
-import { CoverStageView } from './CoverStageView';
-import { ExportStageView } from './ExportStageView';
-import { DetailStageView } from './DetailStageView';
-import { OutlineStageView } from './OutlineStageView';
-import { SummaryStageView } from './SummaryStageView';
-import { WritingStageView } from './WritingStageView';
-import { latestApprovedArtifact, latestResult, stageConfig, stageQualityScore, statusText, streamDeltasFor } from './stageRunUtils';
+import { StageDecisionControls } from './StageDecisionControls';
+import { CharacterStageView } from './CharacterStageView';
+import { StoryBriefStageView } from './StoryBriefStageView';
+import { SummaryStageViewVnext } from './SummaryStageViewVnext';
+import { OutlineStageViewVnext } from './OutlineStageViewVnext';
+import { DetailStageViewVnext } from './DetailStageViewVnext';
+import { ChapterStageViewVnext } from './ChapterStageViewVnext';
+import { CoverStageViewVnext } from './CoverStageViewVnext';
+import { ExportStageViewVnext } from './ExportStageViewVnext';
+import {
+  characterBibleSemanticReadiness,
+  coverSemanticReadiness,
+  detailSemanticReadiness,
+  outlineSemanticReadiness,
+  summarySemanticReadiness,
+} from './artifactSemanticReadiness';
+import { isStageEvent, latestApprovedArtifact, latestResult, stageConfig, statusText } from './stageRunUtils';
 import { ArtifactFixtureNotice, StageArtifactStatePanel } from './StageArtifactStatePanel';
 import { currentStageArtifact, stageArtifactState, type StageArtifactDraft } from './stageArtifactState';
-import { coverArtifact, detailArtifact, outlineArtifact, summaryArtifact } from './stageArtifacts';
-import { outlineBaseline, outlineReadiness } from './outlineArtifactModel';
-import { summaryInfoBaseline, summaryReadiness } from './summaryArtifactModel';
-import { detailBaseline, detailReadiness } from './detailArtifactModel';
-import { writingArtifact, writingReadiness } from './writingArtifactModel';
-import { latestDraftRegenerationFailure } from './stageRunFocus';
-import { coverReadiness } from './coverPresentation';
-import { infoArtifactSource } from './infoArtifactSource';
+import { parseCharacterBibleArtifact } from './characterBibleArtifact';
+import { artifactReadiness, parseStoryBriefArtifact, parseSummaryArtifact, parseOutlineArtifact, parseDetailArtifact, parseChapterArtifact, parseCoverArtifact, parseExportArtifact } from './artifactsVnext';
+import { buildDetailObligationOptions, detailObligationRefIds } from './detailObligationRegistry';
 
 type Props = {
   activeRunId: string;
   approvalDraft: string;
   approvalPending: boolean;
   events: RunEvent[];
-  memoryEvents: RunEvent[];
   onApprovalDraftChange: (value: string) => void;
   onApproveBrief: (artifact: string) => Promise<boolean>;
-  onEditInfoCharacter?: () => void;
-  onEditInfoWorldbuilding?: () => void;
   onOpenWorkbench?: () => void;
   onOpenRuntimePanel: (panel: 'character' | 'worldbuilding') => void;
-  onQualityRepairHandled: () => void;
-  onRepairQualityFinding: (target: ChapterQualityRepairTarget) => void;
   onRegenerateBrief: (direction?: string) => Promise<boolean>;
   onConfirmStageArtifact: (stageId: string, artifact?: string) => Promise<boolean>;
-  onRegenerateStageDraft: (stageId: string, direction: string) => void;
-  onRequestVariantCompare: (stageId: string) => void;
-  onSelectBalancedVariant: (stageId: string, variantId: string, modelPicked?: boolean) => void;
-  onSelectDraftCandidate: (stageId: string, candidateKey: string) => void;
-  onSelectedWritingChapter: (chapterId: string) => void;
+  onRegenerateStageDraft: (stageId: string, direction: string, chapterId?: string) => void;
   onStageArtifactDraftChange: (stageId: string, source: string, value: string) => void;
   stageArtifactDraft?: StageArtifactDraft;
-  qualityRepairTarget: ChapterQualityRepairTarget | null;
+  runDefinition: GraphRunDefinition | null;
   stage: WorkflowStage;
-  compareFocus: boolean;
-  draftFocus: boolean;
   workflow: WorkflowDefinition;
 };
 
@@ -57,69 +48,66 @@ export function StageRunMain({
   approvalDraft,
   approvalPending,
   events,
-  memoryEvents,
   onApprovalDraftChange,
   onApproveBrief,
-  onEditInfoCharacter,
-  onEditInfoWorldbuilding,
   onOpenWorkbench,
   onOpenRuntimePanel,
-  onQualityRepairHandled,
-  onRepairQualityFinding,
   onRegenerateBrief,
   onConfirmStageArtifact,
   onRegenerateStageDraft,
-  onRequestVariantCompare,
-  onSelectBalancedVariant,
-  onSelectDraftCandidate,
-  onSelectedWritingChapter,
   onStageArtifactDraftChange,
   stageArtifactDraft,
-  qualityRepairTarget,
+  runDefinition,
   stage,
-  compareFocus,
-  draftFocus,
   workflow,
 }: Props) {
   const config = stageConfig(stage.type);
-  const stageDisplayLabel = stage.type === 'info_recommend' ? '小说信息推荐' : stage.label;
+  const stageDisplayLabel = stage.label;
   const result = latestResult(events, stage.id);
-  const infoSource = infoArtifactSource(events, approvalDraft, approvalPending);
-  const artifactState = stageArtifactState(stage, events, stage.type === 'info_recommend' ? infoSource || result : '');
+  const artifactState = stageArtifactState(stage, events, stage.type === 'info' ? approvalDraft || result : '');
   const sourceArtifactResult = artifactState.status === 'ready' ? artifactState.result : '';
   const artifactResult = currentStageArtifact(sourceArtifactResult, stageArtifactDraft);
-  const infoBaseline = infoArtifactSource(events, approvalDraft, stage.type === 'info_recommend' && approvalPending);
-  const summaryBaseline = latestApprovedArtifact(events, 'summary') || latestResult(events, 'summary');
-  const outlineBaselineArtifact = latestApprovedArtifact(events, 'outline') || latestResult(events, 'outline');
-  const streamDeltas = streamDeltasFor(events, stage.id);
-  const isCompleted = events.some((event) => event.type === 'node_completed' && event.node_id === stage.id);
-  const stageConfirmed = events.some((event) => event.type === 'stage_artifact_confirmed' && event.node_id === stage.id);
-  const showArtifact = artifactState.status === 'ready' || (stage.type === 'chapter_text' && artifactState.status === 'streaming');
-  const summaryStatus = stage.type === 'summary'
-    ? summaryReadiness(summaryArtifact(artifactResult), summaryInfoBaseline(infoBaseline).characters.map((character) => character.name))
+  const chapterArtifact = stage.type === 'text' ? parseChapterArtifact(artifactResult).artifact : null;
+  const characterResult = latestApprovedArtifact(events, 'characters');
+  const characterBible = parseCharacterBibleArtifact(characterResult).artifact;
+  const characters = characterBible?.characters.map(({ id, name }) => ({ id, name })) ?? [];
+  const totalChapters = runDefinition?.book_scale_plan.total_chapters;
+  const volumeWindows = runDefinition?.book_scale_plan.volumes.map((volume) => (
+    volume.chapter_start === volume.chapter_end
+      ? `chapter:${volume.chapter_start}`
+      : `chapter:${volume.chapter_start}-${volume.chapter_end}`
+  )) ?? [];
+  const storyBrief = parseStoryBriefArtifact(latestApprovedArtifact(events, 'info')).artifact;
+  const committedOutline = parseOutlineArtifact(latestApprovedArtifact(events, 'outline')).artifact;
+  const obligationOptions = buildDetailObligationOptions(storyBrief, characterBible, committedOutline);
+  const semanticContext = {
+    characterBible,
+    obligationRefIds: detailObligationRefIds(obligationOptions),
+    requireFrozenScale: Boolean(activeRunId) && !runDefinition,
+    totalChapters,
+  };
+  const isCompleted = events.some((event) => isStageEvent(event, stage.id) && ['artifact.candidate_ready', 'artifact.committed', 'node.completed'].includes(event.type));
+  const stageConfirmed = events.some((event) => (
+    isStageEvent(event, stage.id)
+    && event.type === 'artifact.committed'
+    && (stage.type !== 'text' || event.chapter_id === chapterArtifact?.chapter_id)
+  ));
+  const showArtifact = artifactState.status === 'ready' || (stage.type === 'text' && artifactState.status === 'streaming');
+  const summaryStatus = stage.type === 'summary' ? summarySemanticReadiness(parseSummaryArtifact(artifactResult), semanticContext) : null;
+  const characterStatus = stage.type === 'characters'
+    ? characterBibleSemanticReadiness(parseCharacterBibleArtifact(artifactResult).artifact, semanticContext)
     : null;
-  const outlineStatus = stage.type === 'outline'
-    ? outlineReadiness(outlineArtifact(artifactResult), outlineBaseline(infoBaseline, summaryBaseline))
-    : null;
-  const detailContext = detailBaseline(infoBaseline, outlineBaselineArtifact);
-  const detailStatus = stage.type === 'detail_outline'
-    ? detailReadiness(detailArtifact(artifactResult), detailContext)
-    : null;
-  const writingStatus = stage.type === 'chapter_text'
-    ? writingReadiness(writingArtifact(artifactResult, events))
-    : null;
-  const coverStatus = stage.type === 'cover_image'
-    ? coverReadiness(coverArtifact(artifactResult))
-    : null;
-  const qualityScore = stageQualityScore(events, stage.id);
-  const infoRegenerationFailure = stage.type === 'info_recommend'
-    ? latestDraftRegenerationFailure(stage.id, events)
-    : null;
-  if (compareFocus) return <BalancedVariantFocus events={events} onSelectBalancedVariant={onSelectBalancedVariant} stage={stage} />;
-  if (draftFocus) return <StageCandidateCompare events={events} mode={workflow.quality_mode} onSelectDraftCandidate={onSelectDraftCandidate} stage={stage} />;
+  const outlineStatus = stage.type === 'outline' ? outlineSemanticReadiness(parseOutlineArtifact(artifactResult), semanticContext) : null;
+  const detailStatus = stage.type === 'detail' ? detailSemanticReadiness(parseDetailArtifact(artifactResult), semanticContext) : null;
+  const writingStatus = stage.type === 'text' ? artifactReadiness(parseChapterArtifact(artifactResult)) : null;
+  const coverStatus = stage.type === 'cover' ? coverSemanticReadiness(parseCoverArtifact(artifactResult), {
+    ...semanticContext,
+    coverAssetIds: new Set(events.filter((event) => event.type === 'cover.asset_ready').map((event) => event.payload_ref).filter(Boolean)),
+  }) : null;
+  const exportStatus = stage.type === 'export' ? artifactReadiness(parseExportArtifact(artifactResult)) : null;
   return (
     <>
-      {stage.type === 'info_recommend' ? null : (
+      {stage.type === 'info' ? null : (
         <div className="stage-run-head">
           <div>
             <p className="eyebrow">阶段工作台</p>
@@ -133,9 +121,6 @@ export function StageRunMain({
             ) : null}
             <span>{qualityModeProfiles[workflow.quality_mode].title}</span>
             <span>{statusText(stage, events)}</span>
-            <span title={qualityScore == null ? '当前阶段质量阈值' : '质量检查评分'}>
-              {qualityScore == null ? `阈值 ${stage.quality_policy.min_score.toFixed(2)}` : `Q ${qualityScore.toFixed(2)}`}
-            </span>
           </div>
         </div>
       )}
@@ -144,94 +129,44 @@ export function StageRunMain({
         <StageArtifactStatePanel
           label={stageDisplayLabel}
           onReturn={onOpenWorkbench}
-          runStarted={Boolean(activeRunId) || events.some((event) => event.type === 'run_started')}
+          runStarted={Boolean(activeRunId) || events.some((event) => event.type === 'run.started')}
           stageType={stage.type}
           state={artifactState}
         />
       ) : null}
-      {showArtifact && stage.type === 'info_recommend' ? (
-        <InfoRecommendationView
-          approvalDraft={infoSource || artifactResult}
-          approvalPending={approvalPending}
-          qualityMode={workflow.quality_mode}
-          regenerationFailed={Boolean(infoRegenerationFailure)}
-          stage={stage}
-          onApprovalDraftChange={onApprovalDraftChange}
-          onApproveBrief={onApproveBrief}
-          onEditCharacter={onEditInfoCharacter ?? (() => undefined)}
-          onEditWorldbuilding={onEditInfoWorldbuilding ?? (() => undefined)}
-          onRegenerateBrief={onRegenerateBrief}
-        />
-      ) : null}
-      {showArtifact && stage.type === 'summary' ? (
-        <SummaryStageView
-          baseline={infoBaseline}
-          deltas={streamDeltas}
-          generating={!isCompleted}
+      {showArtifact && stage.type === 'info' ? <StoryBriefStageView onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} /> : null}
+      {showArtifact && stage.type === 'characters' ? (
+        <CharacterStageView
           onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))}
-          qualityMode={workflow.quality_mode}
           readOnly={stageConfirmed}
           result={artifactResult}
           sourceResult={sourceArtifactResult}
+          totalChapters={totalChapters}
         />
       ) : null}
-      {showArtifact && stage.type === 'outline' ? (
-        <OutlineStageView
-          baseline={outlineBaseline(infoBaseline, summaryBaseline)}
-          deltas={streamDeltas}
-          generating={!isCompleted}
-          onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))}
-          readiness={outlineStatus ?? { completed: 0, missingLabels: [], ready: false, total: 0 }}
-          readOnly={stageConfirmed}
-          result={artifactResult}
-          sourceResult={sourceArtifactResult}
-        />
+      {showArtifact && stage.type === 'summary' ? <SummaryStageViewVnext characters={characters} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} /> : null}
+      {showArtifact && stage.type === 'outline' ? <OutlineStageViewVnext characters={characters} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} volumeWindows={volumeWindows} /> : null}
+      {showArtifact && stage.type === 'detail' ? <DetailStageViewVnext characters={characters} obligationOptions={obligationOptions} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} /> : null}
+      {showArtifact && stage.type === 'text' ? <ChapterStageViewVnext onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} /> : null}
+      {showArtifact && stage.type === 'cover' ? <CoverStageViewVnext onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} runId={activeRunId} sourceResult={sourceArtifactResult} /> : null}
+      {showArtifact && stage.type === 'export' ? <ExportStageViewVnext deliveryRevision={events.find((event) => event.stage_id === 'export' && event.type === 'artifact.committed')?.event_id ?? ''} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} runId={activeRunId} /> : null}
+      {(characterStatus ?? summaryStatus ?? outlineStatus ?? detailStatus ?? coverStatus)?.missingLabels.length ? (
+        <div className="vnext-contract-warning" role="alert">
+          {(characterStatus ?? summaryStatus ?? outlineStatus ?? detailStatus ?? coverStatus)?.missingLabels.join('、')}
+        </div>
       ) : null}
-      {showArtifact && stage.type === 'detail_outline' ? (
-        <DetailStageView
-          baseline={detailContext}
-          deltas={streamDeltas}
-          generating={!isCompleted}
-          onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))}
-          readiness={detailStatus ?? { completed: 0, missingLabels: [], ready: false, total: 0 }}
-          readOnly={stageConfirmed}
-          result={artifactResult}
-          sourceResult={sourceArtifactResult}
-        />
-      ) : null}
-      {showArtifact && stage.type === 'chapter_text' ? (
-        <WritingStageView
-          activeRunId={activeRunId}
-          dirty={Boolean(stageArtifactDraft && stageArtifactDraft.source === sourceArtifactResult)}
-          events={events}
-          memoryEvents={memoryEvents}
-          onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))}
-          onOpenRuntimePanel={onOpenRuntimePanel}
-          onQualityRepairHandled={onQualityRepairHandled}
-          onRepairQualityFinding={onRepairQualityFinding}
-          onSelectedChapterChange={onSelectedWritingChapter}
-          qualityRepairTarget={qualityRepairTarget}
-          readOnly={stageConfirmed}
-          result={artifactResult}
-          sourceResult={sourceArtifactResult}
-          stageId={stage.id}
-          workflow={workflow}
-        />
-      ) : null}
-      {showArtifact && stage.type === 'cover_image' ? <CoverStageView activeRunId={activeRunId} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} /> : null}
-      {showArtifact && stage.type === 'export_artifact' ? <ExportStageView activeRunId={activeRunId} result={artifactResult} /> : null}
-      {!['info_recommend', 'summary', 'outline', 'detail_outline', 'chapter_text', 'cover_image', 'export_artifact'].includes(stage.type) ? (
+      {!['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export'].includes(stage.type) ? (
         <section className="stage-run-card"><BookOpenText size={16} />暂未定义该阶段展示。</section>
       ) : null}
-      {artifactState.status === 'ready' && !['info_recommend', 'export_artifact'].includes(stage.type) ? (
+      {artifactState.status === 'ready' && stage.type !== 'info' ? (
         <StageDecisionControls
           completed={isCompleted}
           events={events}
-          artifactMissingLabels={summaryStatus?.missingLabels ?? outlineStatus?.missingLabels ?? detailStatus?.missingLabels ?? writingStatus?.missingLabels ?? coverStatus?.missingLabels ?? []}
-          artifactReady={summaryStatus?.ready ?? outlineStatus?.ready ?? detailStatus?.ready ?? writingStatus?.ready ?? coverStatus?.ready ?? true}
+          artifactMissingLabels={characterStatus?.missingLabels ?? summaryStatus?.missingLabels ?? outlineStatus?.missingLabels ?? detailStatus?.missingLabels ?? writingStatus?.missingLabels ?? coverStatus?.missingLabels ?? exportStatus?.missingLabels ?? []}
+          artifactReady={characterStatus?.ready ?? summaryStatus?.ready ?? outlineStatus?.ready ?? detailStatus?.ready ?? writingStatus?.ready ?? coverStatus?.ready ?? exportStatus?.ready ?? true}
           onConfirmStageArtifact={(stageId) => onConfirmStageArtifact(stageId, artifactResult)}
           onRegenerateStageDraft={onRegenerateStageDraft}
-          onRequestVariantCompare={onRequestVariantCompare}
+          chapterId={chapterArtifact?.chapter_id ?? ''}
           stage={stage}
           workflow={workflow}
         />

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getRun, isRunNotFoundError } from '../services/runApi';
-import type { WorkflowDefinition } from '../contracts';
 import type { StoredRunControlState } from './storage';
 import {
-  resolveCachedRunRecovery,
   resolveServerRunRecovery,
   type HydratedRunState,
   type RunRecoveryDiscardReason,
@@ -16,7 +14,6 @@ type RunRecoveryHandlers = {
   onDiscard: (reason: RunRecoveryDiscardReason) => void;
   onRestore: (state: HydratedRunState, reconnect: boolean) => void | Promise<void>;
   onSettled?: () => void;
-  onWorkflow?: (workflow: WorkflowDefinition) => void;
   onWarning: (message: string) => void;
 };
 
@@ -68,7 +65,6 @@ export function useRunRecovery({
       try {
         const snapshot = await loadRun(stored.activeRunId, controller.signal);
         if (!recovery.active) return;
-        if (snapshot.workflow) handlersRef.current.onWorkflow?.(snapshot.workflow);
         dispatchRecovery(
           resolveServerRunRecovery(snapshot, stored.activeRunId),
           handlersRef.current,
@@ -80,14 +76,7 @@ export function useRunRecovery({
           handlersRef.current.onWarning('上次运行已不存在，已清理本地恢复点。');
           return;
         }
-        const cached = resolveCachedRunRecovery({
-          ...stored,
-          events: stored.events ?? [],
-        });
-        dispatchRecovery(cached, handlersRef.current);
-        if (cached.kind === 'restore') {
-          handlersRef.current.onWarning('暂时无法连接运行服务，已保留本地恢复点；刷新页面可重新尝试连接。');
-        }
+        handlersRef.current.onWarning('暂时无法读取 LangGraph 运行状态；本地缓存不会接管恢复权威，请稍后重试。');
       } finally {
         if (activeRecoveryRef.current === recovery) activeRecoveryRef.current = null;
         handlersRef.current.onSettled?.();
@@ -111,7 +100,7 @@ function dispatchRecovery(
 ) {
   if (resolution.kind === 'discard') {
     handlers.onDiscard(resolution.reason);
-    if (resolution.reason === 'invalid' || resolution.reason === 'empty') {
+    if (resolution.reason === 'invalid') {
       handlers.onWarning('上次运行缺少有效的已保存状态，已清理本机恢复点。');
     }
     if (resolution.reason === 'failed') {

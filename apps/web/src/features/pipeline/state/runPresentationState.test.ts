@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runActionPresentation } from './runPresentationState';
+import { modeRoutePolicy, runActionPresentation } from './runPresentationState';
 
 const base = {
   approvalPending: false,
@@ -24,7 +24,7 @@ describe('runActionPresentation delivery gates', () => {
     expect(runActionPresentation({
       ...base,
       selectedStageStatus: 'attention',
-      selectedStageType: 'cover_image',
+      selectedStageType: 'cover',
     })).toMatchObject({ key: 'awaiting-confirmation', label: '等待封面资产', disabled: true });
   });
 
@@ -32,7 +32,38 @@ describe('runActionPresentation delivery gates', () => {
     expect(runActionPresentation({
       ...base,
       selectedStageStatus: 'attention',
-      selectedStageType: 'export_artifact',
+      selectedStageType: 'export',
     })).toMatchObject({ key: 'awaiting-confirmation', label: '等待导出就绪', disabled: true });
+  });
+
+  it('projects balanced LangGraph interrupts as stage decisions', () => {
+    expect(runActionPresentation({
+      ...base,
+      approvalPending: true,
+      checkpointContinueReady: false,
+      qualityMode: 'balanced',
+      selectedStageCheckpointReady: false,
+    })).toMatchObject({ key: 'awaiting-confirmation', label: '等待阶段定稿', disabled: true });
+  });
+
+  it('routes the info settlement to the character bible', () => {
+    expect(runActionPresentation({
+      ...base,
+      checkpointContinueReady: false,
+      infoContinueReady: true,
+      selectedStageType: 'info',
+    })).toMatchObject({ key: 'continue', label: '继续进入人物圣经' });
+  });
+});
+
+describe('modeRoutePolicy', () => {
+  it('keeps all stage routes available for balanced and deep modes', () => {
+    expect(modeRoutePolicy('balanced', false).stageRoutes).toBe('all');
+    expect(modeRoutePolicy('balanced', true)).toEqual({ planningSurface: 'cockpit', stageRoutes: 'all' });
+    expect(modeRoutePolicy('deep', false).stageRoutes).toBe('all');
+  });
+
+  it('keeps fast mode in its read-only cockpit projection', () => {
+    expect(modeRoutePolicy('fast', true)).toEqual({ planningSurface: 'cockpit', stageRoutes: 'none' });
   });
 });

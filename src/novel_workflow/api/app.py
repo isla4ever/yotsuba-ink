@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from novel_workflow.api.bootstrap import init_app_state
-from novel_workflow.api.routes import chapter_revisions_router, chapter_reviews_router, cover_assets_router, exports_router, knowledge_router, projects_router, prompts_router, provider_models_router, providers_router, references_router, run_history_router, runs_router, workflow_router
-from novel_workflow.references.context_injection import enrich_reference_summary as _enrich_reference_summary
+from novel_workflow.api.routes import archive_runs_router, cover_assets_router, knowledge_router, projects_router, prompts_router, provider_models_router, providers_router, references_router, run_history_router, runs_router, workflow_router
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    await app.state.narrative_execution.recover_incomplete()
+    yield
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Yotsuba Ink API", version="0.1.0")
+    app = FastAPI(title="Yotsuba Ink API", version="0.1.0", lifespan=_lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -36,12 +42,10 @@ def create_app() -> FastAPI:
     app.include_router(prompts_router)
     app.include_router(references_router)
     app.include_router(knowledge_router)
+    app.include_router(archive_runs_router)
     app.include_router(run_history_router)
-    app.include_router(runs_router)
     app.include_router(cover_assets_router)
-    app.include_router(chapter_revisions_router)
-    app.include_router(chapter_reviews_router)
-    app.include_router(exports_router)
+    app.include_router(runs_router)
     return app
 
 

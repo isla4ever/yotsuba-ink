@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setStorageProjectScope } from './projectScope';
 import {
-  loadLocalRunHistory,
   loadRunControlLocally,
   qualityModeStorageKey,
   runControlStorageKey,
@@ -10,8 +9,9 @@ import {
   workflowWithActiveRunMode,
   type StoredRunControlState,
 } from './storage';
-import type { RunEvent, RunHistoryItem } from '../contracts';
+import type { RunEvent } from '../contracts';
 import { defaultWorkflow } from './defaultWorkflow';
+import { buildBookScalePlan } from '../lib/bookScalePlan';
 
 function memoryWindow(seed: Record<string, string> = {}) {
   const store = new Map<string, string>(Object.entries(seed));
@@ -53,13 +53,37 @@ describe('project-scoped workspace storage (mine 1)', () => {
     expect(loadRunControlLocally().activeRunId).toBe('run-1');
   });
 
+  it('round-trips the original run inputs for offline recovery', () => {
+    const win = memoryWindow();
+    vi.stubGlobal('window', win);
+    setStorageProjectScope('proj-inputs');
+    const state = {
+      ...storedRunControl('run-inputs'),
+      inputs: {
+        project_id: 'proj-inputs',
+        title: '恢复角色',
+        theme: '旧港',
+        quality_mode: 'balanced' as const,
+        book_scale_plan: buildBookScalePlan('total_chapters', 3),
+        run_intent: {
+          project_brief: { narrative_profile: '意象织造者' },
+          knowledge_strategy: {},
+        },
+        export_preferences: { format: 'zip' as const, author: '', version_note: '' },
+      },
+    };
+    saveRunControlLocally(state);
+    expect(loadRunControlLocally().inputs?.run_intent?.project_brief.narrative_profile).toBe('意象织造者');
+  });
+
   it('keeps an active run recoverable while the user browses planning', () => {
     const win = memoryWindow();
     vi.stubGlobal('window', win);
+    setStorageProjectScope('proj-1');
     const state = { ...storedRunControl('run-1'), workspacePhase: 'planning' as const };
     saveRunControlLocally(state);
 
-    expect(win.__store.has(runControlStorageKey)).toBe(true);
+    expect(win.__store.has(`${runControlStorageKey}:proj-1`)).toBe(true);
     expect(loadRunControlLocally()).toMatchObject({
       activeRunId: 'run-1',
       selectedId: 'summary',
@@ -67,45 +91,27 @@ describe('project-scoped workspace storage (mine 1)', () => {
     });
   });
 
-  it('uses the active run mode for the hydration shell before recovery finishes', () => {
+  it('does not infer workflow mode from stored event payloads', () => {
     const state = storedRunControl('run-1');
-    state.events = [{ type: 'run_started', run_id: 'run-1', quality_mode: 'deep' } as RunEvent];
-
-    expect(workflowWithActiveRunMode(defaultWorkflow, state).quality_mode).toBe('deep');
+    expect(workflowWithActiveRunMode(defaultWorkflow, state).quality_mode).toBe(defaultWorkflow.quality_mode);
   });
 
-  it('keeps legacy unscoped data readable as the unarchived session and isolated from projects', () => {
-    const win = memoryWindow();
+  it('never reads or writes an unscoped production session', () => {
+    const win = memoryWindow({
+      [runControlStorageKey]: JSON.stringify(storedRunControl('run-old-unscoped')),
+      [qualityModeStorageKey]: 'deep',
+    });
     vi.stubGlobal('window', win);
-    // Legacy pre-Studio data written under the bare key.
     setStorageProjectScope('');
-    saveRunControlLocally(storedRunControl('run-legacy'));
-    saveQualityModeLocally('deep');
-    expect(win.__store.has(runControlStorageKey)).toBe(true);
+    expect(loadRunControlLocally().activeRunId).toBe('');
+    saveRunControlLocally(storedRunControl('run-new-unscoped'));
+    saveQualityModeLocally('fast');
+    expect(win.__store.get(runControlStorageKey)).toContain('run-old-unscoped');
     expect(win.__store.get(qualityModeStorageKey)).toBe('deep');
 
-    // A project session neither reads nor clobbers the legacy keys.
     setStorageProjectScope('proj-1');
     expect(loadRunControlLocally().activeRunId).toBe('');
     saveQualityModeLocally('fast');
-    expect(win.__store.get(qualityModeStorageKey)).toBe('deep');
     expect(win.__store.get(`${qualityModeStorageKey}:proj-1`)).toBe('fast');
-
-    // Returning to the unarchived scope restores the legacy session unchanged.
-    setStorageProjectScope('');
-    expect(loadRunControlLocally().activeRunId).toBe('run-legacy');
-  });
-
-  it('scopes the local run-history mirror per project', () => {
-    const item = { run_id: 'run-1', project_id: 'proj-1' } as RunHistoryItem;
-    const win = memoryWindow({
-      'novel-workflow-local-run-history:proj-1': JSON.stringify([item]),
-      'novel-workflow-local-run-history': JSON.stringify([{ run_id: 'run-legacy', project_id: '' }]),
-    });
-    vi.stubGlobal('window', win);
-    setStorageProjectScope('proj-1');
-    expect(loadLocalRunHistory().map((entry) => entry.run_id)).toEqual(['run-1']);
-    setStorageProjectScope('');
-    expect(loadLocalRunHistory().map((entry) => entry.run_id)).toEqual(['run-legacy']);
   });
 });

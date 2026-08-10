@@ -15,6 +15,7 @@ import {
 import { appendRunEvent, buildRunEventIndex, indexedCompletedStageIds } from './runEventIndex';
 import { createRunEventsStore, type RunEventsSnapshot } from './runEventsStore';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 
 /**
  * Phase 12 F5 render-isolation evidence: streaming deltas published to the
@@ -42,7 +43,7 @@ function CompletedStagesProbe() {
 }
 
 function delta(sequence: number): RunEvent {
-  return { type: 'chapter_delta', run_id: 'run-1', node_id: 'text', delta: `字${sequence}` } as RunEvent;
+  return runEvent('node.started', { run_id: 'run-1', node_id: 'text.generate_prose', stage_id: 'text', sequence, payload: { marker: sequence } });
 }
 
 function snapshotWith(previous: RunEventsSnapshot, event: RunEvent): RunEventsSnapshot {
@@ -123,7 +124,9 @@ describe('PipelineShellProvider run-events split (F5)', () => {
     expect(renders.events).toBe(mountRenders);
 
     act(() => {
-      snapshot = snapshotWith(snapshot, { type: 'node_completed', run_id: 'run-1', node_id: 'info' } as RunEvent);
+      snapshot = snapshotWith(snapshot, runEvent('artifact.committed', {
+        run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {},
+      }));
       store.publish(snapshot);
     });
     // A real completion changes the selected value: exactly one more render.

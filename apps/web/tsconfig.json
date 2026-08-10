@@ -16,6 +16,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"],
+  "include": ["src", "test-fixtures/book-scale-contract-cases.json", "test-fixtures/prompt-material-contract.json"],
   "references": []
 }

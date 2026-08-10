@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from novel_workflow.api.bootstrap import list_provider_profiles
 from novel_workflow.workflows.schemas import WorkflowDefinition, WorkflowDuplicateRequest
-from novel_workflow.workflows.templates import default_workflow
+from novel_workflow.workflows.templates import default_workflow, materialize_workflow_for_execution
 
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
@@ -76,4 +76,4 @@ def _read_or_404(request: Request, workflow_id: str) -> dict:
 def _with_live_profiles(request: Request, raw: dict) -> WorkflowDefinition:
     workflow = WorkflowDefinition.model_validate(raw)
     workflow.provider_profiles = list_provider_profiles(request.app)
-    return workflow
+    return materialize_workflow_for_execution(workflow)

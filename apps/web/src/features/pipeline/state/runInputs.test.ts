@@ -13,7 +13,10 @@ describe('buildRunInputs (mine 4)', () => {
     const inputs = buildRunInputs(defaultWorkflow, 'backend', project);
     expect(inputs.title).toBe('群星回响');
     expect(inputs.project_id).toBe('proj-42');
-    expect((inputs.run_intent?.project_brief as { title?: string }).title).toBe('群星回响');
+    expect((inputs.run_intent.project_brief as { title?: string }).title).toBe('群星回响');
+    expect(inputs.run_intent.project_brief.narrative_profile).toBe('故事建筑师');
+    expect(inputs).not.toHaveProperty('execution_mode');
+    expect(inputs.run_intent).not.toHaveProperty('mode_policy');
   });
 
   it('falls back to the title global input and derives theme from the Info brief', () => {
@@ -22,6 +25,14 @@ describe('buildRunInputs (mine 4)', () => {
     expect(inputs.title).toBe(titleDefault);
     expect(inputs.theme).toBe('旧港、记忆实验、群像、旧案');
     expect(inputs.project_id).toBe('');
+    expect(inputs.book_scale_target).toEqual({
+      target_mode: 'total_chars',
+      target_value: 100000,
+    });
+    expect(inputs).not.toHaveProperty('book_scale_plan');
+    expect(inputs).not.toHaveProperty('stage_configs');
+    expect(inputs.run_intent.knowledge_strategy).toMatchObject({ reference_mode: 'smart_search' });
+    expect(inputs.run_intent).not.toHaveProperty('variant_strategy');
   });
 
   it('derives theme from the configured Info-stage keywords', () => {
@@ -36,7 +47,7 @@ describe('buildRunInputs (mine 4)', () => {
     };
     const inputs = buildRunInputs(themed, 'backend', project);
     expect(inputs.theme).toBe('蒸汽朋克、家族史诗');
-    expect((inputs.run_intent?.project_brief as { theme?: string }).theme).toBe('蒸汽朋克、家族史诗');
+    expect((inputs.run_intent.project_brief as { theme?: string }).theme).toBe('蒸汽朋克、家族史诗');
   });
 
   it('uses the workflow name when no project and no title default exist', () => {

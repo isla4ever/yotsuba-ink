@@ -93,7 +93,7 @@ export function networkCameraFrame(nodes: SpatialNode[], width: number, height: 
   };
   const aspect = Math.max(0.5, width / Math.max(1, height));
   const tangent = Math.tan((75 * Math.PI) / 360);
-  const labelPadding = width < 520 ? 126 : 116;
+  const labelPadding = width < 520 ? 126 : 108;
   const horizontal = Math.max(112, ...positioned.map((node) => Math.abs((node.x ?? 0) - target.x) + labelPadding));
   const vertical = Math.max(92, ...positioned.map((node) => Math.abs((node.y ?? 0) - target.y) + 92));
   const depth = Math.max(0, ...positioned.map((node) => Math.abs((node.z ?? 0) - target.z)));

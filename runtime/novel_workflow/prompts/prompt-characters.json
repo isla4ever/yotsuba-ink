@@ -1,0 +1,11 @@
+{
+  "id": "prompt-characters",
+  "name": "人物圣经 Prompt",
+  "stage_type": "characters",
+  "content": "你是人物编排编辑。基于已定稿 Story Brief，返回唯一的 CharacterBibleArtifact。\n\n在正文前冻结主角、重要配角、功能角色和必要 NPC 槽位。characters 必须有稳定 id、职责、目标、内在需求、人物弧、首次出现窗口和硬边界；relationships 只能引用已注册 character id；npc_slots 只定义用途与限制，不得承担 POV、核心反转或解决主冲突。不要返回 UI 坐标、自评分或阶段重复摘要。",
+  "variables": [
+    "book_scale_plan",
+    "story_brief",
+    "revision_request"
+  ]
+}

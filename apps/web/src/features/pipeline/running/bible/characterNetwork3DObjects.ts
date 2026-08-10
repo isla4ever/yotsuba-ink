@@ -15,7 +15,7 @@ export function createCharacterNode3D(
   options: { compact?: boolean; labelDetail?: NodeLabelDetail } = {},
 ) {
   const group = new THREE.Group();
-  const radius = Math.max(9.4, node.val * 2.02);
+  const radius = Math.max(11, node.val * 2.02);
   const crystal = new THREE.Mesh(
     new THREE.IcosahedronGeometry(radius, 2),
     new THREE.MeshStandardMaterial({
@@ -102,7 +102,7 @@ function createNodeLabel(node: VisualNode, color: string, radius: number, detail
     verticalDirection * (radius + (showRole ? 18 : 13)),
     0,
   );
-  sprite.scale.set(compact ? 86 : 82, showRole ? (compact ? 21.5 : 20.5) : (compact ? 14.8 : 14.1), 1);
+  sprite.scale.set(compact ? 86 : 92, showRole ? (compact ? 21.5 : 23) : (compact ? 14.8 : 15.8), 1);
   sprite.renderOrder = 10;
   return sprite;
 }
@@ -141,7 +141,7 @@ export function createRelationshipLabel3D(
     opacity: 0.9,
     transparent: true,
   }));
-  sprite.scale.set(options.compact ? 58 : 48, options.compact ? 10.9 : 9, 1);
+  sprite.scale.set(options.compact ? 58 : 52, options.compact ? 10.9 : 9.75, 1);
   sprite.renderOrder = 8;
   const labelHash = stableHash(`${endpointId(edge.source)}-${endpointId(edge.target)}-${edge.relation}`);
   const lane = labelHash % 5 - 2;

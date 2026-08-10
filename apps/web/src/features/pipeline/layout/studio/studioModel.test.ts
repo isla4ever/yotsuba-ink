@@ -4,19 +4,17 @@ import {
   mapWithConcurrency,
   relativeTimeLabel,
   stageProgressDots,
-  unarchivedRuns,
 } from './studioModel';
-import type { RunHistoryItem } from '../../contracts';
 
 describe('stageProgressDots', () => {
-  it('derives the seven-stage dot matrix from real completed/current facts', () => {
+  it('derives the eight-stage dot matrix from real completed/current facts', () => {
     const dots = stageProgressDots({
       completed_stage_ids: ['info', 'summary'],
       current_stage: { id: 'outline', label: '分卷大纲' },
     });
-    expect(dots.map((dot) => dot.id)).toEqual(['info', 'summary', 'outline', 'detail', 'text', 'cover', 'export']);
+    expect(dots.map((dot) => dot.id)).toEqual(['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export']);
     expect(dots.map((dot) => dot.status)).toEqual([
-      'completed', 'completed', 'current', 'pending', 'pending', 'pending', 'pending',
+      'completed', 'pending', 'completed', 'current', 'pending', 'pending', 'pending', 'pending',
     ]);
   });
 
@@ -24,20 +22,6 @@ describe('stageProgressDots', () => {
     const dots = stageProgressDots({ completed_stage_ids: ['info'], current_stage: { id: 'info' } });
     expect(dots[0].status).toBe('completed');
     expect(stageProgressDots(null).every((dot) => dot.status === 'pending')).toBe(true);
-  });
-});
-
-describe('unarchivedRuns', () => {
-  const runs = [
-    { run_id: 'run-a', project_id: 'run-a' },
-    { run_id: 'run-b', project_id: '' },
-    { run_id: 'run-c', project_id: 'proj-1' },
-    { run_id: 'run-d', project_id: 'run-d' },
-  ] as RunHistoryItem[];
-
-  it('groups legacy runs (project_id missing or equal to run_id) and excludes archived ones', () => {
-    expect(unarchivedRuns(runs, {}).map((item) => item.run_id)).toEqual(['run-a', 'run-b', 'run-d']);
-    expect(unarchivedRuns(runs, { 'run-d': 'proj-9' }).map((item) => item.run_id)).toEqual(['run-a', 'run-b']);
   });
 });
 

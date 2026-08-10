@@ -1,23 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { RunEvent } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
+import { buildBookScalePlan } from '../lib/bookScalePlan';
 import { captureRunResetSnapshot } from './runResetState';
 
 describe('captureRunResetSnapshot', () => {
   it('captures the current run for a paused local-only restore', () => {
     const events: RunEvent[] = [
-      {
-        type: 'stage_checkpoint_ready',
-        run_id: 'run-reset-safe',
-        node_id: 'detail',
-        artifact: { chapters: [] },
-        created_at: '2026-07-19T12:00:01Z',
-      },
-      {
-        type: 'run_started',
-        run_id: 'run-reset-safe',
-        node_id: 'info',
-        created_at: '2026-07-19T12:00:00Z',
-      },
+      runEvent('checkpoint.saved', { run_id: 'run-reset-safe', stage_id: 'detail', node_id: 'graph.checkpoint', checkpoint_id: 'cp-detail', occurred_at: '2026-07-19T12:00:01Z', sequence: 2 }),
+      runEvent('run.started', { run_id: 'run-reset-safe', stage_id: 'info', node_id: 'load_run', occurred_at: '2026-07-19T12:00:00Z', sequence: 1 }),
     ];
 
     const snapshot = captureRunResetSnapshot({
@@ -31,6 +22,18 @@ describe('captureRunResetSnapshot', () => {
         infoContinueReady: false,
       },
       events,
+      inputs: {
+        project_id: 'project-reset-safe',
+        title: '撤销恢复测试',
+        theme: '旧港',
+        quality_mode: 'balanced',
+        book_scale_plan: buildBookScalePlan('total_chapters', 3),
+        run_intent: {
+          project_brief: { narrative_profile: '心理戏剧家' },
+          knowledge_strategy: {},
+        },
+        export_preferences: { format: 'zip', author: '', version_note: '' },
+      },
       runSource: 'backend',
       state: {
         activeRunId: 'run-reset-safe',
@@ -53,6 +56,7 @@ describe('captureRunResetSnapshot', () => {
       selectedId: 'detail',
     });
     expect(snapshot?.hydrated.events).toEqual(events);
+    expect(snapshot?.hydrated.inputs?.run_intent?.project_brief.narrative_profile).toBe('心理戏剧家');
   });
 
   it('does not offer undo without a persisted event context', () => {

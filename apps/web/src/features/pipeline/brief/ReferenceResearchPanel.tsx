@@ -41,6 +41,7 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
   const keywords = asStringArray(fieldValue(stage, 'reference_keywords'));
   const urls = asStringArray(fieldValue(stage, 'reference_urls'));
   const docIds = asStringArray(fieldValue(stage, 'knowledge_base_doc_ids'));
+  const projectId = knowledgeDocuments[0]?.project_id ?? '';
   const webEnabled = Boolean(fieldValue(stage, 'enable_web_search'));
   const intent = String(fieldValue(stage, 'reference_query_intent') || '');
   const selectedMode = useMemo(() => modes.find((item) => item.key === mode) ?? modes[0], [mode]);
@@ -59,16 +60,21 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
     }
     const requestId = ++requestRef.current;
     setSearchState({ status: 'loading', message: '正在检索真实来源与项目资料...', results: [], retry: 'smart' });
-    const tasks: Array<Promise<unknown>> = [searchKnowledgeReferences({ query, intent, docIds, topK: 6 })];
-    if (webEnabled) tasks.unshift(searchWebReferences(query, 5));
-    const settled = await Promise.allSettled(tasks);
+    const tasks: Array<{ source: 'web' | 'knowledge'; request: Promise<unknown> }> = [];
+    if (webEnabled) tasks.push({ source: 'web', request: searchWebReferences(query, 5) });
+    if (projectId) tasks.push({ source: 'knowledge', request: searchKnowledgeReferences({ query, intent, projectId, docIds, topK: 6 }) });
+    if (!tasks.length) {
+      setSearchState({ status: 'error', message: '请先上传项目资料，或开启公开网页检索。', results: [], retry: null });
+      return;
+    }
+    const settled = await Promise.allSettled(tasks.map((task) => task.request));
     if (requestId !== requestRef.current) return;
-    const webIndex = webEnabled ? 0 : -1;
-    const knowledgeIndex = webEnabled ? 1 : 0;
+    const webIndex = tasks.findIndex((task) => task.source === 'web');
+    const knowledgeIndex = tasks.findIndex((task) => task.source === 'knowledge');
     const web = webIndex >= 0 && settled[webIndex].status === 'fulfilled'
       ? settled[webIndex].value as Awaited<ReturnType<typeof searchWebReferences>>
       : null;
-    const knowledge = settled[knowledgeIndex].status === 'fulfilled'
+    const knowledge = knowledgeIndex >= 0 && settled[knowledgeIndex].status === 'fulfilled'
       ? settled[knowledgeIndex].value as Awaited<ReturnType<typeof searchKnowledgeReferences>>
       : null;
     const errors = settled.filter((result) => result.status === 'rejected').map((result) => errorMessage(result.reason));
@@ -79,7 +85,7 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
     ];
     const summary = buildReferenceSummary(intent || query, web?.results ?? [], knowledge?.results ?? []);
     if (summary) onChange(updateStageInputDefault(stageRef.current, 'reference_summary', summary));
-    const allChannelsFailed = !knowledge && (!webEnabled || !web);
+    const allChannelsFailed = !knowledge && !web;
     setSearchState({
       status: allChannelsFailed ? 'error' : results.length ? 'success' : 'empty',
       message: searchOutcomeMessage(results.length, errors, knowledge?.message),
@@ -95,10 +101,14 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
       setSearchState({ status: 'error', message: '请填写检索重点、参考关键词，或选择知识库文档。', results: [], retry: null });
       return;
     }
+    if (!projectId) {
+      setSearchState({ status: 'error', message: '请先上传当前项目的知识库文档。', results: [], retry: null });
+      return;
+    }
     const requestId = ++requestRef.current;
     setSearchState({ status: 'loading', message: '正在检索已选项目资料...', results: [], retry: 'knowledge' });
     try {
-      const response = await searchKnowledgeReferences({ query, intent, docIds, topK: 6 });
+      const response = await searchKnowledgeReferences({ query, intent, projectId, docIds, topK: 6 });
       if (requestId !== requestRef.current) return;
       const results = response.results.map(knowledgeResultToView);
       const summary = summarizeKnowledgeResults(response.results);
@@ -121,7 +131,7 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
     <section aria-busy={searchState.status === 'loading'} className="reference-panel info-reference-panel">
       <div className="reference-panel-head">
         <span>{selectedMode.icon}<span>参考资料</span></span>
-        <small>参考摘要会进入小说信息推荐阶段，只展示可追溯的真实来源。</small>
+        <small>参考摘要只进入前置创作立项，并保留可追溯的真实来源。</small>
       </div>
       <ReferenceModeTabs activeMode={mode} idBase={tabsId} items={modes} onChange={updateMode} />
 
@@ -155,7 +165,7 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
             <div className="knowledge-doc-list">
               {knowledgeDocuments.length ? knowledgeDocuments.map((doc) => (
                 <button aria-pressed={docIds.includes(doc.doc_id)} className={docIds.includes(doc.doc_id) ? 'selected' : ''} key={doc.doc_id} onClick={() => toggleDocument(stage, docIds, doc.doc_id, onChange)} type="button">
-                  <strong>{doc.title}</strong><small>{doc.chunk_count} 个片段 · {doc.backend === 'frontend-demo' ? '本机演示' : '语义索引'}</small>
+                  <strong>{doc.title}</strong><small>{doc.chunk_count} 个片段 · 语义索引</small>
                 </button>
               )) : <p className="reference-message">暂无知识库文档，请先打开知识库管理器上传资料。</p>}
             </div>

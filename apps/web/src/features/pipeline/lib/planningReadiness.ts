@@ -8,13 +8,14 @@ export type StageConfigurationReadiness = {
 };
 
 const artifactLabels: Record<WorkflowStage['type'], string> = {
-  info_recommend: '立项设定与人物关系',
-  summary: '完整梗概与故事结构',
-  outline: '分卷节拍与冲突推进',
-  detail_outline: '章节施工图与伏笔矩阵',
-  chapter_text: '章节正文与修订版本',
-  cover_image: '封面方案与视觉提示词',
-  export_artifact: '校验清单与交付文件包',
+  info: '创作契约与世界规则',
+  characters: '人物职责、关系与出场窗口',
+  summary: '故事脊柱与人物结局',
+  outline: '分卷节拍与叙事窗口',
+  detail: '章节施工图、义务与交接',
+  text: '章节正文定稿',
+  cover: '封面简报与选定资产',
+  export: '版本选择与交付格式',
 };
 
 export function stageArtifactLabel(stage: WorkflowStage) {

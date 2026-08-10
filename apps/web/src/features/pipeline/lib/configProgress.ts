@@ -19,7 +19,7 @@ export function buildConfigProgress(
   const info = workflow.nodes.find((stage) => stage.id === 'info');
   const infoDefaults = fieldDefaults(info);
   const hasModelConfig = providerReadiness.status === 'ready' && Boolean(providerReadiness.report?.ok);
-  const briefKeys = ['genre', 'target_length', 'target_words_range', 'audience', 'core_concept', 'keywords', 'taboos'];
+  const briefKeys = ['genre', 'book_scale_target_mode', 'book_scale_target_value', 'audience', 'core_concept', 'keywords', 'taboos'];
   const hasBrief = briefKeys.every((key) => hasValue(infoDefaults[key]));
   const referenceMode = String(infoDefaults.reference_mode || 'smart_search');
   const hasReference = referenceMode === 'smart_search'
@@ -29,11 +29,7 @@ export function buildConfigProgress(
       : hasValue(infoDefaults.reference_query_intent) || hasValue(infoDefaults.knowledge_base_doc_ids);
   const needsKnowledge = referenceMode === 'knowledge_base' || (referenceMode === 'smart_search' && infoDefaults.enable_web_search === false);
   const hasKnowledge = !needsKnowledge || knowledgeDocuments.length > 0 || hasValue(infoDefaults.knowledge_base_doc_ids);
-  const hasQuality = Boolean(workflow.quality_mode) && workflow.nodes.every((stage) => (
-    Number.isFinite(stage.quality_policy.min_score)
-    && stage.quality_policy.min_score >= 0
-    && stage.quality_policy.min_score <= 1
-  ));
+  const hasQuality = ['fast', 'balanced', 'deep'].includes(workflow.quality_mode);
   const items = [
     { key: 'model', label: '模型/API', done: hasModelConfig },
     { key: 'brief', label: '小说 Brief', done: hasBrief },

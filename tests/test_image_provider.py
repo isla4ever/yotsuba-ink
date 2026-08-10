@@ -9,7 +9,12 @@ import pytest
 from openai import AsyncOpenAI
 
 from novel_workflow.providers.openai_compat import ProviderResponseError
-from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
+from novel_workflow.providers.openai_image import (
+    OpenAICompatibleImageProvider,
+    _download_remote_image,
+    normalize_image_base_url,
+)
+from novel_workflow.storage.image_assets import inspect_image_asset
 from tests.fakes import fake_png_bytes
 
 
@@ -20,6 +25,85 @@ def sdk_client(handler, *, base_url: str = "https://images.example/v1") -> Async
         max_retries=0,
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
+
+
+def test_image_base_url_strips_a_duplicated_endpoint_suffix() -> None:
+    assert normalize_image_base_url(
+        "https://open.bigmodel.cn/api/paas/v4/images/generations",
+        endpoint_path="/images/generations",
+    ) == "https://open.bigmodel.cn/api/paas/v4"
+    assert normalize_image_base_url(
+        "https://images.example/v1",
+        endpoint_path="/images/generations",
+    ) == "https://images.example/v1"
+
+
+def test_remote_image_uses_verified_bytes_when_cdn_mime_is_wrong(monkeypatch) -> None:
+    content = fake_png_bytes()
+
+    class Response:
+        status_code = 200
+        headers = {"content-type": "image/jpeg", "content-length": str(len(content))}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def iter_content(self, *, chunk_size: int):
+            del chunk_size
+            yield content
+
+    monkeypatch.setattr(
+        "novel_workflow.providers.openai_image.requests.get",
+        lambda *_args, **_kwargs: Response(),
+    )
+
+    downloaded, declared_mime = _download_remote_image("https://cdn.example/cover", 30)
+
+    assert declared_mime == ""
+    assert inspect_image_asset(downloaded, declared_mime).mime_type == "image/png"
+
+
+@pytest.mark.asyncio
+async def test_zhipu_image_uses_normalized_endpoint_and_hd_quality() -> None:
+    calls: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append({"url": str(request.url), "body": json.loads(request.content)})
+        encoded = base64.b64encode(fake_png_bytes()).decode("ascii")
+        return httpx.Response(200, json={"data": [{"b64_json": encoded}]})
+
+    client = sdk_client(handler, base_url="https://open.bigmodel.cn/api/paas/v4")
+    provider = OpenAICompatibleImageProvider(
+        "https://open.bigmodel.cn/api/paas/v4/images/generations",
+        "secret",
+        "glm-image",
+        template_id="zhipu-cogview-image",
+        client=client,
+    )
+    try:
+        await provider.generate_cover(
+            "literary cover",
+            context={"size": "1024x1536", "quality": "medium"},
+        )
+    finally:
+        await client.close()
+
+    assert provider.base_url == "https://open.bigmodel.cn/api/paas/v4"
+    assert calls[0] == {
+        "url": "https://open.bigmodel.cn/api/paas/v4/images/generations",
+        "body": {
+            "model": "glm-image",
+            "prompt": "literary cover",
+            "size": "1024x1536",
+            "quality": "hd",
+        },
+    }
 
 
 @pytest.mark.asyncio
@@ -48,19 +132,7 @@ async def test_openai_image_provider_returns_binary_and_sends_idempotency_key() 
 
 
 @pytest.mark.asyncio
-async def test_openai_image_provider_rejects_unsafe_asset_url() -> None:
-    client = sdk_client(lambda request: httpx.Response(200, json={"data": [{"url": "http://127.0.0.1/private.png"}]}))
-    provider = OpenAICompatibleImageProvider("https://images.example/v1", "secret", "gpt-image-1", client=client)
-
-    try:
-        with pytest.raises(ProviderResponseError, match="public HTTPS"):
-            await provider.generate_cover("mist harbor", context={})
-    finally:
-        await client.close()
-
-
-@pytest.mark.asyncio
-async def test_tokenhub_template_uses_vendor_image_contract() -> None:
+async def test_gpt_image_2_gateway_requests_base64_contract() -> None:
     calls: list[dict[str, Any]] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -70,23 +142,41 @@ async def test_tokenhub_template_uses_vendor_image_contract() -> None:
 
     client = sdk_client(handler)
     provider = OpenAICompatibleImageProvider(
-        "https://tokenhub.tencentmaas.com/v1",
+        "https://images.example/v1",
         "secret",
-        "hy-image-v3.0",
-        template_id="tokenhub-hunyuan-image",
+        "gpt-image-2",
+        template_id="gpt-image-2-gateway",
         client=client,
     )
     try:
-        await provider.generate_cover("mist harbor", context={"size": "1024x1536", "quality": "high"})
+        result = await provider.generate_cover(
+            "mist harbor",
+            context={"size": "1024x1536", "quality": "high"},
+        )
     finally:
         await client.close()
 
+    assert result.content == fake_png_bytes()
     assert calls[0] == {
-        "model": "hy-image-v3.0",
+        "model": "gpt-image-2",
         "prompt": "mist harbor",
-        "size": "1024:1536",
-        "images": 1,
+        "size": "1024x1536",
+        "n": 1,
+        "quality": "high",
+        "response_format": "b64_json",
     }
+
+
+@pytest.mark.asyncio
+async def test_openai_image_provider_rejects_unsafe_asset_url() -> None:
+    client = sdk_client(lambda request: httpx.Response(200, json={"data": [{"url": "http://127.0.0.1/private.png"}]}))
+    provider = OpenAICompatibleImageProvider("https://images.example/v1", "secret", "gpt-image-1", client=client)
+
+    try:
+        with pytest.raises(ProviderResponseError, match="public HTTPS"):
+            await provider.generate_cover("mist harbor", context={})
+    finally:
+        await client.close()
 
 
 @pytest.mark.asyncio
@@ -150,7 +240,7 @@ async def test_openrouter_template_uses_dedicated_image_endpoint() -> None:
         "body": {
             "model": "image-model",
             "prompt": "mist harbor",
-            "resolution": "1024x1536",
+            "size": "1024x1536",
             "n": 1,
             "quality": "medium",
         },
@@ -170,7 +260,7 @@ async def test_xai_template_maps_dimensions_to_aspect_ratio() -> None:
     provider = OpenAICompatibleImageProvider(
         "https://api.x.ai/v1",
         "secret",
-        "grok-imagine-image",
+        "grok-imagine-image-quality",
         template_id="xai-image",
         client=client,
     )
@@ -181,7 +271,7 @@ async def test_xai_template_maps_dimensions_to_aspect_ratio() -> None:
 
     assert result.content == fake_png_bytes()
     assert calls[0] == {
-        "model": "grok-imagine-image",
+        "model": "grok-imagine-image-quality",
         "prompt": "mist harbor",
         "aspect_ratio": "2:3",
         "n": 1,
@@ -218,6 +308,71 @@ async def test_together_template_sends_width_height_and_base64_contract() -> Non
         "prompt": "mist harbor",
         "width": 1024,
         "height": 1536,
+        "n": 1,
+        "response_format": "base64",
+        "output_format": "png",
+    }
+
+
+@pytest.mark.asyncio
+async def test_together_flux_schnell_uses_api_schema_dimensions() -> None:
+    calls: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(json.loads(request.content))
+        encoded = base64.b64encode(fake_png_bytes()).decode("ascii")
+        return httpx.Response(200, json={"data": [{"b64_json": encoded}]})
+
+    client = sdk_client(handler, base_url="https://api.together.ai/v1")
+    provider = OpenAICompatibleImageProvider(
+        "https://api.together.ai/v1",
+        "secret",
+        "black-forest-labs/FLUX.1-schnell-Free",
+        template_id="together-image",
+        client=client,
+    )
+    try:
+        await provider.generate_cover("mist harbor", context={"size": "1024x1536"})
+    finally:
+        await client.close()
+
+    assert calls[0] == {
+        "model": "black-forest-labs/FLUX.1-schnell-Free",
+        "prompt": "mist harbor",
+        "width": 1024,
+        "height": 1536,
+        "n": 1,
+        "response_format": "base64",
+        "output_format": "png",
+    }
+
+
+@pytest.mark.asyncio
+async def test_together_flux_kontext_uses_model_specific_aspect_ratio() -> None:
+    calls: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(json.loads(request.content))
+        encoded = base64.b64encode(fake_png_bytes()).decode("ascii")
+        return httpx.Response(200, json={"data": [{"b64_json": encoded}]})
+
+    client = sdk_client(handler, base_url="https://api.together.ai/v1")
+    provider = OpenAICompatibleImageProvider(
+        "https://api.together.ai/v1",
+        "secret",
+        "black-forest-labs/FLUX.1-kontext-pro",
+        template_id="together-image",
+        client=client,
+    )
+    try:
+        await provider.generate_cover("mist harbor", context={"size": "1024x1536"})
+    finally:
+        await client.close()
+
+    assert calls[0] == {
+        "model": "black-forest-labs/FLUX.1-kontext-pro",
+        "prompt": "mist harbor",
+        "aspect_ratio": "2:3",
         "n": 1,
         "response_format": "base64",
         "output_format": "png",

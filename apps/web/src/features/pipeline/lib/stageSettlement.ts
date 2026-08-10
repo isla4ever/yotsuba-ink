@@ -1,62 +1,41 @@
 import type { RunEvent, WorkflowStage } from '../contracts';
-import { stageUsageCostUsd, stageUsageElapsedMs, stageUsageFromEvents, stageUsageTokens } from './stageUsage';
 
-/**
- * Phase 12 D7: real settlement facts for a completed stage — words, usage,
- * elapsed time and the quality gate score (D1 data path). Shared between the
- * route settlement overlay and the cockpit settlement summary card.
- */
 export type StageSettlementSummary = {
-  elapsedMs: number | null;
-  tokens: number | null;
-  costUsd: number | null;
-  words: number;
-  qualityScore: number | null;
-  qualityFindings: number;
-  message: string;
-  nextStep: string;
+  checkpointId: string;
+  committedArtifact: boolean;
+  reviewCount: number;
+  unavailableReviewCount: number;
+  writebackStatus: 'none' | 'queued' | 'committed' | 'failed';
 };
 
 export function stageSettlementSummary(events: RunEvent[], stage: Pick<WorkflowStage, 'id'>): StageSettlementSummary {
-  const usage = stageUsageFromEvents(events, stage.id);
-  const summary = events.find((event) => event.type === 'stage_summary_ready' && event.node_id === stage.id);
-  const quality = events.find((event) => event.type === 'quality_check_completed' && event.node_id === stage.id)?.quality_report;
+  const stageEvents = events.filter((event) => event.stage_id === stage.id);
+  const writeback = stageEvents.find((event) => event.type.startsWith('writeback.'));
   return {
-    costUsd: stageUsageCostUsd(usage),
-    elapsedMs: stageUsageElapsedMs(usage) ?? positiveOrNull(Number(summary?.elapsed_ms ?? 0)),
-    message: summary?.message ?? '',
-    nextStep: String(summary?.next_step ?? ''),
-    qualityFindings: quality?.findings.length ?? 0,
-    qualityScore: quality ? quality.score : null,
-    tokens: stageUsageTokens(usage),
-    words: settlementWordCount(events, stage.id),
+    checkpointId: stageEvents.find((event) => event.type === 'checkpoint.saved')?.checkpoint_id ?? '',
+    committedArtifact: stageEvents.some((event) => event.type === 'artifact.committed'),
+    reviewCount: stageEvents.filter((event) => event.type === 'review.completed').length,
+    unavailableReviewCount: stageEvents.filter((event) => event.type === 'review.unavailable').length,
+    writebackStatus: writeback?.type === 'writeback.queued'
+      ? 'queued'
+      : writeback?.type === 'writeback.committed'
+        ? 'committed'
+        : writeback?.type === 'writeback.failed'
+          ? 'failed'
+          : 'none',
   };
 }
 
-function settlementWordCount(events: RunEvent[], stageId: string): number {
-  const chapterWords = events.find((event) => event.type === 'chapter_progress_updated' && event.node_id === stageId)
-    ?.chapters?.reduce((sum, item) => sum + item.words, 0);
-  if (chapterWords) return chapterWords;
-  return events.find((event) => event.type === 'chapter_completed' && event.node_id === stageId)?.words ?? 0;
-}
-
-export function formatSettlementMs(value: number): string {
-  if (value < 1000) return `${value}ms`;
-  return `${(value / 1000).toFixed(1)}s`;
-}
-
 export function settlementNextStageLabel(next: string): string {
-  const map: Record<string, string> = {
+  const labels: Record<string, string> = {
+    info: '创作立项',
+    characters: '人物编排',
     summary: '全书梗概',
     outline: '分卷大纲',
-    detail: '章节细纲',
+    detail: '章节施工图',
     text: '正文生成',
     cover: 'AI 封面',
     export: '导出',
   };
-  return map[next] ?? next;
-}
-
-function positiveOrNull(value: number) {
-  return Number.isFinite(value) && value > 0 ? value : null;
+  return labels[next] ?? next;
 }

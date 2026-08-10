@@ -1,5 +1,4 @@
 import type { CharacterNode, CharacterTier } from '../../contracts';
-import { nodeTier } from '../characterGraphSemantics';
 
 const factionPalette = ['#2f7df6', '#18b6c8', '#26c985', '#e8b44c', '#9b7cff'];
 
@@ -38,8 +37,8 @@ const tierNodeSize: Record<CharacterTier, number> = {
 };
 
 /** Node display size bucketed by tier (protagonist largest, npc smallest). */
-export function tierNodeValue(node: Pick<CharacterNode, 'tier' | 'role'>) {
-  return tierNodeSize[nodeTier(node)];
+export function tierNodeValue(node: Pick<CharacterNode, 'tier'>) {
+  return tierNodeSize[node.tier];
 }
 
 export type InitialPosition = { initialX: number; initialY: number; x: number; y: number };
@@ -49,10 +48,10 @@ export type InitialPosition = { initialX: number; initialY: number; x: number; y
  * inner ring, supporting mid ring, minor/npc outer ring. Nodes sharing a ring
  * are spread at uniform angles, so any node count is supported.
  */
-export function tierRingLayout(nodes: Array<Pick<CharacterNode, 'tier' | 'role'>>): InitialPosition[] {
+export function tierRingLayout(nodes: Array<Pick<CharacterNode, 'tier'>>): InitialPosition[] {
   const rings = new Map<number, number[]>();
   nodes.forEach((node, index) => {
-    const radius = tierRingRadius[nodeTier(node)];
+    const radius = tierRingRadius[node.tier];
     const members = rings.get(radius) ?? [];
     members.push(index);
     rings.set(radius, members);

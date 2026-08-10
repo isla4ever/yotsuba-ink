@@ -69,7 +69,7 @@ export function RunResetControl({ canReset, canUndoReset, mode, onDismissUndo, o
           `当前运行：${runId}`,
           '创作历史、交付版本、工作流配置、创作模式和知识库均会保留。',
           canUndoReset
-            ? '重置后可在 15 秒内撤销；撤销只恢复为暂停状态，不会自动继续创作。'
+            ? '重置后可在 15 秒内撤销；撤销只恢复运行观察，不会重新发起 Graph 执行。'
             : '这次运行还没有可恢复的记录，重置后无法撤销。',
         ]}
         modeClass={`mode-${mode}`}

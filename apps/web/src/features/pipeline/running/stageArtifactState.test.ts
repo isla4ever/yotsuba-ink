@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RunEvent, WorkflowStage } from '../contracts';
+import { runEvent } from '../contracts/runEventTestFactory';
 import { currentStageArtifact, stageArtifactState } from './stageArtifactState';
 
 describe('current stage artifact', () => {
@@ -17,20 +18,21 @@ describe('current stage artifact', () => {
     })).toBe('generated-v2');
   });
 
-  it('prefers the persisted snapshot artifact over an older validation failure', () => {
+  it('reads the current Summary candidate from the stable Artifact event', () => {
     const stage = {
       id: 'summary',
       type: 'summary',
     } as WorkflowStage;
     const artifact = {
-      act_structure: [{ title: '起' }],
-      full_synopsis: '完整梗概',
-      key_turns: [{ label: '转折' }],
+      beats: [{ id: 'beat-1', phase: 'setup', event: '发现母带', consequence: '开始调查' }],
+      climax: '公开母带',
+      resolution: '港区恢复记忆',
+      character_outcomes: [],
     };
     const events = [
-      { artifact, node_id: 'summary', run_id: 'run', type: 'artifact_validated' },
-      { errors: ['旧校验失败'], node_id: 'summary', run_id: 'run', type: 'artifact_validation_failed' },
-    ] as RunEvent[];
+      runEvent('artifact.candidate_ready', { payload: artifact, stage_id: 'summary', node_id: 'summary.generate_candidate', run_id: 'run' }),
+      runEvent('node.completed', { stage_id: 'summary', node_id: 'summary.validate_contract', run_id: 'run' }),
+    ];
 
     expect(stageArtifactState(stage, events)).toEqual({
       status: 'ready',

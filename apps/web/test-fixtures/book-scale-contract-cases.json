@@ -1,0 +1,66 @@
+[
+  {
+    "id": "minimum-word-target",
+    "target_mode": "total_chars",
+    "target_value": 3000,
+    "expected": {
+      "total_chars": 3000,
+      "total_chapters": 2,
+      "volume_count": 1,
+      "chapters_per_volume": [2],
+      "chapter_target_chars": 1500,
+      "chapter_soft_chars": [1200, 1800],
+      "chapter_hard_chars": [975, 2250],
+      "book_soft_chars": [2850, 3150],
+      "volume_target_chars": [3000]
+    }
+  },
+  {
+    "id": "submission-word-target",
+    "target_mode": "total_chars",
+    "target_value": 100000,
+    "expected": {
+      "total_chars": 100000,
+      "total_chapters": 50,
+      "volume_count": 4,
+      "chapters_per_volume": [13, 13, 12, 12],
+      "chapter_target_chars": 2000,
+      "chapter_soft_chars": [1600, 2400],
+      "chapter_hard_chars": [1300, 3000],
+      "book_soft_chars": [95000, 105000],
+      "volume_target_chars": [26000, 26000, 24000, 24000]
+    }
+  },
+  {
+    "id": "single-chapter-target",
+    "target_mode": "total_chapters",
+    "target_value": 1,
+    "expected": {
+      "total_chars": 2000,
+      "total_chapters": 1,
+      "volume_count": 1,
+      "chapters_per_volume": [1],
+      "chapter_target_chars": 2000,
+      "chapter_soft_chars": [1600, 2400],
+      "chapter_hard_chars": [1300, 3000],
+      "book_soft_chars": [1600, 2400],
+      "volume_target_chars": [2000]
+    }
+  },
+  {
+    "id": "remainder-chapter-target",
+    "target_mode": "total_chapters",
+    "target_value": 17,
+    "expected": {
+      "total_chars": 34000,
+      "total_chapters": 17,
+      "volume_count": 2,
+      "chapters_per_volume": [9, 8],
+      "chapter_target_chars": 2000,
+      "chapter_soft_chars": [1600, 2400],
+      "chapter_hard_chars": [1300, 3000],
+      "book_soft_chars": [27200, 40800],
+      "volume_target_chars": [18000, 16000]
+    }
+  }
+]

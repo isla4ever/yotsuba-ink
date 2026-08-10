@@ -10,8 +10,8 @@ type Props = {
 };
 
 export function StageTransitionOverlay({ events, stage }: Props) {
-  const latest = events.find((event) => event.type === 'node_started' && event.node_id === stage.id);
-  const eventKey = useMemo(() => latest ? `${latest.type}-${latest.node_id}-${latest.elapsed_ms ?? latest.message ?? latest.label ?? ''}` : '', [latest]);
+  const latest = events.find((event) => event.type === 'node.started' && event.stage_id === stage.id);
+  const eventKey = useMemo(() => latest?.event_id ?? '', [latest]);
   const [visibleKey, setVisibleKey] = useState('');
   const visible = Boolean(eventKey && visibleKey === eventKey);
 

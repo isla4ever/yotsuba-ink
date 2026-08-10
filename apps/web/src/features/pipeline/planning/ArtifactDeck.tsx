@@ -139,7 +139,7 @@ export function ArtifactDeck({ events, onOpenConfig, onOpenStage, onSelect, sele
     >
       <div className="artifact-deck-viewport">
         <span aria-hidden="true" className="artifact-deck-horizon" />
-        <ol aria-label="七阶段稿件栈" className="artifact-deck">
+        <ol aria-label="八阶段稿件栈" className="artifact-deck">
           {items.map((item, index) => {
             const active = item.id === selectedId;
             const position = index < selectedIndex ? 'before' : index > selectedIndex ? 'after' : 'active-position';

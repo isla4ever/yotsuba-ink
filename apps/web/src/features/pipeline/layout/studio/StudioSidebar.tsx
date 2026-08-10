@@ -35,7 +35,7 @@ export function StudioSidebar() {
       ref={navRef}
     >
       <div className="studio-sidebar-brand">
-        <span aria-hidden="true" className="brand-mark">NW</span>
+        <span aria-hidden="true" className="brand-mark">YI</span>
         <div>
           <p>Yotsuba Ink</p>
           <strong>作品工作室</strong>

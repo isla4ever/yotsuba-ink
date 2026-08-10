@@ -8,7 +8,7 @@
   }
 
   .stage-run-main.text-main,
-  .stage-run-side.stage-chapter_text {
+  .stage-run-side.stage-text {
     height: max(680px, calc(100dvh - var(--shell-header-height) - 24px));
     min-height: max(680px, calc(100dvh - var(--shell-header-height) - 24px));
   }
