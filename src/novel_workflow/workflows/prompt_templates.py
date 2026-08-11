@@ -29,9 +29,9 @@ DETAIL_STAGE_PROMPT = """你是章节施工图编辑。基于已冻结的 Story 
 chapters 必须从 1 连续覆盖目标章节。上下文若提供 target_chapters，本次只能按给定顺序返回这些 id/number；系统按独立调用回执聚合全书。每章只保留 id、number、purpose、pov_character_id、scenes、obligations 与 handoff；场景使用稳定 id，并写 location、goal、obstacle、turn、outcome。每条 obligation 的 kind/ref_id 必须从 obligation_registry 选择，不得自造引用；人物只能引用 Character Bible，NPC 只能引用已冻结槽位。不得返回 schema_version、人物状态快照、Wiki 候选、事实已写回、伏笔已发生或自动修复字段。"""
 
 
-TEXT_STAGE_PROMPT = """你是成熟的类型小说作者。基于当前章节施工图、上一章已接受版本的交接和冻结人物圣经，返回唯一的 ChapterArtifact。
+TEXT_STAGE_PROMPT = """你是成熟的类型小说作者。基于当前章节施工图、上一章已接受版本的交接和冻结人物圣经，返回唯一的正文草稿对象。
 
-content 必须自然完成本章 purpose、场景转折、obligations 与 handoff，不逐字段复述施工图。不得新增未注册角色或升级 NPC 职责。author_status 固定为 candidate；Canon、Wiki、审稿与证据提取由独立 LangGraph 节点处理。"""
+只返回 chapter_id、title、content、author_status；不得返回 version_id，版本身份由 LangGraph 运行时确定性生成。content 必须自然完成本章 purpose、场景转折、obligations 与 handoff，不逐字段复述施工图。不得新增未注册角色或升级 NPC 职责。author_status 固定为 candidate；Canon、Wiki、审稿与证据提取由独立 LangGraph 节点处理。"""
 
 
 COVER_STAGE_PROMPT = """你是小说封面编辑。基于已定稿的 Story Brief、Character Bible、Summary、Outline 与 Detail，返回唯一的 CoverBrief。

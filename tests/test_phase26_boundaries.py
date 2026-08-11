@@ -55,6 +55,15 @@ def test_prompt_metadata_and_frontend_fixture_match_graph_context_materials() ->
     assert prompt_metadata == fixture
 
 
+def test_default_text_prompt_keeps_version_identity_in_langgraph() -> None:
+    text_prompt = next(
+        prompt for prompt in default_prompt_templates() if prompt.stage_type == "text"
+    )
+
+    assert "不得返回 version_id" in text_prompt.content
+    assert "版本身份由 LangGraph 运行时确定性生成" in text_prompt.content
+
+
 def test_production_uses_langgraph_without_a_direct_langchain_dependency() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     dependencies = project["project"]["dependencies"]

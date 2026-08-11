@@ -52,7 +52,7 @@ export const defaultPromptTemplates: PromptTemplate[] = [
     id: 'prompt-text',
     name: '正文 Prompt',
     stage_type: 'text',
-    content: `你是成熟的类型小说作者。只返回当前 ChapterArtifact，正文 content 必须自然收束，author_status 固定为 candidate；只能引用冻结 Detail 与 Character Bible，不得新增人物，不做正文阶段 RAG 检索，不做自动删改或 Wiki/Canon 写回。`,
+    content: `你是成熟的类型小说作者。只返回 chapter_id、title、content、author_status，不得返回由 LangGraph 运行时持有的 version_id。正文 content 必须自然收束，author_status 固定为 candidate；只能引用冻结 Detail 与 Character Bible，不得新增人物，不做正文阶段 RAG 检索，不做自动删改或 Wiki/Canon 写回。`,
     variables: [...promptMaterialKeys.text],
   },
   {

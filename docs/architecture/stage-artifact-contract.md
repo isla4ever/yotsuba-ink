@@ -1,6 +1,6 @@
 # Yotsuba Ink vNext Stage Artifact Contract
 
-状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过；两次智谱 `info` 探针的额度失败保留为历史证据，随后用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 已通过 `info` 和 `characters` 严格探针，其中 `characters` 使用生产预算 `max_tokens=4200` 并已通过人工 decision 提交为正式 Character Bible。一次早期验收脚本的 `max_tokens=1800` 截断失败只作为运行配置边界证据，没有改动生产模板；成功 Run 的 `info` 使用此前已验证的验收预算 `3480`，不是生产默认值 `4600`。同一 Run 的首次 `summary` operation 在 `finish_reason=stop` 下返回无效 JSON，严格解析拒绝产生 Artifact，Run 已零重试终止；`outline` 至 `cover`、三章 Run 与人工文学验收仍未开始。
+状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过。用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 已在新分支 operation 上跑通 `info -> characters -> summary -> outline -> detail -> text`，完成一个三章单卷短篇正文；三章接受版本总计 5286 个 `cjk-visible-chars-v1`。第 3 章新 `span_ids` Evidence 合同已完成 8 条证据及一次 Canon/Wiki 幂等写回；第 1、2 章旧 quote Evidence 失败保留且不转换。Graph 随后在故意未配置的 fake 图片绑定上显式失败，因此 Cover/Export 未完成。本结果不是 8-12 章生产单卷或投稿定稿。
 
 ## 生产阶段
 
@@ -32,7 +32,7 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 - `SummaryArtifact`：稳定 `beats[]`（事件和后果）、`climax`、`resolution`、`character_outcomes[]`。
 - `OutlineArtifact`：连续卷窗口、`objective`、因果 `turns[]`、`ending_state`、人物窗口和线程窗口。
 - `DetailArtifact`：连续章节 `id/number`、`purpose`、POV id、场景（地点、目标、障碍、转折、结果）、义务和 handoff。
-- `ChapterArtifact`：章节 id、版本 id、标题、正文和 `author_status`。生成节点只可返回 `candidate`。
+- `ChapterArtifact`：章节 id、版本 id、标题、正文和 `author_status`。Provider 只返回不含 `version_id` 的 `ChapterDraftResult { chapter_id, title, content, author_status }`；LangGraph 根据章节号和 attempt 确定性分配版本身份，生成节点只可返回 `candidate`。
 - `CoverArtifact`：可执行 `brief` 和已选择资产 id；资产 URL、尺寸和生成收据属于 sidecar。
 - `ExportArtifact`：格式、已接受章节版本 id、封面资产 id 和导出元数据。
 
@@ -89,3 +89,11 @@ SSE 只投影稳定领域事件：`run.started/completed/failed`、`node.started
 2. 静态扫描无 legacy/shadow/dual runtime、Detail v1/v2/v3、fallback、alias、converter 或旧 stage id 生产引用。
 3. projection 可删除重建；断线重连不影响执行；同一 operation/decision/writeback 恰好一次。
 4. 全量离线测试和前端构建通过后，才可在用户批准、限额和脱敏收据下进行新的真实 Provider Run。真实输出、文学连续性、成本和作者冷读另行验收。
+
+## 2026-08-11 真实三章合同证据
+
+- Run `phase26-deepseek-submission-7c66d1a6-8` 接受 `chapter-1-v3-accepted`（1811）、`chapter-2-edit-bc817e88a1aef999-accepted`（1666）和 `chapter-3-edit-a6d3d5e69adc147d-accepted`（1809）；后两章为人工编辑候选，均通过同一 author decision 提交。
+- 46 条 Provider operation 为 42 成功、4 失败、0 pending，合计 271,120 tokens；10 条人工 decision 单独记账，不伪装成 Provider 调用。
+- 第 3 章只由 Provider 选择 `span_ids`，代码将 8 条 claim 绑定到已接受正文；Outbox、Canon、Wiki 使用同一 transaction 且各提交一次。第 1、2 章旧 quote mismatch 不重试、不转换、不写回。
+- 文本阶段完成后 CoverBrief 文本成功；真实图片 Provider 未配置也未调用，fake binding 失败使 Run 停在 `cover.generate_candidate`，Export 未运行。
+- 冷读判定仅为“连贯的三章短篇接受样本”：第 1 章略有公式化表达，第 2 章信息压缩，第 3 章的证据驱动主题收束最强但经过人工编辑。不能据此声称模型独立投稿质量、8-12 章单卷或全书验收完成。

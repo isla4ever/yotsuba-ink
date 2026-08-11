@@ -409,7 +409,9 @@ def _review_contract(task_name: str) -> str:
         "Report only violations directly evidenced in the chapter. Do not emit findings for satisfied constraints, "
         "items not required in this chapter, or future appearance windows. A blocking finding requires a direct "
         "conflict that prevents accepting this chapter; ambiguity, omitted explanation, or optional enrichment is "
-        "at most a warning. Ensure every claim and evidence pair logically supports its severity.\n"
+        "at most a warning. Judge thematic and character-arc obligations through dramatized choices, consequences, "
+        "and behavior; never require an explicit theme statement when the action already establishes the change. "
+        "Ensure every claim and evidence pair logically supports its severity.\n"
     )
 
 

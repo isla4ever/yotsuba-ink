@@ -10,4 +10,10 @@ describe('default Prompt material contract', () => {
       template.variables,
     ]))).toEqual(contract);
   });
+
+  it('keeps chapter version identity outside Provider output', () => {
+    const textPrompt = defaultPromptTemplates.find((template) => template.stage_type === 'text');
+
+    expect(textPrompt?.content).toContain('不得返回由 LangGraph 运行时持有的 version_id');
+  });
 });

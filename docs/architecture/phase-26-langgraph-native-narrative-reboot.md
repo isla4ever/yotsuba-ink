@@ -1,6 +1,6 @@
 # Phase 26：LangGraph 原生叙事架构重启
 
-> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；Wave 26.7 已在用户明确改绑 DeepSeek 后通过 `info` 和 `characters` 严格探针，人物候选已经人工接受并提交；随后 `summary` 严格探针因 Provider 返回无效 JSON 而显式失败，未产生摘要候选、未重试或切换模型；`outline` 至 `cover`、三章 Run 与人工文学验收尚未开始**。
+> 状态：**架构已批准，Wave 26.1-26.6 离线重构与浏览器矩阵已闭合；Wave 26.7 已使用用户明确批准的 DeepSeek 冻结绑定跑通 `info -> characters -> summary -> outline -> detail -> text`，完成一个三章单卷短篇的全部正文。三章均有已接受不可变版本，但第 2、3 章包含人工编辑，且第 1、2 章保留旧 Evidence quote 合同失败；第 3 章已用新 `span_ids` 合同完成 8 条 Evidence 与 Canon/Wiki 幂等写回。Graph 随后生成 CoverBrief，但在故意未配置的图片绑定 `probe-image-not-used` 上显式失败，Cover/Export 未完成。本结果是三章短篇技术/文学样本，不等于 8-12 章生产单卷或投稿定稿。**
 >
 > 日期：2026-08-11。
 >
@@ -388,7 +388,7 @@ Export 核心：`ExportArtifact { format, chapter_version_ids[], cover_asset_id,
 | Summary | 1 个 `SummaryArtifact` | `book_scale_plan`、`story_brief`、`character_bible`；可选 `revision_request` | 确认因果链、高潮、结局及全部主角/重要配角结局；提交 `ArtifactStore.summary` | 故事脊柱、因果节拍、人物结局对账 |
 | Outline | 单卷时 1 次；多卷时每卷 1 次，每次只返回一个 `volumes[]` 项，再确定性聚合 | `book_scale_plan`、`story_brief`、`character_bible`、`summary`；分卷调用增加 `target_volume`；可选 `revision_request` | 确认卷目标、转折、人物/线程窗口；提交完整 `ArtifactStore.outline` | 分卷节拍表、只读章节区间、人物窗口和线索窗口 |
 | Detail | 总章数不超过 8 时 1 次；否则按最多 8 章一批，每批只返回冻结目标章节，再确定性聚合 | `book_scale_plan`、`story_brief`、`character_bible`、`summary`、`outline`、`obligation_registry`；分批增加 `target_chapters`；可选 `revision_request` | 确认章节目的、场景、义务和 handoff；提交完整 `ArtifactStore.detail` | 高密度章节施工表、场景编辑、冻结义务选择、跨章交接；不提供正文前 Wiki 写回 |
-| Text | 相邻章节严格串行；每章 1 次 `ChapterArtifact` 生成，随后 3 个冻结角色并发审稿和 1 次 Evidence 抽取；审稿/Evidence 都是窄 sidecar，不并入正文 JSON | `book_scale`、`story_constraints`、`character_bible`、`summary_commitments`、`volume_plan`、`chapter_plan`、`previous_handoff`、`previous_accepted_chapter`；可选 `revision_request` | 接受、人工编辑、定向换稿或取消；提交不可变 `ChapterStore` 版本，Evidence 经 Outbox 后才可进入 Canon/Wiki | 正文编辑器、三路审稿、Evidence 和写回事务状态；不显示原始 Graph State |
+| Text | 相邻章节严格串行；Provider 每章只返回 `chapter_id/title/content/author_status` 的 `ChapterDraftResult`，LangGraph 再确定性分配 `version_id` 并形成 `ChapterArtifact`；随后 3 个冻结角色并发审稿和 1 次 Evidence 抽取；审稿/Evidence 都是窄 sidecar，不并入正文 JSON | `book_scale`、`story_constraints`、`character_bible`、`summary_commitments`、`volume_plan`、`chapter_plan`、`previous_handoff`、`previous_accepted_chapter`；可选 `revision_request` | 接受、人工编辑、定向换稿或取消；提交不可变 `ChapterStore` 版本，Evidence 经 Outbox 后才可进入 Canon/Wiki | 正文编辑器、三路审稿、Evidence 和写回事务状态；不显示原始 Graph State |
 | Cover | 1 次文本调用只返回 `CoverBrief`；随后按冻结 `candidate_count` 独立生成图片资产；代码组装 `CoverArtifact` | `story`、`cast`、`narrative_arc`、`volume_objectives`、`chapter_motifs`；可选 `revision_request` | Fast 选择首个不可变资产；Balanced/Deep 选择 brief 与资产；提交 `ArtifactStore.cover` 和 AssetStore ref | brief 表单、候选资产轨、选中状态、生成回执与导出就绪状态 |
 | Export | Provider 调用为 0；代码从已接受章节版本、封面资产和冻结导出偏好构建 `ExportArtifact` | 无，确定性 context 为 `{target: export, sources: {}, material: {}}` | Fast 自动接受；Balanced/Deep 只允许确认或取消，可在确认前编辑格式/元数据，不允许“换一稿”；提交 `ArtifactStore.export` 并物化 `ExportStore` 回执 | 格式与元数据表单、不可变版本集合、manifest、校验、包状态和下载 |
 
@@ -744,7 +744,7 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 - 缺席证据：production source 不含 `runtime_engine`、`fallback_targets`、`fallback_review_waves`、`normalize_legacy_contract`、宽松 `generate_structured` 或 JSON 提取/修复入口；Phase 26 boundary tests 锁定旧文件和旧入口不可回归；closure audit 无 runtime legacy marker；仓库专属 Skill 通过 `quick_validate.py`。
 - 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；`OperationStore` 是文本/图片 Provider usage 与安全 diagnostic 的唯一收据权威，Fake 全图精确投影 19 次调用、175 tokens、0 次失败，人工 decision 不进入 Provider 统计，SSE/read model/历史页只消费可重建投影；没有冻结计价表时成本明确为“未计价”而非伪造 `$0`。production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
 
-### Wave 26.7：真实 Provider 验收（DeepSeek `info`/人物探针已通过，`summary` 无效 JSON 后停止）
+### Wave 26.7：真实 Provider 三章验收（正文已完成，Cover/Export 未完成）
 
 只有 26.0-26.6 通过、提交推送成功且仍满足限额和脱敏收据边界后执行：
 
@@ -767,6 +767,18 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 2026-08-11 `summary` 失败证据：用户连续指示继续后，人物 decision `accept` 经同一 `Command(resume=...)` 成功解决，`characters-committed-64d762f96555527cc0bb-204657a2` 成为正式 Character Bible；Graph 随后只执行一次 `phase26-deepseek-characters-budget-7c66d1a6-2:summary:generate:1`。该 operation 使用冻结 `provider-deepseek-text / deepseek-v4-pro / max_tokens=3600`，消耗 3,644 prompt / 1,077 completion / 4,721 total tokens；`finish_reason=stop`、响应 2,067 字符，排除预算截断，但严格解析结果为 `selection=invalid_json`、`parsed_object_count=0`、`schema_match_count=0`、`repairs_applied=[]`、`parse_error_codes=[json_decode_error]`。因此 operation 与 Run 均显式失败，`pending_operations=0`，没有 `SummaryArtifact` candidate，也没有重试、JSON 提取/修复、Provider/model 切换或下游调用。
 
 同日重新核对 DeepSeek 官方 JSON Output 文档 `https://api-docs.deepseek.com/guides/json_mode`：当前请求已发送 `response_format={"type":"json_object"}`，Prompt 含 JSON 关键词与由真实 schema 确定性生成的完整格式示例，`finish_reason` 也不是 `length`。因此现有证据把问题定位在本次 Provider 输出/严格解析边界，不足以证明应引入 Beta tool calling、语法修复或隐藏重试。排障同时发现失败事件曾沿用上一次成功 operation ref；运行时现让 `ProviderOperationError` 携带当前 immutable operation key，stage/chapter 的 `node.failed`、`run.failed` 与 read model 均引用真实失败收据，完整 Provider adapter、LangGraph runtime 与 Provider error 回归为 133 passed。失败 Run 保留原始错误引用作为历史证据，不原地改写。
+
+2026-08-11 三章短篇执行证据：后续每次失败都创建新分支/新 operation key，没有恢复或改写失败响应；最终正文 Run 为 `phase26-deepseek-submission-7c66d1a6-8`。该 Run 从冻结 Detail checkpoint 进入正文，按 `chapter-1 -> chapter-2 -> chapter-3` 串行生成和人工决策，接受版本分别为 `chapter-1-v3-accepted`（《退潮的档案》，1811 个 `cjk-visible-chars-v1`）、`chapter-2-edit-bc817e88a1aef999-accepted`（《夜潮证词》，1666）、`chapter-3-edit-a6d3d5e69adc147d-accepted`（《不在册的人》，1809），总计 5286，位于冻结全书软区间 4800-7200。第 2、3 章是人工编辑候选，不得表述为纯模型正文；所有接受、编辑和定向换稿均通过同一 LangGraph author decision 与不可变版本合同。
+
+Provider/恢复证据：OperationStore 共 56 条记录，其中 10 条为成功的人工 `graph_decision`，不计入 Provider；46 条 Provider operation 中 42 成功、4 失败、0 pending，合计 232,496 prompt、38,624 completion、271,120 total、8,732 reasoning tokens。四个失败为：第 1 章旧版本 continuity review 在 `max_tokens` 截断；第 1、2 章接受版本沿旧 quote Evidence 合同无法匹配原文；Cover 图片使用故意未配置的 `probe-image-not-used` 而本地失败。它们均保留真实失败收据，没有隐藏重试、alternate Provider 或伪成功写回。
+
+Evidence/写回证据：第 3 章新合同只让 Provider 选择确定性候选 `span_ids`，不返回 quote/offset；8 条 claim 全部由代码解析到接受版本，并以 operation `phase26-deepseek-submission-7c66d1a6-8:chapter-3:evidence:chapter-3-edit-a6d3d5e69adc147d-accepted` 提交。Outbox、Canon 与 Wiki 各只有一个 transaction `canon-chapter-3-chapter-3-edit-a6d3d5e69adc147d-accepted`，均含同一 8 条事实。第 1、2 章旧 Evidence 失败不回放、不转换，也没有 Canon/Wiki 写回。
+
+Cover 边界证据：正文完成后全局 Graph 自动进入 Cover；CoverBrief 文本 generation 成功，随后 `cover:image:1:candidate:1` 在 fake image binding 上抛出 `ProviderUnavailableError`，Run 明确停在 `cover.generate_candidate`，最终 Provider 统计仍为 0 pending。没有真实图片 Provider 调用，也没有运行 Export；本次不恢复该 Cover failure，因为用户本轮要求的正文验收已结束，恢复会扩大批准的 Provider/成本边界。
+
+文学冷读结论：三章的因果链、潮汐时间窗、0714 实物、陈伯交接、魏明沉默和林溯建立来源分栏记录能够形成一个完整短篇闭环。第 1 章存在“像一道未愈合的伤口”等公式化 AI 表达，且人工接受时 reviewer 包含自相矛盾/过度字面化 finding；第 2 章信息密度高，口述、相片、检索和维护指令在短篇幅内略显压缩；第 3 章以行动和证据分栏完成主题，收束最强，但它是人工编辑稿。真实 Run 中 reviewer 曾要求显式讲明主题，即使行动已经成立；生产 review Prompt 现已改为通过选择、后果和行为判断人物弧/主题，不得要求显式主题宣言，并由合同测试锁定。此样本可用于三章短篇接受检查，不能证明 DeepSeek 可独立生成投稿级正文，更不能替代 8-12 章生产单卷验收。
+
+2026-08-11 收口门禁：正文运行后再次执行后端 `291 passed`、前端 `100 files / 363 tests`、Python `compileall`、TypeScript/Vite production build、CSS audit、CSS split、production closure audit、仓库 Skill `quick_validate.py` 与 `git diff --check`，全部通过。仅保留既有 Starlette deprecation warning 和 `graph-3d-vendor` 大 chunk warning；本轮没有再次调用 Provider。
 
 ## 13. 测试与验收矩阵
 
@@ -826,11 +838,11 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 以下取舍已经批准并进入实现：LangGraph 是唯一生产运行时；生产代码默认禁止直接 LangChain API，高层 `langchain` 包不作为直接依赖；新增 Character Bible 并采用严格串行八阶段；Detail vNext 与历史 Run 断代；Memory/Wiki/Canon/RAG 采用低敏感、证据驱动边界。
 
-用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。DeepSeek `info` 与 `characters` 合同探针已通过，`summary` 已在无效 JSON 后按单路径失败语义停止，当前退出门为：
+用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。结构化阶段、三章正文、人工编辑版本、并发审稿和第 3 章新 Evidence/Outbox 已取得真实证据，但三章退出门尚未完全关闭：第 1、2 章保留旧 Evidence 失败，Cover/Export 未完成，文学样本含两章人工编辑。当前退出门为：
 
-1. 不启动或恢复 Phase 25 历史 Run；
-2. 后续探针只使用用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 冻结绑定，不做运行时 Provider 或模型切换；
-3. 人物候选已通过人工 decision 提交为正式 Character Bible；后续阶段只能引用或提出有证据的变更，不得重新开放逐阶段任意添人；
-4. 当前 Run 已因 `summary:generate:1` 无效 JSON 终止，不恢复该失败 operation，也不把原响应提取、修复或转换成 Artifact；
-5. 新的 `summary` 付费探针必须在明确批准后从人物 checkpoint 创建新分支或新 Run，并使用新 operation key；不得隐式重试、改绑模型或切换到 Beta 协议；
-6. `summary` 至 `cover` 剩余五个结构化探针全部通过前，不创建三章 Run，不调用图片 Provider；不把 `info`/人物成功写成全链路或文学质量已验收。
+1. 不启动或恢复 Phase 25 历史 Run，也不恢复 `phase26-deepseek-submission-7c66d1a6-8` 的 Cover failure；
+2. 后续真实验收只使用用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 冻结文本绑定，不做运行时 Provider/模型切换；图片 Provider 必须单独配置和批准，不能以 fake binding 冒充；
+3. 生产正文 Prompt/Schema 必须保持 Provider 不返回 `version_id`，LangGraph 持有确定性版本身份；reviewer 必须依据行动、选择和后果判断主题/人物弧，不要求显式主题宣言；
+4. 下一次付费验收必须是使用新 Evidence `span_ids` 合同的全新三章 Run，三章均需完成 Evidence 和 exactly-once Canon/Wiki 写回；不得重放第 1、2 章旧 quote failure；
+5. 只有该全新三章 Run 同时满足 13.4 的技术门和人工冷读，才创建 8-12 章生产单卷；单卷必须从新的 Story Brief/Character Bible 开始，不能把当前三章扩写伪装成规模验收；
+6. 8-12 章单卷完成并冷读前，不宣称“投稿级”“第一卷已验收”或“全书已完成”。

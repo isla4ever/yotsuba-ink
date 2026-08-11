@@ -237,6 +237,8 @@ async def test_graph_gateway_locks_each_review_schema_to_its_frozen_lane() -> No
     assert "Report only violations directly evidenced" in call["prompt"]
     assert "items not required in this chapter" in call["prompt"]
     assert "blocking finding requires a direct conflict" in call["prompt"]
+    assert "through dramatized choices, consequences, and behavior" in call["prompt"]
+    assert "never require an explicit theme statement" in call["prompt"]
 
 
 @pytest.mark.asyncio
