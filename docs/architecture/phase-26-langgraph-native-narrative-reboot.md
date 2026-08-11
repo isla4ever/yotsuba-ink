@@ -1,10 +1,10 @@
 # Phase 26：LangGraph 原生叙事架构重启
 
-> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；真实 Provider 已获“推送成功后执行”的授权，尚未执行；人工文学验收仍待完成**。
+> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；Wave 26.7 已在推送后启动，但首个真实 `info` 探针被 Provider 额度阻断；三章 Run 与人工文学验收尚未开始**。
 >
 > 日期：2026-08-11。
 >
-> 用户已于 2026-08-11 明确授权“开始完全的重构迭代，使用好 LangGraph”，因此 Wave 26.1-26.6 已完成离线实现与本地验收；随后又明确授权在完整重构、清理和离线门通过并推送 GitHub 后开始真实链路测试。推送前的浏览器矩阵只使用隔离临时目录和 Fake Provider 检查点，验收后关闭本地服务；不启动或恢复历史 Run，不调用真实 Provider。Phase 20、ADR-001 与 Phase 25 中的 Shadow、Dual、feature flag、legacy 回滚、Run H 和兼容读取路线均只保留为历史证据，不再指导实现。
+> 用户已于 2026-08-11 明确授权“开始完全的重构迭代，使用好 LangGraph”，因此 Wave 26.1-26.6 已完成离线实现与本地验收；随后又明确授权在完整重构、清理和离线门通过并推送 GitHub 后开始真实链路测试。离线源码基线已推送为 `e3558d96`；随后只对冻结的 `openai-compatible / zhipu-coding-plan / glm-5.2` 发起一次 `info` 严格探针，Provider 返回额度或余额不足，验收立即停止。没有重试、Provider/模型切换、JSON repair、下游阶段、三章 Run 或图片调用。Phase 20、ADR-001 与 Phase 25 中的 Shadow、Dual、feature flag、legacy 回滚、Run H 和兼容读取路线均只保留为历史证据，不再指导实现。
 
 ## 1. 决策摘要
 
@@ -740,7 +740,7 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 - 缺席证据：production source 不含 `runtime_engine`、`fallback_targets`、`fallback_review_waves`、`normalize_legacy_contract`、宽松 `generate_structured` 或 JSON 提取/修复入口；Phase 26 boundary tests 锁定旧文件和旧入口不可回归；closure audit 无 runtime legacy marker；仓库专属 Skill 通过 `quick_validate.py`。
 - 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；`OperationStore` 是文本/图片 Provider usage 与安全 diagnostic 的唯一收据权威，Fake 全图精确投影 19 次调用、175 tokens、0 次失败，人工 decision 不进入 Provider 统计，SSE/read model/历史页只消费可重建投影；没有冻结计价表时成本明确为“未计价”而非伪造 `$0`。production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
 
-### Wave 26.7：真实 Provider 验收（已获推送后执行授权，尚未执行）
+### Wave 26.7：真实 Provider 验收（已启动，Provider 额度阻断）
 
 只有 26.0-26.6 通过、提交推送成功且仍满足限额和脱敏收据边界后执行：
 
@@ -749,6 +749,8 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 3. 通过后新建单卷 8-12 章 Run；
 4. 完成人工盲读、成本、重复调用、恢复和写回审计后，才讨论全书；
 5. 任何连续两次同类失败都停止局部补丁，回到 State/Node/Artifact/Context/Provider contract 根因评审。
+
+2026-08-11 首次执行证据：GitHub 冻结提交与本地 `HEAD` 均为 `e3558d96`；在全新隔离根创建 `phase26-schema-probe-e3558d96`，只绑定 `openai-compatible / zhipu-coding-plan / glm-5.2`，模板 `max_retries=0`。首个 operation `phase26-schema-probe-e3558d96:info:generate:1` 返回“Provider 余额或调用额度不足”，收据为 `failed`、usage 为空、`pending_operations=0`。本次共 1 次真实 Provider operation，0 个完成探针；没有响应 JSON 可供解析，因此没有把 Provider 额度失败误记为结构化合同失败。`characters` 至 `cover`、三章 Run、图片生成、Canon/Wiki/Outbox 与文学盲读均未执行。恢复验收前必须先恢复同一批准 profile 的额度，并在新的隔离根和 operation key 从 `info` 重新开始；不得续跑该失败 operation、切换 Provider 或绕过七阶段探针。
 
 ## 13. 测试与验收矩阵
 
@@ -808,9 +810,11 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 以下取舍已经批准并进入实现：LangGraph 是唯一生产运行时；生产代码默认禁止直接 LangChain API，高层 `langchain` 包不作为直接依赖；新增 Character Bible 并采用严格串行八阶段；Detail vNext 与历史 Run 断代；Memory/Wiki/Canon/RAG 采用低敏感、证据驱动边界。
 
-用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**。在推送成功前继续保持：
+用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**。本次已按批准范围启动并在首个额度错误处停止。后续恢复门为：
 
 1. 不启动或恢复 Phase 25 历史 Run；
-2. 不调用任何真实文本、图像、搜索或嵌入 Provider；
-3. 不把本地测试/build 通过写成真实输出、浏览器体验或文学质量已验收；
-4. 真实验收只创建全新 Run，设置成本上限，保留脱敏 receipt，并在失败时停止而非切换 Provider 或恢复 legacy。
+2. 先确认 `openai-compatible / zhipu-coding-plan / glm-5.2` 的额度已恢复，不切换 DeepSeek、MiMo 或其他 Provider；
+3. 使用新的隔离根与 operation key 从 `info` 发起一次新探针，不重放或续跑本次失败收据；
+4. 七个结构化探针全部通过前，不创建三章 Run，不调用图片 Provider；
+5. 不把本地测试/build 通过或 Provider 额度失败写成真实输出、浏览器体验或文学质量已验收；
+6. 后续真实验收继续设置成本上限、保留脱敏 receipt，并在失败时停止而非恢复 legacy。
