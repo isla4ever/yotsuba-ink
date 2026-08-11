@@ -131,7 +131,7 @@ class FakeNarrativeProvider:
             "claims": [{
                 "kind": "summary",
                 "claim": f"{request.chapter_id} 已完成。",
-                "spans": [{"start": 0, "end": len(quote), "quote": quote}],
+                "quotes": [quote],
             }]
         })
         return _response(result.model_dump(mode="json"))
@@ -406,7 +406,12 @@ async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_ch
         manuscript = archive.read("雾港母带.md").decode("utf-8")
         assert "chapter-1 的冻结正文。" in manuscript
         assert "chapter-2 的冻结正文。" in manuscript
-    assert len(stores.evidence.list("run-graph-1")) == 2
+    evidence = stores.evidence.list("run-graph-1")
+    assert len(evidence) == 2
+    assert [(item.spans[0].start, item.spans[0].end, item.spans[0].quote) for item in evidence] == [
+        (0, len(f"chapter-{number} 的冻结正文。"), f"chapter-{number} 的冻结正文。")
+        for number in range(1, 3)
+    ]
     assert len(stores.canon.facts("run-graph-1")) == 2
     assert len(stores.wiki.list("run-graph-1")) == 2
     events = stores.events.read("run-graph-1")

@@ -52,7 +52,7 @@ async def extract_evidence(
         try:
             response = await executor.provider.extract_chapter_evidence(request)
             result = ChapterEvidenceResult.model_validate(response.payload)
-            _validate_evidence_spans(chapter.content, result)
+            bound_spans = _bind_evidence_spans(chapter.content, result)
         except Exception as exc:
             executor.operations.fail(
                 run_id,
@@ -69,7 +69,7 @@ async def extract_evidence(
             usage=response.usage,
             diagnostic=response.diagnostic,
         )
-    _validate_evidence_spans(chapter.content, result)
+    bound_spans = _bind_evidence_spans(chapter.content, result)
     records = [
         executor.evidence.write(
             run_id=run_id,
@@ -77,12 +77,9 @@ async def extract_evidence(
             chapter_version_id=version_id,
             kind=claim.kind,
             claim=claim.claim,
-            spans=[
-                EvidenceSpan.model_validate(span.model_dump(mode="json"))
-                for span in claim.spans
-            ],
+            spans=spans,
         )
-        for claim in result.claims
+        for claim, spans in zip(result.claims, bound_spans, strict=True)
     ]
     for record in records:
         _emit_evidence_proposed(executor, record)
@@ -175,13 +172,22 @@ def _emit_evidence_proposed(
     )
 
 
-def _validate_evidence_spans(content: str, result: ChapterEvidenceResult) -> None:
+def _bind_evidence_spans(
+    content: str,
+    result: ChapterEvidenceResult,
+) -> list[list[EvidenceSpan]]:
+    bound: list[list[EvidenceSpan]] = []
     for claim in result.claims:
-        for span in claim.spans:
-            if span.end > len(content) or span.start >= span.end:
-                raise ValueError("Evidence span is outside the accepted chapter")
-            if content[span.start:span.end] != span.quote:
+        spans: list[EvidenceSpan] = []
+        for quote in claim.quotes:
+            start = content.find(quote)
+            if start < 0:
                 raise ValueError("Evidence quote does not match the accepted chapter")
+            if content.find(quote, start + 1) >= 0:
+                raise ValueError("Evidence quote must uniquely identify one accepted chapter span")
+            spans.append(EvidenceSpan(start=start, end=start + len(quote), quote=quote))
+        bound.append(spans)
+    return bound
 
 
 def _signature(value: Any) -> str:

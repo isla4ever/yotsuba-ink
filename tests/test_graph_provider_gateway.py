@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
+    ChapterEvidenceRequest,
     ChapterGenerationRequest,
     ChapterReviewRequest,
     ChapterReviewResult,
@@ -267,6 +268,37 @@ async def test_graph_gateway_makes_a_targeted_revision_replace_conflicting_sourc
     assert "immutable draft to replace" in prompt
     assert "rewrite or remove every source passage" in prompt
     assert direction in prompt
+
+
+@pytest.mark.asyncio
+async def test_graph_gateway_evidence_contract_derives_offsets_outside_the_provider_schema() -> None:
+    provider = CapturingReviewTextProvider({
+        "claims": [{
+            "kind": "summary",
+            "claim": "林溯决定前往旧港。",
+            "quotes": ["我必须在那之前，回到旧港。"],
+        }]
+    })
+    registry = CapturingRegistry(provider)
+
+    await RegistryNarrativeProviderGateway(registry).extract_chapter_evidence(  # type: ignore[arg-type]
+        ChapterEvidenceRequest(
+            operation_key="run-1:chapter-1:evidence:chapter-1-v1-accepted",
+            run_id="run-1",
+            chapter_id="chapter-1",
+            chapter_version_id="chapter-1-v1-accepted",
+            content="我必须在那之前，回到旧港。",
+            binding=ProviderBinding(
+                provider_profile_id="provider-primary",
+                model="model-frozen",
+            ),
+        )
+    )
+
+    call = provider.calls[0]
+    claim_schema = call["schema"]["$defs"]["EvidenceClaimProposal"]["properties"]
+    assert set(claim_schema) == {"kind", "claim", "quotes"}
+    assert "Do not return character offsets" in call["prompt"]
 
 
 @pytest.mark.asyncio

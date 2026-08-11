@@ -108,20 +108,12 @@ class ChapterReviewResult(BaseModel):
     findings: list[ReviewFinding] = Field(default_factory=list)
 
 
-class EvidenceSpanProposal(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    start: int = Field(ge=0)
-    end: int = Field(gt=0)
-    quote: str = Field(min_length=1)
-
-
 class EvidenceClaimProposal(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["fact", "character", "relationship", "foreshadow", "summary"]
     claim: str = Field(min_length=1, max_length=2000)
-    spans: list[EvidenceSpanProposal] = Field(min_length=1, max_length=20)
+    quotes: list[str] = Field(min_length=1, max_length=20)
 
 
 class ChapterEvidenceResult(BaseModel):
@@ -343,11 +335,13 @@ def _render_prompt(
     prefix = f"{template}\n\n" if template else ""
     revision_contract = _revision_contract(context)
     review_contract = _review_contract(task_name)
+    evidence_contract = _evidence_contract(task_name)
     return (
         f"{prefix}You are the Yotsuba Ink {task_name} node.\n"
         "Return exactly one JSON object matching the supplied schema. Do not add commentary, defaults, or fields.\n"
         f"{revision_contract}"
         f"{review_contract}"
+        f"{evidence_contract}"
         f"Schema:\n{json.dumps(schema, ensure_ascii=False, sort_keys=True)}\n"
         f"Context:\n{json.dumps(context, ensure_ascii=False, sort_keys=True)}"
     )
@@ -374,6 +368,15 @@ def _review_contract(task_name: str) -> str:
         "items not required in this chapter, or future appearance windows. A blocking finding requires a direct "
         "conflict that prevents accepting this chapter; ambiguity, omitted explanation, or optional enrichment is "
         "at most a warning. Ensure every claim and evidence pair logically supports its severity.\n"
+    )
+
+
+def _evidence_contract(task_name: str) -> str:
+    if task_name != "text.evidence":
+        return ""
+    return (
+        "Copy every quotes item exactly from the supplied chapter content. Choose a quote that occurs exactly once "
+        "in that content. Do not return character offsets; the runtime derives spans deterministically.\n"
     )
 
 
