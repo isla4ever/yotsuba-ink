@@ -1,10 +1,9 @@
 # Phase 26：LangGraph 原生叙事架构重启
 
-> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；Wave 26.7 已在用户明确改绑 DeepSeek 后通过全新 `info` 严格探针，并停在人工决策 checkpoint；`characters` 至 `cover`、三章 Run 与人工文学验收尚未开始**。
+> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；Wave 26.7 已在用户明确改绑 DeepSeek 后通过 `info` 和 `characters` 严格探针，其中人物阶段使用生产预算，并停在 `characters` 人工决策 checkpoint；`summary` 至 `cover`、三章 Run 与人工文学验收尚未开始**。
 >
 > 日期：2026-08-11。
 >
-> 用户已于 2026-08-11 明确授权“开始完全的重构迭代，使用好 LangGraph”，因此 Wave 26.1-26.6 已完成离线实现与本地验收；随后又明确授权在完整重构、清理和离线门通过并推送 GitHub 后开始真实链路测试。离线源码基线 `e3558d96` 与人物星图/恢复收口 `da868922` 均已推送；两次 `openai-compatible / zhipu-coding-plan / glm-5.2` 探针的额度失败保留为历史证据。此后用户又明确提供并批准 DeepSeek 作为新的 Provider 绑定；密钥只保存在本地 `ProviderSecretStore`，不进入源码、文档或 Git。全新 `provider-deepseek-text / deepseek-text / deepseek-v4-pro` 的 `info` 严格探针已成功，不属于失败后的隐式 fallback。Phase 20、ADR-001 与 Phase 25 中的 Shadow、Dual、feature flag、legacy 回滚、Run H 和兼容读取路线均只保留为历史证据，不再指导实现。
 
 ## 1. 决策摘要
 
@@ -745,7 +744,7 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 - 缺席证据：production source 不含 `runtime_engine`、`fallback_targets`、`fallback_review_waves`、`normalize_legacy_contract`、宽松 `generate_structured` 或 JSON 提取/修复入口；Phase 26 boundary tests 锁定旧文件和旧入口不可回归；closure audit 无 runtime legacy marker；仓库专属 Skill 通过 `quick_validate.py`。
 - 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；`OperationStore` 是文本/图片 Provider usage 与安全 diagnostic 的唯一收据权威，Fake 全图精确投影 19 次调用、175 tokens、0 次失败，人工 decision 不进入 Provider 统计，SSE/read model/历史页只消费可重建投影；没有冻结计价表时成本明确为“未计价”而非伪造 `$0`。production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
 
-### Wave 26.7：真实 Provider 验收（DeepSeek `info` 已通过，下游待决策）
+### Wave 26.7：真实 Provider 验收（DeepSeek `info`/人物探针已通过，人物候选待决策）
 
 只有 26.0-26.6 通过、提交推送成功且仍满足限额和脱敏收据边界后执行：
 
@@ -760,6 +759,10 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 2026-08-11 第二次执行证据：人物星图、八阶段原型和 Run 恢复投影收口已作为 `da868922` 推送 GitHub；随后在全新隔离根创建 `phase26-schema-probe-da868922-2`，继续只绑定 `openai-compatible / zhipu-coding-plan / glm-5.2`，并在调用前断言模板 `max_retries=0`。唯一 operation `phase26-schema-probe-da868922-2:info:generate:1` 再次返回“Provider 余额或调用额度不足”，收据为 `failed`、usage/diagnostic 为空、`pending_operations=0`；共 1 次 operation、0 tokens、0 个完成探针。没有响应 JSON，因此仍不能评价结构化合同。按“连续两次同类失败停止局部尝试”的退出门，Wave 26.7 现停止在外部 Provider 额度边界；`characters` 至 `cover`、三章 Run、图片生成、Canon/Wiki/Outbox 与文学盲读继续保持未执行。
 
 2026-08-11 DeepSeek 执行证据：用户在前述失败后明确批准 DeepSeek，因此本次是新的冻结 Provider 选择，而非运行时 fallback。官方文档当日核对 `https://api.deepseek.com`、`deepseek-v4-pro` 和 JSON Object 约束后，在全新隔离根创建 `phase26-deepseek-info-7c66d1a6-1`，冻结 `provider-deepseek-text / deepseek-text / deepseek-v4-pro`，调用前断言 `max_retries=0`。唯一 operation `phase26-deepseek-info-7c66d1a6-1:info:generate:1` 为 `succeeded`：1,950 prompt tokens、2,735 completion tokens、2,106 reasoning tokens、4,685 total tokens，`pending_operations=0`。响应为唯一完整 object，八个核心键齐全，本地 schema match 为 1，`repairs_applied=[]`，并产生经 `StoryBriefArtifact` 校验的 `candidate`。LangGraph 保存 checkpoint 后停在 `info.human_decision`，未接受 Artifact、未进入 `characters`、未写回 Canon/Wiki/Outbox，也未调用图片 Provider。快速人工复核确认立项候选的题材承诺、世界规则、主题问题、结局承诺与人物职能一致，但这只证明单个 `info` 合同与样本，不证明后续阶段、章节连续性或文学验收。
+
+2026-08-11 人物预算边界证据：早期 Run `phase26-deepseek-info-7c66d1a6-1` 在调试脚本中将 `characters` 冻结为 `max_tokens=1800`，唯一 `characters:generate` operation 在 `finish_reason=length` 后被指定为 `failed`，未产生候选 Artifact，也未重放。源码生产模板的人物预算是 `4200`，因此没有对生产代码添加不必要的 fallback 或修复。
+
+2026-08-11 人物生产预算证据：在全新 Run `phase26-deepseek-characters-budget-7c66d1a6-2` 中，`info` 继续使用此前已验证的验收预算 `max_tokens=3480`，`characters` 使用源码生产模板预算 `max_tokens=4200`；生产模板的 `info` 默认值是 `4600`，不能反推本次调用使用了该值。两个 Provider operation 均成功：`info` 为 1,950 prompt / 1,147 completion / 340 reasoning / 3,097 total tokens，`characters` 为 2,996 prompt / 1,383 completion / 4,379 total tokens，均为唯一完整 JSON object、schema match=1、`repairs_applied=[]`、`pending_operations=0`。人物候选经 `CharacterBibleArtifact` 校验，包含 3 个注册角色、3 条关系、2 个 NPC 槽位；所有关系引用均指向注册 ID，首次出现窗口符合合同。LangGraph 已保存 checkpoint 并停在 `characters.human_decision`，未接受人物、未进入 `summary`、未调用图片 Provider。
 
 ## 13. 测试与验收矩阵
 
@@ -819,11 +822,11 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 以下取舍已经批准并进入实现：LangGraph 是唯一生产运行时；生产代码默认禁止直接 LangChain API，高层 `langchain` 包不作为直接依赖；新增 Character Bible 并采用严格串行八阶段；Detail vNext 与历史 Run 断代；Memory/Wiki/Canon/RAG 采用低敏感、证据驱动边界。
 
-用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。DeepSeek `info` 合同探针已通过，当前退出门为：
+用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。DeepSeek `info` 与 `characters` 合同探针已通过，当前退出门为：
 
 1. 不启动或恢复 Phase 25 历史 Run；
 2. 后续探针只使用用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 冻结绑定，不做运行时 Provider 或模型切换；
-3. `info` 候选当前保持未写回的人工决策状态；只有在明确接受后才使用同一 thread/checkpoint 进入单次 `characters` 探针，不重放已成功的 `info` operation；
-4. `characters` 至 `cover` 剩余六个结构化探针全部通过前，不创建新的三章 Run，不调用图片 Provider；
-5. 不把本地测试/build 通过或单个 `info` 成功写成真实输出、浏览器体验或文学质量已验收；
+3. 人物候选当前保持未写回的人工决策状态；会话结构、职责、关系、NPC 槽位和首次出现窗口均通过合同，但仍不由模型自动冻结；只有在明确接受后才能进入单次 `summary` 探针；
+4. `summary` 至 `cover` 剩余五个结构化探针全部通过前，不创建新的三章 Run，不调用图片 Provider；
+5. 不把本地测试/build 通过或单个 `info`/人物成功写成真实输出、浏览器体验或文学质量已验收；
 6. 后续真实验收继续设置成本上限、保留脱敏 receipt，并在失败时停止而非恢复 legacy。
