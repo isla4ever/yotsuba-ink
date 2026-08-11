@@ -8,6 +8,7 @@ from langgraph.graph import END, START, StateGraph
 
 from novel_workflow.output_contracts.artifacts_vnext import ChapterArtifact
 from novel_workflow.runtime.graph.provider_gateway import (
+    ChapterDraftResult,
     ChapterGenerationRequest,
     ProviderOperationError,
 )
@@ -74,7 +75,6 @@ def build_chapter_graph(
         revision_direction = str(
             (state.get("chapter_revision_directions") or {}).get(chapter_id) or ""
         ).strip()
-        source_version_ref = (state.get("chapter_version_refs") or {}).get(chapter_id, "")
         if attempt > 1 and not revision_direction:
             raise ValueError("A repeated chapter generation requires an explicit revision direction")
         request = ChapterGenerationRequest(
@@ -99,24 +99,22 @@ def build_chapter_graph(
             )
         if receipt.status == "succeeded":
             payload = receipt.result
-            artifact = ChapterArtifact.model_validate(payload)
+            draft = ChapterDraftResult.model_validate(payload)
+            artifact = _chapter_artifact(draft, chapter_id=chapter_id, attempt=attempt)
             _validate_generated_chapter(
                 artifact,
                 chapter_id=chapter_id,
-                attempt=attempt,
-                source_version_ref=source_version_ref,
             )
         else:
             response = None
             try:
                 response = await executor.provider.generate_chapter(request)
                 payload = response.payload
-                artifact = ChapterArtifact.model_validate(payload)
+                draft = ChapterDraftResult.model_validate(payload)
+                artifact = _chapter_artifact(draft, chapter_id=chapter_id, attempt=attempt)
                 _validate_generated_chapter(
                     artifact,
                     chapter_id=chapter_id,
-                    attempt=attempt,
-                    source_version_ref=source_version_ref,
                 )
             except Exception as exc:
                 executor.operations.fail(
@@ -260,13 +258,24 @@ def _validate_generated_chapter(
     artifact: ChapterArtifact,
     *,
     chapter_id: str,
-    attempt: int,
-    source_version_ref: str,
 ) -> None:
     if artifact.chapter_id != chapter_id or artifact.author_status != "candidate":
         raise ValueError("Chapter Provider output must target the frozen chapter as a candidate")
-    if attempt > 1 and artifact.version_id == source_version_ref:
-        raise ValueError("A targeted chapter revision must create a new immutable version")
+
+
+def _chapter_artifact(
+    draft: ChapterDraftResult,
+    *,
+    chapter_id: str,
+    attempt: int,
+) -> ChapterArtifact:
+    return ChapterArtifact(
+        chapter_id=draft.chapter_id,
+        version_id=f"{chapter_id}-v{attempt}",
+        title=draft.title,
+        content=draft.content,
+        author_status=draft.author_status,
+    )
 
 
 def _signature(value: Any) -> str:

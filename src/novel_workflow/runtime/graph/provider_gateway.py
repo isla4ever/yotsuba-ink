@@ -81,6 +81,15 @@ class ChapterGenerationRequest(BaseModel):
     context: dict[str, Any]
 
 
+class ChapterDraftResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chapter_id: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=1, max_length=240)
+    content: str = Field(min_length=1)
+    author_status: Literal["candidate"]
+
+
 class ChapterReviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -191,7 +200,23 @@ class RegistryNarrativeProviderGateway:
 
     async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
         schema = _schema_for_stage("text")
-        return await self._structured(request.binding, request.operation_key, "text", request.context, schema)
+        response = await self._structured(
+            request.binding,
+            request.operation_key,
+            "text",
+            request.context,
+            schema,
+        )
+        try:
+            ChapterDraftResult.model_validate(response.payload)
+        except Exception as exc:
+            raise ProviderOperationError(
+                str(exc),
+                operation_key=request.operation_key,
+                usage=response.usage,
+                diagnostic=response.diagnostic,
+            ) from exc
+        return response
 
     async def generate_cover_image(self, request: CoverImageRequest) -> GeneratedImage:
         provider = self.registry.image_for(request.binding.provider_profile_id)
@@ -305,7 +330,7 @@ def _schema_for_stage(stage_id: str) -> dict[str, Any]:
     if stage_id == "cover":
         return CoverBrief.model_json_schema()
     if stage_id == "text":
-        return ARTIFACT_MODELS["text"].model_json_schema()
+        return ChapterDraftResult.model_json_schema()
     if stage_id in ARTIFACT_MODELS:
         return ARTIFACT_MODELS[stage_id].model_json_schema()
     raise ProviderOperationError(f"No vNext schema for Provider task {stage_id}")
@@ -342,6 +367,7 @@ def _render_prompt(
     revision_contract = _revision_contract(context)
     review_contract = _review_contract(task_name)
     evidence_contract = _evidence_contract(task_name)
+    revision_direction = _revision_direction(context)
     return (
         f"{prefix}You are the Yotsuba Ink {task_name} node.\n"
         "Return exactly one JSON object matching the supplied schema. Do not add commentary, defaults, or fields.\n"
@@ -350,6 +376,7 @@ def _render_prompt(
         f"{evidence_contract}"
         f"Schema:\n{json.dumps(schema, ensure_ascii=False, sort_keys=True)}\n"
         f"Context:\n{json.dumps(context, ensure_ascii=False, sort_keys=True)}"
+        f"{revision_direction}"
     )
 
 
@@ -364,6 +391,15 @@ def _revision_contract(context: dict[str, Any]) -> str:
         "Return a complete replacement that executes direction; rewrite or remove every source passage that "
         "conflicts with direction, and preserve only unaffected frozen story commitments.\n"
     )
+
+
+def _revision_direction(context: dict[str, Any]) -> str:
+    material = context.get("material")
+    revision = material.get("revision_request") if isinstance(material, dict) else None
+    direction = revision.get("direction") if isinstance(revision, dict) else None
+    if not isinstance(direction, str) or not direction.strip():
+        return ""
+    return f"\nControlling revision direction (apply every requirement):\n{direction.strip()}"
 
 
 def _review_contract(task_name: str) -> str:
@@ -389,6 +425,7 @@ def _evidence_contract(task_name: str) -> str:
 
 
 __all__ = [
+    "ChapterDraftResult",
     "ChapterGenerationRequest",
     "ChapterEvidenceRequest",
     "ChapterEvidenceResult",

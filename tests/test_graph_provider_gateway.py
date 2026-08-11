@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
+    ChapterDraftResult,
     ChapterEvidenceRequest,
     ChapterEvidenceResult,
     ChapterGenerationRequest,
@@ -240,7 +241,12 @@ async def test_graph_gateway_locks_each_review_schema_to_its_frozen_lane() -> No
 
 @pytest.mark.asyncio
 async def test_graph_gateway_makes_a_targeted_revision_replace_conflicting_source_text() -> None:
-    provider = CapturingTextProvider()
+    provider = CapturingReviewTextProvider({
+        "chapter_id": "chapter-1",
+        "title": "退潮的档案",
+        "content": "档案系统投影仍在，冲突证据已经删除。",
+        "author_status": "candidate",
+    })
     registry = CapturingRegistry(provider)
     direction = "删除提前泄露的员工宿舍替换证据，保留档案系统投影。"
 
@@ -273,6 +279,25 @@ async def test_graph_gateway_makes_a_targeted_revision_replace_conflicting_sourc
     assert "immutable draft to replace" in prompt
     assert "rewrite or remove every source passage" in prompt
     assert direction in prompt
+    assert prompt.rstrip().endswith(direction)
+    assert set(provider.calls[0]["schema"]["properties"]) == {
+        "chapter_id",
+        "title",
+        "content",
+        "author_status",
+    }
+    assert "version_id" not in provider.calls[0]["schema"]["properties"]
+
+
+def test_chapter_provider_draft_excludes_runtime_owned_version_id() -> None:
+    with pytest.raises(ValidationError):
+        ChapterDraftResult.model_validate({
+            "chapter_id": "chapter-1",
+            "version_id": "provider-owned-version",
+            "title": "退潮的档案",
+            "content": "正文。",
+            "author_status": "candidate",
+        })
 
 
 @pytest.mark.asyncio

@@ -128,10 +128,8 @@ class FakeNarrativeProvider:
     async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
         self.chapter_calls.append(request.operation_key)
         self.chapter_requests.append(request)
-        attempt = int(request.operation_key.rsplit(":", 1)[-1])
         return _response({
             "chapter_id": request.chapter_id,
-            "version_id": f"{request.chapter_id}-v{attempt}",
             "title": f"第{request.chapter_number}章",
             "content": f"{request.chapter_id} 的冻结正文。",
             "author_status": "candidate",
@@ -936,6 +934,16 @@ async def test_targeted_chapter_regeneration_carries_direction_and_repeats_revie
     assert revision["source_chapter"]["version_id"] == "chapter-1-v1"
     assert revision["source_chapter"]["content"] == "chapter-1 的冻结正文。"
     assert projection.pending_decisions[0]["artifact_ref"] == "chapter-1-v2"
+    first_receipt = stores.operations.read(
+        "run-regenerate-chapter",
+        "run-regenerate-chapter:chapter-1:generate:1",
+    )
+    revised_receipt = stores.operations.read(
+        "run-regenerate-chapter",
+        "run-regenerate-chapter:chapter-1:generate:2",
+    )
+    assert "version_id" not in first_receipt.result
+    assert "version_id" not in revised_receipt.result
     assert len(provider.review_calls) == 6
     assert all(":chapter-1-v1:" in item for item in provider.review_calls[:3])
     assert all(":chapter-1-v2:" in item for item in provider.review_calls[3:])
