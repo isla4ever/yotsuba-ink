@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any
 
 from langgraph.types import Interrupt
@@ -11,14 +12,22 @@ class CheckpointBranchError(ValueError):
     pass
 
 
-async def copy_checkpoint_lineage(
+@dataclass(frozen=True, slots=True)
+class CheckpointBranchPlan:
+    source_thread_id: str
+    checkpoint_id: str
+    records: tuple[Any, ...]
+    frontier_values: tuple[dict[str, Any], ...]
+    active_interrupt_ids: frozenset[str]
+
+
+async def build_checkpoint_branch_plan(
     checkpointer: Any,
     *,
     source_thread_id: str,
-    target_thread_id: str,
     checkpoint_id: str,
-) -> None:
-    """Copy one top-level checkpoint and all lineage needed by its subgraphs."""
+) -> CheckpointBranchPlan:
+    """Resolve the exact interrupt frontier for an immutable branch snapshot."""
 
     source_config = {"configurable": {"thread_id": source_thread_id}}
     records = [record async for record in checkpointer.alist(source_config)]
@@ -26,31 +35,111 @@ async def copy_checkpoint_lineage(
         (
             record
             for record in records
-            if record.config["configurable"].get("checkpoint_ns", "") == ""
-            and record.config["configurable"].get("checkpoint_id") == checkpoint_id
+            if _namespace(record) == "" and _checkpoint_id(record) == checkpoint_id
         ),
         None,
     )
     if selected is None:
         raise CheckpointBranchError("Unknown top-level checkpoint")
 
-    selected_ts = str(selected.checkpoint.get("ts") or "")
-    later_top_level = sorted(
-        str(record.checkpoint.get("ts") or "")
-        for record in records
-        if record.config["configurable"].get("checkpoint_ns", "") == ""
-        and str(record.checkpoint.get("ts") or "") > selected_ts
-    )
-    cutoff = later_top_level[0] if later_top_level else ""
-    lineage = [
-        record
-        for record in records
-        if str(record.checkpoint.get("ts") or "") <= selected_ts
-        or (cutoff and str(record.checkpoint.get("ts") or "") < cutoff)
-        or (not cutoff)
-    ]
+    active_interrupt_ids = _interrupt_ids(selected)
+    if not active_interrupt_ids:
+        raise CheckpointBranchError(
+            "A production branch must start from a checkpoint with an active decision"
+        )
 
-    for record in sorted(lineage, key=lambda item: str(item.checkpoint.get("ts") or "")):
+    records_by_key = {
+        (_namespace(record), _checkpoint_id(record)): record for record in records
+    }
+    lineage_keys: set[tuple[str, str]] = set()
+    frontier_keys: set[tuple[str, str]] = {("", checkpoint_id)}
+
+    def include_chain(namespace: str, current_id: str) -> None:
+        while current_id:
+            key = (namespace, current_id)
+            if key in lineage_keys:
+                return
+            record = records_by_key.get(key)
+            if record is None:
+                raise CheckpointBranchError("Checkpoint lineage is incomplete")
+            lineage_keys.add(key)
+            parent = record.parent_config or {}
+            parent_configurable = parent.get("configurable", {})
+            parent_namespace = str(parent_configurable.get("checkpoint_ns", namespace))
+            if parent_namespace != namespace:
+                raise CheckpointBranchError("Checkpoint lineage crossed namespaces")
+            current_id = str(parent_configurable.get("checkpoint_id") or "")
+
+    include_chain("", checkpoint_id)
+
+    for record in records:
+        namespace = _namespace(record)
+        if not namespace or not (_interrupt_ids(record) & active_interrupt_ids):
+            continue
+        parents = record.metadata.get("parents") or {}
+        if str(parents.get("") or "") != checkpoint_id:
+            continue
+        record_key = (namespace, _checkpoint_id(record))
+        frontier_keys.add(record_key)
+        include_chain(*record_key)
+        for parent_namespace, parent_id in parents.items():
+            parent_namespace = str(parent_namespace)
+            parent_id = str(parent_id or "")
+            if not parent_namespace or not parent_id:
+                continue
+            frontier_keys.add((parent_namespace, parent_id))
+            include_chain(parent_namespace, parent_id)
+
+    lineage = tuple(
+        sorted(
+            (records_by_key[key] for key in lineage_keys),
+            key=lambda item: str(item.checkpoint.get("ts") or ""),
+        )
+    )
+    frontiers = tuple(
+        sorted(
+            (records_by_key[key] for key in frontier_keys),
+            key=lambda item: (
+                item.config["configurable"].get("checkpoint_ns", ""),
+                str(item.checkpoint.get("ts") or ""),
+            ),
+        )
+    )
+    return CheckpointBranchPlan(
+        source_thread_id=source_thread_id,
+        checkpoint_id=checkpoint_id,
+        records=lineage,
+        frontier_values=tuple(
+            deepcopy(record.checkpoint.get("channel_values") or {})
+            for record in frontiers
+        ),
+        active_interrupt_ids=frozenset(active_interrupt_ids),
+    )
+
+
+async def copy_checkpoint_lineage(
+    checkpointer: Any,
+    *,
+    source_thread_id: str,
+    target_thread_id: str,
+    checkpoint_id: str,
+    plan: CheckpointBranchPlan | None = None,
+) -> None:
+    """Copy a branch plan without writes appended after its active interrupt."""
+
+    if plan is None:
+        plan = await build_checkpoint_branch_plan(
+            checkpointer,
+            source_thread_id=source_thread_id,
+            checkpoint_id=checkpoint_id,
+        )
+    if (
+        plan.source_thread_id != source_thread_id
+        or plan.checkpoint_id != checkpoint_id
+    ):
+        raise CheckpointBranchError("Checkpoint branch plan identity mismatch")
+
+    for record in plan.records:
         configurable = record.config["configurable"]
         target_config = {
             "configurable": {
@@ -76,6 +165,11 @@ async def copy_checkpoint_lineage(
         )
         grouped_writes: dict[str, list[tuple[str, Any]]] = defaultdict(list)
         for task_id, channel, value in record.pending_writes or []:
+            if (
+                _interrupt_ids(record) & plan.active_interrupt_ids
+                and channel != "__interrupt__"
+            ):
+                continue
             grouped_writes[task_id].append(
                 (channel, _remap_identity(deepcopy(value), source_thread_id, target_thread_id))
             )
@@ -85,6 +179,28 @@ async def copy_checkpoint_lineage(
 
 def remap_run_identity(value: Any, source_run_id: str, target_run_id: str) -> Any:
     return _remap_identity(deepcopy(value), source_run_id, target_run_id)
+
+
+def _namespace(record: Any) -> str:
+    return str(record.config["configurable"].get("checkpoint_ns", ""))
+
+
+def _checkpoint_id(record: Any) -> str:
+    return str(record.config["configurable"].get("checkpoint_id", ""))
+
+
+def _interrupt_ids(record: Any) -> set[str]:
+    ids: set[str] = set()
+    for _, channel, value in record.pending_writes or []:
+        if channel != "__interrupt__":
+            continue
+        interrupts = value if isinstance(value, (list, tuple)) else [value]
+        ids.update(
+            str(item.id)
+            for item in interrupts
+            if isinstance(item, Interrupt) and item.id
+        )
+    return ids
 
 
 def _remap_identity(value: Any, source: str, target: str) -> Any:
@@ -114,4 +230,10 @@ def _remap_identity(value: Any, source: str, target: str) -> Any:
     return value
 
 
-__all__ = ["CheckpointBranchError", "copy_checkpoint_lineage", "remap_run_identity"]
+__all__ = [
+    "CheckpointBranchError",
+    "CheckpointBranchPlan",
+    "build_checkpoint_branch_plan",
+    "copy_checkpoint_lineage",
+    "remap_run_identity",
+]

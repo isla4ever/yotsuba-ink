@@ -8,6 +8,7 @@ from novel_workflow.memory.canon_store import CanonFact
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
 from novel_workflow.runtime.graph.checkpoint_branch import (
     CheckpointBranchError,
+    build_checkpoint_branch_plan,
     copy_checkpoint_lineage,
     remap_run_identity,
 )
@@ -34,20 +35,14 @@ class NarrativeBranchService:
         if stores.runs.exists(target_run_id):
             raise BranchConflictError(f"Run already exists: {target_run_id}")
         source = stores.runs.definition(source_run_id)
-        source_config = {
-            "configurable": {
-                "thread_id": source_run_id,
-                "checkpoint_id": checkpoint_id,
-            }
-        }
-        snapshot = await self.runtime.graph.aget_state(source_config, subgraphs=True)
-        if not snapshot.values:
+        branch_plan = await build_checkpoint_branch_plan(
+            self.runtime.checkpointer,
+            source_thread_id=source_run_id,
+            checkpoint_id=checkpoint_id,
+        )
+        values = [dict(value) for value in branch_plan.frontier_values]
+        if not any(values):
             raise CheckpointBranchError("Checkpoint has no narrative state")
-        if not snapshot.interrupts:
-            raise CheckpointBranchError(
-                "A production branch must start from a checkpoint with an active decision"
-            )
-        values = list(_snapshot_values(snapshot))
         if any(value.get("pending_writeback_ref") for value in values):
             raise CheckpointBranchError("Cannot branch while a Domain Outbox commit is pending")
         if any(value.get("pending_evidence_refs") for value in values):
@@ -89,6 +84,7 @@ class NarrativeBranchService:
             source_thread_id=source_run_id,
             target_thread_id=target_run_id,
             checkpoint_id=checkpoint_id,
+            plan=branch_plan,
         )
         projection = await self.runtime.refresh_projection(target_run_id)
         stores.events.append(
@@ -293,14 +289,5 @@ class NarrativeBranchService:
                 target_run_id=target_run_id,
                 target_operation_key=target_key,
             )
-
-
-def _snapshot_values(snapshot: Any):
-    yield dict(snapshot.values or {})
-    for task in snapshot.tasks:
-        child = task.state
-        if hasattr(child, "values"):
-            yield from _snapshot_values(child)
-
 
 __all__ = ["BranchConflictError", "NarrativeBranchService"]

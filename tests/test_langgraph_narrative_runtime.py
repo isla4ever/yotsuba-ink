@@ -1058,6 +1058,87 @@ async def test_branch_from_older_sqlite_checkpoint_excludes_later_source_history
 
 
 @pytest.mark.asyncio
+async def test_branch_from_resolved_interrupt_excludes_appended_future_writes(tmp_path) -> None:
+    root = tmp_path / "resolved-interrupt-branch-runtime"
+    stores = filesystem_stores(root)
+    provider = FakeNarrativeProvider()
+    bindings = {
+        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
+        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
+    }
+    stores.runs.create(
+        run_id="run-resolved-source",
+        project_id="project-1",
+        workflow_revision="phase26-vnext",
+        quality_mode="balanced",
+        inputs={"genre": "悬疑"},
+        book_scale_plan=_book_plan(2),
+        provider_bindings=bindings,
+        **_run_contract_args(),
+    )
+
+    async with open_sqlite_runtime(root, provider) as runtime:
+        info = await runtime.start("run-resolved-source")
+        characters = await runtime.resume(
+            "run-resolved-source",
+            {
+                "decision_id": info.pending_decisions[0]["decision_id"],
+                "domain_revision": info.pending_decisions[0]["domain_revision"],
+                "action": "accept",
+            },
+        )
+        characters_checkpoint_id = characters.checkpoint_id
+        summary = await runtime.resume(
+            "run-resolved-source",
+            {
+                "decision_id": characters.pending_decisions[0]["decision_id"],
+                "domain_revision": characters.pending_decisions[0]["domain_revision"],
+                "action": "accept",
+            },
+        )
+        assert summary.active_stage_id == "summary"
+
+        branch = await NarrativeBranchService(runtime).create(
+            source_run_id="run-resolved-source",
+            target_run_id="run-resolved-target",
+            checkpoint_id=characters_checkpoint_id,
+        )
+        branch_snapshot = await runtime.graph.aget_state(
+            {"configurable": {"thread_id": "run-resolved-target"}},
+            subgraphs=True,
+        )
+        branch_child = branch_snapshot.tasks[0].state
+        with pytest.raises(FileNotFoundError):
+            stores.artifacts.latest(
+                "run-resolved-target", "characters", status="committed"
+            )
+        resumed = await runtime.resume(
+            "run-resolved-target",
+            {
+                "decision_id": branch.pending_decisions[0]["decision_id"],
+                "domain_revision": branch.pending_decisions[0]["domain_revision"],
+                "action": "accept",
+            },
+        )
+
+    assert branch.active_stage_id == "characters"
+    assert branch.stage_status["characters"] == "awaiting_decision"
+    assert branch.pending_decisions[0]["domain_revision"] == 1
+    assert branch_child.values["domain_revision"] == 1
+    assert "characters" not in branch_child.values["artifact_refs"]
+    assert stores.artifacts.latest(
+        "run-resolved-target", "characters", status="candidate"
+    ).artifact_id == branch.pending_decisions[0]["artifact_ref"]
+    assert resumed.active_stage_id == "summary"
+    assert provider.stage_calls == [
+        "run-resolved-source:info:generate:1",
+        "run-resolved-source:characters:generate:1",
+        "run-resolved-source:summary:generate:1",
+        "run-resolved-target:summary:generate:1",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_branch_at_chapter_interrupt_keeps_stage_and_chapter_references_isolated(tmp_path) -> None:
     root = tmp_path / "chapter-branch-runtime"
     stores = filesystem_stores(root)
