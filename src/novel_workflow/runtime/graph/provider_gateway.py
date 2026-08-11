@@ -420,7 +420,8 @@ def _evidence_contract(task_name: str) -> str:
         return ""
     return (
         "Return at most eight durable claims supported only by the supplied evidence_candidates. "
-        "For each claim, select one to three span_ids exactly as listed. Do not copy quote text or return "
+        "For each claim, select one to three span_ids exactly as listed; span_ids has a hard maximum of "
+        "three entries, so never return four or more. Do not copy quote text or return "
         "character offsets; deterministic runtime code owns the source spans. Exclude decorative detail, "
         "interpretation, and claims not directly supported by the selected spans.\n"
     )

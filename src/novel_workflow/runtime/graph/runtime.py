@@ -10,6 +10,7 @@ from typing import AsyncIterator, Any
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 
+from novel_workflow.output_contracts.artifacts_vnext import DetailArtifact
 from novel_workflow.runtime.graph.narrative_graph import build_narrative_graph
 from novel_workflow.runtime.graph.provider_gateway import NarrativeProviderGateway
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
@@ -230,6 +231,7 @@ class NarrativeRuntime:
         stage_status = dict(values.get("stage_status") or {})
         pending = [item.value for item in snapshot.interrupts]
         active_stage = str(values.get("active_stage_id") or "info")
+        active_chapter_number = int(values.get("active_chapter_number") or 0)
         status = str(values.get("status") or "running")
         if pending:
             status = "awaiting_decision"
@@ -239,6 +241,17 @@ class NarrativeRuntime:
                 active_stage = interrupted_stage
             if active_stage in stage_status:
                 stage_status[active_stage] = "awaiting_decision"
+            chapter_id = (
+                str(pending[0].get("chapter_id") or "")
+                if isinstance(pending[0], dict)
+                else ""
+            )
+            if chapter_id:
+                active_chapter_number = self._chapter_number(
+                    run_id,
+                    values,
+                    chapter_id,
+                )
         definition = self.stores.runs.definition(run_id)
         projection = RunReadModel(
             run_id=run_id,
@@ -246,7 +259,7 @@ class NarrativeRuntime:
             thread_id=run_id,
             status=status,  # type: ignore[arg-type]
             active_stage_id=active_stage,  # type: ignore[arg-type]
-            active_chapter_number=int(values.get("active_chapter_number") or 0),
+            active_chapter_number=active_chapter_number,
             stage_status=stage_status,
             artifact_refs=dict(values.get("artifact_refs") or {}),
             pending_decisions=pending,
@@ -256,6 +269,23 @@ class NarrativeRuntime:
             updated_at="",
         )
         self.stores.runs.project(run_id, projection)
+
+    def _chapter_number(
+        self,
+        run_id: str,
+        values: dict[str, Any],
+        chapter_id: str,
+    ) -> int:
+        detail_ref = str((values.get("artifact_refs") or {}).get("detail") or "")
+        if not detail_ref:
+            raise ValueError("A chapter decision requires a committed Detail artifact")
+        detail = DetailArtifact.model_validate(
+            self.stores.artifacts.read(run_id, detail_ref).payload
+        )
+        for chapter in detail.chapters:
+            if chapter.id == chapter_id:
+                return chapter.number
+        raise ValueError("Chapter decision does not reference the frozen Detail artifact")
 
     @staticmethod
     def _config(run_id: str) -> dict[str, dict[str, str]]:

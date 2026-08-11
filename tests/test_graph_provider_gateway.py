@@ -330,6 +330,8 @@ async def test_graph_gateway_evidence_contract_derives_offsets_outside_the_provi
     call = provider.calls[0]
     claim_schema = call["schema"]["$defs"]["EvidenceClaimProposal"]["properties"]
     assert set(claim_schema) == {"kind", "claim", "span_ids"}
+    assert "hard maximum" in call["prompt"]
+    assert "never return four or more" in call["prompt"]
     assert "Do not copy quote text" in call["prompt"]
     assert '"span_id": "span-0002"' in call["prompt"]
 

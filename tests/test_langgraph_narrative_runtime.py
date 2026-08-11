@@ -682,6 +682,7 @@ async def test_duplicate_chapter_decision_does_not_repeat_writeback_or_advance_a
 
     assert after_accept.pending_decisions == replayed.pending_decisions
     assert replayed.pending_decisions[0]["chapter_id"] == "chapter-2"
+    assert replayed.active_chapter_number == 2
     assert provider.evidence_calls == [
         "run-chapter-decision-replay:chapter-1:evidence:chapter-1-v1-accepted"
     ]
@@ -1532,6 +1533,7 @@ async def _advance_to_first_chapter(
         )
     assert projection.pending_decisions[0]["type"] == "chapter_author_decision"
     assert projection.pending_decisions[0]["chapter_id"] == "chapter-1"
+    assert projection.active_chapter_number == 1
     return projection
 
 
