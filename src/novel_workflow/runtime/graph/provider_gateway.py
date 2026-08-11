@@ -217,9 +217,21 @@ class RegistryNarrativeProviderGateway:
             request.operation_key,
             "text.review",
             request.context,
-            ChapterReviewResult.model_json_schema(),
+            _schema_for_review_role(request.role),
         )
-        ChapterReviewResult.model_validate(response.payload)
+        try:
+            result = ChapterReviewResult.model_validate(response.payload)
+            if result.role != request.role:
+                raise ValueError(
+                    "Reviewer result role does not match its frozen lane"
+                )
+        except Exception as exc:
+            raise ProviderOperationError(
+                str(exc),
+                operation_key=request.operation_key,
+                usage=response.usage,
+                diagnostic=response.diagnostic,
+            ) from exc
         return response
 
     async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
@@ -299,6 +311,17 @@ def _schema_for_stage(stage_id: str) -> dict[str, Any]:
     if stage_id in ARTIFACT_MODELS:
         return ARTIFACT_MODELS[stage_id].model_json_schema()
     raise ProviderOperationError(f"No vNext schema for Provider task {stage_id}")
+
+
+def _schema_for_review_role(role: str) -> dict[str, Any]:
+    """Constrain one parallel review call to its immutable graph-assigned role."""
+
+    schema = ChapterReviewResult.model_json_schema()
+    properties = schema.get("properties")
+    if not isinstance(properties, dict) or not isinstance(properties.get("role"), dict):
+        raise RuntimeError("Chapter review schema is missing its role property")
+    properties["role"] = {**properties["role"], "const": role}
+    return schema
 
 
 def _validate_stage_payload(stage_id: str, payload: dict[str, Any]) -> None:

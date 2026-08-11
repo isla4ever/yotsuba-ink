@@ -7,6 +7,8 @@ from pydantic import ValidationError
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
+    ChapterReviewRequest,
+    ChapterReviewResult,
     CoverImageRequest,
     ProviderOperationError,
     RegistryNarrativeProviderGateway,
@@ -75,6 +77,28 @@ class InvalidArtifactTextProvider(CapturingTextProvider):
             "schema": schema,
         })
         return {"title": "缺少合同字段"}
+
+
+class CapturingReviewTextProvider(CapturingTextProvider):
+    def __init__(self, payload: dict[str, Any]) -> None:
+        super().__init__()
+        self.payload = payload
+
+    async def generate_strict_structured(
+        self,
+        prompt: str,
+        *,
+        task_name: str,
+        context: dict[str, Any],
+        schema: dict[str, Any],
+    ) -> dict[str, Any]:
+        self.calls.append({
+            "prompt": prompt,
+            "task_name": task_name,
+            "context": context,
+            "schema": schema,
+        })
+        return self.payload
 
 
 class CapturingRegistry:
@@ -170,6 +194,68 @@ async def test_graph_gateway_rejects_invalid_artifacts_with_the_current_operatio
 
     assert raised.value.operation_key == "run-1:info:generate:1"
     assert raised.value.usage == {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
+
+
+@pytest.mark.asyncio
+async def test_graph_gateway_locks_each_review_schema_to_its_frozen_lane() -> None:
+    provider = CapturingReviewTextProvider(
+        ChapterReviewResult(role="continuity").model_dump(mode="json")
+    )
+    registry = CapturingRegistry(provider)
+    request = ChapterReviewRequest(
+        operation_key="run-1:chapter-1:review:chapter-1-v1:continuity",
+        run_id="run-1",
+        chapter_id="chapter-1",
+        chapter_version_id="chapter-1-v1",
+        role="continuity",
+        required=True,
+        binding=ProviderBinding(
+            provider_profile_id="provider-primary",
+            model="model-frozen",
+        ),
+        context={"target": "text.review.continuity"},
+    )
+
+    result = await RegistryNarrativeProviderGateway(registry).review_chapter(  # type: ignore[arg-type]
+        request
+    )
+
+    assert result.payload["role"] == "continuity"
+    call = provider.calls[0]
+    assert call["task_name"] == "text.review"
+    assert call["context"] == {"idempotency_key": request.operation_key}
+    assert call["schema"]["properties"]["role"]["const"] == "continuity"
+    assert '"const": "continuity"' in call["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_graph_gateway_rejects_a_review_role_outside_its_frozen_lane() -> None:
+    provider = CapturingReviewTextProvider(
+        ChapterReviewResult(role="character").model_dump(mode="json")
+    )
+    registry = CapturingRegistry(provider)
+    operation_key = "run-1:chapter-1:review:chapter-1-v1:continuity"
+
+    with pytest.raises(ProviderOperationError, match="frozen lane") as raised:
+        await RegistryNarrativeProviderGateway(registry).review_chapter(  # type: ignore[arg-type]
+            ChapterReviewRequest(
+                operation_key=operation_key,
+                run_id="run-1",
+                chapter_id="chapter-1",
+                chapter_version_id="chapter-1-v1",
+                role="continuity",
+                required=True,
+                binding=ProviderBinding(
+                    provider_profile_id="provider-primary",
+                    model="model-frozen",
+                ),
+                context={"target": "text.review.continuity"},
+            )
+        )
+
+    assert raised.value.operation_key == operation_key
+    assert raised.value.usage == provider.last_usage
+    assert raised.value.diagnostic == provider.last_response_diagnostic
 
 
 def test_provider_binding_rejects_inherit_and_unknown_fallback_fields() -> None:
