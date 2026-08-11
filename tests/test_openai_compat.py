@@ -431,9 +431,16 @@ async def test_qwen_36_flash_keeps_the_compatible_thinking_profile() -> None:
 
 
 @pytest.mark.asyncio
-async def test_deepseek_stage_policy_disables_thinking_for_prose_and_enables_it_for_detail() -> None:
+async def test_deepseek_stage_policy_reserves_budget_for_structured_artifacts() -> None:
     prose_provider, prose_client = _provider("deepseek-text", content="正文继续。", model="deepseek-v4-pro")
     await prose_provider.generate_text("write", task_name="text", context={})
+    outline_provider, outline_client = _provider("deepseek-text", model="deepseek-v4-pro")
+    await outline_provider.generate_strict_structured(
+        "return JSON data like {\"ok\":true}",
+        task_name="outline",
+        context={},
+        schema={"type": "object"},
+    )
     detail_provider, detail_client = _provider("deepseek-text", model="deepseek-v4-pro")
     await detail_provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
@@ -445,9 +452,12 @@ async def test_deepseek_stage_policy_disables_thinking_for_prose_and_enables_it_
     assert prose_client.calls[0]["extra_body"]["thinking"] == {"type": "disabled"}
     assert prose_client.calls[0]["temperature"] == 0.2
     assert "reasoning_effort" not in prose_client.calls[0]
-    assert detail_client.calls[0]["extra_body"]["thinking"] == {"type": "enabled"}
-    assert detail_client.calls[0]["reasoning_effort"] == "max"
-    assert "temperature" not in detail_client.calls[0]
+    assert outline_client.calls[0]["extra_body"]["thinking"] == {"type": "disabled"}
+    assert "reasoning_effort" not in outline_client.calls[0]
+    assert outline_client.calls[0]["temperature"] == 0.2
+    assert detail_client.calls[0]["extra_body"]["thinking"] == {"type": "disabled"}
+    assert "reasoning_effort" not in detail_client.calls[0]
+    assert detail_client.calls[0]["temperature"] == 0.2
 
 
 @pytest.mark.asyncio

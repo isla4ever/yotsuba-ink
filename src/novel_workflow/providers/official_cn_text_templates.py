@@ -88,8 +88,6 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
                 stage_request_parameters={
                     "info": {"reasoning_effort": "high"},
-                    "outline": {"reasoning_effort": "high"},
-                    "detail": {"reasoning_effort": "max"},
                     "text.review": {"reasoning_effort": "low"},
                 },
                 stage_extra_body_parameters={
@@ -98,8 +96,10 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                     # its output budget for JSON avoids reasoning consuming the
                     # response envelope before the artifact is complete.
                     "summary": {"thinking": {"type": "disabled"}},
-                    "outline": {"thinking": {"type": "enabled"}},
-                    "detail": {"thinking": {"type": "enabled"}},
+                    # Outline and detail are bounded structured artifacts. Their
+                    # response budget must remain available for the JSON object.
+                    "outline": {"thinking": {"type": "disabled"}},
+                    "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
                     "text.review": {"thinking": {"type": "enabled"}},
@@ -110,15 +110,13 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
                 stage_request_parameters={
                     "info": {"reasoning_effort": "high"},
-                    "outline": {"reasoning_effort": "high"},
-                    "detail": {"reasoning_effort": "max"},
                     "text.review": {"reasoning_effort": "low"},
                 },
                 stage_extra_body_parameters={
                     "info": {"thinking": {"type": "enabled"}},
                     "summary": {"thinking": {"type": "disabled"}},
-                    "outline": {"thinking": {"type": "enabled"}},
-                    "detail": {"thinking": {"type": "enabled"}},
+                    "outline": {"thinking": {"type": "disabled"}},
+                    "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
                     "text.review": {"thinking": {"type": "enabled"}},
