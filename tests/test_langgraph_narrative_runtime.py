@@ -22,6 +22,9 @@ from novel_workflow.runtime.graph.provider_gateway import (
     StageGenerationRequest,
     StructuredProviderResult,
 )
+from novel_workflow.runtime.graph.evidence_candidates import (
+    build_chapter_evidence_candidates,
+)
 from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.runtime.graph.branch_service import NarrativeBranchService
 from novel_workflow.runtime.graph.chapter_decision import save_edited_chapter_candidate
@@ -126,12 +129,12 @@ class FakeNarrativeProvider:
 
     async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
         self.evidence_calls.append(request.operation_key)
-        quote = request.content
+        candidate = build_chapter_evidence_candidates(request.content)[0]
         result = ChapterEvidenceResult.model_validate({
             "claims": [{
                 "kind": "summary",
                 "claim": f"{request.chapter_id} 已完成。",
-                "quotes": [quote],
+                "span_ids": [candidate.span_id],
             }]
         })
         return _response(result.model_dump(mode="json"))

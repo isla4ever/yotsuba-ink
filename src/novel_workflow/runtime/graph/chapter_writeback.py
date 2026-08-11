@@ -5,6 +5,9 @@ import json
 from typing import Any
 
 from novel_workflow.memory.canon_store import CanonFact
+from novel_workflow.runtime.graph.evidence_candidates import (
+    build_chapter_evidence_candidates,
+)
 from novel_workflow.runtime.graph.provider_gateway import (
     ChapterEvidenceRequest,
     ChapterEvidenceResult,
@@ -176,16 +179,28 @@ def _bind_evidence_spans(
     content: str,
     result: ChapterEvidenceResult,
 ) -> list[list[EvidenceSpan]]:
+    candidates = {
+        candidate.span_id: candidate
+        for candidate in build_chapter_evidence_candidates(content)
+    }
     bound: list[list[EvidenceSpan]] = []
     for claim in result.claims:
         spans: list[EvidenceSpan] = []
-        for quote in claim.quotes:
-            start = content.find(quote)
-            if start < 0:
-                raise ValueError("Evidence quote does not match the accepted chapter")
-            if content.find(quote, start + 1) >= 0:
-                raise ValueError("Evidence quote must uniquely identify one accepted chapter span")
-            spans.append(EvidenceSpan(start=start, end=start + len(quote), quote=quote))
+        seen: set[str] = set()
+        for span_id in claim.span_ids:
+            if span_id in seen:
+                raise ValueError("Evidence claim repeats one source span")
+            candidate = candidates.get(span_id)
+            if candidate is None:
+                raise ValueError("Evidence claim references an unknown source span")
+            seen.add(span_id)
+            spans.append(
+                EvidenceSpan(
+                    start=candidate.start,
+                    end=candidate.end,
+                    quote=candidate.quote,
+                )
+            )
         bound.append(spans)
     return bound
 

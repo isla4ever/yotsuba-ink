@@ -9,6 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from novel_workflow.output_contracts.artifacts_vnext import CoverBrief, StageId
 from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.providers.usage import provider_usage_snapshot
+from novel_workflow.runtime.graph.evidence_candidates import (
+    build_chapter_evidence_candidates,
+)
 from novel_workflow.storage.narrative_run_repository import CoverAssetBinding, ProviderBinding
 from novel_workflow.workflows.schemas import ModelSettings
 
@@ -113,13 +116,13 @@ class EvidenceClaimProposal(BaseModel):
 
     kind: Literal["fact", "character", "relationship", "foreshadow", "summary"]
     claim: str = Field(min_length=1, max_length=2000)
-    quotes: list[str] = Field(min_length=1, max_length=20)
+    span_ids: list[str] = Field(min_length=1, max_length=3)
 
 
 class ChapterEvidenceResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    claims: list[EvidenceClaimProposal] = Field(default_factory=list, max_length=80)
+    claims: list[EvidenceClaimProposal] = Field(min_length=1, max_length=8)
 
 
 class ChapterEvidenceRequest(BaseModel):
@@ -227,6 +230,7 @@ class RegistryNarrativeProviderGateway:
         return response
 
     async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
+        candidates = build_chapter_evidence_candidates(request.content)
         response = await self._structured(
             request.binding,
             request.operation_key,
@@ -234,7 +238,9 @@ class RegistryNarrativeProviderGateway:
             {
                 "chapter_id": request.chapter_id,
                 "chapter_version_id": request.chapter_version_id,
-                "content": request.content,
+                "evidence_candidates": [
+                    candidate.prompt_payload() for candidate in candidates
+                ],
             },
             ChapterEvidenceResult.model_json_schema(),
         )
@@ -375,8 +381,10 @@ def _evidence_contract(task_name: str) -> str:
     if task_name != "text.evidence":
         return ""
     return (
-        "Copy every quotes item exactly from the supplied chapter content. Choose a quote that occurs exactly once "
-        "in that content. Do not return character offsets; the runtime derives spans deterministically.\n"
+        "Return at most eight durable claims supported only by the supplied evidence_candidates. "
+        "For each claim, select one to three span_ids exactly as listed. Do not copy quote text or return "
+        "character offsets; deterministic runtime code owns the source spans. Exclude decorative detail, "
+        "interpretation, and claims not directly supported by the selected spans.\n"
     )
 
 

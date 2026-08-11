@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
     ChapterEvidenceRequest,
+    ChapterEvidenceResult,
     ChapterGenerationRequest,
     ChapterReviewRequest,
     ChapterReviewResult,
@@ -15,6 +16,10 @@ from novel_workflow.runtime.graph.provider_gateway import (
     ProviderOperationError,
     RegistryNarrativeProviderGateway,
     StageGenerationRequest,
+)
+from novel_workflow.runtime.graph.chapter_writeback import _bind_evidence_spans
+from novel_workflow.runtime.graph.evidence_candidates import (
+    build_chapter_evidence_candidates,
 )
 from novel_workflow.storage.narrative_run_repository import CoverAssetBinding, ProviderBinding
 from novel_workflow.workflows.schemas import ModelSettings
@@ -276,7 +281,7 @@ async def test_graph_gateway_evidence_contract_derives_offsets_outside_the_provi
         "claims": [{
             "kind": "summary",
             "claim": "林溯决定前往旧港。",
-            "quotes": ["我必须在那之前，回到旧港。"],
+            "span_ids": ["span-0002"],
         }]
     })
     registry = CapturingRegistry(provider)
@@ -287,7 +292,7 @@ async def test_graph_gateway_evidence_contract_derives_offsets_outside_the_provi
             run_id="run-1",
             chapter_id="chapter-1",
             chapter_version_id="chapter-1-v1-accepted",
-            content="我必须在那之前，回到旧港。",
+            content="潮水正在上涨。\n我必须在那之前，回到旧港。",
             binding=ProviderBinding(
                 provider_profile_id="provider-primary",
                 model="model-frozen",
@@ -297,8 +302,43 @@ async def test_graph_gateway_evidence_contract_derives_offsets_outside_the_provi
 
     call = provider.calls[0]
     claim_schema = call["schema"]["$defs"]["EvidenceClaimProposal"]["properties"]
-    assert set(claim_schema) == {"kind", "claim", "quotes"}
-    assert "Do not return character offsets" in call["prompt"]
+    assert set(claim_schema) == {"kind", "claim", "span_ids"}
+    assert "Do not copy quote text" in call["prompt"]
+    assert '"span_id": "span-0002"' in call["prompt"]
+
+
+def test_evidence_candidates_keep_repeated_text_as_distinct_exact_spans() -> None:
+    content = "潮水上涨。\n潮水上涨。"
+
+    candidates = build_chapter_evidence_candidates(content)
+
+    assert [(item.span_id, item.start, item.end, item.quote) for item in candidates] == [
+        ("span-0001", 0, 5, "潮水上涨。"),
+        ("span-0002", 6, 11, "潮水上涨。"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("span_ids", "message"),
+    [
+        (["span-9999"], "unknown source span"),
+        (["span-0001", "span-0001"], "repeats one source span"),
+    ],
+)
+def test_evidence_binding_rejects_invalid_candidate_ids(
+    span_ids: list[str],
+    message: str,
+) -> None:
+    result = ChapterEvidenceResult.model_validate({
+        "claims": [{
+            "kind": "summary",
+            "claim": "潮水正在上涨。",
+            "span_ids": span_ids,
+        }]
+    })
+
+    with pytest.raises(ValueError, match=message):
+        _bind_evidence_spans("潮水正在上涨。", result)
 
 
 @pytest.mark.asyncio
