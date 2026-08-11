@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
+from novel_workflow.providers.usage import ProviderUsageSummary
 from novel_workflow.storage.atomic_json import atomic_write_json, read_json, require_safe_id
 from novel_workflow.workflows.book_scale_plan import BookScalePlan
 
@@ -118,6 +119,7 @@ class RunReadModel(BaseModel):
     stage_status: dict[StageId, StageStatus]
     artifact_refs: dict[StageId, str] = Field(default_factory=dict)
     pending_decisions: list[dict[str, Any]] = Field(default_factory=list)
+    provider_usage: ProviderUsageSummary = Field(default_factory=ProviderUsageSummary)
     failure: dict[str, Any] | None = None
     checkpoint_id: str = ""
     updated_at: str

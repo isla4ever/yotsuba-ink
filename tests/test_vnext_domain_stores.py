@@ -80,9 +80,45 @@ def test_operation_receipts_do_not_repeat_or_change_completed_results(tmp_path) 
         kind="generation",
         request_signature="a" * 64,
     ) == pending
-    completed = store.succeed("run-1", "run-1:info:generate", {"title": "雾港"})
+    completed = store.succeed(
+        "run-1",
+        "run-1:info:generate",
+        {"title": "雾港"},
+        usage={
+            "input_tokens": 70,
+            "output_tokens": 30,
+            "total_tokens": 100,
+            "reasoning_tokens": -4,
+        },
+        diagnostic={"finish_reason": "stop", "response_chars": 120},
+    )
     assert completed.status == "succeeded"
+    assert completed.usage == {
+        "prompt_tokens": 70,
+        "completion_tokens": 30,
+        "total_tokens": 100,
+    }
+    assert completed.diagnostic["response_chars"] == 120
     assert store.succeed("run-1", "run-1:info:generate", {"title": "不同结果"}) == completed
+
+    store.begin(
+        run_id="run-1",
+        operation_key="decision:info-1",
+        kind="graph_decision",
+        request_signature="b" * 64,
+    )
+    store.succeed("run-1", "decision:info-1", {"action": "accept"})
+
+    assert store.usage_summary("run-1").model_dump() == {
+        "provider_operations": 1,
+        "succeeded_operations": 1,
+        "failed_operations": 0,
+        "pending_operations": 0,
+        "prompt_tokens": 70,
+        "completion_tokens": 30,
+        "total_tokens": 100,
+        "reasoning_tokens": 0,
+    }
 
 
 def test_outbox_commits_canon_and_wiki_exactly_once(tmp_path) -> None:

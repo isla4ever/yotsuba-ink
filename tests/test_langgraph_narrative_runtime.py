@@ -20,6 +20,7 @@ from novel_workflow.runtime.graph.provider_gateway import (
     CoverImageRequest,
     ReviewFinding,
     StageGenerationRequest,
+    StructuredProviderResult,
 )
 from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.runtime.graph.branch_service import NarrativeBranchService
@@ -81,7 +82,7 @@ class FakeNarrativeProvider:
         self.evidence_calls: list[str] = []
         self.image_calls: list[str] = []
 
-    async def generate_stage(self, request: StageGenerationRequest) -> dict[str, Any]:
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
         self.stage_calls.append(request.operation_key)
         self.stage_requests.append(request)
         payload = _stage_payload(request.stage_id, chapter_count=self.chapter_count)
@@ -95,19 +96,19 @@ class FakeNarrativeProvider:
             payload["chapters"] = [
                 chapter for chapter in payload["chapters"] if chapter["id"] in targets
             ]
-        return payload
+        return _response(payload)
 
-    async def generate_chapter(self, request: ChapterGenerationRequest) -> dict[str, Any]:
+    async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
         self.chapter_calls.append(request.operation_key)
         self.chapter_requests.append(request)
         attempt = int(request.operation_key.rsplit(":", 1)[-1])
-        return {
+        return _response({
             "chapter_id": request.chapter_id,
             "version_id": f"{request.chapter_id}-v{attempt}",
             "title": f"第{request.chapter_number}章",
             "content": f"{request.chapter_id} 的冻结正文。",
             "author_status": "candidate",
-        }
+        })
 
     async def generate_cover_image(self, request: CoverImageRequest) -> GeneratedImage:
         self.image_calls.append(request.operation_key)
@@ -115,27 +116,29 @@ class FakeNarrativeProvider:
             content=_png(256, 384, request.candidate_index),
             mime_type="image/png",
             provider_asset_id=f"provider-cover-{request.candidate_index}",
+            usage={"input_tokens": 2, "output_tokens": 3, "total_tokens": 5},
         )
 
-    async def review_chapter(self, request: ChapterReviewRequest) -> ChapterReviewResult:
+    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
         self.review_calls.append(request.operation_key)
         self.review_requests.append(request)
-        return ChapterReviewResult(role=request.role)
+        return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
 
-    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> ChapterEvidenceResult:
+    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
         self.evidence_calls.append(request.operation_key)
         quote = request.content
-        return ChapterEvidenceResult.model_validate({
+        result = ChapterEvidenceResult.model_validate({
             "claims": [{
                 "kind": "summary",
                 "claim": f"{request.chapter_id} 已完成。",
                 "spans": [{"start": 0, "end": len(quote), "quote": quote}],
             }]
         })
+        return _response(result.model_dump(mode="json"))
 
 
 class BlockingReviewProvider(FakeNarrativeProvider):
-    async def review_chapter(self, request: ChapterReviewRequest) -> ChapterReviewResult:
+    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
         self.review_calls.append(request.operation_key)
         findings = []
         if request.role == "continuity":
@@ -147,29 +150,41 @@ class BlockingReviewProvider(FakeNarrativeProvider):
                     evidence="候选正文中的明确句子。",
                 )
             )
-        return ChapterReviewResult(role=request.role, findings=findings)
+        result = ChapterReviewResult(role=request.role, findings=findings)
+        return _response(result.model_dump(mode="json"))
 
 
 class FailingStageProvider(FakeNarrativeProvider):
-    async def generate_stage(self, request: StageGenerationRequest) -> dict[str, Any]:
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
         self.stage_calls.append(request.operation_key)
         raise RuntimeError("stage provider unavailable")
 
 
 class FailingChapterProvider(FakeNarrativeProvider):
-    async def generate_chapter(self, request: ChapterGenerationRequest) -> dict[str, Any]:
+    async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
         self.chapter_calls.append(request.operation_key)
         raise RuntimeError("chapter provider unavailable")
 
 
-class FailingEvidenceProvider(FakeNarrativeProvider):
-    async def generate_stage(self, request: StageGenerationRequest) -> dict[str, Any]:
-        payload = await super().generate_stage(request)
-        if request.stage_id == "detail":
-            return {"chapters": payload["chapters"][:1]}
-        return payload
+class MismatchedChapterTargetProvider(FakeNarrativeProvider):
+    async def generate_chapter(
+        self, request: ChapterGenerationRequest
+    ) -> StructuredProviderResult:
+        response = await super().generate_chapter(request)
+        return response.model_copy(
+            update={"payload": {**response.payload, "chapter_id": "chapter-wrong"}}
+        )
 
-    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> ChapterEvidenceResult:
+
+class FailingEvidenceProvider(FakeNarrativeProvider):
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
+        response = await super().generate_stage(request)
+        payload = response.payload
+        if request.stage_id == "detail":
+            return _response({"chapters": payload["chapters"][:1]})
+        return response
+
+    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
         self.evidence_calls.append(request.operation_key)
         raise RuntimeError("evidence provider unavailable")
 
@@ -185,16 +200,16 @@ class InterruptedParallelReviewProvider(FakeNarrativeProvider):
         self._continuity_done = asyncio.Event()
         self._prose_done = asyncio.Event()
 
-    async def review_chapter(self, request: ChapterReviewRequest) -> ChapterReviewResult:
+    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
         self.review_calls.append(request.operation_key)
         if not self.interrupt_reviews:
-            return ChapterReviewResult(role=request.role)
+            return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
         if request.role == "continuity":
             self._continuity_done.set()
-            return ChapterReviewResult(role=request.role)
+            return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
         if request.role == "prose":
             self._prose_done.set()
-            return ChapterReviewResult(role=request.role)
+            return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
         await self._continuity_done.wait()
         await self._prose_done.wait()
         await asyncio.sleep(0.05)
@@ -205,11 +220,28 @@ class UnavailableRequiredAndOptionalReviewProvider(FakeNarrativeProvider):
     def __init__(self) -> None:
         super().__init__(chapter_count=1)
 
-    async def review_chapter(self, request: ChapterReviewRequest) -> ChapterReviewResult:
+    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
         self.review_calls.append(request.operation_key)
         if request.role in {"continuity", "prose"}:
             raise RuntimeError(f"{request.role} reviewer unavailable")
-        return ChapterReviewResult(role=request.role)
+        return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
+
+
+class MismatchedReviewRoleProvider(FakeNarrativeProvider):
+    async def review_chapter(
+        self, request: ChapterReviewRequest
+    ) -> StructuredProviderResult:
+        self.review_calls.append(request.operation_key)
+        role = "character" if request.role == "continuity" else request.role
+        return _response(ChapterReviewResult(role=role).model_dump(mode="json"))
+
+
+def _response(payload: dict[str, Any]) -> StructuredProviderResult:
+    return StructuredProviderResult(
+        payload=payload,
+        usage={"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10},
+        diagnostic={"finish_reason": "stop"},
+    )
 
 
 @pytest.mark.asyncio
@@ -354,6 +386,20 @@ async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_ch
     # uses the same receipt contract as the eight explicit decisions above.
     assert [event.type for event in events].count("decision.resolved") == 9
     assert [event.type for event in events].count("checkpoint.saved") > 0
+
+    usage = stores.operations.usage_summary("run-graph-1")
+    assert usage.provider_operations == 19
+    assert usage.succeeded_operations == 19
+    assert usage.failed_operations == 0
+    assert usage.total_tokens == 175
+    assert stores.runs.read("run-graph-1").provider_usage == usage
+    latest_node_usage = next(
+        event.payload["provider_usage"]
+        for event in reversed(events)
+        if event.type == "node.completed" and event.payload
+    )
+    assert latest_node_usage["provider_operations"] == 19
+    assert latest_node_usage["total_tokens"] == 175
 
     graph_state = await runtime.state("run-graph-1")
     serialized = json.dumps(graph_state, ensure_ascii=False)
@@ -677,6 +723,50 @@ async def test_required_and_optional_review_failures_share_one_author_decision_w
     }
     assert len(provider.review_calls) == 3
     assert not any("fallback" in event.node_id for event in stores.events.read("run-review-unavailable"))
+
+
+@pytest.mark.asyncio
+async def test_local_review_contract_failure_keeps_usage_and_closes_the_receipt(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "review-contract-runtime")
+    provider = MismatchedReviewRoleProvider(chapter_count=1)
+    bindings = {
+        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
+        for stage in (
+            "info",
+            "characters",
+            "summary",
+            "outline",
+            "detail",
+            "text",
+            "cover",
+        )
+    }
+    stores.runs.create(
+        run_id="run-review-contract",
+        project_id="project-1",
+        workflow_revision="phase26-vnext",
+        quality_mode="balanced",
+        inputs={"genre": "悬疑"},
+        book_scale_plan=_book_plan(1),
+        provider_bindings=bindings,
+        **_run_contract_args(),
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await _advance_to_first_chapter(runtime, "run-review-contract")
+
+    receipt = stores.operations.read(
+        "run-review-contract",
+        "run-review-contract:chapter-1:review:chapter-1-v1:continuity",
+    )
+    assert receipt.status == "failed"
+    assert receipt.usage["total_tokens"] == 10
+    assert stores.operations.usage_summary("run-review-contract").pending_operations == 0
+    assert projection.pending_decisions[0]["reason"]["required_review_unavailable"] == [
+        "continuity"
+    ]
 
 
 @pytest.mark.asyncio
@@ -1105,6 +1195,51 @@ async def test_chapter_provider_failure_terminates_through_graph_failure_nodes(t
     assert [(event.type, event.node_id) for event in events if event.type == "node.failed"] == [
         ("node.failed", "text.generate_prose")
     ]
+
+
+@pytest.mark.asyncio
+async def test_local_chapter_target_failure_keeps_usage_and_closes_the_receipt(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "chapter-contract-runtime")
+    provider = MismatchedChapterTargetProvider(chapter_count=1)
+    bindings = {
+        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
+        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
+    }
+    stores.runs.create(
+        run_id="run-chapter-contract",
+        project_id="project-1",
+        workflow_revision="phase26-vnext",
+        quality_mode="balanced",
+        inputs={"genre": "悬疑"},
+        book_scale_plan=_book_plan(1),
+        provider_bindings=bindings,
+        **_run_contract_args(),
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-chapter-contract")
+    while projection.pending_decisions:
+        decision = projection.pending_decisions[0]
+        projection = await runtime.resume(
+            "run-chapter-contract",
+            {
+                "decision_id": decision["decision_id"],
+                "domain_revision": decision["domain_revision"],
+                "action": "accept",
+            },
+        )
+
+    operation_key = "run-chapter-contract:chapter-1:generate:1"
+    receipt = stores.operations.read("run-chapter-contract", operation_key)
+    assert projection.status == "failed"
+    assert projection.failure is not None
+    assert projection.failure["node_id"] == "text.generate_prose"
+    assert receipt.status == "failed"
+    assert receipt.usage["total_tokens"] == 10
+    assert stores.operations.usage_summary("run-chapter-contract").pending_operations == 0
+    assert stores.chapters.list("run-chapter-contract") == []
 
 
 @pytest.mark.asyncio

@@ -137,9 +137,21 @@ export type GraphRunReadModel = {
   stage_status: Record<NarrativeStageId, GraphStageStatus>;
   artifact_refs: Partial<Record<NarrativeStageId, string>>;
   pending_decisions: Array<Record<string, unknown>>;
+  provider_usage: ProviderUsageSummary;
   failure: Record<string, unknown> | null;
   checkpoint_id: string;
   updated_at: string;
+};
+
+export type ProviderUsageSummary = {
+  provider_operations: number;
+  succeeded_operations: number;
+  failed_operations: number;
+  pending_operations: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  reasoning_tokens: number;
 };
 
 export type GraphRunEnvelope = {

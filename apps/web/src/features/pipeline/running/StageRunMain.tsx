@@ -22,6 +22,7 @@ import { ArtifactFixtureNotice, StageArtifactStatePanel } from './StageArtifactS
 import { currentStageArtifact, stageArtifactState, type StageArtifactDraft } from './stageArtifactState';
 import { parseCharacterBibleArtifact } from './characterBibleArtifact';
 import { artifactReadiness, parseStoryBriefArtifact, parseSummaryArtifact, parseOutlineArtifact, parseDetailArtifact, parseChapterArtifact, parseCoverArtifact, parseExportArtifact } from './artifactsVnext';
+import { latestProviderUsage } from './runtimeProviderUsage';
 import { buildDetailObligationOptions, detailObligationRefIds } from './detailObligationRegistry';
 
 type Props = {
@@ -105,6 +106,7 @@ export function StageRunMain({
     coverAssetIds: new Set(events.filter((event) => event.type === 'cover.asset_ready').map((event) => event.payload_ref).filter(Boolean)),
   }) : null;
   const exportStatus = stage.type === 'export' ? artifactReadiness(parseExportArtifact(artifactResult)) : null;
+  const providerUsage = latestProviderUsage(events);
   return (
     <>
       {stage.type === 'info' ? null : (
@@ -121,6 +123,9 @@ export function StageRunMain({
             ) : null}
             <span>{qualityModeProfiles[workflow.quality_mode].title}</span>
             <span>{statusText(stage, events)}</span>
+            {providerUsage.provider_operations ? (
+              <span>{providerUsage.provider_operations} 次调用 · {providerUsage.total_tokens.toLocaleString()} tokens</span>
+            ) : null}
           </div>
         </div>
       )}

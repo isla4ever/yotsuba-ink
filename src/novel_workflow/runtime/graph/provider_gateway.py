@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from novel_workflow.output_contracts.artifacts_vnext import CoverBrief, StageId
 from novel_workflow.providers.base import GeneratedImage
+from novel_workflow.providers.usage import provider_usage_snapshot
 from novel_workflow.storage.narrative_run_repository import CoverAssetBinding, ProviderBinding
 from novel_workflow.workflows.schemas import ModelSettings
 
@@ -17,6 +18,27 @@ if TYPE_CHECKING:
 
 class ProviderOperationError(RuntimeError):
     """A frozen Provider operation failed and must not silently reroute."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        usage: dict[str, int] | None = None,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.usage = usage or {}
+        self.diagnostic = diagnostic or {}
+
+
+class StructuredProviderResult(BaseModel):
+    """One strict Provider response plus its non-Artifact receipt metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    payload: dict[str, Any]
+    usage: dict[str, int] = Field(default_factory=dict)
+    diagnostic: dict[str, Any] = Field(default_factory=dict)
 
 
 class StageGenerationRequest(BaseModel):
@@ -116,15 +138,15 @@ class CoverImageRequest(BaseModel):
 
 
 class NarrativeProviderGateway(Protocol):
-    async def generate_stage(self, request: StageGenerationRequest) -> dict[str, Any]: ...
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult: ...
 
-    async def generate_chapter(self, request: ChapterGenerationRequest) -> dict[str, Any]: ...
+    async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult: ...
 
     async def generate_cover_image(self, request: CoverImageRequest) -> GeneratedImage: ...
 
-    async def review_chapter(self, request: ChapterReviewRequest) -> ChapterReviewResult: ...
+    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult: ...
 
-    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> ChapterEvidenceResult: ...
+    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult: ...
 
 
 class RegistryNarrativeProviderGateway:
@@ -137,11 +159,11 @@ class RegistryNarrativeProviderGateway:
     def __init__(self, registry: "ProviderRegistry") -> None:
         self.registry = registry
 
-    async def generate_stage(self, request: StageGenerationRequest) -> dict[str, Any]:
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
         schema = _schema_for_stage(request.stage_id)
         return await self._structured(request.binding, request.operation_key, request.stage_id, request.context, schema)
 
-    async def generate_chapter(self, request: ChapterGenerationRequest) -> dict[str, Any]:
+    async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
         schema = _schema_for_stage("text")
         return await self._structured(request.binding, request.operation_key, "text", request.context, schema)
 
@@ -158,18 +180,19 @@ class RegistryNarrativeProviderGateway:
             },
         )
 
-    async def review_chapter(self, request: ChapterReviewRequest) -> ChapterReviewResult:
-        payload = await self._structured(
+    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
+        response = await self._structured(
             request.binding,
             request.operation_key,
             "text.review",
             request.context,
             ChapterReviewResult.model_json_schema(),
         )
-        return ChapterReviewResult.model_validate(payload)
+        ChapterReviewResult.model_validate(response.payload)
+        return response
 
-    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> ChapterEvidenceResult:
-        payload = await self._structured(
+    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
+        response = await self._structured(
             request.binding,
             request.operation_key,
             "text.evidence",
@@ -180,7 +203,8 @@ class RegistryNarrativeProviderGateway:
             },
             ChapterEvidenceResult.model_json_schema(),
         )
-        return ChapterEvidenceResult.model_validate(payload)
+        ChapterEvidenceResult.model_validate(response.payload)
+        return response
 
     async def _structured(
         self,
@@ -189,7 +213,7 @@ class RegistryNarrativeProviderGateway:
         task_name: str,
         context: dict[str, Any],
         schema: dict[str, Any],
-    ) -> dict[str, Any]:
+    ) -> StructuredProviderResult:
         provider = self.registry.text_for(
             binding.provider_profile_id,
             ModelSettings(
@@ -201,15 +225,35 @@ class RegistryNarrativeProviderGateway:
             ),
         )
         prompt = _render_prompt(binding, task_name, context, schema)
-        result = await provider.generate_strict_structured(
-            prompt,
-            task_name=task_name,
-            context={"idempotency_key": operation_key},
-            schema=schema,
-        )
+        try:
+            result = await provider.generate_strict_structured(
+                prompt,
+                task_name=task_name,
+                context={"idempotency_key": operation_key},
+                schema=schema,
+            )
+        except Exception as exc:
+            raise ProviderOperationError(
+                str(exc),
+                usage=provider_usage_snapshot(provider),
+                diagnostic=_provider_diagnostic(provider),
+            ) from exc
         if not isinstance(result, dict):
-            raise ProviderOperationError("Provider structured result must be a JSON object")
-        return result
+            raise ProviderOperationError(
+                "Provider structured result must be a JSON object",
+                usage=provider_usage_snapshot(provider),
+                diagnostic=_provider_diagnostic(provider),
+            )
+        return StructuredProviderResult(
+            payload=result,
+            usage=provider_usage_snapshot(provider),
+            diagnostic=_provider_diagnostic(provider),
+        )
+
+
+def _provider_diagnostic(provider: Any) -> dict[str, Any]:
+    value = getattr(provider, "last_response_diagnostic", None)
+    return dict(value) if isinstance(value, dict) else {}
 
 
 def _schema_for_stage(stage_id: str) -> dict[str, Any]:
@@ -252,4 +296,5 @@ __all__ = [
     "RegistryNarrativeProviderGateway",
     "ReviewFinding",
     "StageGenerationRequest",
+    "StructuredProviderResult",
 ]

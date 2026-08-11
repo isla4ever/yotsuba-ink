@@ -20,6 +20,8 @@ class CapturingTextProvider(TextProvider):
 
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
+        self.last_usage = {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
+        self.last_response_diagnostic = {"finish_reason": "stop"}
 
     async def generate_text(
         self,
@@ -112,7 +114,9 @@ async def test_graph_gateway_applies_the_frozen_provider_binding_without_fallbac
         )
     )
 
-    assert result["title"] == "雾港母带"
+    assert result.payload["title"] == "雾港母带"
+    assert result.usage == {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
+    assert result.diagnostic == {"finish_reason": "stop"}
     assert len(registry.requests) == 1
     provider_id, settings = registry.requests[0]
     assert provider_id == "provider-primary"

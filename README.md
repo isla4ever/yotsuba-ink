@@ -141,7 +141,7 @@ npm run audit:css
 npm run check:css-split
 ```
 
-当前本地基线：前端 `132 files / 516 passed`，后端 `1088 passed / 1 skipped`；Prompt 快照连续两次确定性验证通过，生产构建、CSS 审计和 CSS 分包检查通过，首屏 CSS 为 `31.9 KiB gzip`。真实付费 Provider 的跨卷文学质量与真实图片生成不包含在这组自动化结论中。
+当前本地基线：前端 `97 files / 348 tests`，后端 `278 passed`；LangGraph 三章 Fake Run、严格 JSON 合同、Provider usage 收据与 SSE/read model 投影均通过，生产构建、CSS 审计和 CSS 分包检查通过，首屏 CSS 为 `31.8 KiB gzip`。真实付费 Provider 的跨卷文学质量与真实图片生成不包含在这组自动化结论中。
 
 ## 关键文档
 

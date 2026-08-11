@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from novel_workflow.api.app import create_app
 from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.runtime.graph.execution_service import RunExecutionConflict
-from novel_workflow.runtime.graph.provider_gateway import StageGenerationRequest
+from novel_workflow.runtime.graph.provider_gateway import StageGenerationRequest, StructuredProviderResult
 from novel_workflow.runtime.graph.runtime import filesystem_stores, open_sqlite_runtime
 from novel_workflow.storage.narrative_run_repository import (
     CoverAssetBinding,
@@ -61,10 +61,10 @@ def _run_contract_args() -> dict[str, Any]:
 
 
 class _BranchCheckpointProvider:
-    async def generate_stage(self, request: StageGenerationRequest) -> dict[str, Any]:
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
         if request.stage_id != "info":
             raise AssertionError("Branch checkpoint fixture must stop at the Info decision")
-        return {
+        return StructuredProviderResult(payload={
             "title": "雾港母带",
             "premise": "声音档案员追查一卷会改写公共记忆的母带。",
             "story_promise": {"genre": "悬疑", "audience": "成人", "tone": "克制"},
@@ -78,7 +78,7 @@ class _BranchCheckpointProvider:
                 "avoid": [],
             },
             "cast_requirements": [],
-        }
+        })
 
 
 async def _seed_branch_checkpoints(root) -> tuple[str, str]:

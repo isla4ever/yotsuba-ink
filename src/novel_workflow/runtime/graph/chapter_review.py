@@ -92,22 +92,28 @@ async def execute_review(
     elif receipt.status == "failed":
         result = ChapterReviewResult(role=role, available=False)
     else:
+        response = None
         try:
-            result = await executor.provider.review_chapter(request)
+            response = await executor.provider.review_chapter(request)
+            result = ChapterReviewResult.model_validate(response.payload)
+            if result.role != role:
+                raise ValueError("Reviewer result role does not match its frozen lane")
         except Exception as exc:
             executor.operations.fail(
                 run_id,
                 operation_key,
                 {"type": type(exc).__name__, "message": str(exc)},
+                usage=response.usage if response is not None else getattr(exc, "usage", {}),
+                diagnostic=response.diagnostic if response is not None else getattr(exc, "diagnostic", {}),
             )
             result = ChapterReviewResult(role=role, available=False)
         else:
-            if result.role != role:
-                raise ValueError("Reviewer result role does not match its frozen lane")
             executor.operations.succeed(
                 run_id,
                 operation_key,
                 result.model_dump(mode="json"),
+                usage=response.usage,
+                diagnostic=response.diagnostic,
             )
     executor.events.append(
         run_id,

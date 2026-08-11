@@ -48,6 +48,40 @@ describe('run history API', () => {
     expect(history.next_cursor).toBe('next');
   });
 
+  it('accepts an explicitly unpriced Provider usage total', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      items: [{
+        run_id: 'run-unpriced',
+        project_id: 'project-1',
+        title: '未计价验收',
+        quality_mode: 'fast',
+        status: 'running',
+        current_stage: { id: 'characters', label: '人物圣经', type: 'characters' },
+        completed_stage_ids: ['info'],
+        created_at: '2026-08-11T00:00:00Z',
+        updated_at: '2026-08-11T00:01:00Z',
+        completed_at: '',
+        words: 0,
+        total_tokens: 1280,
+        estimated_cost_usd: null,
+        summary: 'LangGraph 运行读模型',
+        can_branch: false,
+        checkpoint_id: 'checkpoint-1',
+        export_ready: false,
+        export_count: 0,
+        latest_export: null,
+      }],
+      next_cursor: '',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+
+    const history = await listRunHistory();
+
+    expect(history.items[0]).toMatchObject({
+      total_tokens: 1280,
+      estimated_cost_usd: null,
+    });
+  });
+
   it('rejects a legacy history item instead of injecting vNext defaults', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       items: [{ run_id: 'legacy-run', status: 'paused' }],

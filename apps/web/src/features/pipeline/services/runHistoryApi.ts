@@ -68,7 +68,11 @@ function requireHistoryItem(value: unknown): RunHistoryItem {
   if (!validStatuses.includes(value.status as typeof validStatuses[number])) return invalidHistory();
   if (!stages.includes(value.current_stage.type as typeof stages[number])) return invalidHistory();
   if (!isStringArray(value.completed_stage_ids)) return invalidHistory();
-  if (!requiredNumbers(value, ['words', 'total_tokens', 'estimated_cost_usd', 'export_count'])) return invalidHistory();
+  if (!requiredNumbers(value, ['words', 'total_tokens', 'export_count'])) return invalidHistory();
+  if (value.estimated_cost_usd !== null && (
+    typeof value.estimated_cost_usd !== 'number'
+    || !Number.isFinite(value.estimated_cost_usd)
+  )) return invalidHistory();
   if (typeof value.can_branch !== 'boolean' || typeof value.export_ready !== 'boolean') return invalidHistory();
   if (value.latest_export !== null) requireExportReceipt(value.latest_export);
   return { ...value, source: 'server' } as RunHistoryItem;

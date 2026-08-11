@@ -48,20 +48,26 @@ async def extract_evidence(
     elif receipt.status == "failed":
         return {"pending_evidence_refs": [], "pending_writeback_ref": ""}
     else:
+        response = None
         try:
-            result = await executor.provider.extract_chapter_evidence(request)
+            response = await executor.provider.extract_chapter_evidence(request)
+            result = ChapterEvidenceResult.model_validate(response.payload)
             _validate_evidence_spans(chapter.content, result)
         except Exception as exc:
             executor.operations.fail(
                 run_id,
                 operation_key,
                 {"type": type(exc).__name__, "message": str(exc)},
+                usage=response.usage if response is not None else getattr(exc, "usage", {}),
+                diagnostic=response.diagnostic if response is not None else getattr(exc, "diagnostic", {}),
             )
             return {"pending_evidence_refs": [], "pending_writeback_ref": ""}
         executor.operations.succeed(
             run_id,
             operation_key,
             result.model_dump(mode="json"),
+            usage=response.usage,
+            diagnostic=response.diagnostic,
         )
     _validate_evidence_spans(chapter.content, result)
     records = [

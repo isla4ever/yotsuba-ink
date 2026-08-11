@@ -49,7 +49,7 @@ export type RunHistoryItem = {
   completed_at: string;
   words: number;
   total_tokens: number;
-  estimated_cost_usd: number;
+  estimated_cost_usd: number | null;
   summary: string;
   can_branch: boolean;
   checkpoint_id: string;

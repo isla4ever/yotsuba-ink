@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from novel_workflow.providers.usage import ProviderUsageSummary, normalize_provider_usage
 from novel_workflow.storage.atomic_json import atomic_write_json, read_json, require_safe_id
 
 
@@ -23,6 +24,8 @@ class OperationReceipt(BaseModel):
     request_signature: str = Field(min_length=64, max_length=64)
     result: Any = None
     error: dict[str, Any] | None = None
+    usage: dict[str, int] = Field(default_factory=dict)
+    diagnostic: dict[str, Any] = Field(default_factory=dict)
     created_at: str
     updated_at: str
 
@@ -66,11 +69,41 @@ class OperationStore:
             atomic_write_json(path, receipt.model_dump(mode="json"))
             return receipt
 
-    def succeed(self, run_id: str, operation_key: str, result: Any) -> OperationReceipt:
-        return self._finish(run_id, operation_key, status="succeeded", result=result)
+    def succeed(
+        self,
+        run_id: str,
+        operation_key: str,
+        result: Any,
+        *,
+        usage: dict[str, int] | None = None,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        return self._finish(
+            run_id,
+            operation_key,
+            status="succeeded",
+            result=result,
+            usage=usage,
+            diagnostic=diagnostic,
+        )
 
-    def fail(self, run_id: str, operation_key: str, error: dict[str, Any]) -> OperationReceipt:
-        return self._finish(run_id, operation_key, status="failed", error=error)
+    def fail(
+        self,
+        run_id: str,
+        operation_key: str,
+        error: dict[str, Any],
+        *,
+        usage: dict[str, int] | None = None,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        return self._finish(
+            run_id,
+            operation_key,
+            status="failed",
+            error=error,
+            usage=usage,
+            diagnostic=diagnostic,
+        )
 
     def read(self, run_id: str, operation_key: str) -> OperationReceipt:
         return OperationReceipt.model_validate(read_json(self._path(run_id, operation_key)))
@@ -80,6 +113,43 @@ class OperationStore:
             return self.read(run_id, operation_key)
         except FileNotFoundError:
             return None
+
+    def list(self, run_id: str) -> list[OperationReceipt]:
+        require_safe_id(run_id, label="run_id")
+        directory = self.root / run_id
+        if not directory.exists():
+            return []
+        return [
+            OperationReceipt.model_validate(read_json(path))
+            for path in sorted(directory.glob("*.json"))
+        ]
+
+    def usage_summary(self, run_id: str) -> ProviderUsageSummary:
+        provider_receipts = [
+            receipt for receipt in self.list(run_id) if receipt.provider_profile_id
+        ]
+        totals = {
+            key: sum(receipt.usage.get(key, 0) for receipt in provider_receipts)
+            for key in (
+                "prompt_tokens",
+                "completion_tokens",
+                "total_tokens",
+                "reasoning_tokens",
+            )
+        }
+        return ProviderUsageSummary(
+            provider_operations=len(provider_receipts),
+            succeeded_operations=sum(
+                receipt.status == "succeeded" for receipt in provider_receipts
+            ),
+            failed_operations=sum(
+                receipt.status == "failed" for receipt in provider_receipts
+            ),
+            pending_operations=sum(
+                receipt.status == "pending" for receipt in provider_receipts
+            ),
+            **totals,
+        )
 
     def copy_receipt(
         self,
@@ -111,6 +181,8 @@ class OperationStore:
         status: Literal["succeeded", "failed"],
         result: Any = None,
         error: dict[str, Any] | None = None,
+        usage: dict[str, int] | None = None,
+        diagnostic: dict[str, Any] | None = None,
     ) -> OperationReceipt:
         with self._lock:
             current = self.read(run_id, operation_key)
@@ -118,7 +190,14 @@ class OperationStore:
                 return current
             if current.status != "pending":
                 raise ValueError("Completed operations are immutable")
-            next_receipt = current.model_copy(update={"status": status, "result": result, "error": error, "updated_at": _now()})
+            next_receipt = current.model_copy(update={
+                "status": status,
+                "result": result,
+                "error": error,
+                "usage": normalize_provider_usage(usage),
+                "diagnostic": dict(diagnostic or {}),
+                "updated_at": _now(),
+            })
             atomic_write_json(self._path(run_id, operation_key), next_receipt.model_dump(mode="json"))
             return next_receipt
 

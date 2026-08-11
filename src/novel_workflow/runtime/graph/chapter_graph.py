@@ -97,22 +97,49 @@ def build_chapter_graph(
             raise ProviderOperationError(f"Provider operation already failed: {operation_key}")
         if receipt.status == "succeeded":
             payload = receipt.result
+            artifact = ChapterArtifact.model_validate(payload)
+            _validate_generated_chapter(
+                artifact,
+                chapter_id=chapter_id,
+                attempt=attempt,
+                source_version_ref=source_version_ref,
+            )
         else:
+            response = None
             try:
-                payload = await executor.provider.generate_chapter(request)
+                response = await executor.provider.generate_chapter(request)
+                payload = response.payload
+                artifact = ChapterArtifact.model_validate(payload)
+                _validate_generated_chapter(
+                    artifact,
+                    chapter_id=chapter_id,
+                    attempt=attempt,
+                    source_version_ref=source_version_ref,
+                )
             except Exception as exc:
                 executor.operations.fail(
                     run_id,
                     operation_key,
                     {"type": type(exc).__name__, "message": str(exc)},
+                    usage=(
+                        response.usage
+                        if response is not None
+                        else getattr(exc, "usage", {})
+                    ),
+                    diagnostic=(
+                        response.diagnostic
+                        if response is not None
+                        else getattr(exc, "diagnostic", {})
+                    ),
                 )
                 raise ProviderOperationError(str(exc)) from exc
-            executor.operations.succeed(run_id, operation_key, payload)
-        artifact = ChapterArtifact.model_validate(payload)
-        if artifact.chapter_id != chapter_id or artifact.author_status != "candidate":
-            raise ValueError("Chapter Provider output must target the frozen chapter as a candidate")
-        if attempt > 1 and artifact.version_id == source_version_ref:
-            raise ValueError("A targeted chapter revision must create a new immutable version")
+            executor.operations.succeed(
+                run_id,
+                operation_key,
+                payload,
+                usage=response.usage,
+                diagnostic=response.diagnostic,
+            )
         record = executor.chapters.write(run_id, artifact.model_dump(mode="json"))
         executor.events.append(
             run_id,
@@ -225,6 +252,19 @@ def _copy_chapter_ref(
     values = dict(state.get("chapter_version_refs") or {})
     values[chapter_id] = version_id
     return values
+
+
+def _validate_generated_chapter(
+    artifact: ChapterArtifact,
+    *,
+    chapter_id: str,
+    attempt: int,
+    source_version_ref: str,
+) -> None:
+    if artifact.chapter_id != chapter_id or artifact.author_status != "candidate":
+        raise ValueError("Chapter Provider output must target the frozen chapter as a candidate")
+    if attempt > 1 and artifact.version_id == source_version_ref:
+        raise ValueError("A targeted chapter revision must create a new immutable version")
 
 
 def _signature(value: Any) -> str:

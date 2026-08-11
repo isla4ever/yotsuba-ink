@@ -250,6 +250,7 @@ class NarrativeRuntime:
             stage_status=stage_status,
             artifact_refs=dict(values.get("artifact_refs") or {}),
             pending_decisions=pending,
+            provider_usage=self.stores.operations.usage_summary(run_id),
             failure=values.get("failure"),
             checkpoint_id=str(snapshot.config.get("configurable", {}).get("checkpoint_id") or ""),
             updated_at="",

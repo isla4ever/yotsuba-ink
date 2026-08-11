@@ -724,7 +724,7 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 - 执行与 SSE 观察解耦；更新 route、Artifact 表单、人物工作台、运行观察和写回状态；
 - 删除旧 reducer phase 猜测、事件别名、七阶段表和 Story Bible 人物权威投影；
-- 证据：SSE 已成为 `EventProjection` 观察器；八阶段 route、Artifact vNext 表单、人物工作台、Graph decision、运行观察与写回投影已切换；前端 `345 passed`、TypeScript/Vite production build 通过。
+- 证据：SSE 已成为 `EventProjection` 观察器；八阶段 route、Artifact vNext 表单、人物工作台、Graph decision、运行观察与写回投影已切换；前端 `97 files / 348 tests`、TypeScript/Vite production build 通过。
 - 生产配置语义已删除 `control_mode`、`info_step`、`checkpoint_stages` 和 `execution_mode`；`run_intent` 只保留 project brief、knowledge strategy 与 export preferences，冻结输入补齐 `narrative_profile`。前端不再伪造暂停、自动改写、未使用分数阈值或模式成本。
 - Fast、Balanced、Deep 共用同一张图与固定三路审稿。Fast 自动接受阶段/章节 decision；Balanced 与 Deep 均在八阶段和每章等待人工 decision；Balanced 要求 continuity/character、允许 prose 不可用，Deep 要求三路 reviewer 全部返回。Balanced/Deep 均暴露八个阶段工作台，运行存在时 cockpit 是并列观察入口而不是阶段替代品。
 - 浏览器退出门（2026-08-11）：隔离临时数据创建未启动生成的新项目；1440x900 与 390x844 均确认“创作立项”、独立“人物圣经”、八阶段导航和世界规则/人物冻结提示；两档 viewport 的 `scrollWidth` 分别等于 1440/390，无页面横向溢出或控件重叠；console 为 0 error / 0 warning，创建项目、workflow、knowledge、provider readiness API 均返回 200。一次旧 history 请求在路由切换时被浏览器取消，随后相同请求返回 200，不构成恢复或 SSE 故障。
@@ -736,9 +736,9 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 - Fake Provider 完成三章、单卷、interrupt、并发审稿、失败恢复、分支和导出；
 - 删除所有仅为测试保留的生产 fallback；
-- 当前证据（2026-08-11）：后端 `276 passed`；前端 `345 passed`；三章 Fast Fake Run 已验证 3 章串行、9 条审稿 lane、3 次 Evidence/Canon 写回和 Export；八阶段 JSON Schema 已证明所有核心键显式必填，缺键不再由 Pydantic 注入默认值；TypeScript/Vite production build、Python `compileall`、CSS audit、CSS split 与 `git diff --check` 均通过；无真实 Provider 调用。后端仅保留一条既有 Starlette deprecation warning，Vite 仅保留既有 `graph-3d-vendor` 大 chunk warning。
+- 当前证据（2026-08-11）：后端 `278 passed`；前端 `97 files / 348 tests`；三章 Fast Fake Run 已验证 3 章串行、9 条审稿 lane、3 次 Evidence/Canon 写回和 Export；八阶段 JSON Schema 已证明所有核心键显式必填，缺键不再由 Pydantic 注入默认值；TypeScript/Vite production build、Python `compileall`、CSS audit、CSS split 与 `git diff --check` 均通过；无真实 Provider 调用。后端仅保留一条既有 Starlette deprecation warning，Vite 仅保留既有 `graph-3d-vendor` 大 chunk warning。
 - 缺席证据：production source 不含 `runtime_engine`、`fallback_targets`、`fallback_review_waves`、`normalize_legacy_contract`、宽松 `generate_structured` 或 JSON 提取/修复入口；Phase 26 boundary tests 锁定旧文件和旧入口不可回归；closure audit 无 runtime legacy marker；仓库专属 Skill 通过 `quick_validate.py`。
-- 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
+- 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；`OperationStore` 是文本/图片 Provider usage 与安全 diagnostic 的唯一收据权威，Fake 全图精确投影 19 次调用、175 tokens、0 次失败，人工 decision 不进入 Provider 统计，SSE/read model/历史页只消费可重建投影；没有冻结计价表时成本明确为“未计价”而非伪造 `$0`。production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
 
 ### Wave 26.7：真实 Provider 验收（已获推送后执行授权，尚未执行）
 

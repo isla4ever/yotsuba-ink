@@ -29,6 +29,7 @@ from novel_workflow.runtime.graph.provider_gateway import (
 )
 from novel_workflow.runtime.graph.context_compiler import NarrativeContextCompiler
 from novel_workflow.runtime.graph.state import NarrativeRunState
+from novel_workflow.providers.usage import normalize_provider_usage
 from novel_workflow.storage.artifact_store import ArtifactRecord, ArtifactStore
 from novel_workflow.storage.chapter_store import ChapterStore
 from novel_workflow.storage.cover_asset_store import CoverAssetRecord, CoverAssetStore
@@ -148,17 +149,27 @@ class StageExecutor:
             raise ProviderOperationError(f"Provider operation already failed: {operation_key}")
         if receipt.status == "succeeded":
             return receipt.result
+        response = None
         try:
-            payload = await self.provider.generate_stage(request)
+            response = await self.provider.generate_stage(request)
+            payload = response.payload
             _validate_stage_unit(stage_id, unit_id, context, payload)
         except Exception as exc:
             self.operations.fail(
                 run_id,
                 operation_key,
                 {"type": type(exc).__name__, "message": str(exc)},
+                usage=response.usage if response is not None else getattr(exc, "usage", {}),
+                diagnostic=response.diagnostic if response is not None else getattr(exc, "diagnostic", {}),
             )
             raise ProviderOperationError(str(exc)) from exc
-        self.operations.succeed(run_id, operation_key, payload)
+        self.operations.succeed(
+            run_id,
+            operation_key,
+            payload,
+            usage=response.usage,
+            diagnostic=response.diagnostic,
+        )
         return payload
 
     async def _generate_cover_assets(
@@ -201,6 +212,7 @@ class StageExecutor:
                 asset_id = str(receipt.result.get("asset_id") or "")
                 records.append(self.cover_assets.read(run_id, asset_id))
                 continue
+            image = None
             try:
                 image = await self.provider.generate_cover_image(request)
                 record = self.cover_assets.save(
@@ -216,6 +228,12 @@ class StageExecutor:
                     run_id,
                     operation_key,
                     {"type": type(exc).__name__, "message": str(exc)},
+                    usage=(
+                        normalize_provider_usage(image.usage)
+                        if image is not None
+                        else getattr(exc, "usage", {})
+                    ),
+                    diagnostic=getattr(exc, "diagnostic", {}),
                 )
                 raise ProviderOperationError(str(exc)) from exc
             self.operations.succeed(
@@ -227,8 +245,8 @@ class StageExecutor:
                     "mime_type": record.mime_type,
                     "width": record.width,
                     "height": record.height,
-                    "usage": image.usage,
                 },
+                usage=normalize_provider_usage(image.usage),
             )
             self.events.append(
                 run_id,

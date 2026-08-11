@@ -47,6 +47,11 @@ def guarded_node(
                 node_id=node_id,
                 chapter_id=str(update.get("active_chapter_id") or state.get("active_chapter_id") or ""),
                 status="completed",
+                payload={
+                    "provider_usage": executor.operations.usage_summary(
+                        state["run_id"]
+                    ).model_dump(mode="json")
+                },
             )
             return update
         except GraphBubbleUp:
@@ -97,7 +102,12 @@ def emit_terminal_failure(
         raise ValueError("Failure node requires a GraphFailure")
     run_id = state["run_id"]
     node_id = failure["node_id"]
-    payload = dict(failure)
+    payload = {
+        **dict(failure),
+        "provider_usage": executor.operations.usage_summary(run_id).model_dump(
+            mode="json"
+        ),
+    }
     executor.events.append(
         run_id,
         event_id=f"{run_id}:{node_id}:failed",
