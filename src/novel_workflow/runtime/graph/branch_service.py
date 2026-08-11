@@ -5,7 +5,16 @@ from dataclasses import dataclass
 from typing import Any
 
 from novel_workflow.memory.canon_store import CanonFact
-from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
+from novel_workflow.output_contracts.artifacts_vnext import (
+    STAGE_ORDER,
+    CharacterBibleArtifact,
+    OutlineArtifact,
+    StageId,
+    StoryBriefArtifact,
+    detail_obligation_ref_ids,
+    required_summary_outcome_ids,
+    validate_artifact_vnext,
+)
 from novel_workflow.runtime.graph.checkpoint_branch import (
     CheckpointBranchError,
     build_checkpoint_branch_plan,
@@ -13,6 +22,7 @@ from novel_workflow.runtime.graph.checkpoint_branch import (
     remap_run_identity,
 )
 from novel_workflow.runtime.graph.runtime import NarrativeRuntime
+from novel_workflow.storage.artifact_store import ArtifactRecord
 from novel_workflow.storage.narrative_run_repository import BranchOrigin, RunReadModel
 
 
@@ -48,6 +58,8 @@ class NarrativeBranchService:
         if any(value.get("pending_evidence_refs") for value in values):
             raise CheckpointBranchError("Cannot branch while Evidence reconciliation is pending")
 
+        artifact_plan = self._plan_artifact_copy(source_run_id, values)
+
         stores.runs.create(
             run_id=target_run_id,
             project_id=source.project_id,
@@ -64,7 +76,7 @@ class NarrativeBranchService:
             ),
         )
         stores.cover_assets.copy_run(source_run_id, target_run_id)
-        self._copy_artifacts(source_run_id, target_run_id, values)
+        self._copy_artifacts(target_run_id, artifact_plan)
         chapter_versions = self._copy_chapters(source_run_id, target_run_id, values)
         evidence_map = self._copy_evidence(
             source_run_id,
@@ -141,12 +153,11 @@ class NarrativeBranchService:
             checkpoint_id=projection.checkpoint_id,
         )
 
-    def _copy_artifacts(
+    def _plan_artifact_copy(
         self,
         source_run_id: str,
-        target_run_id: str,
         values: list[dict[str, Any]],
-    ) -> None:
+    ) -> list[tuple[ArtifactRecord, dict[str, Any]]]:
         refs: set[str] = set()
         for value in values:
             refs.update(str(item) for item in (value.get("artifact_refs") or {}).values())
@@ -160,30 +171,74 @@ class NarrativeBranchService:
         ]
         order = {stage: index for index, stage in enumerate(STAGE_ORDER)}
         records.sort(key=lambda item: (order[item.stage_id], item.status, item.artifact_id))
-        character_ids: set[str] | None = None
+        validation_sources: dict[StageId, ArtifactRecord] = {}
+        for record in records:
+            current = validation_sources.get(record.stage_id)
+            if current is None or record.status == "committed":
+                validation_sources[record.stage_id] = record
+
+        character_record = validation_sources.get("characters")
+        characters = (
+            CharacterBibleArtifact.model_validate(character_record.payload)
+            if character_record is not None
+            else None
+        )
+        story_record = validation_sources.get("info")
+        story = (
+            StoryBriefArtifact.model_validate(story_record.payload)
+            if story_record is not None
+            else None
+        )
+        outline_record = validation_sources.get("outline")
+        outline = (
+            OutlineArtifact.model_validate(outline_record.payload)
+            if outline_record is not None
+            else None
+        )
         chapter_ids = {
             f"chapter-{number}"
             for number in range(
                 1,
-                self.runtime.stores.runs.definition(target_run_id).book_scale_plan.total_chapters
+                self.runtime.stores.runs.definition(source_run_id).book_scale_plan.total_chapters
                 + 1,
             )
         }
+        plan: list[tuple[ArtifactRecord, dict[str, Any]]] = []
         for record in records:
             kwargs: dict[str, Any] = {}
             if record.stage_id in {"summary", "outline", "detail"}:
-                if character_ids is None:
-                    character = next(
-                        (item for item in records if item.stage_id == "characters"),
-                        None,
+                if characters is None:
+                    raise BranchConflictError(
+                        f"Branch {record.stage_id} artifact has no frozen Character Bible"
                     )
-                    character_ids = {
-                        str(item["id"])
-                        for item in ((character.payload.get("characters") if character else []) or [])
-                    }
-                kwargs["character_ids"] = character_ids
-            if record.stage_id == "detail":
+                kwargs["character_ids"] = {item.id for item in characters.characters}
+            if record.stage_id == "summary" and characters is not None:
+                kwargs["required_outcome_character_ids"] = required_summary_outcome_ids(
+                    characters
+                )
+            if record.stage_id in {"characters", "outline", "detail"}:
                 kwargs["chapter_ids"] = chapter_ids
+            if record.stage_id == "detail":
+                if story is None or characters is None or outline is None:
+                    raise BranchConflictError(
+                        "Branch Detail artifact is missing a frozen upstream Artifact"
+                    )
+                kwargs["npc_slot_ids"] = {item.id for item in characters.npc_slots}
+                kwargs["obligation_ref_ids"] = detail_obligation_ref_ids(
+                    story,
+                    characters,
+                    outline,
+                )
+            validate_artifact_vnext(record.stage_id, record.payload, **kwargs)
+            plan.append((record, kwargs))
+        return plan
+
+    def _copy_artifacts(
+        self,
+        target_run_id: str,
+        plan: list[tuple[ArtifactRecord, dict[str, Any]]],
+    ) -> None:
+        for record, kwargs in plan:
             writer = (
                 self.runtime.stores.artifacts.commit
                 if record.status == "committed"

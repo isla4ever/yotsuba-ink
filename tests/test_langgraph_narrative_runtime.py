@@ -236,6 +236,30 @@ class MismatchedReviewRoleProvider(FakeNarrativeProvider):
         return _response(ChapterReviewResult(role=role).model_dump(mode="json"))
 
 
+class FrozenNpcDetailProvider(FakeNarrativeProvider):
+    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
+        response = await super().generate_stage(request)
+        payload = response.payload
+        if request.stage_id == "characters":
+            payload["npc_slots"] = [
+                {
+                    "id": "npc-archive-system",
+                    "function": "发出档案访问警报",
+                    "first_appearance_window": "chapter:1",
+                    "limits": ["不得承担 POV", "不得解决主冲突"],
+                }
+            ]
+        elif request.stage_id == "detail":
+            payload["chapters"][0]["obligations"] = [
+                {
+                    "kind": "character",
+                    "ref_id": "npc-archive-system",
+                    "action": "在违规访问时发出警报",
+                }
+            ]
+        return response
+
+
 def _response(payload: dict[str, Any]) -> StructuredProviderResult:
     return StructuredProviderResult(
         payload=payload,
@@ -1205,6 +1229,65 @@ async def test_branch_at_chapter_interrupt_keeps_stage_and_chapter_references_is
     ]
     assert resumed.active_stage_id == "text"
     assert resumed.status == "awaiting_decision"
+
+
+@pytest.mark.asyncio
+async def test_branch_at_detail_interrupt_preserves_frozen_npc_validation_context(tmp_path) -> None:
+    root = tmp_path / "detail-npc-branch-runtime"
+    stores = filesystem_stores(root)
+    provider = FrozenNpcDetailProvider(chapter_count=1)
+    bindings = {
+        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
+        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
+    }
+    stores.runs.create(
+        run_id="run-detail-npc-source",
+        project_id="project-1",
+        workflow_revision="phase26-vnext",
+        quality_mode="balanced",
+        inputs={"genre": "悬疑"},
+        book_scale_plan=_book_plan(1),
+        provider_bindings=bindings,
+        **_run_contract_args(),
+    )
+
+    async with open_sqlite_runtime(root, provider) as runtime:
+        source = await runtime.start("run-detail-npc-source")
+        while source.pending_decisions[0]["node_id"] != "detail.human_decision":
+            source = await runtime.resume(
+                "run-detail-npc-source",
+                _accept_command(
+                    stores,
+                    "run-detail-npc-source",
+                    source.pending_decisions[0],
+                ),
+            )
+
+        branch = await NarrativeBranchService(runtime).create(
+            source_run_id="run-detail-npc-source",
+            target_run_id="run-detail-npc-target",
+            checkpoint_id=source.checkpoint_id,
+        )
+        resumed = await runtime.resume(
+            "run-detail-npc-target",
+            _accept_command(
+                stores,
+                "run-detail-npc-target",
+                branch.pending_decisions[0],
+            ),
+        )
+
+    copied = stores.artifacts.latest(
+        "run-detail-npc-target",
+        "detail",
+        status="candidate",
+    )
+    assert copied.payload["chapters"][0]["obligations"][0]["ref_id"] == (
+        "npc-archive-system"
+    )
+    assert branch.pending_decisions[0]["node_id"] == "detail.human_decision"
+    assert resumed.pending_decisions[0]["type"] == "chapter_author_decision"
+    assert provider.chapter_calls == ["run-detail-npc-target:chapter-1:generate:1"]
 
 
 @pytest.mark.asyncio
