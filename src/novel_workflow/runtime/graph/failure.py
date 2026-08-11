@@ -62,7 +62,9 @@ def guarded_node(
                 *list(state.get("pending_operation_refs") or []),
                 *list(state.get("review_operation_refs") or []),
             ]
-            evidence_ref = str(state.get("pending_writeback_ref") or "")
+            evidence_ref = str(getattr(exc, "operation_key", "") or "")
+            if not evidence_ref:
+                evidence_ref = str(state.get("pending_writeback_ref") or "")
             if not evidence_ref and isinstance(exc, ProviderOperationError):
                 evidence_ref = exc.operation_key
             if not evidence_ref and operation_refs:

@@ -284,8 +284,8 @@ async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_ch
         "run-graph-1:info:generate:1",
         "run-graph-1:characters:generate:1",
         "run-graph-1:summary:generate:1",
-        "run-graph-1:outline:generate:1",
-        "run-graph-1:detail:generate:1",
+        "run-graph-1:outline:generate:1:volume-1",
+        "run-graph-1:detail:generate:1:chapters-1-2",
         "run-graph-1:cover:generate:1",
     ]
     assert provider.chapter_calls == [
@@ -313,6 +313,7 @@ async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_ch
         "story_brief",
         "character_bible",
         "summary",
+        "target_volume",
     }
     assert set(contexts["detail"]["material"]) == {
         "book_scale_plan",
@@ -321,6 +322,7 @@ async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_ch
         "summary",
         "outline",
         "obligation_registry",
+        "target_chapters",
     }
     assert contexts["detail"]["material"]["obligation_registry"] == {
         "character": [{"id": "char-lin", "label": "林默"}],
@@ -336,6 +338,11 @@ async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_ch
             {"id": "ending-promise", "label": "真相会被公开。"},
         ],
     }
+    assert contexts["outline"]["material"]["target_volume"]["chapter_window"] == "chapter:1-2"
+    assert contexts["detail"]["material"]["target_chapters"] == [
+        {"id": "chapter-1", "number": 1},
+        {"id": "chapter-2", "number": 2},
+    ]
     assert set(contexts["cover"]["material"]) == {
         "story",
         "cast",

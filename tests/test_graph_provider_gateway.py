@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
     CoverImageRequest,
+    ProviderOperationError,
     RegistryNarrativeProviderGateway,
     StageGenerationRequest,
 )
@@ -56,6 +57,24 @@ class CapturingTextProvider(TextProvider):
             "voice": {"viewpoint": "第三人称", "tense": "过去时", "texture": "听觉", "avoid": []},
             "cast_requirements": [],
         }
+
+
+class InvalidArtifactTextProvider(CapturingTextProvider):
+    async def generate_strict_structured(
+        self,
+        prompt: str,
+        *,
+        task_name: str,
+        context: dict[str, Any],
+        schema: dict[str, Any],
+    ) -> dict[str, Any]:
+        self.calls.append({
+            "prompt": prompt,
+            "task_name": task_name,
+            "context": context,
+            "schema": schema,
+        })
+        return {"title": "缺少合同字段"}
 
 
 class CapturingRegistry:
@@ -129,6 +148,28 @@ async def test_graph_gateway_applies_the_frozen_provider_binding_without_fallbac
     }
     assert provider.calls[0]["context"] == {"idempotency_key": "run-1:info:generate:1"}
     assert "Use the frozen story contract." in provider.calls[0]["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_graph_gateway_rejects_invalid_artifacts_with_the_current_operation_receipt() -> None:
+    provider = InvalidArtifactTextProvider()
+    registry = CapturingRegistry(provider)
+    binding = ProviderBinding(provider_profile_id="provider-primary", model="model-frozen")
+
+    with pytest.raises(ProviderOperationError) as raised:
+        await RegistryNarrativeProviderGateway(registry).generate_stage(  # type: ignore[arg-type]
+            StageGenerationRequest(
+                operation_key="run-1:info:generate:1",
+                run_id="run-1",
+                stage_id="info",
+                attempt=1,
+                binding=binding,
+                context={"genre": "悬疑"},
+            )
+        )
+
+    assert raised.value.operation_key == "run-1:info:generate:1"
+    assert raised.value.usage == {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
 
 
 def test_provider_binding_rejects_inherit_and_unknown_fallback_fields() -> None:

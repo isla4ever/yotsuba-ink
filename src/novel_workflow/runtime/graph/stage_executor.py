@@ -41,6 +41,12 @@ from novel_workflow.storage.narrative_run_repository import NarrativeRunReposito
 from novel_workflow.storage.operation_store import OperationStore
 
 
+class StageArtifactValidationError(ValueError):
+    def __init__(self, operation_key: str, error: Exception) -> None:
+        super().__init__(str(error))
+        self.operation_key = operation_key
+
+
 @dataclass(frozen=True, slots=True)
 class StageExecutor:
     runs: NarrativeRunRepository
@@ -77,37 +83,44 @@ class StageExecutor:
         if binding is None:
             raise ProviderOperationError(f"No frozen Provider binding for stage {stage_id}")
         unit_payloads: list[tuple[str, dict[str, Any]]] = []
-        for unit_id, context in self.context_compiler().stage_units(state, stage_id):
-            unit_operation_key = f"{operation_key}:{unit_id}" if unit_id else operation_key
-            payload = await self._generate_stage_unit(
-                run_id=run_id,
-                stage_id=stage_id,
-                attempt=attempt,
-                operation_key=unit_operation_key,
-                binding=binding,
-                context=context,
-                unit_id=unit_id,
-            )
-            unit_payloads.append((unit_id, payload))
-        payload = _aggregate_stage_units(stage_id, unit_payloads)
-        if stage_id == "cover":
-            brief = CoverBrief.model_validate(payload)
-            assets = await self._generate_cover_assets(state, brief)
-            payload = CoverArtifact(
-                brief=brief,
-                selected_asset_id=(
-                    assets[0].asset_id if definition.quality_mode == "fast" else ""
-                ),
-            ).model_dump(mode="json")
+        last_operation_key = operation_key
+        try:
+            for unit_id, context in self.context_compiler().stage_units(state, stage_id):
+                unit_operation_key = f"{operation_key}:{unit_id}" if unit_id else operation_key
+                last_operation_key = unit_operation_key
+                payload = await self._generate_stage_unit(
+                    run_id=run_id,
+                    stage_id=stage_id,
+                    attempt=attempt,
+                    operation_key=unit_operation_key,
+                    binding=binding,
+                    context=context,
+                    unit_id=unit_id,
+                )
+                unit_payloads.append((unit_id, payload))
+            payload = _aggregate_stage_units(stage_id, unit_payloads)
+            if stage_id == "cover":
+                brief = CoverBrief.model_validate(payload)
+                assets = await self._generate_cover_assets(state, brief)
+                payload = CoverArtifact(
+                    brief=brief,
+                    selected_asset_id=(
+                        assets[0].asset_id if definition.quality_mode == "fast" else ""
+                    ),
+                ).model_dump(mode="json")
 
-        kwargs = self._validation_refs(state, stage_id)
-        candidate = self.artifacts.save_candidate(
-            run_id,
-            stage_id,
-            payload,
-            source=f"provider:{operation_key}",
-            **kwargs,
-        )
+            kwargs = self._validation_refs(state, stage_id)
+            candidate = self.artifacts.save_candidate(
+                run_id,
+                stage_id,
+                payload,
+                source=f"provider:{operation_key}",
+                **kwargs,
+            )
+        except ProviderOperationError:
+            raise
+        except Exception as exc:
+            raise StageArtifactValidationError(last_operation_key, exc) from exc
         self.events.append(
             run_id,
             event_id=f"{operation_key}:candidate",
@@ -117,6 +130,18 @@ class StageExecutor:
             payload_ref=candidate.artifact_id,
         )
         return candidate
+
+    def stage_operation_keys(
+        self,
+        state: NarrativeRunState,
+        stage_id: StageId,
+    ) -> list[str]:
+        attempt = int((state.get("stage_attempts") or {}).get(stage_id) or 1)
+        base = f"{state['run_id']}:{stage_id}:generate:{attempt}"
+        return [
+            f"{base}:{unit_id}" if unit_id else base
+            for unit_id, _ in self.context_compiler().stage_units(state, stage_id)
+        ]
 
     async def _generate_stage_unit(
         self,
@@ -499,4 +524,4 @@ def _aggregate_stage_units(
     raise ValueError(f"Stage {stage_id} does not support structured unit aggregation")
 
 
-__all__ = ["StageExecutor"]
+__all__ = ["StageArtifactValidationError", "StageExecutor"]

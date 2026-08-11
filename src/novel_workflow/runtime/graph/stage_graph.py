@@ -42,7 +42,7 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
             "candidate_artifact_refs": copy_stage_mapping(
                 state, "candidate_artifact_refs", stage_id, candidate.artifact_id
             ),
-            "pending_operation_refs": [f"{state['run_id']}:{stage_id}:generate:{(state.get('stage_attempts') or {}).get(stage_id, 1)}"],
+            "pending_operation_refs": executor.stage_operation_keys(state, stage_id),
         }
 
     def validate_contract(state: NarrativeRunState) -> dict[str, Any]:

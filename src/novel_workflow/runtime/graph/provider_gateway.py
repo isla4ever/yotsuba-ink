@@ -176,7 +176,23 @@ class RegistryNarrativeProviderGateway:
 
     async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
         schema = _schema_for_stage(request.stage_id)
-        return await self._structured(request.binding, request.operation_key, request.stage_id, request.context, schema)
+        response = await self._structured(
+            request.binding,
+            request.operation_key,
+            request.stage_id,
+            request.context,
+            schema,
+        )
+        try:
+            _validate_stage_payload(request.stage_id, response.payload)
+        except Exception as exc:
+            raise ProviderOperationError(
+                str(exc),
+                operation_key=request.operation_key,
+                usage=response.usage,
+                diagnostic=response.diagnostic,
+            ) from exc
+        return response
 
     async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
         schema = _schema_for_stage("text")
@@ -283,6 +299,15 @@ def _schema_for_stage(stage_id: str) -> dict[str, Any]:
     if stage_id in ARTIFACT_MODELS:
         return ARTIFACT_MODELS[stage_id].model_json_schema()
     raise ProviderOperationError(f"No vNext schema for Provider task {stage_id}")
+
+
+def _validate_stage_payload(stage_id: str, payload: dict[str, Any]) -> None:
+    from novel_workflow.output_contracts.artifacts_vnext import ARTIFACT_MODELS
+
+    if stage_id == "cover":
+        CoverBrief.model_validate(payload)
+        return
+    ARTIFACT_MODELS[stage_id].model_validate(payload)
 
 
 def _render_prompt(

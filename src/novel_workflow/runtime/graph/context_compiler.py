@@ -80,8 +80,6 @@ class NarrativeContextCompiler:
         definition = self.runs.definition(state["run_id"])
         if stage_id == "outline":
             volumes = definition.book_scale_plan.volumes
-            if len(volumes) <= 1:
-                return [("", base)]
             units: list[tuple[str, dict[str, Any]]] = []
             for index, volume in enumerate(volumes, start=1):
                 context = deepcopy(base)
@@ -97,8 +95,6 @@ class NarrativeContextCompiler:
             return units
         if stage_id == "detail":
             total = definition.book_scale_plan.total_chapters
-            if total <= DETAIL_BATCH_SIZE:
-                return [("", base)]
             units = []
             for start in range(1, total + 1, DETAIL_BATCH_SIZE):
                 end = min(total, start + DETAIL_BATCH_SIZE - 1)
