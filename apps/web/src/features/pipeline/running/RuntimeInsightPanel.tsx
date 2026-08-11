@@ -1,6 +1,7 @@
 import { BarChart3, DatabaseZap, Globe2, Network } from 'lucide-react';
 import type { CharacterGraph, KnowledgeDocument, RunEvent, WorkflowDefinition } from '../contracts';
 import type { WorldbuildingView } from '../lib/stageConfig';
+import { chapterCapacitySummary, latestChapterCapacity } from '../lib/qualityGateProjection';
 import { WorldbuildingPanel } from '../planning/insights/WorldbuildingPanel';
 import { CharacterForceGraphPanel } from './insights/CharacterForceGraphPanel';
 import { RuntimeKnowledgePanel } from './insights/RuntimeKnowledgePanel';
@@ -101,7 +102,14 @@ export function RuntimeInsightPanel({
     />;
   }
   const reviews = events.filter((event) => event.type.startsWith('review.') || event.type === 'decision.required');
-  return <EventStatusPanel title="审稿与人工质量门" description="只展示 Graph 已发出的审稿结果和 interrupt。" events={reviews} />;
+  const capacity = latestChapterCapacity(events);
+  return <EventStatusPanel
+    title="审稿与人工质量门"
+    description={capacity
+      ? chapterCapacitySummary(capacity)
+      : '只展示 Graph 已发出的审稿结果和 interrupt。'}
+    events={reviews}
+  />;
 }
 
 export function RuntimeCompactTile({

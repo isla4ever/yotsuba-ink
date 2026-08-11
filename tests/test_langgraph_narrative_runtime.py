@@ -27,6 +27,7 @@ from novel_workflow.runtime.graph.evidence_candidates import (
 )
 from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.runtime.graph.branch_service import NarrativeBranchService
+from novel_workflow.runtime.graph.chapter_capacity import evaluate_chapter_capacity
 from novel_workflow.runtime.graph.chapter_decision import save_edited_chapter_candidate
 from novel_workflow.runtime.graph.chapter_review import DEFAULT_REVIEWERS, freeze_review_roles
 from novel_workflow.runtime.graph.execution_service import NarrativeExecutionService
@@ -71,6 +72,29 @@ def test_deep_mode_freezes_every_parallel_reviewer_as_required() -> None:
 
     assert balanced["active_review_roles"][-1] == {"role": "prose", "required": False}
     assert all(item["required"] for item in deep["active_review_roles"])
+
+
+def test_chapter_capacity_keeps_soft_targets_diagnostic_and_hard_limits_blocking() -> None:
+    plan = _book_plan(1)
+    hard_underflow = evaluate_chapter_capacity(
+        "字" * (plan.chapter_hard_min_chars - 1),
+        plan,
+    )
+    soft_underflow = evaluate_chapter_capacity(
+        "字" * plan.chapter_hard_min_chars,
+        plan,
+    )
+    within_soft = evaluate_chapter_capacity(
+        "字" * plan.chapter_target_chars,
+        plan,
+    )
+
+    assert hard_underflow.status == "hard_underflow"
+    assert hard_underflow.blocking_finding()["code"] == "chapter.capacity.hard_min"  # type: ignore[index]
+    assert soft_underflow.status == "soft_underflow"
+    assert soft_underflow.blocking_finding() is None
+    assert within_soft.status == "within_soft"
+    assert within_soft.blocking_finding() is None
 
 
 class FakeNarrativeProvider:
@@ -720,12 +744,14 @@ async def test_parallel_review_pending_writes_resume_only_the_unfinished_lane(tm
     projection = execution.stores.runs.read("run-parallel-review-recovery")
 
     assert projection.pending_decisions[0]["type"] == "chapter_author_decision"
-    assert projection.pending_decisions[0]["reason"] == {
-        "required_review_unavailable": [],
-        "optional_review_unavailable": [],
-        "blocking_findings": [],
-        "reviewed_roles": ["character", "continuity", "prose"],
-    }
+    reason = projection.pending_decisions[0]["reason"]
+    assert reason["required_review_unavailable"] == []
+    assert reason["optional_review_unavailable"] == []
+    assert reason["reviewed_roles"] == ["character", "continuity", "prose"]
+    assert reason["capacity"]["status"] == "hard_underflow"
+    assert [item["code"] for item in reason["blocking_findings"]] == [
+        "chapter.capacity.hard_min"
+    ]
     calls_by_role = [key.rsplit(":", 1)[-1] for key in provider.review_calls]
     assert calls_by_role.count("continuity") == 1
     assert calls_by_role.count("prose") == 1
@@ -754,12 +780,14 @@ async def test_required_and_optional_review_failures_share_one_author_decision_w
 
     projection = await _advance_to_first_chapter(runtime, "run-review-unavailable")
 
-    assert projection.pending_decisions[0]["reason"] == {
-        "required_review_unavailable": ["continuity"],
-        "optional_review_unavailable": ["prose"],
-        "blocking_findings": [],
-        "reviewed_roles": ["character", "continuity", "prose"],
-    }
+    reason = projection.pending_decisions[0]["reason"]
+    assert reason["required_review_unavailable"] == ["continuity"]
+    assert reason["optional_review_unavailable"] == ["prose"]
+    assert reason["reviewed_roles"] == ["character", "continuity", "prose"]
+    assert reason["capacity"]["status"] == "hard_underflow"
+    assert [item["code"] for item in reason["blocking_findings"]] == [
+        "chapter.capacity.hard_min"
+    ]
     assert len(provider.review_calls) == 3
     assert not any("fallback" in event.node_id for event in stores.events.read("run-review-unavailable"))
 

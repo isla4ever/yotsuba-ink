@@ -7,6 +7,7 @@ from typing import Any
 
 from langgraph.types import Send
 
+from novel_workflow.runtime.graph.chapter_capacity import evaluate_chapter_capacity
 from novel_workflow.runtime.graph.chapter_decision import request_chapter_decision
 from novel_workflow.runtime.graph.provider_gateway import (
     ChapterReviewRequest,
@@ -173,6 +174,12 @@ def evaluate_review_gate(
         for finding in result.findings
         if finding.severity == "blocking"
     ]
+    chapter = executor.chapters.read(run_id, chapter_id, version_id).artifact
+    definition = executor.runs.definition(run_id)
+    capacity = evaluate_chapter_capacity(chapter.content, definition.book_scale_plan)
+    capacity_blocker = capacity.blocking_finding()
+    if capacity_blocker is not None:
+        blocking.append(capacity_blocker)
     return request_chapter_decision(
         executor,
         state,
@@ -181,6 +188,7 @@ def evaluate_review_gate(
             "optional_review_unavailable": unavailable_optional,
             "blocking_findings": blocking,
             "reviewed_roles": sorted(results),
+            "capacity": capacity.as_dict(),
         },
     )
 
