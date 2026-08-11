@@ -341,11 +341,26 @@ def _render_prompt(
 ) -> str:
     template = binding.prompt_template.strip()
     prefix = f"{template}\n\n" if template else ""
+    revision_contract = _revision_contract(context)
     return (
         f"{prefix}You are the Yotsuba Ink {task_name} node.\n"
         "Return exactly one JSON object matching the supplied schema. Do not add commentary, defaults, or fields.\n"
+        f"{revision_contract}"
         f"Schema:\n{json.dumps(schema, ensure_ascii=False, sort_keys=True)}\n"
         f"Context:\n{json.dumps(context, ensure_ascii=False, sort_keys=True)}"
+    )
+
+
+def _revision_contract(context: dict[str, Any]) -> str:
+    material = context.get("material")
+    revision = material.get("revision_request") if isinstance(material, dict) else None
+    if not isinstance(revision, dict):
+        return ""
+    return (
+        "The revision_request is the controlling instruction for this call. "
+        "Treat source_chapter or source_artifact only as the immutable draft to replace, not as accepted truth. "
+        "Return a complete replacement that executes direction; rewrite or remove every source passage that "
+        "conflicts with direction, and preserve only unaffected frozen story commitments.\n"
     )
 
 

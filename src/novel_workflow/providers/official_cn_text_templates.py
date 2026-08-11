@@ -88,7 +88,6 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
                 stage_request_parameters={
                     "info": {"reasoning_effort": "high"},
-                    "text.review": {"reasoning_effort": "low"},
                 },
                 stage_extra_body_parameters={
                     "info": {"thinking": {"type": "enabled"}},
@@ -102,7 +101,11 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                     "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
-                    "text.review": {"thinking": {"type": "enabled"}},
+                    # Review lanes return a compact strict JSON decision. A live
+                    # DeepSeek call consumed its entire response budget in
+                    # reasoning and returned no JSON, so reserve this envelope
+                    # for the review artifact itself.
+                    "text.review": {"thinking": {"type": "disabled"}},
                 },
             ),
             ModelCapabilityProfile(
@@ -110,7 +113,6 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
                 stage_request_parameters={
                     "info": {"reasoning_effort": "high"},
-                    "text.review": {"reasoning_effort": "low"},
                 },
                 stage_extra_body_parameters={
                     "info": {"thinking": {"type": "enabled"}},
@@ -119,7 +121,7 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                     "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
-                    "text.review": {"thinking": {"type": "enabled"}},
+                    "text.review": {"thinking": {"type": "disabled"}},
                 },
             ),
         ],

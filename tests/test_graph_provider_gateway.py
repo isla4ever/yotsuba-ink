@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
+    ChapterGenerationRequest,
     ChapterReviewRequest,
     ChapterReviewResult,
     CoverImageRequest,
@@ -226,6 +227,43 @@ async def test_graph_gateway_locks_each_review_schema_to_its_frozen_lane() -> No
     assert call["context"] == {"idempotency_key": request.operation_key}
     assert call["schema"]["properties"]["role"]["const"] == "continuity"
     assert '"const": "continuity"' in call["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_graph_gateway_makes_a_targeted_revision_replace_conflicting_source_text() -> None:
+    provider = CapturingTextProvider()
+    registry = CapturingRegistry(provider)
+    direction = "删除提前泄露的员工宿舍替换证据，保留档案系统投影。"
+
+    await RegistryNarrativeProviderGateway(registry).generate_chapter(  # type: ignore[arg-type]
+        ChapterGenerationRequest(
+            operation_key="run-1:chapter-1:generate:3",
+            run_id="run-1",
+            chapter_id="chapter-1",
+            chapter_number=1,
+            binding=ProviderBinding(
+                provider_profile_id="provider-primary",
+                model="model-frozen",
+            ),
+            context={
+                "material": {
+                    "revision_request": {
+                        "direction": direction,
+                        "source_chapter": {
+                            "version_id": "chapter-1-v2",
+                            "content": "与修订方向冲突的旧正文。",
+                        },
+                    }
+                }
+            },
+        )
+    )
+
+    prompt = provider.calls[0]["prompt"]
+    assert "controlling instruction" in prompt
+    assert "immutable draft to replace" in prompt
+    assert "rewrite or remove every source passage" in prompt
+    assert direction in prompt
 
 
 @pytest.mark.asyncio

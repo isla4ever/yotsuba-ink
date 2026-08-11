@@ -479,7 +479,7 @@ async def test_internal_override_disables_deepseek_thinking_for_review() -> None
 
 
 @pytest.mark.asyncio
-async def test_deepseek_semantic_review_uses_official_json_output_with_low_thinking() -> None:
+async def test_deepseek_semantic_review_reserves_its_budget_for_json_output() -> None:
     provider, client = _provider(
         "deepseek-text",
         model="deepseek-v4-flash",
@@ -494,9 +494,9 @@ async def test_deepseek_semantic_review_uses_official_json_output_with_low_think
 
     request = client.calls[0]
     assert request["response_format"] == {"type": "json_object"}
-    assert request["extra_body"]["thinking"] == {"type": "enabled"}
-    assert request["reasoning_effort"] == "low"
-    assert "temperature" not in request
+    assert request["extra_body"]["thinking"] == {"type": "disabled"}
+    assert "reasoning_effort" not in request
+    assert request["temperature"] == 0.2
 
 
 @pytest.mark.asyncio
@@ -520,7 +520,7 @@ async def test_internal_override_disables_deepseek_thinking_for_causal_audit() -
 
 
 @pytest.mark.asyncio
-async def test_internal_thinking_override_keeps_review_json_contract() -> None:
+async def test_internal_enable_marker_cannot_reenable_template_disabled_review_thinking() -> None:
     provider, client = _provider("deepseek-text", model="deepseek-v4-flash")
 
     await provider.generate_strict_structured(
@@ -531,10 +531,10 @@ async def test_internal_thinking_override_keeps_review_json_contract() -> None:
     )
 
     request = client.calls[0]
-    assert request["extra_body"]["thinking"] == {"type": "enabled"}
-    assert request["reasoning_effort"] == "low"
+    assert request["extra_body"]["thinking"] == {"type": "disabled"}
+    assert "reasoning_effort" not in request
     assert request["response_format"] == {"type": "json_object"}
-    assert "temperature" not in request
+    assert request["temperature"] == 0.2
 
 
 @pytest.mark.asyncio
@@ -585,25 +585,21 @@ async def test_existing_json_output_contract_is_not_appended_twice() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(("task_name", "effort"), [("text.review", "low")])
-async def test_deepseek_structured_review_tasks_enable_bounded_thinking(task_name: str, effort: str) -> None:
+async def test_deepseek_structured_review_tasks_disable_thinking_by_default() -> None:
     provider, client = _provider("deepseek-text", model="deepseek-v4-flash")
 
     await provider.generate_strict_structured(
         'return JSON data like {"ok":true}',
-        task_name=task_name,
+        task_name="text.review",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
 
     request = client.calls[0]
-    assert request["extra_body"]["thinking"] == {"type": "enabled"}
-    assert request["reasoning_effort"] == effort
-    if task_name == "text.review":
-        assert request["response_format"] == {"type": "json_object"}
-    else:
-        assert "response_format" not in request
-    assert "temperature" not in request
+    assert request["extra_body"]["thinking"] == {"type": "disabled"}
+    assert "reasoning_effort" not in request
+    assert request["response_format"] == {"type": "json_object"}
+    assert request["temperature"] == 0.2
 
 
 @pytest.mark.asyncio
