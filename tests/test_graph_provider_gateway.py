@@ -227,6 +227,9 @@ async def test_graph_gateway_locks_each_review_schema_to_its_frozen_lane() -> No
     assert call["context"] == {"idempotency_key": request.operation_key}
     assert call["schema"]["properties"]["role"]["const"] == "continuity"
     assert '"const": "continuity"' in call["prompt"]
+    assert "Report only violations directly evidenced" in call["prompt"]
+    assert "items not required in this chapter" in call["prompt"]
+    assert "blocking finding requires a direct conflict" in call["prompt"]
 
 
 @pytest.mark.asyncio

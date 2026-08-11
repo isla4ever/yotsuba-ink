@@ -342,10 +342,12 @@ def _render_prompt(
     template = binding.prompt_template.strip()
     prefix = f"{template}\n\n" if template else ""
     revision_contract = _revision_contract(context)
+    review_contract = _review_contract(task_name)
     return (
         f"{prefix}You are the Yotsuba Ink {task_name} node.\n"
         "Return exactly one JSON object matching the supplied schema. Do not add commentary, defaults, or fields.\n"
         f"{revision_contract}"
+        f"{review_contract}"
         f"Schema:\n{json.dumps(schema, ensure_ascii=False, sort_keys=True)}\n"
         f"Context:\n{json.dumps(context, ensure_ascii=False, sort_keys=True)}"
     )
@@ -361,6 +363,17 @@ def _revision_contract(context: dict[str, Any]) -> str:
         "Treat source_chapter or source_artifact only as the immutable draft to replace, not as accepted truth. "
         "Return a complete replacement that executes direction; rewrite or remove every source passage that "
         "conflicts with direction, and preserve only unaffected frozen story commitments.\n"
+    )
+
+
+def _review_contract(task_name: str) -> str:
+    if task_name != "text.review":
+        return ""
+    return (
+        "Report only violations directly evidenced in the chapter. Do not emit findings for satisfied constraints, "
+        "items not required in this chapter, or future appearance windows. A blocking finding requires a direct "
+        "conflict that prevents accepting this chapter; ambiguity, omitted explanation, or optional enrichment is "
+        "at most a warning. Ensure every claim and evidence pair logically supports its severity.\n"
     )
 
 
