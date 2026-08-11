@@ -1145,12 +1145,18 @@ async def test_stage_provider_failure_terminates_through_graph_failure_nodes(tmp
     assert projection.status == "failed"
     assert projection.failure is not None
     assert projection.failure["node_id"] == "info.generate_candidate"
+    assert projection.failure["evidence_ref"] == "run-stage-failure:info:generate:1"
     assert [(event.type, event.node_id) for event in events if event.type == "run.failed"] == [
         ("run.failed", "info.generate_candidate")
     ]
     assert [(event.type, event.node_id) for event in events if event.type == "node.failed"] == [
         ("node.failed", "info.generate_candidate")
     ]
+    assert {
+        event.payload_ref
+        for event in events
+        if event.type in {"node.failed", "run.failed"}
+    } == {"run-stage-failure:info:generate:1"}
 
 
 @pytest.mark.asyncio
@@ -1189,12 +1195,18 @@ async def test_chapter_provider_failure_terminates_through_graph_failure_nodes(t
     assert projection.status == "failed"
     assert projection.failure is not None
     assert projection.failure["node_id"] == "text.generate_prose"
+    assert projection.failure["evidence_ref"] == "run-chapter-failure:chapter-1:generate:1"
     assert [(event.type, event.node_id) for event in events if event.type == "run.failed"] == [
         ("run.failed", "text.generate_prose")
     ]
     assert [(event.type, event.node_id) for event in events if event.type == "node.failed"] == [
         ("node.failed", "text.generate_prose")
     ]
+    assert {
+        event.payload_ref
+        for event in events
+        if event.type in {"node.failed", "run.failed"}
+    } == {"run-chapter-failure:chapter-1:generate:1"}
 
 
 @pytest.mark.asyncio

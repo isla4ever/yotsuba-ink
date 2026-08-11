@@ -7,6 +7,7 @@ from typing import Any
 from langgraph.errors import GraphBubbleUp
 
 from novel_workflow.output_contracts.artifacts_vnext import StageId
+from novel_workflow.runtime.graph.provider_gateway import ProviderOperationError
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.state import (
     GraphFailure,
@@ -62,6 +63,8 @@ def guarded_node(
                 *list(state.get("review_operation_refs") or []),
             ]
             evidence_ref = str(state.get("pending_writeback_ref") or "")
+            if not evidence_ref and isinstance(exc, ProviderOperationError):
+                evidence_ref = exc.operation_key
             if not evidence_ref and operation_refs:
                 evidence_ref = str(operation_refs[-1])
             failure: GraphFailure = {

@@ -1,6 +1,6 @@
 # Yotsuba Ink vNext Stage Artifact Contract
 
-状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过；两次智谱 `info` 探针的额度失败保留为历史证据，随后用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 已通过 `info` 和 `characters` 严格探针，其中 `characters` 使用生产预算 `max_tokens=4200`，当前停在 `characters` 人工决策 checkpoint。一次早期验收脚本的 `max_tokens=1800` 截断失败只作为运行配置边界证据，没有改动生产模板；成功 Run 的 `info` 使用此前已验证的验收预算 `3480`，不是生产默认值 `4600`；`summary` 至 `cover`、三章 Run 与人工文学验收仍未开始。
+状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过；两次智谱 `info` 探针的额度失败保留为历史证据，随后用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 已通过 `info` 和 `characters` 严格探针，其中 `characters` 使用生产预算 `max_tokens=4200` 并已通过人工 decision 提交为正式 Character Bible。一次早期验收脚本的 `max_tokens=1800` 截断失败只作为运行配置边界证据，没有改动生产模板；成功 Run 的 `info` 使用此前已验证的验收预算 `3480`，不是生产默认值 `4600`。同一 Run 的首次 `summary` operation 在 `finish_reason=stop` 下返回无效 JSON，严格解析拒绝产生 Artifact，Run 已零重试终止；`outline` 至 `cover`、三章 Run 与人工文学验收仍未开始。
 
 ## 生产阶段
 

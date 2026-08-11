@@ -1,6 +1,6 @@
 # Phase 26：LangGraph 原生叙事架构重启
 
-> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；Wave 26.7 已在用户明确改绑 DeepSeek 后通过 `info` 和 `characters` 严格探针，其中人物阶段使用生产预算，并停在 `characters` 人工决策 checkpoint；`summary` 至 `cover`、三章 Run 与人工文学验收尚未开始**。
+> 状态：**架构已批准，Wave 26.1-26.6 离线重构与本地浏览器矩阵已闭合；Wave 26.7 已在用户明确改绑 DeepSeek 后通过 `info` 和 `characters` 严格探针，人物候选已经人工接受并提交；随后 `summary` 严格探针因 Provider 返回无效 JSON 而显式失败，未产生摘要候选、未重试或切换模型；`outline` 至 `cover`、三章 Run 与人工文学验收尚未开始**。
 >
 > 日期：2026-08-11。
 >
@@ -744,7 +744,7 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 - 缺席证据：production source 不含 `runtime_engine`、`fallback_targets`、`fallback_review_waves`、`normalize_legacy_contract`、宽松 `generate_structured` 或 JSON 提取/修复入口；Phase 26 boundary tests 锁定旧文件和旧入口不可回归；closure audit 无 runtime legacy marker；仓库专属 Skill 通过 `quick_validate.py`。
 - 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；`OperationStore` 是文本/图片 Provider usage 与安全 diagnostic 的唯一收据权威，Fake 全图精确投影 19 次调用、175 tokens、0 次失败，人工 decision 不进入 Provider 统计，SSE/read model/历史页只消费可重建投影；没有冻结计价表时成本明确为“未计价”而非伪造 `$0`。production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
 
-### Wave 26.7：真实 Provider 验收（DeepSeek `info`/人物探针已通过，人物候选待决策）
+### Wave 26.7：真实 Provider 验收（DeepSeek `info`/人物探针已通过，`summary` 无效 JSON 后停止）
 
 只有 26.0-26.6 通过、提交推送成功且仍满足限额和脱敏收据边界后执行：
 
@@ -763,6 +763,10 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 2026-08-11 人物预算边界证据：早期 Run `phase26-deepseek-info-7c66d1a6-1` 在调试脚本中将 `characters` 冻结为 `max_tokens=1800`，唯一 `characters:generate` operation 在 `finish_reason=length` 后被指定为 `failed`，未产生候选 Artifact，也未重放。源码生产模板的人物预算是 `4200`，因此没有对生产代码添加不必要的 fallback 或修复。
 
 2026-08-11 人物生产预算证据：在全新 Run `phase26-deepseek-characters-budget-7c66d1a6-2` 中，`info` 继续使用此前已验证的验收预算 `max_tokens=3480`，`characters` 使用源码生产模板预算 `max_tokens=4200`；生产模板的 `info` 默认值是 `4600`，不能反推本次调用使用了该值。两个 Provider operation 均成功：`info` 为 1,950 prompt / 1,147 completion / 340 reasoning / 3,097 total tokens，`characters` 为 2,996 prompt / 1,383 completion / 4,379 total tokens，均为唯一完整 JSON object、schema match=1、`repairs_applied=[]`、`pending_operations=0`。人物候选经 `CharacterBibleArtifact` 校验，包含 3 个注册角色、3 条关系、2 个 NPC 槽位；所有关系引用均指向注册 ID，首次出现窗口符合合同。LangGraph 已保存 checkpoint 并停在 `characters.human_decision`，未接受人物、未进入 `summary`、未调用图片 Provider。
+
+2026-08-11 `summary` 失败证据：用户连续指示继续后，人物 decision `accept` 经同一 `Command(resume=...)` 成功解决，`characters-committed-64d762f96555527cc0bb-204657a2` 成为正式 Character Bible；Graph 随后只执行一次 `phase26-deepseek-characters-budget-7c66d1a6-2:summary:generate:1`。该 operation 使用冻结 `provider-deepseek-text / deepseek-v4-pro / max_tokens=3600`，消耗 3,644 prompt / 1,077 completion / 4,721 total tokens；`finish_reason=stop`、响应 2,067 字符，排除预算截断，但严格解析结果为 `selection=invalid_json`、`parsed_object_count=0`、`schema_match_count=0`、`repairs_applied=[]`、`parse_error_codes=[json_decode_error]`。因此 operation 与 Run 均显式失败，`pending_operations=0`，没有 `SummaryArtifact` candidate，也没有重试、JSON 提取/修复、Provider/model 切换或下游调用。
+
+同日重新核对 DeepSeek 官方 JSON Output 文档 `https://api-docs.deepseek.com/guides/json_mode`：当前请求已发送 `response_format={"type":"json_object"}`，Prompt 含 JSON 关键词与由真实 schema 确定性生成的完整格式示例，`finish_reason` 也不是 `length`。因此现有证据把问题定位在本次 Provider 输出/严格解析边界，不足以证明应引入 Beta tool calling、语法修复或隐藏重试。排障同时发现失败事件曾沿用上一次成功 operation ref；运行时现让 `ProviderOperationError` 携带当前 immutable operation key，stage/chapter 的 `node.failed`、`run.failed` 与 read model 均引用真实失败收据，完整 Provider adapter、LangGraph runtime 与 Provider error 回归为 133 passed。失败 Run 保留原始错误引用作为历史证据，不原地改写。
 
 ## 13. 测试与验收矩阵
 
@@ -822,11 +826,11 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 以下取舍已经批准并进入实现：LangGraph 是唯一生产运行时；生产代码默认禁止直接 LangChain API，高层 `langchain` 包不作为直接依赖；新增 Character Bible 并采用严格串行八阶段；Detail vNext 与历史 Run 断代；Memory/Wiki/Canon/RAG 采用低敏感、证据驱动边界。
 
-用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。DeepSeek `info` 与 `characters` 合同探针已通过，当前退出门为：
+用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。DeepSeek `info` 与 `characters` 合同探针已通过，`summary` 已在无效 JSON 后按单路径失败语义停止，当前退出门为：
 
 1. 不启动或恢复 Phase 25 历史 Run；
 2. 后续探针只使用用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 冻结绑定，不做运行时 Provider 或模型切换；
-3. 人物候选当前保持未写回的人工决策状态；会话结构、职责、关系、NPC 槽位和首次出现窗口均通过合同，但仍不由模型自动冻结；只有在明确接受后才能进入单次 `summary` 探针；
-4. `summary` 至 `cover` 剩余五个结构化探针全部通过前，不创建新的三章 Run，不调用图片 Provider；
-5. 不把本地测试/build 通过或单个 `info`/人物成功写成真实输出、浏览器体验或文学质量已验收；
-6. 后续真实验收继续设置成本上限、保留脱敏 receipt，并在失败时停止而非恢复 legacy。
+3. 人物候选已通过人工 decision 提交为正式 Character Bible；后续阶段只能引用或提出有证据的变更，不得重新开放逐阶段任意添人；
+4. 当前 Run 已因 `summary:generate:1` 无效 JSON 终止，不恢复该失败 operation，也不把原响应提取、修复或转换成 Artifact；
+5. 新的 `summary` 付费探针必须在明确批准后从人物 checkpoint 创建新分支或新 Run，并使用新 operation key；不得隐式重试、改绑模型或切换到 Beta 协议；
+6. `summary` 至 `cover` 剩余五个结构化探针全部通过前，不创建三章 Run，不调用图片 Provider；不把 `info`/人物成功写成全链路或文学质量已验收。

@@ -146,7 +146,9 @@ class StageExecutor:
             model=binding.model,
         )
         if receipt.status == "failed":
-            raise ProviderOperationError(f"Provider operation already failed: {operation_key}")
+            raise ProviderOperationError.for_operation(
+                operation_key, f"Provider operation already failed: {operation_key}"
+            )
         if receipt.status == "succeeded":
             return receipt.result
         response = None
@@ -162,7 +164,7 @@ class StageExecutor:
                 usage=response.usage if response is not None else getattr(exc, "usage", {}),
                 diagnostic=response.diagnostic if response is not None else getattr(exc, "diagnostic", {}),
             )
-            raise ProviderOperationError(str(exc)) from exc
+            raise ProviderOperationError.for_operation(operation_key, exc) from exc
         self.operations.succeed(
             run_id,
             operation_key,
@@ -203,12 +205,15 @@ class StageExecutor:
                 model=binding.model,
             )
             if receipt.status == "failed":
-                raise ProviderOperationError(
-                    f"Cover image operation already failed: {operation_key}"
+                raise ProviderOperationError.for_operation(
+                    operation_key,
+                    f"Cover image operation already failed: {operation_key}",
                 )
             if receipt.status == "succeeded":
                 if not isinstance(receipt.result, dict):
-                    raise ProviderOperationError("Cover image receipt is invalid")
+                    raise ProviderOperationError.for_operation(
+                        operation_key, "Cover image receipt is invalid"
+                    )
                 asset_id = str(receipt.result.get("asset_id") or "")
                 records.append(self.cover_assets.read(run_id, asset_id))
                 continue
@@ -235,7 +240,7 @@ class StageExecutor:
                     ),
                     diagnostic=getattr(exc, "diagnostic", {}),
                 )
-                raise ProviderOperationError(str(exc)) from exc
+                raise ProviderOperationError.for_operation(operation_key, exc) from exc
             self.operations.succeed(
                 run_id,
                 operation_key,

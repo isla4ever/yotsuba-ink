@@ -23,12 +23,27 @@ class ProviderOperationError(RuntimeError):
         self,
         message: str,
         *,
+        operation_key: str = "",
         usage: dict[str, int] | None = None,
         diagnostic: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
+        self.operation_key = operation_key
         self.usage = usage or {}
         self.diagnostic = diagnostic or {}
+
+    @classmethod
+    def for_operation(
+        cls,
+        operation_key: str,
+        error: Exception | str,
+    ) -> "ProviderOperationError":
+        return cls(
+            str(error),
+            operation_key=operation_key,
+            usage=getattr(error, "usage", {}),
+            diagnostic=getattr(error, "diagnostic", {}),
+        )
 
 
 class StructuredProviderResult(BaseModel):
@@ -235,12 +250,14 @@ class RegistryNarrativeProviderGateway:
         except Exception as exc:
             raise ProviderOperationError(
                 str(exc),
+                operation_key=operation_key,
                 usage=provider_usage_snapshot(provider),
                 diagnostic=_provider_diagnostic(provider),
             ) from exc
         if not isinstance(result, dict):
             raise ProviderOperationError(
                 "Provider structured result must be a JSON object",
+                operation_key=operation_key,
                 usage=provider_usage_snapshot(provider),
                 diagnostic=_provider_diagnostic(provider),
             )

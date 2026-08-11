@@ -94,7 +94,9 @@ def build_chapter_graph(
             model=binding.model,
         )
         if receipt.status == "failed":
-            raise ProviderOperationError(f"Provider operation already failed: {operation_key}")
+            raise ProviderOperationError.for_operation(
+                operation_key, f"Provider operation already failed: {operation_key}"
+            )
         if receipt.status == "succeeded":
             payload = receipt.result
             artifact = ChapterArtifact.model_validate(payload)
@@ -132,7 +134,7 @@ def build_chapter_graph(
                         else getattr(exc, "diagnostic", {})
                     ),
                 )
-                raise ProviderOperationError(str(exc)) from exc
+                raise ProviderOperationError.for_operation(operation_key, exc) from exc
             executor.operations.succeed(
                 run_id,
                 operation_key,
