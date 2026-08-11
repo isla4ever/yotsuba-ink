@@ -962,6 +962,45 @@ async def test_targeted_chapter_regeneration_carries_direction_and_repeats_revie
 
 
 @pytest.mark.asyncio
+async def test_chapter_cancel_terminates_the_run_before_cover(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "chapter-cancel-runtime")
+    provider = FakeNarrativeProvider()
+    bindings = {
+        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
+        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
+    }
+    stores.runs.create(
+        run_id="run-cancel-chapter",
+        project_id="project-1",
+        workflow_revision="phase26-vnext",
+        quality_mode="balanced",
+        inputs={"genre": "悬疑"},
+        book_scale_plan=_book_plan(2),
+        provider_bindings=bindings,
+        **_run_contract_args(),
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    projection = await _advance_to_first_chapter(runtime, "run-cancel-chapter")
+    decision = projection.pending_decisions[0]
+
+    projection = await runtime.resume(
+        "run-cancel-chapter",
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "cancel",
+        },
+    )
+
+    assert projection.status == "cancelled"
+    assert projection.active_stage_id == "text"
+    assert projection.pending_decisions == []
+    assert all(":cover:" not in operation for operation in provider.stage_calls)
+    assert "cover" not in projection.artifact_refs
+    assert "export" not in projection.artifact_refs
+
+
+@pytest.mark.asyncio
 async def test_stage_interrupt_accepts_an_immutable_edited_candidate(tmp_path) -> None:
     stores = filesystem_stores(tmp_path / "runtime")
     provider = FakeNarrativeProvider()

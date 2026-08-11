@@ -55,6 +55,8 @@ def request_chapter_decision(
         action = _validate_resume(value, decision_id, int(state.get("domain_revision") or 0))
 
     update: dict[str, Any] = {"chapter_gate_action": action}
+    if action == "cancel":
+        update["status"] = "cancelled"
     replacement_ref = str(value.get("candidate_chapter_version_id") or "")
     direction = str(value.get("direction") or "").strip()
     if replacement_ref:
