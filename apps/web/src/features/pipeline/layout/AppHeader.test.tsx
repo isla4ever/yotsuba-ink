@@ -48,4 +48,19 @@ describe('AppHeader route semantics', () => {
     expect(html).toContain(summary.label);
     expect(html).toContain('当前工作台');
   });
+
+  it('shows a human interrupt as 待决策 instead of 运行中', () => {
+    const characters = defaultWorkflow.nodes.find((stage) => stage.id === 'characters') ?? defaultWorkflow.nodes[0];
+    const html = renderHeader({
+      routePhase: 'running',
+      routeStageId: characters.id,
+      runHasStarted: true,
+      selectedStage: characters,
+      stageRuntimes: { [characters.id]: { checkpointReady: true, status: 'awaiting' } },
+      workspacePhase: 'running',
+    });
+
+    expect(html).toContain('待决策 · 当前工作台');
+    expect(html).not.toContain('运行中 · 当前工作台');
+  });
 });

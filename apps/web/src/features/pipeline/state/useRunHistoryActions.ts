@@ -22,6 +22,31 @@ type Options = {
 };
 
 export function useRunHistoryActions(options: Options) {
+  const restoreProjectRun = useCallback(async (item: RunHistoryItem) => {
+    if (options.activeRunId && options.activeRunId !== item.run_id && (options.running || ['starting', 'running', 'stop_requested'].includes(options.runControlState))) {
+      options.onWarning('当前运行仍在执行，请等待进入人工决策点或完成后再切换作品。');
+      return '';
+    }
+    options.cancelInitialRecovery();
+    try {
+      const source = await getRun(item.run_id);
+      const resolution = resolveServerRunRecovery(source, item.run_id);
+      if (resolution.kind !== 'restore') {
+        options.onWarning('该作品的最新运行没有可恢复的 LangGraph 状态。');
+        return '';
+      }
+      options.stopActiveStream();
+      await options.onProjectContext(source.definition.project_id);
+      options.setRunSource('backend');
+      void options.onRestore(resolution.hydrated, resolution.reconnect);
+      options.onWarning('');
+      return resolution.hydrated.selectedId || item.current_stage.id || 'info';
+    } catch (error) {
+      options.onWarning(`恢复作品运行失败：${errorMessage(error)}`);
+      return '';
+    }
+  }, [options]);
+
   const openRun = useCallback(async (item: RunHistoryItem) => {
     if (item.run_id === options.activeRunId) {
       try {
@@ -72,7 +97,7 @@ export function useRunHistoryActions(options: Options) {
       await options.onProjectContext(branch.definition.project_id);
       options.setRunSource('backend');
       const hydrated = resolution.hydrated;
-      await options.onRestore(hydrated, resolution.reconnect);
+      void options.onRestore(hydrated, resolution.reconnect);
       options.onWarning('');
       return hydrated.selectedId || item.current_stage.id || 'info';
     } catch (error) {
@@ -121,7 +146,7 @@ export function useRunHistoryActions(options: Options) {
     }
   }, [options]);
 
-  return { branchFromCheckpoint, downloadExport, openRun };
+  return { branchFromCheckpoint, downloadExport, openRun, restoreProjectRun };
 }
 
 function branchRunId() {

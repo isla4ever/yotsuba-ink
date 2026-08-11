@@ -1,4 +1,5 @@
-import type { ProjectRecord, ProjectSummary, RunHistoryItem } from '../contracts';
+import type { ProjectRecord, ProjectSummary } from '../contracts';
+import { parseRunHistoryItem } from './runHistoryApi';
 
 /** IO-only adapter for `/api/projects` (Phase 11.2 Studio Shell). */
 
@@ -79,7 +80,7 @@ export async function getProjectSummary(projectId: string, signal?: AbortSignal)
   ) throw invalidProjectContract(`/api/projects/${projectId}/summary`);
   return {
     project: parseProject(record.project, `/api/projects/${projectId}/summary`),
-    latest_run: record.latest_run as RunHistoryItem | null,
+    latest_run: record.latest_run === null ? null : parseRunHistoryItem(record.latest_run),
     title: record.title,
     status: record.status,
     current_stage: record.current_stage,

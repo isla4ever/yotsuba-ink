@@ -86,6 +86,29 @@ describe('runEventIndex (F6)', () => {
     expect(indexedCompletedStageIds(buildRunEventIndex(newestFirst))).toEqual(['summary', 'info']);
   });
 
+  it('keeps a human interrupt distinct from active generation', () => {
+    const awaiting = buildRunEventIndex([
+      event('checkpoint.saved', 'characters'),
+      event('decision.required', 'characters'),
+      event('artifact.candidate_ready', 'characters'),
+    ]);
+    expect(indexedStageStatus(awaiting, 'characters')).toBe('awaiting');
+
+    const resumed = buildRunEventIndex([
+      event('decision.resolved', 'characters'),
+      event('decision.required', 'characters'),
+    ]);
+    expect(indexedStageStatus(resumed, 'characters')).toBe('running');
+  });
+
+  it('does not let a later checkpoint diagnostic erase stage completion', () => {
+    const index = buildRunEventIndex([
+      event('checkpoint.saved', 'summary'),
+      event('artifact.committed', 'summary', { node_id: 'summary.commit_artifact', payload: {} }),
+    ]);
+    expect(indexedStageStatus(index, 'summary')).toBe('done');
+  });
+
   it('reducer keeps events and index equivalent across the 500-event trim', () => {
     let state = createInitialRunState({
       activeRunId: 'run-1',

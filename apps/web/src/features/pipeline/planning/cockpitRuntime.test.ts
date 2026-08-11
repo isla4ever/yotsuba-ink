@@ -28,6 +28,21 @@ describe('latestNodeStatus', () => {
     expect(latestNodeStatus(events, 'outline').status).toBe('failed');
   });
 
+  it('projects decision interrupts as awaiting until they resolve', () => {
+    const awaiting = [
+      runEvent('checkpoint.saved', { stage_id: 'outline', node_id: 'graph.checkpoint' }),
+      runEvent('decision.required', { stage_id: 'outline', node_id: 'outline.human_decision' }),
+      runEvent('artifact.candidate_ready', { stage_id: 'outline', node_id: 'outline.generate_candidate' }),
+    ];
+    expect(latestNodeStatus(awaiting, 'outline').status).toBe('awaiting');
+
+    const resumed = [
+      runEvent('decision.resolved', { stage_id: 'outline', node_id: 'outline.human_decision' }),
+      ...awaiting,
+    ];
+    expect(latestNodeStatus(resumed, 'outline').status).toBe('running');
+  });
+
   it('derives duration only from envelope timestamps', () => {
     const events = [
       runEvent('artifact.committed', { stage_id: 'outline', node_id: 'outline.commit_artifact', occurred_at: '2026-08-11T00:00:04Z' }),

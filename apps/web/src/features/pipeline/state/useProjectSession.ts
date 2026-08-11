@@ -19,7 +19,7 @@ export type ProjectSessionDeps = {
   clearRunState: () => void;
   onHydrated: () => void;
   onWarning: (message: string) => void;
-  openRun: (item: RunHistoryItem) => Promise<string>;
+  restoreProjectRun: (item: RunHistoryItem) => Promise<string>;
   runFacts: {
     activeRunId: string;
     runControlState: string;
@@ -92,8 +92,8 @@ export function useProjectSession() {
     deps.cancelInitialRecovery();
     applyActiveProject(project);
     deps.clearRunState();
-    if (latestRun && latestRun.can_branch && latestRun.status === 'awaiting_decision') {
-      const stageId = await deps.openRun(latestRun);
+    if (latestRun && ['running', 'awaiting_decision'].includes(latestRun.status)) {
+      const stageId = await deps.restoreProjectRun(latestRun);
       if (stageId) return { ok: true, stageId };
     }
     try {

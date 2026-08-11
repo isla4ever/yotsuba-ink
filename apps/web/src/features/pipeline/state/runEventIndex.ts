@@ -9,13 +9,15 @@ import type { RunControlState, RunEvent } from '../contracts';
 
 export const RUN_EVENT_LIMIT = 500;
 
-export type StageRunStatus = 'idle' | 'running' | 'done' | 'attention' | 'failed';
+export type StageRunStatus = 'idle' | 'running' | 'awaiting' | 'done' | 'attention' | 'failed';
 
 type StageLifecycle = {
   /** Latest stable node event type for the stage (run-active semantics). */
   nodeEventType: string;
   /** Latest event that changes the stage delivery lifecycle. */
   statusEventType: string;
+  /** Whether that status event closes the stage; later diagnostics do not erase it. */
+  stageCompleted: boolean;
   checkpointReady: boolean;
 };
 
@@ -67,6 +69,7 @@ function applyEvent(index: RunEventIndex, event: RunEvent) {
     ...(index.lifecycleByStage[stageId] ?? {
       checkpointReady: false,
       nodeEventType: '',
+      stageCompleted: false,
       statusEventType: '',
     }),
   };
@@ -75,6 +78,7 @@ function applyEvent(index: RunEventIndex, event: RunEvent) {
   }
   if (isStageStatusEvent(event.type)) {
     lifecycle.statusEventType = event.type;
+    lifecycle.stageCompleted = stageCompletedBy(event);
   }
   if (event.type === 'checkpoint.saved' || stageCompletedBy(event)) lifecycle.checkpointReady = true;
   index.lifecycleByStage[stageId] = lifecycle;
@@ -85,6 +89,7 @@ function isStageStatusEvent(type: string) {
     || type === 'artifact.candidate_ready'
     || type === 'artifact.committed'
     || type === 'decision.required'
+    || type === 'decision.resolved'
     || type === 'run.failed';
 }
 
@@ -118,9 +123,9 @@ export function indexedStageStatus(index: RunEventIndex, stageId: string): Stage
   if (!lifecycle || !lifecycle.statusEventType) return 'idle';
   const type = lifecycle.statusEventType;
   if (type === 'node.failed' || type === 'run.failed') return 'failed';
-  const latest = index.byStage[stageId]?.[0];
-  if (latest && stageCompletedBy(latest)) return 'done';
-  if (type === 'node.started' || type === 'node.completed' || type === 'artifact.candidate_ready' || type === 'decision.required') return 'running';
+  if (lifecycle.stageCompleted) return 'done';
+  if (type === 'decision.required') return 'awaiting';
+  if (type === 'node.started' || type === 'node.completed' || type === 'artifact.candidate_ready' || type === 'decision.resolved') return 'running';
   return 'idle';
 }
 

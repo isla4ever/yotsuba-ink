@@ -143,7 +143,7 @@ export function ArtifactDeck({ events, onOpenConfig, onOpenStage, onSelect, sele
           {items.map((item, index) => {
             const active = item.id === selectedId;
             const position = index < selectedIndex ? 'before' : index > selectedIndex ? 'after' : 'active-position';
-            const Icon = item.status === 'confirmed' ? Check : item.status === 'attention' ? CircleAlert : FileStack;
+            const Icon = item.status === 'confirmed' ? Check : ['attention', 'awaiting'].includes(item.status) ? CircleAlert : FileStack;
             return (
               <li
                 className={`artifact-sheet-slot is-${item.status} is-${position}${active ? ' is-selected' : ''}`}

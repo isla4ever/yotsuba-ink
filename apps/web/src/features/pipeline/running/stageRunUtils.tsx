@@ -39,8 +39,9 @@ export function statusText(stage: Pick<WorkflowStage, 'id' | 'type'>, events: Ru
   const status = stageDeliveryStatus(buildRunEventIndex(events), stage);
   if (status === 'failed') return '失败';
   if (status === 'attention') return '待完善';
+  if (status === 'awaiting') return '待决策';
   if (status === 'done') return '已完成';
-  if (status === 'running') return events.some((event) => isStageEvent(event, stage.id) && event.type === 'decision.required') ? '待决策' : '运行中';
+  if (status === 'running') return '运行中';
   return '等待中';
 }
 

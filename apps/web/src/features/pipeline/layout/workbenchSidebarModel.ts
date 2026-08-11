@@ -20,6 +20,7 @@ export type SidebarPreferenceStorage = Pick<Storage, 'getItem' | 'setItem'>;
 const statusLabels: Record<StageRunStatus, string> = {
   idle: '未开始',
   running: '进行中',
+  awaiting: '待决策',
   done: '已完成',
   attention: '待完善',
   failed: '失败',

@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from novel_workflow.api.app import create_app
 from novel_workflow.storage.project_schemas import ACCENT_HUE_SEQUENCE, next_accent_hue
+from novel_workflow.storage.run_history_projection import RunHistoryProjection
 from novel_workflow.workflows.book_scale_plan import build_book_scale_plan
 from novel_workflow.workflows.templates import default_workflow
 
@@ -157,6 +158,11 @@ def test_project_delete_refuses_when_runs_exist_and_suggests_archive(tmp_path, m
     })
     assert created.status_code == 200
 
+    def unexpected_history_item(*_args, **_kwargs):
+        raise AssertionError("delete protection must not materialize history/export items")
+
+    monkeypatch.setattr(RunHistoryProjection, "item", unexpected_history_item)
+
     blocked = client.delete(f"/api/projects/{project['id']}")
     assert blocked.status_code == 409
     assert "归档" in blocked.json()["detail"]
@@ -191,6 +197,13 @@ def test_project_summary_aggregates_latest_run(tmp_path, monkeypatch):
 
     summary = client.get(f"/api/projects/{project['id']}/summary").json()
     assert summary["latest_run"]["run_id"] == run_id
+    assert summary["latest_run"]["can_branch"] is False
+    assert summary["latest_run"]["quality_mode"] == "balanced"
+    assert summary["latest_run"]["current_stage"] == {
+        "id": "info",
+        "label": "创作立项",
+        "type": "info",
+    }
     assert summary["status"] == "created"
     assert summary["words"] == 0
     assert summary["current_stage"] == {

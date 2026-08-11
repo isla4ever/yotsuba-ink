@@ -100,6 +100,17 @@ describe('sidebarStageItems status derivation', () => {
     });
     expect(items[0]).toMatchObject({ status: 'attention', statusLabel: '待完善' });
   });
+
+  it('labels a LangGraph human interrupt as 待决策', () => {
+    const items = sidebarStageItems({
+      policy: modeRoutePolicy('deep', false),
+      qualityMode: 'deep',
+      runHasStarted: true,
+      stageRuntimes: runtimesFrom([event('decision.required', 'summary')]),
+      stages,
+    });
+    expect(items[1]).toMatchObject({ status: 'awaiting', statusLabel: '待决策' });
+  });
 });
 
 describe('sidebar expand preference', () => {

@@ -129,9 +129,12 @@ Phase 26 不是在旧 Runner 外再包一层图，而是重新建立单一生产
 | 项目 | 仓库 / 版本证据 | License | 阅读的源码重点 | 复用边界 |
 | --- | --- | --- | --- | --- |
 | LangGraph | <https://github.com/langchain-ai/langgraph>；HEAD `d56666f7fbf0d380ad84cdf0cbe5aa48ab0cc086`，2026-08-08；本仓库锁定 `1.2.10` | MIT | graph state、persistence、interrupt、subgraph、streaming 官方文档与仓库 | 直接采用运行时 API，领域合同自行实现 |
-| LangChain | <https://github.com/langchain-ai/langchain>；HEAD `56daacc8dff4103f430b121711f601ae503bddf9`，2026-08-10；`langchain==1.3.14`、`langchain-core==1.5.3` | MIT | `create_agent`、runtime、structured output、middleware 官方文档与源码 | 不采用、不直接依赖、不在生产源码导入；`langchain-core` 仅允许作为 LangGraph 传递依赖存在 |
+| LangChain | <https://github.com/langchain-ai/langchain>；HEAD `f78df6d9772305e29ac07ae5508b468f56a4bcd3`，2026-08-11；`langchain==1.3.14`、`langchain-core==1.5.3` | MIT | `create_agent`、runtime、structured output、middleware 官方文档与源码 | 不采用、不直接依赖、不在生产源码导入；`langchain-core` 仅允许作为 LangGraph 传递依赖存在 |
 | PlotPilot | <https://github.com/shenminglinyi/PlotPilot>；HEAD `7dc03a37a06b57e823df222da0e3bde5d1c84715`，2026-07-19；最新标签 `v4.6.0` | Apache-2.0 + Commons Clause v1.0；后者明确禁止 `Sell`，GitHub API 为 `NOASSERTION` | chapter preplan/continuity ledger、character narrative kernel、memory/context assembler、checkpoint、streaming bus、prompt variables、review、foreshadow registry、Vue 工作台 | 法务确认前只学习抽象思想；不复制源码、Prompt、结构化合同或 UI 实现，不形成价值实质来自该软件的销售/服务 |
 | FictionForge | <https://github.com/wanqili857-byte/fictionforge>；HEAD `c381297e2c6c670f374933d850b9b85756dead27`，2026-08-06；最新标签 `v0.2.0` | MIT | `TickRunner`、`ChapterCoordinator`、`SpecBuilder`、角色 Agent、Theory of Mind、Vault、质量门、SSE client | 可重写通用思想；不复制其双管线、静默降级或机械兜底 |
+| React Force Graph | <https://github.com/vasturiano/react-force-graph>；HEAD `48b84724820813733080717520b3ac6b4deadc90`，2026-02-04；本仓库使用 `react-force-graph-3d==1.29.1` | MIT | React Kapsule 绑定、自定义 `nodeThreeObject`、相机/scene/pause/resume 方法和卸载委托 | 复用现有依赖和公开 API；人物语义、选择与 Artifact 编辑仍由 Yotsuba Ink 持有，不复制示例或源码 |
+| 3D Force Graph | <https://github.com/vasturiano/3d-force-graph>；HEAD `957c1831157416e88ea9faf8e6a4edfe7b545858`，2026-04-05；本仓库解析为 `1.80.0` | MIT | `scene()`、有限 force ticks、`pauseAnimation()`、`resumeAnimation()`、`cameraPosition()` 与 `_destructor()` 资源释放 | 作为 React Force Graph 的既有运行依赖；只通过公开能力加入可销毁静态星场，不建立第二图运行时 |
+| React Globe GL | <https://github.com/vasturiano/react-globe.gl>；HEAD `6dbcf2113880d6fa0c68d6e8932e2bb4fb2df0ba`，2026-05-16 | MIT | 经纬度 point/arc 投影、globe texture 和 scene 访问 | 明确不采用且不新增依赖；人物关系没有地理语义，地球会制造错误心智模型，只有未来独立地点网络 RFC 可重评 |
 
 官方文档：
 
@@ -724,19 +727,21 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 - 执行与 SSE 观察解耦；更新 route、Artifact 表单、人物工作台、运行观察和写回状态；
 - 删除旧 reducer phase 猜测、事件别名、七阶段表和 Story Bible 人物权威投影；
-- 证据：SSE 已成为 `EventProjection` 观察器；八阶段 route、Artifact vNext 表单、人物工作台、Graph decision、运行观察与写回投影已切换；前端 `97 files / 348 tests`、TypeScript/Vite production build 通过。
+- 证据：SSE 已成为 `EventProjection` 观察器；八阶段 route、Artifact vNext 表单、人物工作台、Graph decision、运行观察与写回投影已切换；前端 `99 files / 360 tests`、TypeScript/Vite production build 通过。
 - 生产配置语义已删除 `control_mode`、`info_step`、`checkpoint_stages` 和 `execution_mode`；`run_intent` 只保留 project brief、knowledge strategy 与 export preferences，冻结输入补齐 `narrative_profile`。前端不再伪造暂停、自动改写、未使用分数阈值或模式成本。
 - Fast、Balanced、Deep 共用同一张图与固定三路审稿。Fast 自动接受阶段/章节 decision；Balanced 与 Deep 均在八阶段和每章等待人工 decision；Balanced 要求 continuity/character、允许 prose 不可用，Deep 要求三路 reviewer 全部返回。Balanced/Deep 均暴露八个阶段工作台，运行存在时 cockpit 是并列观察入口而不是阶段替代品。
 - 浏览器退出门（2026-08-11）：隔离临时数据创建未启动生成的新项目；1440x900 与 390x844 均确认“创作立项”、独立“人物圣经”、八阶段导航和世界规则/人物冻结提示；两档 viewport 的 `scrollWidth` 分别等于 1440/390，无页面横向溢出或控件重叠；console 为 0 error / 0 warning，创建项目、workflow、knowledge、provider readiness API 均返回 200。一次旧 history 请求在路由切换时被浏览器取消，随后相同请求返回 200，不构成恢复或 SSE 故障。
 - 截图：`output/playwright/phase26-browser/phase26-balanced-desktop-1440x900.png`、`output/playwright/phase26-browser/phase26-balanced-mobile-390x844.png`。没有点击“开始创作”，没有 Provider 生成调用。
 - 人物恢复与编辑退出门（2026-08-11）：从 `characters` 的 LangGraph interrupt 检查点创建新分支后，目标 Run 依次投影 `branch.created`、`artifact.candidate_ready`、`decision.required`，历史页直接进入 `/run/characters`，没有重跑 Provider。1440x900 与 390x844 均真实编辑重要配角、关系矩阵和 NPC 槽位；桌面/移动页面 `scrollWidth` 分别等于 1440/390，关系与 NPC 宽表只在自身容器滚动；待决策按钮可用，console 为 0 error / 0 warning。当前候选稿与右侧“已冻结”人物基线使用不同文案，不把本地编辑伪装成正式写回。
-- 人物截图：`output/playwright/phase26-browser/phase26-characters-desktop-1440x900.png`、`output/playwright/phase26-browser/phase26-characters-mobile-390x844.png`。`gpt-image-gen` 原型调用因网关只返回 URL、不符合 Skill 要求的 `b64_json` 合同而明确失败；没有下载 URL 兜底，也不把生图失败声明为原型完成。最终视觉证据来自真实前端浏览器状态。
+- 人物星图退出门（2026-08-11）：作品入口的 `latest_run` 统一由后端 `RunHistoryProjection` 生成，项目恢复直接打开原 `running` 或 `awaiting_decision` LangGraph Run，只有历史页显式“从检查点新建分支”才创建新 Run；恢复连接固定使用唯一 `backend` Run source，项目删除保护只检查 Run 所属关系而不构建历史/导出投影。隔离 fixture 从作品卡进入 `/run/characters`，没有 `/branches` 请求和 Provider 调用。1440×1250 单帧 WebGL 截图确认 8 个节点、星场、层级颜色与关系线均非空且在安全边界内；点击星点将右侧档案从“林岚”切换为“沈砚”。390×844 默认名册、WebGL canvas 数量为 0，`documentElement/body.scrollWidth` 均为 390；console 为 0 error / 0 warning。前端阶段投影将 `decision.required` 独立映射为“待决策”，`decision.resolved` 才恢复“进行中”；`attention` 只保留给 Cover/Export 交付不完整。
+- 人物截图：`output/playwright/phase26-browser/character-star-map-desktop-single-frame.png`、`output/playwright/phase26-browser/character-stage-mobile.png`。人物星图只投影节点与关系线；姓名通过名册、hover 与选中档案呈现，坐标、相机和颜色不进入 `CharacterBibleArtifact`。
+- 全阶段视觉原型：仓库指定 `gpt-image-gen` Skill 已补齐 `b64_json` 与安全 HTTPS URL 两种正式响应，URL 路径逐次校验公网 DNS/重定向/Content-Type/图片签名/25 MiB 上限且不携带 API Authorization；8 个单元测试与 `quick_validate.py` 通过。`docs/assets/phase-26-ui-prototypes/` 已生成并复核 `info / characters / summary / outline / detail / text / cover / export` 八张 1536×1024 原型，原型只约束布局、密度和视觉层级，不反向增加 Artifact 字段。
 
 ### Wave 26.6：离线生产闭环（已完成）
 
 - Fake Provider 完成三章、单卷、interrupt、并发审稿、失败恢复、分支和导出；
 - 删除所有仅为测试保留的生产 fallback；
-- 当前证据（2026-08-11）：后端 `278 passed`；前端 `97 files / 348 tests`；三章 Fast Fake Run 已验证 3 章串行、9 条审稿 lane、3 次 Evidence/Canon 写回和 Export；八阶段 JSON Schema 已证明所有核心键显式必填，缺键不再由 Pydantic 注入默认值；TypeScript/Vite production build、Python `compileall`、CSS audit、CSS split 与 `git diff --check` 均通过；无真实 Provider 调用。后端仅保留一条既有 Starlette deprecation warning，Vite 仅保留既有 `graph-3d-vendor` 大 chunk warning。
+- 当前证据（2026-08-11）：后端 `278 passed`；前端 `99 files / 360 tests`；三章 Fast Fake Run 已验证 3 章串行、9 条审稿 lane、3 次 Evidence/Canon 写回和 Export；八阶段 JSON Schema 已证明所有核心键显式必填，缺键不再由 Pydantic 注入默认值；TypeScript/Vite production build、Python `compileall`、CSS audit、CSS split 与 `git diff --check` 均通过；Wave 26.6 离线退出门未调用真实 Provider。后端仅保留一条既有 Starlette deprecation warning，Vite 仅保留既有 `graph-3d-vendor` 大 chunk warning。
 - 缺席证据：production source 不含 `runtime_engine`、`fallback_targets`、`fallback_review_waves`、`normalize_legacy_contract`、宽松 `generate_structured` 或 JSON 提取/修复入口；Phase 26 boundary tests 锁定旧文件和旧入口不可回归；closure audit 无 runtime legacy marker；仓库专属 Skill 通过 `quick_validate.py`。
 - 新增证据：Phase 26 静态门禁止直接 `langchain*` 依赖和生产业务导入；Outbox 前后崩溃、并行 reviewer pending writes、required/optional 不可用和 API/Runtime decision 幂等矩阵已通过；`OperationStore` 是文本/图片 Provider usage 与安全 diagnostic 的唯一收据权威，Fake 全图精确投影 19 次调用、175 tokens、0 次失败，人工 decision 不进入 Provider 统计，SSE/read model/历史页只消费可重建投影；没有冻结计价表时成本明确为“未计价”而非伪造 `$0`。production closure audit 无 runtime legacy marker 或无效 pipeline 顶层目录；仓库专属 Skill 通过 `quick_validate.py`。本 Wave 的离线退出门已关闭。
 

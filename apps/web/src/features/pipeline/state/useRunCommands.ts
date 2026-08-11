@@ -32,11 +32,9 @@ type RunCommandOptions = {
   /** Active project context: run inputs carry its id/title (Phase 11.2 mine 4). */
   project: Pick<ProjectRecord, 'id' | 'title'> | null;
   runInputs: RunInputs;
-  runSource: RunSource;
   setRunSource: (source: RunSource) => void;
   stageDecision: StageDecisionController;
   state: CommandRunState;
-  storedRunSource?: RunSource;
   stream: RunStreamController;
   transitions: RunTransitions;
   workflow: WorkflowDefinition;
@@ -51,11 +49,9 @@ export function useRunCommands(options: RunCommandOptions) {
     onWarning,
     project,
     runInputs,
-    runSource,
     setRunSource,
     stageDecision,
     state,
-    storedRunSource,
     stream,
     transitions,
     workflow,
@@ -121,8 +117,8 @@ export function useRunCommands(options: RunCommandOptions) {
     transitions.setAutomationCockpitReady(hydrated.automationCockpitReady);
     if (!reconnect) return;
     setRunControl(false, 'running', true);
-    const source = storedRunSource ?? runSource;
-    setRunSource(source);
+    const source: RunSource = 'backend';
+    setRunSource('backend');
     try {
       await consumeExistingRun(
         hydrated.inputs ?? buildRunInputs(workflow, source, project),

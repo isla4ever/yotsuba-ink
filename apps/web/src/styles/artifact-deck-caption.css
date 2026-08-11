@@ -48,6 +48,7 @@
 
 .artifact-status-dot.is-current,
 .artifact-status-dot.is-running,
+.artifact-status-dot.is-awaiting,
 .artifact-status-dot.is-attention { background: var(--deck-accent); }
 .artifact-status-dot.is-confirmed { background: var(--success); }
 

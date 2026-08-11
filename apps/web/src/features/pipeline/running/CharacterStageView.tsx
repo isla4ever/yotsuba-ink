@@ -1,10 +1,11 @@
-import { GitBranch, LockKeyhole, ShieldCheck, UsersRound } from 'lucide-react';
+import { GitBranch, List, LockKeyhole, Orbit, ShieldCheck, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { CharacterNpcSection } from './CharacterNpcSection';
 import { CharacterDossierEditor } from './CharacterDossierEditor';
 import { CharacterOrchestrationPanel } from './CharacterOrchestrationPanel';
 import { CharacterRelationshipSection } from './CharacterRelationshipSection';
 import { CharacterRosterSection } from './CharacterRosterSection';
+import { CharacterStarMapPanel } from './CharacterStarMapPanel';
 import { parseCharacterBibleArtifact, type CharacterBibleArtifact } from './characterBibleArtifact';
 
 type Props = {
@@ -19,6 +20,10 @@ export function CharacterStageView({ onArtifactChange, readOnly, result, sourceR
   const parsed = useMemo(() => parseCharacterBibleArtifact(result), [result]);
   const [artifact, setArtifact] = useState<CharacterBibleArtifact | null>(parsed.artifact);
   const [selectedId, setSelectedId] = useState(parsed.artifact?.characters[0]?.id ?? '');
+  const [view, setView] = useState<'star-map' | 'roster'>(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'roster';
+    return window.matchMedia('(max-width: 760px)').matches ? 'roster' : 'star-map';
+  });
   useEffect(() => {
     const next = parseCharacterBibleArtifact(result);
     if (next.artifact) {
@@ -53,12 +58,26 @@ export function CharacterStageView({ onArtifactChange, readOnly, result, sourceR
         </div>
       ) : null}
       {parsed.errors.length ? <div className="character-bible-validation">{parsed.errors[0]}</div> : null}
-      {selected ? (
-        <div className="character-bible-layout">
-          <CharacterRosterSection artifact={artifact} onChange={updateArtifact} onSelect={setSelectedId} readOnly={readOnly} selectedId={selected.id} />
-          <CharacterDossierEditor artifact={artifact} character={selected} onChange={updateArtifact} readOnly={readOnly} totalChapters={totalChapters} />
-          <CharacterOrchestrationPanel artifact={artifact} character={selected} onSelect={setSelectedId} />
+      <div className="character-bible-viewbar">
+        <div aria-label="人物工作台视图" className="character-bible-view-toggle" role="group">
+          <button aria-pressed={view === 'star-map'} className={view === 'star-map' ? 'active' : ''} onClick={() => setView('star-map')} type="button"><Orbit size={15} />星图</button>
+          <button aria-pressed={view === 'roster'} className={view === 'roster' ? 'active' : ''} onClick={() => setView('roster')} type="button"><List size={15} />名册</button>
         </div>
+      </div>
+      {selected ? (
+        view === 'star-map' ? (
+          <div className="character-bible-star-layout">
+            <CharacterRosterSection artifact={artifact} onChange={updateArtifact} onSelect={setSelectedId} readOnly={readOnly} selectedId={selected.id} />
+            <CharacterStarMapPanel artifact={artifact} onSelect={setSelectedId} selectedId={selected.id} />
+            <CharacterDossierEditor artifact={artifact} character={selected} onChange={updateArtifact} readOnly={readOnly} totalChapters={totalChapters} />
+          </div>
+        ) : (
+          <div className="character-bible-layout">
+            <CharacterRosterSection artifact={artifact} onChange={updateArtifact} onSelect={setSelectedId} readOnly={readOnly} selectedId={selected.id} />
+            <CharacterDossierEditor artifact={artifact} character={selected} onChange={updateArtifact} readOnly={readOnly} totalChapters={totalChapters} />
+            <CharacterOrchestrationPanel artifact={artifact} character={selected} onSelect={setSelectedId} />
+          </div>
+        )
       ) : null}
       <CharacterRelationshipSection artifact={artifact} onChange={updateArtifact} readOnly={readOnly} />
       <CharacterNpcSection artifact={artifact} onChange={updateArtifact} readOnly={readOnly} totalChapters={totalChapters} />

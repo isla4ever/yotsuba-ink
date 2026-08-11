@@ -168,6 +168,8 @@ function CurrentSurfaceStatus({
 }) {
   const runtimeLabel = runtimeStatus === 'running'
     ? '运行中'
+    : runtimeStatus === 'awaiting'
+      ? '待决策'
     : runtimeStatus === 'done'
       ? '已完成'
       : runtimeStatus === 'attention'

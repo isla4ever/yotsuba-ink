@@ -16,6 +16,7 @@ from novel_workflow.storage.json_store import JsonStore
 from novel_workflow.storage.project_store import ProjectStore
 from novel_workflow.storage.provider_profile_store import ProviderProfileStore
 from novel_workflow.storage.provider_secret_store import ProviderSecretStore
+from novel_workflow.storage.run_history_projection import RunHistoryProjection
 from novel_workflow.workflows.schemas import PromptTemplate, ProviderProfile
 from novel_workflow.workflows.templates import default_prompt_templates, default_provider_profiles, default_workflow
 
@@ -36,10 +37,14 @@ def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
         lambda: RegistryNarrativeProviderGateway(app.state.providers),
     )
     app.state.narrative_stores = app.state.narrative_execution.stores
+    app.state.run_history = RunHistoryProjection(
+        app.state.narrative_stores.runs,
+        app.state.narrative_stores.exports,
+    )
     app.state.project_store = ProjectStore(
         root / "projects",
         workflow_store=app.state.workflow_store,
-        run_repository=app.state.narrative_stores.runs,
+        run_history=app.state.run_history,
     )
     # Historical runs are an offline, read-only surface and never share the
     # production Run repository or graph checkpoint directory.

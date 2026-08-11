@@ -6,9 +6,8 @@ from uuid import uuid4
 from datetime import datetime, timezone
 
 from novel_workflow.storage.json_store import JsonStore
-from novel_workflow.storage.narrative_run_repository import NarrativeRunRepository
 from novel_workflow.storage.project_schemas import ProjectRecord, next_accent_hue
-from novel_workflow.output_contracts.artifacts_vnext import stage_pointer
+from novel_workflow.storage.run_history_projection import RunHistoryProjection
 from novel_workflow.workflows.seed_policy import scrub_narrative_seeds
 
 
@@ -27,10 +26,10 @@ class ProjectStore:
     delete protection against existing runs, and latest-run aggregation.
     """
 
-    def __init__(self, root: Path, *, workflow_store: JsonStore, run_repository: NarrativeRunRepository) -> None:
+    def __init__(self, root: Path, *, workflow_store: JsonStore, run_history: RunHistoryProjection) -> None:
         self.store = JsonStore(root)
         self.workflow_store = workflow_store
-        self.run_repository = run_repository
+        self.run_history = run_history
 
     def list(self) -> list[ProjectRecord]:
         records = [ProjectRecord.model_validate(item) for item in self.store.list()]
@@ -69,8 +68,7 @@ class ProjectStore:
 
     def delete(self, project_id: str) -> None:
         record = self.get(project_id)
-        runs = [item for item in self.run_repository.list() if item.project_id == project_id]
-        if runs:
+        if self.run_history.has_project_run(project_id):
             raise ProjectStoreError(
                 f"作品「{record.title}」已有创作运行记录，禁止直接删除；如需收起请改用归档（PATCH status=archived）。"
             )
@@ -90,14 +88,13 @@ class ProjectStore:
 
     def summary(self, project_id: str) -> dict[str, Any]:
         record = self.get(project_id)
-        runs = [item for item in self.run_repository.list() if item.project_id == project_id]
-        latest = runs[0].model_dump(mode="json") if runs else None
+        latest = self.run_history.latest(project_id)
         return {
             "project": record.model_dump(),
             "latest_run": latest,
             "title": str((latest or {}).get("title") or record.title),
             "status": str((latest or {}).get("status") or ""),
-            "current_stage": stage_pointer(latest["active_stage_id"]) if latest else {},
+            "current_stage": dict((latest or {}).get("current_stage") or {}),
             "completed_stage_ids": list((latest or {}).get("completed_stage_ids") or []),
             "words": int((latest or {}).get("words") or 0),
             "updated_at": str((latest or {}).get("updated_at") or record.updated_at),

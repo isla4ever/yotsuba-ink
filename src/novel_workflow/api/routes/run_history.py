@@ -5,9 +5,6 @@ from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
-from novel_workflow.output_contracts.artifacts_vnext import stage_pointer
-
-
 router = APIRouter(prefix="/api/runs", tags=["run-history"])
 
 
@@ -18,38 +15,12 @@ async def list_run_history(
     project_id: str = Query(default="", max_length=240),
     status: str = Query(default="", max_length=64),
 ) -> dict[str, object]:
-    repository = request.app.state.narrative_stores.runs
-    items = []
-    for projection in repository.list():
-        if project_id and projection.project_id != project_id:
-            continue
-        definition = repository.definition(projection.run_id)
-        completed = [stage for stage, value in projection.stage_status.items() if value == "completed"]
-        exports = request.app.state.narrative_stores.exports.list(projection.run_id)
-        items.append({
-            "run_id": projection.run_id,
-            "project_id": projection.project_id,
-            "title": str(definition.inputs.get("title") or "未命名小说"),
-            "quality_mode": definition.quality_mode,
-            "status": projection.status,
-            "current_stage": stage_pointer(projection.active_stage_id),
-            "completed_stage_ids": completed,
-            "created_at": definition.created_at,
-            "updated_at": projection.updated_at,
-            "completed_at": projection.updated_at if projection.status == "completed" else "",
-            "words": 0,
-            "total_tokens": projection.provider_usage.total_tokens,
-            "estimated_cost_usd": None,
-            "summary": "LangGraph 运行读模型",
-            "can_branch": projection.status == "awaiting_decision" and bool(projection.checkpoint_id and projection.pending_decisions),
-            "checkpoint_id": projection.checkpoint_id,
-            "export_ready": "export" in completed,
-            "export_count": len(exports),
-            "latest_export": exports[0].model_dump(mode="json") if exports else None,
-        })
-    if status:
-        items = [item for item in items if item.get("status") == status]
-    return {"items": items[:limit], "next_cursor": ""}
+    items = request.app.state.run_history.list(
+        project_id=project_id,
+        status=status,
+        limit=limit,
+    )
+    return {"items": items, "next_cursor": ""}
 
 
 @router.get("/{run_id}/exports")

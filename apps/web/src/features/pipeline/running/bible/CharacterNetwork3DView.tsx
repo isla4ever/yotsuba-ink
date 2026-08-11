@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph3D, { type ForceGraphMethods } from 'react-force-graph-3d';
 import { createCharacterNode3D, createRelationshipLabel3D, positionRelationshipLabel, relationshipCurve, relationshipCurveRotation, relationshipTouchesNode, type NodeLabelDetail } from './characterNetwork3DObjects';
 import { createSpatialAnchorForce, initialSpatialLayout, networkCameraBounds, networkCameraDistance, networkCameraFrame, type SpatialNode } from './characterNetwork3DLayout';
+import { createStaticCharacterStarfield, disposeStaticCharacterStarfield } from './characterNetworkStarfield';
 import { tierNodeValue } from '../insights/characterGraphData';
 import type { CharacterEdge, CharacterGraph, CharacterNode } from '../../contracts';
 
@@ -15,6 +16,11 @@ type Props = {
   accentColor: string;
   selectedId: string;
   onSelectNode: (nodeId: string) => void;
+  nodeColor?: (node: CharacterNode) => string;
+  showStarfield?: boolean;
+  showNodeLabels?: boolean;
+  showRelationshipLabels?: boolean;
+  autoFocusSelected?: boolean;
 };
 
 const dimmedNodeColor = '#3a4152';
@@ -33,7 +39,7 @@ function escapeHtml(value: string) {
  * leaving the mode. There is no auto-rotation or any other self-driven motion,
  * so Reduced Motion needs no special casing.
  */
-export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNodeDimmed, onSelectNode, selectedId }: Props) {
+export function CharacterNetwork3DView({ accentColor, autoFocusSelected = true, cameraRequest, graph, isNodeDimmed, nodeColor, onSelectNode, selectedId, showNodeLabels = true, showRelationshipLabels = true, showStarfield = false }: Props) {
   const graphRef = useRef<ForceGraphMethods>();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const engineReadyRef = useRef(false);
@@ -41,7 +47,9 @@ export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNo
   const tickRef = useRef(0);
   const pauseTimerRef = useRef<number | null>(null);
   const [size, setSize] = useState({ width: 640, height: 480 });
-  const activeFocusId = cameraRequest?.kind === 'fit' ? '' : cameraRequest?.id || selectedId;
+  const activeFocusId = cameraRequest?.kind === 'fit'
+    ? ''
+    : cameraRequest?.id || (autoFocusSelected ? selectedId : '');
   const compactViewport = size.width < 520;
   const portraitLayout = size.width / Math.max(1, size.height) < 1.25;
 
@@ -109,6 +117,18 @@ export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNo
       observer.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!showStarfield) return;
+    const scene = graphRef.current?.scene?.();
+    if (!scene) return;
+    const starfield = createStaticCharacterStarfield();
+    scene.add(starfield);
+    return () => {
+      scene.remove(starfield);
+      disposeStaticCharacterStarfield(starfield);
+    };
+  }, [showStarfield]);
 
   useEffect(() => {
     const api = graphRef.current;
@@ -192,7 +212,7 @@ export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNo
   return (
     <div
       aria-label="人物关系 3D 全景画布"
-      className="bible-network-3d-canvas"
+      className={`bible-network-3d-canvas${showStarfield ? ' is-character-star-map' : ''}`}
       onPointerEnter={() => {
         if (engineReadyRef.current) graphRef.current?.resumeAnimation?.();
       }}
@@ -214,10 +234,10 @@ export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNo
         enableNodeDrag
         nodeThreeObject={(node: object) => {
           const item = node as Node3D;
-          const color = isNodeDimmed(item) ? dimmedNodeColor : accentColor;
+          const color = isNodeDimmed(item) ? dimmedNodeColor : nodeColor?.(item) ?? accentColor;
           return createCharacterNode3D(item, color, item.id === selectedId, {
             compact: compactViewport,
-            labelDetail: labelDetailFor(item.id),
+            labelDetail: showNodeLabels ? labelDetailFor(item.id) : 'hidden',
           });
         }}
         nodeThreeObjectExtend
@@ -226,7 +246,7 @@ export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNo
         nodeColor={(node) => {
           const item = node as Node3D;
           if (item.id === selectedId) return accentColor;
-          return isNodeDimmed(item) ? dimmedNodeColor : accentColor;
+          return isNodeDimmed(item) ? dimmedNodeColor : nodeColor?.(item) ?? accentColor;
         }}
         nodeLabel={(node) => {
           const item = node as Node3D;
@@ -241,17 +261,17 @@ export function CharacterNetwork3DView({ accentColor, cameraRequest, graph, isNo
         linkDirectionalParticles={0}
         linkDirectionalArrowLength={4.2}
         linkDirectionalArrowRelPos={0.94}
-        linkThreeObjectExtend
-        linkThreeObject={(link) => {
+        linkThreeObjectExtend={showRelationshipLabels}
+        linkThreeObject={showRelationshipLabels ? (link) => {
           const edge = link as CharacterEdge;
           return createRelationshipLabel3D(edge, accentColor, {
             compact: compactViewport,
             visible: graphData.links.length <= 3 || relationshipTouchesNode(edge, selectedId),
           });
-        }}
-        linkPositionUpdate={(object, { start, end }) => {
+        } : undefined}
+        linkPositionUpdate={showRelationshipLabels ? (object, { start, end }) => {
           return positionRelationshipLabel(object, start, end);
-        }}
+        } : undefined}
         onEngineTick={() => {
           engineReadyRef.current = true;
           tickRef.current += 1;

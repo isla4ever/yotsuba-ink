@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { AlertCircle, CheckCircle2, Circle, Database, FileText, ShieldCheck, Sparkles, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Circle, CirclePause, Database, FileText, ShieldCheck, Sparkles, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunEvent, WorkflowStage } from '../contracts';
 import { ButtonLoadingIndicator } from '../layout/ButtonLoadingIndicator';
@@ -84,6 +84,7 @@ function useStageElapsedLabel(events: RunEvent[], stageId: string, status: strin
   }, [startKey, status]);
 
   if (status === 'running') return `${runtime ? runtimeElapsedSeconds(runtime) ?? Math.max(1, tick + 1) : Math.max(1, tick + 1)}s`;
+  if (status === 'awaiting') return '待决策';
   if (status === 'done' && completedSeconds) return `${completedSeconds}s`;
   if (status === 'failed') return '失败';
   return '待机';
@@ -91,6 +92,7 @@ function useStageElapsedLabel(events: RunEvent[], stageId: string, status: strin
 
 function StatusIcon({ status }: { status: string }) {
   if (status === 'running') return <ButtonLoadingIndicator />;
+  if (status === 'awaiting') return <CirclePause size={14} />;
   if (status === 'done') return <CheckCircle2 size={14} />;
   if (status === 'failed') return <XCircle size={14} />;
   return <Circle size={14} />;

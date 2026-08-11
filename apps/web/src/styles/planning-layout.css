@@ -1196,6 +1196,11 @@
     0 15px 34px color-mix(in srgb, var(--warning) 13%, transparent);
 }
 
+.compact-node.awaiting {
+  border-color: color-mix(in srgb, var(--warning) 74%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 12%, transparent);
+}
+
 .compact-node.done {
   border-color: color-mix(in srgb, var(--success) 56%, var(--border));
 }

@@ -12,6 +12,14 @@ describe('stage Graph projections', () => {
     expect(statusText({ id: 'cover', type: 'cover' }, events)).toBe('待完善');
   });
 
+  it('labels the human decision interrupt directly from the event projection', () => {
+    const events = [runEvent('decision.required', {
+      stage_id: 'characters',
+      node_id: 'characters.human_decision',
+    })];
+    expect(statusText({ id: 'characters', type: 'characters' }, events)).toBe('待决策');
+  });
+
   it('reads the current vNext Artifact from payload', () => {
     const artifact = { beats: [{ id: 'beat-1', phase: 'setup', event: '发现线索', consequence: '开始调查' }], climax: '公开真相', resolution: '调查结束', character_outcomes: [] };
     const events = [runEvent('artifact.candidate_ready', {

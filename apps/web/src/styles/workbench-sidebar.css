@@ -154,7 +154,7 @@
     width: 7px;
   }
 
-  .sidebar-status-dot:is(.running, .attention) {
+  .sidebar-status-dot:is(.running, .awaiting, .attention) {
     background: var(--color-mode-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-mode-primary) 20%, transparent);
   }

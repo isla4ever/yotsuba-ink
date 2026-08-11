@@ -6,6 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CharacterStageView } from './CharacterStageView';
 import type { CharacterBibleArtifact } from './characterBibleArtifact';
 
+vi.mock('./bible/CharacterNetwork3DView', () => ({
+  CharacterNetwork3DView: ({ onSelectNode }: { onSelectNode: (id: string) => void }) => (
+    <button className="mock-character-star-map" onClick={() => onSelectNode('character-2')} type="button">星图节点</button>
+  ),
+}));
+
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
 const artifact: CharacterBibleArtifact = {
@@ -48,6 +54,13 @@ describe('CharacterStageView orchestration workbench', () => {
   let root: Root;
 
   beforeEach(() => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      addEventListener: vi.fn(),
+      matches: query.includes('max-width'),
+      media: query,
+      onchange: null,
+      removeEventListener: vi.fn(),
+    }));
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -70,6 +83,21 @@ describe('CharacterStageView orchestration workbench', () => {
 
     const relation = Array.from(container.querySelectorAll<HTMLButtonElement>('.character-neighborhood-list button'))[0];
     act(() => relation?.click());
+    expect(container.querySelector<HTMLInputElement>('input[aria-label="角色姓名"]')?.value).toBe('周屿');
+  });
+
+  it('uses the star map as a browsing projection and keeps selection synchronized', async () => {
+    const source = JSON.stringify(artifact);
+    act(() => root.render(<CharacterStageView onArtifactChange={() => undefined} readOnly={false} result={source} sourceResult={source} totalChapters={3} />));
+
+    const starMapButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.character-bible-view-toggle button'))
+      .find((button) => button.textContent?.includes('星图'));
+    await act(async () => starMapButton?.click());
+    await act(async () => undefined);
+    expect(container.querySelector('.character-bible-star-layout')).not.toBeNull();
+    expect(container.querySelector('.mock-character-star-map')).not.toBeNull();
+
+    act(() => container.querySelector<HTMLButtonElement>('.mock-character-star-map')?.click());
     expect(container.querySelector<HTMLInputElement>('input[aria-label="角色姓名"]')?.value).toBe('周屿');
   });
 

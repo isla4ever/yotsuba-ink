@@ -1,6 +1,6 @@
 # Yotsuba Ink vNext Stage Artifact Contract
 
-状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过；真实 Provider 已获“推送成功后执行”的授权但尚未执行，人工文学验收仍待完成。
+状态：Phase 26 已批准并完成 Wave 26.1-26.6 离线闭环的唯一生产合同（2026-08-11）。旧七阶段、`info_recommend`、`detail_outline`、`chapter_text`、`cover_image`、`export_artifact` 和 Detail v1/v2/v3 已断代；历史版本只允许在离线归档查看器中作为失败证据读取。本地桌面/390px 浏览器矩阵已通过；真实 Provider `info` 严格探针已在推送后执行一次并被额度阻断，后续阶段、三章 Run 与人工文学验收均未开始。
 
 ## 生产阶段
 

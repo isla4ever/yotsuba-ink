@@ -51,4 +51,12 @@ describe('buildArtifactDeckItems', () => {
     expect(items.find((item) => item.id === 'export')).toMatchObject({ status: 'attention', statusLabel: '待完善' });
     expect(buildPlanningStagePosition(defaultWorkflow, events, 'export')).toMatchObject({ completed: 0, current: 8, total: 8 });
   });
+
+  it('keeps awaiting decisions separate from generation and delivery attention', () => {
+    const events = [
+      runEvent('decision.required', { run_id: 'run-1', stage_id: 'characters', node_id: 'characters.human_decision' }),
+    ];
+    expect(buildArtifactDeckItems(defaultWorkflow, events, 'characters').find((item) => item.id === 'characters'))
+      .toMatchObject({ status: 'awaiting', statusLabel: '待决策' });
+  });
 });

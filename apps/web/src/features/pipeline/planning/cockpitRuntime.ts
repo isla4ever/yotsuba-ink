@@ -1,6 +1,6 @@
 import type { RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
 
-export type NodeRunStatus = 'idle' | 'running' | 'done' | 'failed';
+export type NodeRunStatus = 'idle' | 'running' | 'awaiting' | 'done' | 'failed';
 
 export type NodeRuntimeState = {
   status: NodeRunStatus;
@@ -26,6 +26,9 @@ export function latestNodeStatus(events: RunEvent[], stageId: string): NodeRunti
   if (!latest) return { status: 'idle', startKey: '', startedAtMs: null, completedSeconds: null };
   if (latest.type === 'node.failed' || latest.type === 'run.failed') {
     return { status: 'failed', startKey: '', startedAtMs: eventTimeMs(started), completedSeconds: null };
+  }
+  if (latest.type === 'decision.required') {
+    return { status: 'awaiting', startKey: '', startedAtMs: eventTimeMs(started), completedSeconds: null };
   }
   if (stageCompletedBy(latest)) {
     return { status: 'done', startKey: '', startedAtMs: eventTimeMs(started), completedSeconds: elapsedSeconds(started, latest) };
@@ -111,7 +114,7 @@ function isLifecycleEvent(event: RunEvent) {
     || event.type === 'artifact.candidate_ready'
     || event.type === 'artifact.committed'
     || event.type === 'decision.required'
-    || event.type === 'checkpoint.saved'
+    || event.type === 'decision.resolved'
     || event.type === 'run.failed';
 }
 

@@ -44,7 +44,7 @@ describe('CharacterNetwork3DView lazy boundary', () => {
 });
 
 describe('CharacterNetwork3DView data mapping', () => {
-  async function render(selectedId = '', dimmedId = '', onSelectNode = () => {}) {
+  async function render(selectedId = '', dimmedId = '', onSelectNode = () => {}, showRelationshipLabels = true) {
     const { CharacterNetwork3DView } = await import('./CharacterNetwork3DView');
     renderToStaticMarkup(
       <CharacterNetwork3DView
@@ -53,6 +53,7 @@ describe('CharacterNetwork3DView data mapping', () => {
         isNodeDimmed={(node) => Boolean(dimmedId) && node.faction_id === dimmedId}
         onSelectNode={onSelectNode}
         selectedId={selectedId}
+        showRelationshipLabels={showRelationshipLabels}
       />,
     );
     const props = forceGraph3D.props;
@@ -96,6 +97,15 @@ describe('CharacterNetwork3DView data mapping', () => {
     expect(props.nodeRelSize).toBe(7);
     props.onNodeClick((props.graphData.nodes as Array<Record<string, any>>)[1]);
     expect(onSelectNode).toHaveBeenCalledWith('m1');
+  });
+
+  it('can keep relationship lines while omitting scene labels in the stage star map', async () => {
+    const props = await render('', '', () => {}, false);
+
+    expect(props.linkThreeObjectExtend).toBe(false);
+    expect(props.linkThreeObject).toBeUndefined();
+    expect(props.linkPositionUpdate).toBeUndefined();
+    expect(props.linkWidth).toEqual(expect.any(Function));
   });
 
   it('keeps the interactive panorama exposed to assistive technology', async () => {

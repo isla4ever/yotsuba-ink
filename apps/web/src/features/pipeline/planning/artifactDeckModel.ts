@@ -3,7 +3,7 @@ import { stagePositionSummary } from '../lib/stageProgress';
 import { buildRunEventIndex } from '../state/runEventIndex';
 import { completedDeliveryStageIds, stageDeliveryStatus } from '../state/stageDeliveryStatus';
 
-export type ArtifactDeckStatus = 'attention' | 'confirmed' | 'current' | 'queued' | 'running';
+export type ArtifactDeckStatus = 'attention' | 'awaiting' | 'confirmed' | 'current' | 'queued' | 'running';
 
 export type ArtifactDeckItem = {
   artifact: string;
@@ -99,6 +99,7 @@ function deckStatus(stage: WorkflowStage, eventIndex: ReturnType<typeof buildRun
   const status = stageDeliveryStatus(eventIndex, stage);
   if (status === 'failed' || status === 'attention') return 'attention';
   if (status === 'done') return 'confirmed';
+  if (status === 'awaiting') return 'awaiting';
   if (status === 'running') return 'running';
   if (stage.id === selectedId) return 'current';
   return 'queued';
@@ -107,6 +108,7 @@ function deckStatus(stage: WorkflowStage, eventIndex: ReturnType<typeof buildRun
 function statusLabel(status: ArtifactDeckStatus) {
   if (status === 'confirmed') return '已确认';
   if (status === 'running') return '生成中';
+  if (status === 'awaiting') return '待决策';
   if (status === 'attention') return '待完善';
   if (status === 'current') return '当前稿';
   return '待开始';

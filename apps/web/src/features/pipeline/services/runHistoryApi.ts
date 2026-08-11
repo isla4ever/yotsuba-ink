@@ -24,7 +24,7 @@ export async function listRunHistory(params: {
   if (!isRecord(payload) || !Array.isArray(payload.items) || typeof payload.next_cursor !== 'string') {
     throw new RunApiError('Run history response does not match the vNext contract', 502);
   }
-  return { items: payload.items.map(requireHistoryItem), next_cursor: payload.next_cursor };
+  return { items: payload.items.map(parseRunHistoryItem), next_cursor: payload.next_cursor };
 }
 
 export async function listRunExports(runId: string, signal?: AbortSignal): Promise<ExportReceipt[]> {
@@ -58,7 +58,7 @@ export async function downloadRunExportReceipt(
   };
 }
 
-function requireHistoryItem(value: unknown): RunHistoryItem {
+export function parseRunHistoryItem(value: unknown): RunHistoryItem {
   const validStatuses = ['created', 'running', 'awaiting_decision', 'failed', 'completed', 'cancelled'] as const;
   const stages = ['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export', ''] as const;
   if (!isRecord(value) || !isRecord(value.current_stage)) return invalidHistory();
