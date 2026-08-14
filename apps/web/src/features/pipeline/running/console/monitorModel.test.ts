@@ -34,7 +34,9 @@ const detailPayload = {
       pov: 'subject-1',
       purpose: '建立封闭环境',
       ref: 'chapter-1',
-      scenes: [{ conflict: 'c', objective: 'o', place: 'p', result: 'r', turn: 't' }],
+      scenes: [{ conflict: 'c', objective: 'o', place: 'p', result: 'r', turn: 't' }, { conflict: 'c2', objective: 'o2', place: 'p2', result: 'r2', turn: 't2' }],
+      target_characters: 3000,
+      title: '雪夜来客',
       volume_ref: 'volume-1',
     },
     {
@@ -43,7 +45,9 @@ const detailPayload = {
       pov: 'subject-1',
       purpose: '追查密道',
       ref: 'chapter-2',
-      scenes: [{ conflict: 'c', objective: 'o', place: 'p', result: 'r', turn: 't' }],
+      scenes: [{ conflict: 'c', objective: 'o', place: 'p', result: 'r', turn: 't' }, { conflict: 'c2', objective: 'o2', place: 'p2', result: 'r2', turn: 't2' }],
+      target_characters: 3000,
+      title: '暗门余温',
       volume_ref: 'volume-1',
     },
   ],
@@ -56,6 +60,7 @@ const volumesPayload = {
     closure: '反转',
     conflict: '互相猜疑',
     id: 'volume-1',
+    title: '暴雪孤馆',
     length_hint: 'medium',
     promise: '暴风雪山庄',
     thread_ids: [],
@@ -71,7 +76,7 @@ describe('buildMonitorSnapshot', () => {
       event({ payload: detailPayload, stage_id: 'detail', type: 'artifact.committed' }),
       event({
         chapter_id: 'chapter-1',
-        payload: { author_status: 'accepted', chapter_id: 'chapter-1', content: '正文'.repeat(30), title: '第1章', version_id: 'v1' },
+        payload: { author_status: 'accepted', chapter_id: 'chapter-1', content: '正文'.repeat(30), title: '雪夜来客', version_id: 'v1' },
         stage_id: 'text',
         type: 'artifact.committed',
       }),
@@ -84,8 +89,7 @@ describe('buildMonitorSnapshot', () => {
     const [volume] = snapshot.tree;
     expect(volume.promise).toBe('暴风雪山庄');
     expect(volume.chapters.map((chapter) => chapter.status)).toEqual(['done', 'writing']);
-    // Placeholder titles fall back to the blueprint purpose in the UI.
-    expect(volume.chapters[0].title).toBe('');
+    expect(volume.chapters[0].title).toBe('雪夜来客');
     expect(volume.chapters[0].words).toBe(60);
     expect(snapshot.totals.chaptersDone).toBe(1);
     expect(snapshot.totals.chaptersTotal).toBe(2);
@@ -110,7 +114,7 @@ describe('buildMonitorSnapshot', () => {
       event({ payload: detailPayload, stage_id: 'detail', type: 'artifact.committed' }),
       event({
         chapter_id: 'chapter-1',
-        payload: { author_status: 'accepted', chapter_id: 'chapter-1', content: '第一章定稿', title: '第1章', version_id: 'v1' },
+        payload: { author_status: 'accepted', chapter_id: 'chapter-1', content: '第一章定稿', title: '雪夜来客', version_id: 'v1' },
         stage_id: 'text',
         type: 'artifact.committed',
       }),
@@ -119,7 +123,7 @@ describe('buildMonitorSnapshot', () => {
     const windowEvents = [
       event({
         chapter_id: 'chapter-2',
-        payload: { author_status: 'accepted', chapter_id: 'chapter-2', content: '第二章定稿', title: '第2章', version_id: 'v2' },
+        payload: { author_status: 'accepted', chapter_id: 'chapter-2', content: '第二章定稿', title: '暗门余温', version_id: 'v2' },
         stage_id: 'text',
         type: 'artifact.committed',
       }),

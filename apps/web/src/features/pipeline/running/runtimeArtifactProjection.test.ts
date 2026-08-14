@@ -23,10 +23,15 @@ const detail = JSON.stringify({
   chapters: [{
     ref: 'chapter-1',
     volume_ref: 'volume-1',
+    title: '旧港回声',
+    target_characters: 3000,
     purpose: '取得第一份证据',
     pov: 'subject-lin',
     cast_ids: ['subject-lin'],
-    scenes: [{ place: '旧港仓库', objective: '取回母带', conflict: '仓库被封锁', turn: '发现一份副本', result: '带走副本' }],
+    scenes: [
+      { place: '旧港仓库', objective: '取回母带', conflict: '仓库被封锁', turn: '发现一份副本', result: '带走副本' },
+      { place: '旧潮道', objective: '离开封锁区', conflict: '追兵逼近', turn: '找到暗门', result: '进入潮道' },
+    ],
     handoff: '追兵开始接近',
   }],
 });
@@ -45,7 +50,7 @@ describe('runtimeArtifactProjection', () => {
     expect(projection.worldbuilding?.rules).toEqual(['广播只会覆盖被明确标记的记忆']);
     expect(projection.stage).toEqual({
       character: '1 个 POV 引用人物圣经',
-      worldbuilding: '1 个场景按需读取证据',
+      worldbuilding: '2 个场景按需读取证据',
       foreshadow: '1 条章节交接进入 Context Manifest',
     });
     expect(projection.writeback).toEqual({ status: 'queued', label: '写回已进入事务队列', transactionId: 'tx-current' });

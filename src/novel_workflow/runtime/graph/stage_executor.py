@@ -19,6 +19,7 @@ from novel_workflow.output_contracts.artifacts_vnext import (
     DetailSegmentArtifact,
     ExportArtifact,
     ExportMetadata,
+    ExportVolume,
     VolumeArchitectureArtifact,
     StoryBriefArtifact,
     RoleDemandProposalBatch,
@@ -53,7 +54,11 @@ from novel_workflow.storage.export_store import ExportStore
 from novel_workflow.storage.domain_outbox import DomainOutbox
 from novel_workflow.storage.narrative_run_repository import NarrativeRunRepository, ProviderBinding
 from novel_workflow.storage.operation_store import OperationStore
-from novel_workflow.workflows.narrative_scale import DetailScaleProjection
+from novel_workflow.workflows.narrative_scale import (
+    DetailScaleProjection,
+    NarrativeScaleProfile,
+    chapter_character_targets,
+)
 
 
 class StageArtifactValidationError(ValueError):
@@ -162,12 +167,13 @@ class StageExecutor:
                 previous_segment_handoff: dict[str, Any] | None = None
                 detail_chapter_count = 0
                 taken_cast_names: list[str] = []
+                taken_volume_titles: list[str] = []
+                taken_chapter_titles: list[str] = []
                 for unit_id, context in self.context_compiler().stage_units(state, stage_id):
                     if stage_id == "detail" and previous_segment_handoff is not None:
                         context["material"]["previous_segment_handoff"] = previous_segment_handoff
-                        # Earlier segments may return more or fewer chapters
-                        # than their soft target, so the planned start number
-                        # is corrected against what actually exists.
+                        # Chapter counts are deterministic; carrying the actual
+                        # count here also makes replay reject a corrupted segment.
                         context["material"]["scale_projection"] = {
                             **context["material"]["scale_projection"],
                             "chapter_number_start": detail_chapter_count + 1,
@@ -177,6 +183,10 @@ class StageExecutor:
                         # other; without this, later groups reinvent the same
                         # character names and the merged bible fails validation.
                         context["material"]["reserved_names"] = list(taken_cast_names)
+                    if stage_id == "volumes" and taken_volume_titles:
+                        context["material"]["reserved_titles"] = list(taken_volume_titles)
+                    if stage_id == "detail" and taken_chapter_titles:
+                        context["material"]["reserved_titles"] = list(taken_chapter_titles)
                     planner = self.output_budget_planner(state)
                     budget = planner.for_stage(stage_id, binding, context)
                     context = planner.attach(context, budget)
@@ -198,8 +208,15 @@ class StageExecutor:
                             for item in (payload.get("subjects") or [])
                             if (name := str(item.get("name") or "").strip())
                         )
+                    if stage_id == "volumes":
+                        taken_volume_titles.extend(
+                            title
+                            for item in (payload.get("volumes") or [])
+                            if (title := str(item.get("title") or "").strip())
+                        )
                     if stage_id == "detail":
                         segment = DetailSegmentArtifact.model_validate(payload)
+                        taken_chapter_titles.extend(item.title for item in segment.chapters)
                         last = segment.chapters[-1]
                         detail_chapter_count += len(segment.chapters)
                         previous_segment_handoff = {
@@ -216,6 +233,8 @@ class StageExecutor:
                     )
                 if stage_id == "volumes":
                     payload = _bind_volume_architecture(state, payload)
+                if stage_id == "detail":
+                    payload = _bind_detail_artifact(payload, definition.scale_profile)
                 if stage_id == "cover":
                     brief = CoverBrief.model_validate(payload)
                     assets = await self._generate_cover_assets(state, brief)
@@ -840,6 +859,16 @@ class StageExecutor:
             raise ValueError("Export requires the committed Cover asset")
         self.cover_assets.read(state["run_id"], cover_id)
         preferences = self.runs.definition(state["run_id"]).export_preferences
+        volumes_ref = (state.get("artifact_refs") or {}).get("volumes")
+        if not volumes_ref:
+            raise ValueError("Volume Architecture must be committed before export")
+        architecture = VolumeArchitectureArtifact.model_validate(
+            self.artifacts.read(state["run_id"], volumes_ref).payload
+        )
+        chapter_counts = {
+            volume.id: sum(1 for chapter in detail.chapters if chapter.volume_ref == volume.id)
+            for volume in architecture.volumes
+        }
         return ExportArtifact(
             format=preferences.format,
             chapter_version_ids=accepted,
@@ -849,6 +878,10 @@ class StageExecutor:
                 author=preferences.author,
                 version_note=preferences.version_note,
             ),
+            volumes=[
+                ExportVolume(title=volume.title, chapter_count=chapter_counts[volume.id])
+                for volume in architecture.volumes
+            ],
         ).model_dump(mode="json")
 
     def _accepted_version_ids(self, state: NarrativeRunState) -> list[str]:
@@ -927,6 +960,15 @@ def _validate_stage_unit(
             )
         if len(titles) != len(set(titles)):
             raise ValueError("Volumes unit reused a volume title; titles must be distinct")
+        reserved = {
+            str(title).strip().casefold()
+            for title in context["material"].get("reserved_titles", [])
+        }
+        reused = sorted(title for title in titles if title.casefold() in reserved)
+        if reused:
+            raise ValueError(
+                f"Volumes unit reused titles from an earlier unit: {reused}"
+            )
         return
     if stage_id == "detail":
         segment = DetailSegmentArtifact.model_validate(payload)
@@ -939,6 +981,15 @@ def _validate_stage_unit(
             raise ValueError(
                 "Detail unit reused a chapter title; titles must be distinct"
             )
+        reserved = {
+            str(title).strip().casefold()
+            for title in context["material"].get("reserved_titles", [])
+        }
+        reused = sorted(title for title in chapter_titles if title.casefold() in reserved)
+        if reused:
+            raise ValueError(
+                f"Detail unit reused titles from an earlier unit: {reused}"
+            )
         allowed = {item["id"] for item in context["material"]["selected_dossiers"]}
         unknown = {
             subject_id
@@ -950,13 +1001,10 @@ def _validate_stage_unit(
         scale = DetailScaleProjection.model_validate(
             context["material"]["scale_projection"]
         )
-        if not (
-            scale.chapter_min_reasonable
-            <= len(segment.chapters)
-            <= scale.chapter_max_reasonable
-        ):
+        if len(segment.chapters) != scale.chapter_target:
             raise ValueError(
-                f"Detail unit returned {len(segment.chapters)} chapters outside its frozen reasonable range {scale.chapter_min_reasonable}-{scale.chapter_max_reasonable}"
+                f"Detail unit returned {len(segment.chapters)} chapters; "
+                f"the frozen allocation requires exactly {scale.chapter_target}"
             )
         budget = context.get("output_budget")
         scene_cap = budget.get("scene_cap") if isinstance(budget, dict) else None
@@ -964,6 +1012,15 @@ def _validate_stage_unit(
             len(chapter.scenes) > scene_cap for chapter in segment.chapters
         ):
             raise ValueError("Detail unit exceeds its frozen per-chapter scene capacity")
+        scene_counts = [len(chapter.scenes) for chapter in segment.chapters]
+        if any(
+            count < scale.scenes_per_chapter_min
+            or count > scale.scenes_per_chapter_max
+            for count in scene_counts
+        ):
+            raise ValueError("Detail unit returned an unbalanced per-chapter scene load")
+        if any(abs(left - right) > 1 for left, right in zip(scene_counts, scene_counts[1:])):
+            raise ValueError("Adjacent Detail chapters may differ by at most one scene")
 
 
 def _aggregate_stage_units(
@@ -996,8 +1053,7 @@ def _aggregate_stage_units(
                         **chapter,
                     }
                 )
-        payload = {"chapters": chapters}
-        return DetailArtifact.model_validate(payload).model_dump(mode="json")
+        return {"chapters": chapters}
     raise ValueError(f"Stage {stage_id} does not support structured unit aggregation")
 
 
@@ -1012,6 +1068,28 @@ def _bind_story_spine(payload: dict[str, Any]) -> dict[str, Any]:
         open_questions=draft.open_questions,
         progress_types=draft.progress_types,
     ).model_dump(mode="json")
+
+
+def _bind_detail_artifact(
+    payload: dict[str, Any],
+    profile: NarrativeScaleProfile,
+) -> dict[str, Any]:
+    raw_chapters = payload.get("chapters")
+    if not isinstance(raw_chapters, list):
+        raise ValueError("Detail aggregation must return a chapter list")
+    targets = chapter_character_targets(profile)
+    if targets and len(targets) != len(raw_chapters):
+        raise ValueError("Detail chapter count does not match the frozen character budget")
+    chapters = [
+        DetailChapter.model_validate(
+            {
+                **chapter,
+                "target_characters": targets[index] if targets else None,
+            }
+        )
+        for index, chapter in enumerate(raw_chapters)
+    ]
+    return DetailArtifact(chapters=chapters).model_dump(mode="json")
 
 
 def _bind_volume_architecture(

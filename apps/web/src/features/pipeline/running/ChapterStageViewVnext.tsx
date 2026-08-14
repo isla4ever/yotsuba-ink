@@ -11,11 +11,11 @@ export function ChapterStageViewVnext({ onArtifactChange, readOnly, result }: Pr
   useEffect(() => { if (parsed.artifact) setArtifact(parsed.artifact); }, [parsed.artifact]);
   if (!artifact) return <VnextArtifactError errors={parsed.errors} label="Chapter Artifact" />;
   const update = (next: ChapterArtifactVnext) => { setArtifact(next); onArtifactChange(next); };
-  const characterCount = Array.from(artifact.content).length;
+  const characterCount = Array.from(artifact.content).filter((character) => !/\s/u.test(character)).length;
   return (
     <div className="vnext-artifact-workbench chapter-vnext">
       <div className="vnext-chapter-statusbar">
-        <span>{artifact.chapter_id}</span><strong>{artifact.version_id}</strong><span>{characterCount.toLocaleString()} 字符</span>
+        <span>{artifact.chapter_id}</span><strong>{artifact.version_id}</strong><span>{characterCount.toLocaleString()} 字</span>
         <span className={`author-status ${artifact.author_status}`}><AuthorStatusIcon status={artifact.author_status} />{authorStatusLabel(artifact.author_status)}</span>
       </div>
       {/* While the next chapter streams, the incoming payload is prose rather
@@ -23,7 +23,7 @@ export function ChapterStageViewVnext({ onArtifactChange, readOnly, result }: Pr
           parse complaint about the stream would only alarm the author. */}
       <section className="vnext-artifact-section vnext-prose-editor">
         <header><div><span>章节定稿</span><strong><FilePenLine size={15} />正文</strong></div></header>
-        <label className="vnext-field"><span>章名</span><input onChange={(event) => update({ ...artifact, title: event.target.value, author_status: 'edited' })} readOnly={readOnly} value={artifact.title} /></label>
+        <label className="vnext-field"><span>章名（继承细纲）</span><input aria-readonly="true" readOnly value={artifact.title} /></label>
         <textarea aria-label="章节正文" className="vnext-prose-textarea" onChange={(event) => update({ ...artifact, content: event.target.value, author_status: 'edited' })} readOnly={readOnly} value={artifact.content} />
       </section>
     </div>

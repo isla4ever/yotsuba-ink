@@ -111,13 +111,14 @@ def save_edited_chapter_candidate(
         raise ValueError("Edited chapter must target the active immutable candidate")
     if edited.author_status not in {"candidate", "edited"}:
         raise ValueError("Only a candidate chapter may be edited before acceptance")
-    if edited.title == source.artifact.title and edited.content == source.artifact.content:
+    if edited.title != source.artifact.title:
+        raise ValueError("Chapter title is owned by the frozen Detail Artifact")
+    if edited.content == source.artifact.content:
         return source
     signature = _signature(
         {
             "chapter_id": chapter_id,
             "source_version_id": source_version_id,
-            "title": edited.title,
             "content": edited.content,
         }
     )

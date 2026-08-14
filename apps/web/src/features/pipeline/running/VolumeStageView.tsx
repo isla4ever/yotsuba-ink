@@ -42,10 +42,11 @@ export function VolumeStageView({ characters, onArtifactChange, readOnly, result
   return (
     <div className="vnext-artifact-workbench volumes-vnext">
       <nav aria-label="分卷选择" className="vnext-segmented-nav">
-        {artifact.volumes.map((item, index) => <button className={item.id === volume.id ? 'active' : ''} key={item.id} onClick={() => setSelectedId(item.id)} type="button">第 {index + 1} 卷<span>{lengthHintLabel(item.length_hint)}</span></button>)}
+        {artifact.volumes.map((item, index) => <button className={item.id === volume.id ? 'active' : ''} key={item.id} onClick={() => setSelectedId(item.id)} type="button"><strong>{item.title}</strong><span>第 {index + 1} 卷 · {lengthHintLabel(item.length_hint)}</span></button>)}
       </nav>
       <section className="vnext-artifact-section">
-        <header><div><span>完整故事卷</span><strong>{volume.id}</strong></div></header>
+        <header><div><span>完整故事卷</span><strong>第 {selectedIndex + 1} 卷 · {volume.id}</strong></div></header>
+        <label className="vnext-field vnext-title-field"><span>卷名</span><input maxLength={12} minLength={2} onChange={(event) => updateVolume({ title: event.target.value })} readOnly={readOnly} value={volume.title} /></label>
         <div className="vnext-field-grid">
           <VolumeField label="本卷承诺" onChange={(promise) => updateVolume({ promise })} readOnly={readOnly} value={volume.promise} />
           <VolumeField label="核心冲突" onChange={(conflict) => updateVolume({ conflict })} readOnly={readOnly} value={volume.conflict} />

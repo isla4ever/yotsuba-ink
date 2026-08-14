@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 StageId = Literal[
@@ -45,6 +46,24 @@ def stage_pointer(stage_id: StageId) -> dict[str, str]:
 
 class StrictArtifact(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+_NUMBERED_TITLE_PREFIX = re.compile(
+    r"^(?:(?:第?[0-9一二三四五六七八九十百千万零〇两]+[卷章节部篇])|(?:chapter\s*[0-9]+))",
+    re.IGNORECASE,
+)
+
+
+def _creative_title(value: str, *, label: str) -> str:
+    if _NUMBERED_TITLE_PREFIX.match(value):
+        raise ValueError(f"{label} must be a creative title, not a numbered placeholder")
+    return value
+
+
+def _require_unique_titles(titles: list[str], *, label: str) -> None:
+    normalized = [title.casefold() for title in titles]
+    if len(normalized) != len(set(normalized)):
+        raise ValueError(f"{label} titles must be unique across the whole artifact")
 
 
 class LengthEnvelope(StrictArtifact):
@@ -239,9 +258,7 @@ class CharacterBibleArtifact(StrictArtifact):
 
 class VolumeContract(StrictArtifact):
     id: str = Field(pattern=r"^volume-[1-9][0-9]*$")
-    # Default keeps artifacts from runs created before volume titles existed
-    # readable; new generations enforce a non-empty title at unit validation.
-    title: str = Field(default="", max_length=80)
+    title: str = Field(min_length=2, max_length=12)
     promise: str = Field(min_length=1, max_length=1000)
     conflict: str = Field(min_length=1, max_length=1000)
     climax: str = Field(min_length=1, max_length=1200)
@@ -252,9 +269,14 @@ class VolumeContract(StrictArtifact):
     thread_ids: list[str] = Field(max_length=40)
     length_hint: Literal["short", "medium", "long"]
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        return _creative_title(value, label="Volume")
+
 
 class VolumeContractDraft(StrictArtifact):
-    title: str = Field(default="", max_length=80)
+    title: str = Field(min_length=2, max_length=12)
     promise: str = Field(min_length=1, max_length=1000)
     conflict: str = Field(min_length=1, max_length=1000)
     climax: str = Field(min_length=1, max_length=1200)
@@ -262,6 +284,11 @@ class VolumeContractDraft(StrictArtifact):
     cast_ids: list[str] = Field(min_length=1, max_length=80)
     thread_ids: list[str] = Field(max_length=40)
     length_hint: Literal["short", "medium", "long"]
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        return _creative_title(value, label="Volume")
 
 
 class VolumeArchitectureDraftArtifact(StrictArtifact):
@@ -276,6 +303,10 @@ class VolumeArchitectureArtifact(StrictArtifact):
         ids = [volume.id for volume in self.volumes]
         if ids != [f"volume-{index}" for index in range(1, len(ids) + 1)]:
             raise ValueError("Volume ids must be deterministic and contiguous")
+        _require_unique_titles(
+            [volume.title for volume in self.volumes],
+            label="Volume",
+        )
         return self
 
 
@@ -290,19 +321,23 @@ class DetailScene(StrictArtifact):
 class DetailChapter(StrictArtifact):
     ref: str = Field(pattern=r"^chapter-[1-9][0-9]*$")
     volume_ref: str = Field(pattern=r"^volume-[1-9][0-9]*$")
-    # The chapter title is decided at the detail stage (the only stage that
-    # knows what the chapter is about) and flows into the prose artifact.
-    title: str = Field(default="", max_length=80)
+    title: str = Field(min_length=2, max_length=12)
+    target_characters: Optional[int] = Field(default=None, ge=1)
     purpose: str = Field(min_length=1, max_length=1000)
     pov: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
     cast_ids: list[str] = Field(min_length=1, max_length=80)
-    scenes: list[DetailScene] = Field(min_length=1, max_length=8)
+    scenes: list[DetailScene] = Field(min_length=2, max_length=4)
     handoff: str = Field(min_length=1, max_length=800)
 
     @model_validator(mode="after")
     def validate_cast(self) -> "DetailChapter":
         _validate_chapter_cast(self.pov, self.cast_ids)
         return self
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        return _creative_title(value, label="Chapter")
 
 
 class DetailArtifact(StrictArtifact):
@@ -313,21 +348,45 @@ class DetailArtifact(StrictArtifact):
         refs = [chapter.ref for chapter in self.chapters]
         if refs != [f"chapter-{index}" for index in range(1, len(refs) + 1)]:
             raise ValueError("Detail chapter refs must be deterministic and contiguous")
+        _require_unique_titles(
+            [chapter.title for chapter in self.chapters],
+            label="Chapter",
+        )
+        scene_counts = [len(chapter.scenes) for chapter in self.chapters]
+        if any(
+            abs(left - right) > 1
+            for left, right in zip(scene_counts, scene_counts[1:])
+        ):
+            raise ValueError("Adjacent Detail chapters may differ by at most one scene")
+        targets = [
+            chapter.target_characters
+            for chapter in self.chapters
+            if chapter.target_characters is not None
+        ]
+        if targets and len(targets) != len(self.chapters):
+            raise ValueError("Detail character targets must be present for every chapter or none")
+        if targets and max(targets) - min(targets) > 1:
+            raise ValueError("Detail chapter character targets may differ by at most one")
         return self
 
 
 class DetailSegmentChapter(StrictArtifact):
-    title: str = Field(default="", max_length=80)
+    title: str = Field(min_length=2, max_length=12)
     purpose: str = Field(min_length=1, max_length=1000)
     pov: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
     cast_ids: list[str] = Field(min_length=1, max_length=80)
-    scenes: list[DetailScene] = Field(min_length=1, max_length=8)
+    scenes: list[DetailScene] = Field(min_length=2, max_length=4)
     handoff: str = Field(min_length=1, max_length=800)
 
     @model_validator(mode="after")
     def validate_cast(self) -> "DetailSegmentChapter":
         _validate_chapter_cast(self.pov, self.cast_ids)
         return self
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        return _creative_title(value, label="Chapter")
 
 
 class DetailSegmentArtifact(StrictArtifact):
@@ -337,9 +396,14 @@ class DetailSegmentArtifact(StrictArtifact):
 class ChapterArtifact(StrictArtifact):
     chapter_id: str = Field(pattern=r"^chapter-[1-9][0-9]*$")
     version_id: str = Field(min_length=1, max_length=160)
-    title: str = Field(min_length=1, max_length=240)
+    title: str = Field(min_length=2, max_length=12)
     content: str = Field(min_length=1)
     author_status: Literal["candidate", "accepted", "edited", "branched"]
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        return _creative_title(value, label="Chapter")
 
 
 class CoverBrief(StrictArtifact):
@@ -363,8 +427,13 @@ class ExportMetadata(StrictArtifact):
 class ExportVolume(StrictArtifact):
     """Volume grouping for delivery rendering: consecutive chapters per volume."""
 
-    title: str = Field(default="", max_length=80)
+    title: str = Field(min_length=2, max_length=12)
     chapter_count: int = Field(ge=1)
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        return _creative_title(value, label="Volume")
 
 
 class ExportArtifact(StrictArtifact):
@@ -372,15 +441,17 @@ class ExportArtifact(StrictArtifact):
     chapter_version_ids: list[str] = Field(min_length=1)
     cover_asset_id: str = Field(max_length=200)
     metadata: ExportMetadata
-    # Empty for runs exported before volume grouping existed.
-    volumes: list[ExportVolume] = Field(default_factory=list, max_length=24)
+    volumes: list[ExportVolume] = Field(min_length=1, max_length=24)
 
     @model_validator(mode="after")
     def validate_volume_grouping(self) -> "ExportArtifact":
-        if self.volumes:
-            counted = sum(volume.chapter_count for volume in self.volumes)
-            if counted != len(self.chapter_version_ids):
-                raise ValueError("Export volume grouping must cover every chapter exactly once")
+        counted = sum(volume.chapter_count for volume in self.volumes)
+        if counted != len(self.chapter_version_ids):
+            raise ValueError("Export volume grouping must cover every chapter exactly once")
+        _require_unique_titles(
+            [volume.title for volume in self.volumes],
+            label="Export volume",
+        )
         return self
 
 
@@ -483,6 +554,24 @@ def validate_artifact_vnext(
     return artifact
 
 
+def validate_detail_writeback_identity(
+    source: DetailArtifact,
+    candidate: DetailArtifact,
+) -> None:
+    source_identity = [
+        (chapter.ref, chapter.volume_ref, chapter.target_characters)
+        for chapter in source.chapters
+    ]
+    candidate_identity = [
+        (chapter.ref, chapter.volume_ref, chapter.target_characters)
+        for chapter in candidate.chapters
+    ]
+    if candidate_identity != source_identity:
+        raise ValueError(
+            "Detail chapter ids, volume allocation, and character budgets are code-owned"
+        )
+
+
 def _chapter_end(window: str) -> int:
     bounds = window.removeprefix("chapter:").split("-", maxsplit=1)
     return int(bounds[-1])
@@ -554,4 +643,5 @@ __all__ = [
     "required_cast_subject_ids",
     "stage_pointer",
     "validate_artifact_vnext",
+    "validate_detail_writeback_identity",
 ]

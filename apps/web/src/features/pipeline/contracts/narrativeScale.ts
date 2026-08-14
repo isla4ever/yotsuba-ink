@@ -4,8 +4,6 @@ export type LengthEnvelope = {
 };
 
 export type NarrativeScaleProfile = LengthEnvelope & {
-  chapter_min_reasonable: number;
-  chapter_max_reasonable: number;
   chapter_scene_cap: number;
   detail_segment_char_cap: number;
   volume_candidate_cap: number;

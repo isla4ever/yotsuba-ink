@@ -27,6 +27,8 @@ from novel_workflow.workflows.narrative_scale import (
     DetailScaleProjection,
     NarrativeScalePlan,
     NarrativeScaleProfile,
+    chapter_character_targets,
+    chapter_length_contract,
     plan_narrative_scale,
     project_volume_scales,
 )
@@ -162,18 +164,18 @@ class NarrativeContextCompiler:
         # 6,700 character chapter, which breaks both the promised word target
         # and the reading rhythm the scene count was planned around.
         definition = self.runs.definition(state["run_id"])
-        plan = (
-            plan_narrative_scale(definition.scale_profile, definition.quality_mode)
-            if definition.scale_profile is not None
-            else None
+        length_contract = chapter_length_contract(
+            chapter.target_characters,
+            definition.quality_mode,
+            scene_count=len(chapter.scenes),
         )
-        if plan is not None and plan.words_per_chapter:
+        if length_contract is not None:
             optional.append("scale.chapter_length")
             snippets.append(
                 _context_snippet(
                     "scale.chapter_length",
                     "chapter_length_contract",
-                    _chapter_length_contract(plan, len(chapter.scenes)),
+                    length_contract.model_dump(mode="json"),
                 )
             )
         # The narrative voice is a book-level contract (person, distance,
@@ -305,25 +307,18 @@ class NarrativeContextCompiler:
         turn_by_id = {turn.id: turn for turn in spine.turns}
         dossiers = {subject.id: subject for subject in cast.subjects}
         plan = plan_narrative_scale(definition.scale_profile, definition.quality_mode)
+        book_character_targets = chapter_character_targets(definition.scale_profile)
         final_volume_ref = architecture.volumes[-1].id if architecture.volumes else ""
         chapter_number_start = 1
         units: list[tuple[str, dict[str, Any]]] = []
         for volume in architecture.volumes:
             projection = projections[volume.id]
             segment_count = math.ceil(
-                projection.chapter_max_reasonable / chapter_capacity
+                projection.chapter_target / chapter_capacity
             )
             turn_groups = _partition_contiguous(volume.turn_refs, segment_count)
             targets = _partition_positive(
-                projection.chapter_target_soft,
-                segment_count,
-            )
-            minimums = _partition_positive(
-                max(segment_count, projection.chapter_min_reasonable),
-                segment_count,
-            )
-            maximums = _partition_positive(
-                projection.chapter_max_reasonable,
+                projection.chapter_target,
                 segment_count,
             )
             selected = [
@@ -333,16 +328,21 @@ class NarrativeContextCompiler:
             ]
             for index, turn_group in enumerate(turn_groups, start=1):
                 target = targets[index - 1]
+                unit_character_targets = (
+                    book_character_targets[
+                        chapter_number_start - 1 : chapter_number_start - 1 + target
+                    ]
+                    if book_character_targets
+                    else []
+                )
                 segment_ref = f"{volume.id}.segment-{index}"
                 scale_projection = DetailScaleProjection(
                     volume_ref=volume.id,
                     segment_ref=segment_ref,
                     segment_index=index,
                     segment_count=segment_count,
-                    chapter_target_soft=target,
-                    chapter_min_reasonable=min(minimums[index - 1], target),
-                    chapter_max_reasonable=max(maximums[index - 1], target),
-                    words_per_chapter_soft=plan.words_per_chapter,
+                    chapter_target=target,
+                    chapter_character_targets=unit_character_targets,
                     scenes_per_chapter_min=plan.scenes_per_chapter_min,
                     scenes_per_chapter_max=plan.scenes_per_chapter_max,
                     is_final_volume=volume.id == final_volume_ref,
@@ -727,17 +727,6 @@ def _staged_beats(detail: DetailArtifact, chapter_number: int) -> list[str]:
     return [f"{scene.place}：{scene.turn} → {scene.result}" for scene in chapter.scenes]
 
 
-def _chapter_length_contract(plan: NarrativeScalePlan, scene_count: int) -> dict[str, Any]:
-    soft = plan.words_per_chapter
-    return {
-        "words_soft": soft,
-        "words_min": int(soft * 0.8),
-        "words_max": int(soft * 1.25),
-        "scene_count": scene_count,
-        "words_per_scene_soft": max(int(soft / scene_count), 1) if scene_count else soft,
-    }
-
-
 def _spine_scale_plan(plan: NarrativeScalePlan) -> dict[str, Any]:
     return {
         "turn_target": plan.turn_target,
@@ -761,7 +750,7 @@ def _volume_scale_plan(plan: NarrativeScalePlan) -> dict[str, Any]:
         "volume_target": plan.volume_target,
         "volume_range": [plan.volume_min, plan.volume_max],
         "chapter_target": plan.chapter_target,
-        "words_per_chapter": plan.words_per_chapter,
+        "characters_per_chapter": plan.characters_per_chapter,
         "user_locked": "volume_target" in plan.user_locked,
     }
 

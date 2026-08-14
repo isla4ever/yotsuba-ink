@@ -74,7 +74,7 @@ export function MonitorSidebar({ snapshot, selection, onSelect }: Props) {
                 <section className="monitor-tree-volume" key={volume.ref}>
                   <header>
                     <span className="monitor-tree-volume-ordinal">卷 {volume.ordinal}</span>
-                    <span className="monitor-tree-volume-promise" title={volume.promise}>{volume.promise || volume.ref}</span>
+                    <span className="monitor-tree-volume-promise" title={volume.promise}>{volume.title}</span>
                   </header>
                   <ul>
                     {volume.chapters.map((chapter) => {
@@ -89,7 +89,7 @@ export function MonitorSidebar({ snapshot, selection, onSelect }: Props) {
                           >
                             <ChapterStatusIcon status={chapter.status} />
                             <span className="monitor-tree-chapter-copy">
-                              <strong>{chapter.title || chapter.purpose || chapter.ref}</strong>
+                              <strong>{chapter.title}</strong>
                               <small>
                                 {monitorChapterStatusLabel[chapter.status]}
                                 {chapter.words ? ` · ${chapter.words.toLocaleString()} 字` : ''}

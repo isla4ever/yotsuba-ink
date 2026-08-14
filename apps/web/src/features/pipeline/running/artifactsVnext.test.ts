@@ -44,10 +44,12 @@ describe('Phase 27 Artifact strict parsing', () => {
       chapters: [{
         ref: 'chapter-2',
         volume_ref: 'volume-1',
+        title: '旧港回声',
+        target_characters: 3000,
         purpose: '找到母带',
         pov: 'subject-lin',
         cast_ids: ['subject-lin'],
-        scenes: [{ place: '仓库', objective: '取回母带', conflict: '封锁', turn: '发现副本', result: '带走副本' }],
+        scenes: [{ place: '仓库', objective: '取回母带', conflict: '封锁', turn: '发现副本', result: '带走副本' }, { place: '潮道', objective: '离开', conflict: '追捕', turn: '找到暗门', result: '脱身' }],
         handoff: '追兵接近',
       }],
     }));
@@ -57,10 +59,12 @@ describe('Phase 27 Artifact strict parsing', () => {
     const missingVolume = parseDetailArtifact(JSON.stringify({
       chapters: [{
         ref: 'chapter-1',
+        title: '旧港回声',
+        target_characters: 3000,
         purpose: '找到母带',
         pov: 'subject-lin',
         cast_ids: ['subject-lin'],
-        scenes: [{ place: '仓库', objective: '取回母带', conflict: '封锁', turn: '发现副本', result: '带走副本' }],
+        scenes: [{ place: '仓库', objective: '取回母带', conflict: '封锁', turn: '发现副本', result: '带走副本' }, { place: '潮道', objective: '离开', conflict: '追捕', turn: '找到暗门', result: '脱身' }],
         handoff: '追兵接近',
       }],
     }));
@@ -72,6 +76,7 @@ describe('Phase 27 Artifact strict parsing', () => {
     const valid = parseVolumesArtifact(JSON.stringify({
       volumes: [{
         id: 'volume-1',
+        title: '雾港残响',
         promise: '找到母带来源',
         conflict: '广播站封锁证据',
         climax: '公开原始录音',

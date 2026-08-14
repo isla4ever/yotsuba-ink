@@ -37,6 +37,7 @@ const spine: StorySpineArtifact = {
 const volumes: VolumeArchitectureArtifact = {
   volumes: [{
     id: 'volume-1',
+    title: '雾港残响',
     promise: '找到母带来源',
     conflict: '广播站封锁证据',
     climax: '在全港广播原始录音',
@@ -78,10 +79,15 @@ describe('Phase 27 artifact semantic readiness', () => {
         chapters: [{
           ref: 'chapter-1',
           volume_ref: 'volume-1',
+          title: '档案余烬',
+          target_characters: 3000,
           purpose: '取得档案',
           pov: 'subject-unknown',
           cast_ids: ['subject-unknown'],
-          scenes: [{ place: '档案室', objective: '取得登记簿', conflict: '管理员拒绝', turn: '认出编号', result: '换得副本' }],
+          scenes: [
+            { place: '档案室', objective: '取得登记簿', conflict: '管理员拒绝', turn: '认出编号', result: '换得副本' },
+            { place: '旧潮道', objective: '转移副本', conflict: '出口被封', turn: '找到暗门', result: '带走副本' },
+          ],
           handoff: '广播站开始清理档案',
         }],
       },

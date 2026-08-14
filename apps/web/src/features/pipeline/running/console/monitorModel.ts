@@ -34,6 +34,7 @@ export type MonitorChapterNode = {
 export type MonitorVolumeNode = {
   ref: string;
   ordinal: number;
+  title: string;
   promise: string;
   chapters: MonitorChapterNode[];
 };
@@ -184,13 +185,14 @@ function buildVolumeTree(
       ref: chapter.ref,
       sceneCount: chapter.scenes.length,
       status: chapterStatus(chapter.ref, body, events),
-      title: meaningfulTitle(body?.title),
-      words: body?.content.length ?? 0,
+      title: body?.title || chapter.title,
+      words: body ? Array.from(body.content).filter((character) => !/\s/u.test(character)).length : 0,
     });
     grouped.set(chapter.volume_ref, list);
   });
   const orderedRefs = volumes?.volumes.map((volume) => volume.id) ?? [...grouped.keys()];
   const promises = new Map((volumes?.volumes ?? []).map((volume) => [volume.id, volume.promise]));
+  const titles = new Map((volumes?.volumes ?? []).map((volume) => [volume.id, volume.title]));
   return orderedRefs
     .filter((ref) => grouped.has(ref))
     .map((ref, position) => ({
@@ -198,13 +200,8 @@ function buildVolumeTree(
       ordinal: position + 1,
       promise: promises.get(ref) ?? '',
       ref,
+      title: titles.get(ref) ?? ref,
     }));
-}
-
-/** Placeholder titles like 「第1章」 read worse than the blueprint purpose. */
-function meaningfulTitle(title: string | undefined) {
-  const value = (title ?? '').trim();
-  return /^第\s*\d+\s*章$/.test(value) ? '' : value;
 }
 
 function chapterStatus(

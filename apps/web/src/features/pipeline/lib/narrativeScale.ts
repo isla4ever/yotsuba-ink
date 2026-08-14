@@ -14,13 +14,9 @@ export function lengthEnvelopeFromStage(stage: WorkflowStage): LengthEnvelope {
 }
 
 export function scaleProfileFromLengthEnvelope(envelope: LengthEnvelope): NarrativeScaleProfile {
-  const chapterTarget = envelope.chapter_target_soft
-    ?? (envelope.word_target_soft == null ? 40 : Math.max(1, Math.round(envelope.word_target_soft / 2_500)));
   return {
     ...envelope,
-    chapter_min_reasonable: Math.max(1, Math.floor(chapterTarget * 0.65)),
-    chapter_max_reasonable: Math.max(chapterTarget, Math.ceil(chapterTarget * 1.45)),
-    chapter_scene_cap: 6,
+    chapter_scene_cap: 4,
     detail_segment_char_cap: 30_000,
     volume_candidate_cap: 12,
     json_item_caps: {},

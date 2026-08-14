@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -22,9 +22,7 @@ class NarrativeScaleProfile(BaseModel):
 
     word_target_soft: Optional[int] = Field(default=None, ge=1, le=10_000_000)
     chapter_target_soft: Optional[int] = Field(default=None, ge=1, le=10_000)
-    chapter_min_reasonable: int = Field(default=1, ge=1, le=10_000)
-    chapter_max_reasonable: int = Field(default=200, ge=1, le=10_000)
-    chapter_scene_cap: int = Field(default=6, ge=1, le=12)
+    chapter_scene_cap: int = Field(default=4, ge=1, le=12)
     detail_segment_char_cap: int = Field(default=30_000, ge=4_000, le=500_000)
     volume_candidate_cap: int = Field(default=12, ge=1, le=50)
     json_item_caps: dict[str, int] = Field(default_factory=dict)
@@ -36,17 +34,6 @@ class NarrativeScaleProfile(BaseModel):
     volume_target_override: Optional[int] = Field(default=None, ge=1, le=50)
     turn_target_override: Optional[int] = Field(default=None, ge=3, le=24)
     cast_demand_override: Optional[int] = Field(default=None, ge=1, le=200)
-
-    @model_validator(mode="after")
-    def validate_range(self) -> "NarrativeScaleProfile":
-        if self.chapter_min_reasonable > self.chapter_max_reasonable:
-            raise ValueError("Narrative chapter bounds must be ordered")
-        if self.chapter_target_soft is not None and not (
-            self.chapter_min_reasonable <= self.chapter_target_soft <= self.chapter_max_reasonable
-        ):
-            raise ValueError("Soft chapter target must fit the reasonable chapter bounds")
-        return self
-
 
 class _NarrativeScaleInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -75,7 +62,7 @@ class NarrativeScalePlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     chapter_target: int = Field(ge=1)
-    words_per_chapter: Optional[int] = Field(default=None, ge=1)
+    characters_per_chapter: Optional[int] = Field(default=None, ge=1)
     volume_target: int = Field(ge=1)
     volume_min: int = Field(ge=1)
     volume_max: int = Field(ge=1)
@@ -113,7 +100,7 @@ def plan_narrative_scale(
     """
 
     chapters = _plan_chapter_target(profile)
-    words_per_chapter = (
+    characters_per_chapter = (
         max(1, round(profile.word_target_soft / chapters))
         if profile.word_target_soft
         else None
@@ -152,7 +139,7 @@ def plan_narrative_scale(
 
     return NarrativeScalePlan(
         chapter_target=chapters,
-        words_per_chapter=words_per_chapter,
+        characters_per_chapter=characters_per_chapter,
         volume_target=volume_target,
         volume_min=volume_min,
         volume_max=volume_max,
@@ -174,31 +161,16 @@ def _plan_chapter_target(profile: NarrativeScaleProfile) -> int:
         target = max(1, round(profile.word_target_soft / 2_500))
     else:
         target = 40
-    return min(
-        profile.chapter_max_reasonable,
-        max(profile.chapter_min_reasonable, target),
-    )
+    return target
 
 
 class VolumeScaleProjection(BaseModel):
-    """Rebuildable chapter guidance for one accepted volume contract."""
+    """Rebuildable exact chapter allocation for one accepted volume contract."""
 
     model_config = ConfigDict(extra="forbid")
 
     volume_ref: str = Field(pattern=r"^volume-[1-9][0-9]*$")
-    chapter_target_soft: int = Field(ge=1, le=10_000)
-    chapter_min_reasonable: int = Field(ge=1, le=10_000)
-    chapter_max_reasonable: int = Field(ge=1, le=10_000)
-
-    @model_validator(mode="after")
-    def validate_range(self) -> "VolumeScaleProjection":
-        if not (
-            self.chapter_min_reasonable
-            <= self.chapter_target_soft
-            <= self.chapter_max_reasonable
-        ):
-            raise ValueError("Volume chapter target must fit its reasonable range")
-        return self
+    chapter_target: int = Field(ge=1, le=10_000)
 
 
 class DetailScaleProjection(BaseModel):
@@ -210,15 +182,13 @@ class DetailScaleProjection(BaseModel):
     segment_ref: str = Field(pattern=r"^volume-[1-9][0-9]*\.segment-[1-9][0-9]*$")
     segment_index: int = Field(ge=1)
     segment_count: int = Field(ge=1)
-    chapter_target_soft: int = Field(ge=1)
-    chapter_min_reasonable: int = Field(ge=1)
-    chapter_max_reasonable: int = Field(ge=1)
-    # Scene guidance travels with the segment because a chapter script written
-    # without a word budget produces one-scene and six-scene chapters side by
-    # side, which the prose stage then has to pad or cram.
-    words_per_chapter_soft: Optional[int] = Field(default=None, ge=1)
+    chapter_target: int = Field(ge=1)
+    # The segment owns an exact chapter count and a shared prose capacity. This
+    # prevents one unit from returning two overloaded chapters while another
+    # returns six thin chapters for the same volume.
+    chapter_character_targets: list[int] = Field(default_factory=list)
     scenes_per_chapter_min: int = Field(default=2, ge=1)
-    scenes_per_chapter_max: int = Field(default=6, ge=1)
+    scenes_per_chapter_max: int = Field(default=4, ge=1)
     is_final_volume: bool = False
     # Absolute position of this segment's first chapter in the book. Without
     # it a segment cannot tell which part of a stage-wide revision note is its
@@ -231,12 +201,32 @@ class DetailScaleProjection(BaseModel):
             raise ValueError("Detail segment index exceeds segment count")
         if self.scenes_per_chapter_min > self.scenes_per_chapter_max:
             raise ValueError("Detail scene minimum must not exceed the maximum")
-        if not (
-            self.chapter_min_reasonable
-            <= self.chapter_target_soft
-            <= self.chapter_max_reasonable
+        if self.chapter_character_targets and len(self.chapter_character_targets) != self.chapter_target:
+            raise ValueError("Detail character targets must match the exact chapter allocation")
+        if self.chapter_character_targets and (
+            max(self.chapter_character_targets) - min(self.chapter_character_targets) > 1
         ):
-            raise ValueError("Detail segment target must fit its reasonable range")
+            raise ValueError("Detail chapter character targets may differ by at most one")
+        return self
+
+
+class ChapterLengthContract(BaseModel):
+    """Deterministic prose acceptance envelope for one chapter."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_characters: int = Field(ge=1)
+    min_characters: int = Field(ge=1)
+    max_characters: int = Field(ge=1)
+    scene_count: int = Field(ge=1)
+    characters_per_scene_target: int = Field(ge=1)
+    tolerance_percent: int = Field(ge=1, le=50)
+    counting_rule: Literal["non_whitespace_characters"] = "non_whitespace_characters"
+
+    @model_validator(mode="after")
+    def validate_envelope(self) -> "ChapterLengthContract":
+        if not self.min_characters <= self.target_characters <= self.max_characters:
+            raise ValueError("Chapter length target must fit its acceptance envelope")
         return self
 
 
@@ -246,31 +236,20 @@ def scale_profile_from_inputs(inputs: dict[str, Any]) -> NarrativeScaleProfile:
     parsed = _NarrativeScaleInput.model_validate(inputs)
     envelope = parsed.length_envelope
     overrides = parsed.scale_overrides or ScaleOverrides()
-    chapter_target = _derived_chapter_target(envelope)
     return NarrativeScaleProfile(
         word_target_soft=envelope.word_target_soft,
         chapter_target_soft=envelope.chapter_target_soft,
-        chapter_min_reasonable=max(1, math.floor(chapter_target * 0.65)),
-        chapter_max_reasonable=max(chapter_target, math.ceil(chapter_target * 1.45)),
         volume_target_override=overrides.volume_target,
         turn_target_override=overrides.turn_target,
         cast_demand_override=overrides.cast_demand_target,
     )
 
 
-def _derived_chapter_target(envelope: LengthEnvelope) -> int:
-    if envelope.chapter_target_soft is not None:
-        return envelope.chapter_target_soft
-    if envelope.word_target_soft is not None:
-        return max(1, round(envelope.word_target_soft / 2_500))
-    return 40
-
-
 def project_volume_scales(
     architecture: VolumeArchitectureArtifact,
     profile: NarrativeScaleProfile,
 ) -> list[VolumeScaleProjection]:
-    """Allocate soft chapter guidance after creative volume boundaries exist."""
+    """Freeze exact chapter allocation after creative volume boundaries exist."""
 
     volumes = list(architecture.volumes)
     if not volumes:
@@ -281,9 +260,7 @@ def project_volume_scales(
     return [
         VolumeScaleProjection(
             volume_ref=volume.id,
-            chapter_target_soft=target,
-            chapter_min_reasonable=max(1, math.floor(target * 0.65)),
-            chapter_max_reasonable=max(target, math.ceil(target * 1.45)),
+            chapter_target=target,
         )
         for volume, target in zip(volumes, targets, strict=True)
     ]
@@ -296,13 +273,12 @@ def _chapter_target(
     if profile.chapter_target_soft is not None:
         target = profile.chapter_target_soft
     elif profile.word_target_soft is not None:
-        target = max(len(volumes), round(profile.word_target_soft / 2_500))
+        target = max(1, round(profile.word_target_soft / 2_500))
     else:
         target = sum(max(1, len(volume.turn_refs) * 2) for volume in volumes)
-    return min(
-        profile.chapter_max_reasonable,
-        max(profile.chapter_min_reasonable, target, len(volumes)),
-    )
+    if target < len(volumes):
+        raise ValueError("Exact chapter target cannot assign at least one chapter per volume")
+    return target
 
 
 def _volume_weight(volume: VolumeContract) -> float:
@@ -333,12 +309,51 @@ def _largest_remainder(total: int, weights: list[float]) -> list[int]:
     return values
 
 
+def chapter_character_targets(profile: NarrativeScaleProfile) -> list[int]:
+    """Distribute the whole-book character intent without cumulative rounding drift."""
+
+    if profile.word_target_soft is None:
+        return []
+    chapter_count = _plan_chapter_target(profile)
+    base, remainder = divmod(profile.word_target_soft, chapter_count)
+    if base < 1:
+        raise ValueError("Character target must assign at least one character per chapter")
+    return [base + (1 if index < remainder else 0) for index in range(chapter_count)]
+
+
+def chapter_length_contract(
+    target_characters: int | None,
+    quality_mode: str,
+    *,
+    scene_count: int,
+) -> ChapterLengthContract | None:
+    if target_characters is None:
+        return None
+    tolerance = {"fast": 15, "balanced": 12, "deep": 8}.get(quality_mode, 12)
+    return ChapterLengthContract(
+        target_characters=target_characters,
+        min_characters=max(1, round(target_characters * (100 - tolerance) / 100)),
+        max_characters=max(1, round(target_characters * (100 + tolerance) / 100)),
+        scene_count=scene_count,
+        characters_per_scene_target=max(1, round(target_characters / scene_count)),
+        tolerance_percent=tolerance,
+    )
+
+
+def count_prose_characters(content: str) -> int:
+    return sum(1 for character in content if not character.isspace())
+
+
 __all__ = [
     "DetailScaleProjection",
+    "ChapterLengthContract",
     "NarrativeScalePlan",
     "NarrativeScaleProfile",
     "ScaleOverrides",
     "VolumeScaleProjection",
+    "chapter_character_targets",
+    "chapter_length_contract",
+    "count_prose_characters",
     "plan_narrative_scale",
     "project_volume_scales",
     "scale_profile_from_inputs",

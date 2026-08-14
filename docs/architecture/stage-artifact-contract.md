@@ -15,8 +15,8 @@ brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 | `brief` 创作立项 | `StoryBriefArtifact` | 故事承诺、世界规则、主题问题、结局承诺、叙事声音和软长度意图 | `ArtifactStore.brief` | `spine` |
 | `spine` 故事脊柱 | `StorySpineArtifact` | 因果推进、最终变化和结局是否兑现立项承诺 | `ArtifactStore.spine` | Role Demand、`cast`、`volumes` |
 | `cast` 人物编排 | `CharacterBibleArtifact` | 主角、重要配角、功能/历史主体的职责、关系、变化和首次出现窗口 | `ArtifactStore.cast` | `volumes`、`detail`、`text` |
-| `volumes` 分卷架构 | `VolumeArchitectureArtifact` | 每卷 promise/conflict/climax/closure 与自然边界是否构成完整故事 | `ArtifactStore.volumes` | `detail` |
-| `detail` 章节施工图 | `DetailArtifact` | 每章目的、场景转折、义务和跨章交接 | `ArtifactStore.detail` | `text`、`cover` |
+| `volumes` 分卷架构 | `VolumeArchitectureArtifact` | 每卷卷名、promise/conflict/climax/closure 与自然边界是否构成完整故事 | `ArtifactStore.volumes` | `detail` |
+| `detail` 章节施工图 | `DetailArtifact` | 每章章名、字符预算、目的、场景转折和跨章交接是否均衡 | `ArtifactStore.detail` | `text`、`cover` |
 | `text` 正文 | `ChapterArtifact`（按章版本） | 接受、人工编辑、定向修订或保留分支 | `ChapterStore`，证据后进入 Outbox | 下一章、`cover`、`export` |
 | `cover` 封面 | `CoverArtifact` | 视觉 brief 和最终资产 | `ArtifactStore.cover`、AssetStore | `export` |
 | `export` 导出 | `ExportArtifact` | 格式、章节版本、封面和元数据 | `ExportStore` | 无 |
@@ -30,9 +30,9 @@ brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 - `StoryBriefArtifact`：`title`、`premise`、`promise`、`world_rules`、`theme`、`ending_promise`、`voice`、`length_envelope`。
 - `StorySpineArtifact`：确定性 `turn-N`、每个 turn 的 `cause/change`、`ending`、有限 `open_questions` 和 `progress_types`。
 - `CharacterBibleArtifact`：预分配稳定 subject id；每个主体只保存 `name/kind/function/drive/change/debut/limits/demand_refs`，关系只引用冻结 id。`historical_record` 不得承担 POV 或产生当下行动。
-- `VolumeArchitectureArtifact`：确定性 `volume-N`、`promise/conflict/climax/closure`、连续 `turn_refs`、`cast_ids/thread_ids` 和粗粒度 `length_hint`；不保存固定章节窗。
-- `DetailArtifact`：连续 `chapter-N`、卷引用、`purpose`、POV id、`scenes { place/objective/conflict/turn/result }` 和 handoff。
-- `ChapterArtifact`：章节 id、运行时分配的版本 id、标题、正文和 `author_status`。正文 Provider 只返回纯文本流；版本身份、标题和状态由 LangGraph 确定性绑定。
+- `VolumeArchitectureArtifact`：确定性 `volume-N`、2-12 字唯一卷名、`promise/conflict/climax/closure`、连续 `turn_refs`、`cast_ids/thread_ids` 和粗粒度 `length_hint`；精确章数由确定性 Scale 投影按卷负载冻结。
+- `DetailArtifact`：连续 `chapter-N`、卷引用、2-12 字唯一章名、代码冻结的逐章目标字符数、`purpose`、POV id、2-4 个 `scenes { place/objective/conflict/turn/result }` 和 handoff；相邻章场景数最多相差 1。
+- `ChapterArtifact`：章节 id、运行时分配的版本 id、从 Detail 原样继承的只读章名、正文和 `author_status`。正文 Provider 只返回纯文本流；版本身份、标题和状态由 LangGraph 确定性绑定。
 - `CoverArtifact`：可执行 `brief` 和已选择资产 id；资产 URL、尺寸和生成收据属于 sidecar。
 - `ExportArtifact`：格式、已接受章节版本 id、封面资产 id 和导出元数据。
 
@@ -63,7 +63,7 @@ brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 - 用户上传知识库是前置 `brief` 的 Source Pack。RAG 只在 `brief/spine/volumes` 前置规划读取，结果带来源、签名和采用状态；正文节点禁止盲检索。
 - Worldbuilding 是创作设定；Character Graph 是角色与关系投影；Wiki 是正文 Evidence 驱动的事实账本；Canon 是用户批准后的事实权威；它们不能互相代替。
 - Evidence 先生成 proposal，用户或明确的写回节点批准后才进入 Canon/Wiki；Retrieval、proposal agent 和模型自评分没有写权限。
-- 字数只有软目标和合理容错。超出目标只生成诊断，不自动删改正文；硬门只检查合同、引用、状态和安全容量。
+- 全书字符目标按去除空白后的字符数确定性均分到冻结章数，各章目标最多相差 1 字。正文容差为极速 ±15%、平衡 ±12%、精细 ±8%；超界时完整定向重写，最多 3 次，不截断正文，也不允许改动冻结章名、场景转折或交接。
 
 ## LangGraph、LangChain 和 Provider
 
@@ -91,7 +91,7 @@ SSE 只投影稳定领域事件：`run.started/completed/failed`、`node.started
 2. 静态扫描无 legacy/shadow/dual runtime、Detail v1/v2/v3、fallback、alias、converter 或旧 stage id 生产引用。
 3. projection 可删除重建；断线重连不影响执行；同一 operation/decision/writeback 恰好一次。
 4. 全量离线测试和前端构建通过后，才可在用户批准、限额和脱敏收据下进行新的真实 Provider Run。真实输出、文学连续性、成本和作者冷读另行验收。
-5. Character reviewer 的未来窗口误报必须因缺少章节内精确证据而成为不可用 receipt；真实提前出现、有效 prose 硬边界和硬容量 finding 仍可阻断；软字数偏差只保留诊断。
+5. Character reviewer 的未来窗口误报必须因缺少章节内精确证据而成为不可用 receipt；真实提前出现、有效 prose 硬边界和硬容量 finding 仍可阻断；正文必须通过当前质量档位的字符数合同，三次完整重写仍超界时 Run 明确失败。
 
 ## 2026-08-11 真实三章合同证据
 

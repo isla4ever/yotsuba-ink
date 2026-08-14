@@ -53,6 +53,10 @@ export function ExportStageViewVnext({ deliveryRevision, onArtifactChange, readO
         <label className="vnext-field"><span>版本说明</span><textarea onChange={(event) => update({ ...artifact, metadata: { ...artifact.metadata, version_note: event.target.value } })} readOnly={readOnly} rows={3} value={artifact.metadata.version_note} /></label>
       </section>
       <section className="vnext-artifact-section">
+        <header><div><span>分卷目录</span><strong>{artifact.volumes.length} 卷</strong></div></header>
+        <div className="vnext-version-list">{artifact.volumes.map((volume, index) => <div key={`${volume.title}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><strong>{volume.title}</strong><span>{volume.chapter_count} 章</span></div>)}</div>
+      </section>
+      <section className="vnext-artifact-section">
         <header><div><span>已接受章节版本</span><strong>{artifact.chapter_version_ids.length} 章</strong></div></header>
         <div className="vnext-version-list">{artifact.chapter_version_ids.map((versionId, index) => <div key={versionId}><span>{String(index + 1).padStart(2, '0')}</span><strong>{versionId}</strong><CheckCircle2 size={15} /></div>)}</div>
       </section>

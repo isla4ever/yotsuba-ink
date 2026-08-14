@@ -20,6 +20,7 @@ from novel_workflow.providers.errors import ProviderResponseError
 from novel_workflow.runtime.graph.provider_gateway import (
     ChapterReviewRequest,
     ChapterReviewResult,
+    PlainTextProviderResult,
     StructuredProviderResult,
 )
 from novel_workflow.runtime.graph.branch_service import NarrativeBranchService
@@ -33,7 +34,10 @@ from novel_workflow.storage.narrative_run_repository import (
     ExportPreferences,
     ProviderBinding,
 )
-from novel_workflow.workflows.narrative_scale import NarrativeScaleProfile
+from novel_workflow.workflows.narrative_scale import (
+    NarrativeScaleProfile,
+    count_prose_characters,
+)
 from tests.fakes import FakeNarrativeProvider
 from tests.phase27_bindings import cover_asset_binding, provider_binding
 
@@ -85,7 +89,7 @@ def _create_run(stores: Any, run_id: str, *, quality_mode: str = "fast") -> None
         workflow_digest="a" * 64,
         quality_mode=quality_mode,
         inputs={"project_brief": {"genre": "悬疑"}},
-        scale_profile=NarrativeScaleProfile(chapter_target_soft=2, chapter_min_reasonable=1, chapter_max_reasonable=4),
+        scale_profile=NarrativeScaleProfile(word_target_soft=4_000, chapter_target_soft=2),
         provider_bindings=_bindings(),
         cover_asset_binding=cover_asset_binding(),
         export_preferences=ExportPreferences(format="zip"),
@@ -124,11 +128,11 @@ def test_proposal_batches_are_strict_and_turn_refs_are_validated_at_graph_bounda
     assert boundary.proposals[0].turn_refs == ["turn-x"]
 
 
-def test_scale_profile_is_soft_guidance_with_reasonable_bounds() -> None:
-    profile = NarrativeScaleProfile(chapter_target_soft=2, chapter_min_reasonable=1, chapter_max_reasonable=4)
+def test_scale_profile_rejects_retired_reasonable_bounds() -> None:
+    profile = NarrativeScaleProfile(chapter_target_soft=2)
     assert profile.chapter_target_soft == 2
     with pytest.raises(ValueError):
-        NarrativeScaleProfile(chapter_target_soft=8, chapter_min_reasonable=1, chapter_max_reasonable=4)
+        NarrativeScaleProfile.model_validate({"chapter_target_soft": 8, "chapter_min_reasonable": 1})
 
 
 def test_context_manifest_hash_and_forbidden_sections_are_explicit() -> None:
@@ -195,6 +199,14 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
     assert [request.candidate_index for request in provider.cover_requests] == [1]
     detail = stores.artifacts.latest("run-phase27", "detail").payload
     assert [item["ref"] for item in detail["chapters"]] == ["chapter-1", "chapter-2"]
+    assert [item["title"] for item in detail["chapters"]] == ["母带残响1", "母带残响2"]
+    assert [item["target_characters"] for item in detail["chapters"]] == [2_000, 2_000]
+    accepted_chapters = [
+        stores.chapters.read("run-phase27", item["ref"], f"{item['ref']}-v1-accepted").artifact
+        for item in detail["chapters"]
+    ]
+    assert [chapter.title for chapter in accepted_chapters] == ["母带残响1", "母带残响2"]
+    assert [count_prose_characters(chapter.content) for chapter in accepted_chapters] == [2_000, 2_000]
     assert stores.artifacts.latest("run-phase27", "export").payload["chapter_version_ids"] == ["chapter-1-v1-accepted", "chapter-2-v1-accepted"]
     candidate_stages = {
         event.stage_id
@@ -222,6 +234,77 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
     ).status == "committed"
     assert len(stores.cover_assets.list("run-phase27")) == 1
     assert len(stores.exports.list("run-phase27")) == 1
+
+
+@pytest.mark.asyncio
+async def test_chapter_length_violation_triggers_a_complete_rewrite(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate = provider.generate_chapter
+    returned_short_draft = False
+
+    async def generate_short_once(request):
+        nonlocal returned_short_draft
+        if request.chapter_id == "chapter-1" and not returned_short_draft:
+            returned_short_draft = True
+            provider.chapter_requests.append(request)
+            return PlainTextProviderResult(content="过短初稿", usage={"total_tokens": 1})
+        return await original_generate(request)
+
+    provider.generate_chapter = generate_short_once
+    _create_run(stores, "run-length-rewrite")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-length-rewrite")
+
+    assert projection.status == "completed", projection.failure
+    assert [request.chapter_id for request in provider.chapter_requests] == [
+        "chapter-1",
+        "chapter-1",
+        "chapter-2",
+    ]
+    manifests = stores.context_manifests.list("run-length-rewrite")
+    assert [(item.chapter_id, item.attempt) for item in manifests[:2]] == [
+        ("chapter-1", 1),
+        ("chapter-1", 2),
+    ]
+    revision = next(
+        snippet
+        for snippet in manifests[1].manifest.snippets
+        if snippet.ref == "revision.request"
+    )
+    assert "完整重写本章" in revision.text
+    assert "2000 字" in revision.text
+    accepted = stores.chapters.read(
+        "run-length-rewrite", "chapter-1", "chapter-1-v2-accepted"
+    ).artifact
+    assert accepted.title == "母带残响1"
+    assert count_prose_characters(accepted.content) == 2_000
+
+
+@pytest.mark.asyncio
+async def test_chapter_length_fails_after_three_out_of_range_drafts(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+
+    async def generate_short(request):
+        provider.chapter_requests.append(request)
+        return PlainTextProviderResult(content="始终过短", usage={"total_tokens": 1})
+
+    provider.generate_chapter = generate_short
+    _create_run(stores, "run-length-failure")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-length-failure")
+
+    assert projection.status == "failed"
+    assert projection.failure["node_id"] == "text.check_length_contract"
+    assert "after 3 attempts" in projection.failure["message"]
+    assert [request.chapter_id for request in provider.chapter_requests] == [
+        "chapter-1",
+        "chapter-1",
+        "chapter-1",
+    ]
 
 
 @pytest.mark.asyncio
@@ -721,6 +804,6 @@ async def test_sqlite_reopen_recover_preserves_human_interrupt(tmp_path) -> None
 
 
 def test_downstream_volume_contract_rejects_unknown_spine_turn() -> None:
-    volume = {"volumes": [{"id": "volume-1", "promise": "p", "conflict": "c", "climax": "x", "closure": "z", "turn_refs": ["turn-x"], "cast_ids": ["subject-lin"], "thread_ids": [], "length_hint": "short"}]}
+    volume = {"volumes": [{"id": "volume-1", "title": "雾港残响", "promise": "p", "conflict": "c", "climax": "x", "closure": "z", "turn_refs": ["turn-x"], "cast_ids": ["subject-lin"], "thread_ids": [], "length_hint": "short"}]}
     with pytest.raises(ValueError, match="unknown spine turns"):
         validate_artifact_vnext("volumes", volume, subject_ids={"subject-lin"}, turn_ids={"turn-1"})

@@ -26,6 +26,7 @@ export type StorySpineArtifact = {
 export type VolumeArchitectureArtifact = {
   volumes: Array<{
     id: string;
+    title: string;
     promise: string;
     conflict: string;
     climax: string;
@@ -41,6 +42,8 @@ export type DetailArtifactVnext = {
   chapters: Array<{
     ref: string;
     volume_ref: string;
+    title: string;
+    target_characters: number | null;
     purpose: string;
     pov: string;
     cast_ids: string[];
@@ -52,7 +55,7 @@ export type DetailArtifactVnext = {
 export type ChapterArtifactVnext = { chapter_id: string; version_id: string; title: string; content: string; author_status: 'candidate' | 'accepted' | 'edited' | 'branched' };
 export type CoverBriefVnext = { concept: string; image_prompt: string; palette: string[]; negative_constraints: string[] };
 export type CoverArtifactVnext = { brief: CoverBriefVnext; selected_asset_id: string };
-export type ExportArtifactVnext = { format: 'md' | 'json' | 'zip'; chapter_version_ids: string[]; cover_asset_id: string; metadata: { title: string; author: string; version_note: string } };
+export type ExportArtifactVnext = { format: 'md' | 'json' | 'zip'; chapter_version_ids: string[]; cover_asset_id: string; metadata: { title: string; author: string; version_note: string }; volumes: Array<{ title: string; chapter_count: number }> };
 
 type Schema = { type: 'string'; values?: readonly string[]; allowEmpty?: boolean } | { type: 'number'; integer?: boolean; min?: number; nullable?: boolean } | { type: 'array'; items: Schema; min?: number } | { type: 'object'; fields: Record<string, Schema> };
 const string = (options: Omit<Extract<Schema, { type: 'string' }>, 'type'> = {}): Schema => ({ type: 'string', ...options });
@@ -62,11 +65,11 @@ const object = (fields: Record<string, Schema>): Schema => ({ type: 'object', fi
 
 const BRIEF_SCHEMA = object({ title: string(), premise: string(), promise: string(), world_rules: array(string(), 1), theme: string(), ending_promise: string(), voice: string(), length_envelope: object({ word_target_soft: number({ min: 1, integer: true, nullable: true }), chapter_target_soft: number({ min: 1, integer: true, nullable: true }) }) });
 const SPINE_SCHEMA = object({ turns: array(object({ id: string(), cause: string(), change: string() }), 1), ending: string(), open_questions: array(string()), progress_types: array(string({ values: ['information', 'relationship', 'external', 'internal'] }), 1) });
-const VOLUMES_SCHEMA = object({ volumes: array(object({ id: string(), promise: string(), conflict: string(), climax: string(), closure: string(), turn_refs: array(string(), 1), cast_ids: array(string(), 1), thread_ids: array(string()), length_hint: string({ values: ['short', 'medium', 'long'] }) }), 1) });
-const DETAIL_SCHEMA = object({ chapters: array(object({ ref: string(), volume_ref: string(), purpose: string(), pov: string(), cast_ids: array(string(), 1), scenes: array(object({ place: string(), objective: string(), conflict: string(), turn: string(), result: string() }), 1), handoff: string() }), 1) });
+const VOLUMES_SCHEMA = object({ volumes: array(object({ id: string(), title: string(), promise: string(), conflict: string(), climax: string(), closure: string(), turn_refs: array(string(), 1), cast_ids: array(string(), 1), thread_ids: array(string()), length_hint: string({ values: ['short', 'medium', 'long'] }) }), 1) });
+const DETAIL_SCHEMA = object({ chapters: array(object({ ref: string(), volume_ref: string(), title: string(), target_characters: number({ min: 1, integer: true, nullable: true }), purpose: string(), pov: string(), cast_ids: array(string(), 1), scenes: array(object({ place: string(), objective: string(), conflict: string(), turn: string(), result: string() }), 2), handoff: string() }), 1) });
 const CHAPTER_SCHEMA = object({ chapter_id: string(), version_id: string(), title: string(), content: string(), author_status: string({ values: ['candidate', 'accepted', 'edited', 'branched'] }) });
 const COVER_SCHEMA = object({ brief: object({ concept: string(), image_prompt: string(), palette: array(string(), 1), negative_constraints: array(string()) }), selected_asset_id: string({ allowEmpty: true }) });
-const EXPORT_SCHEMA = object({ format: string({ values: ['md', 'json', 'zip'] }), chapter_version_ids: array(string(), 1), cover_asset_id: string({ allowEmpty: true }), metadata: object({ title: string(), author: string({ allowEmpty: true }), version_note: string({ allowEmpty: true }) }) });
+const EXPORT_SCHEMA = object({ format: string({ values: ['md', 'json', 'zip'] }), chapter_version_ids: array(string(), 1), cover_asset_id: string({ allowEmpty: true }), metadata: object({ title: string(), author: string({ allowEmpty: true }), version_note: string({ allowEmpty: true }) }), volumes: array(object({ title: string(), chapter_count: number({ min: 1, integer: true }) }), 1) });
 
 export const parseStoryBriefArtifact = (source: string) => parseArtifact<StoryBriefArtifact>(source, BRIEF_SCHEMA);
 export const parseSpineArtifact = (source: string) => parseArtifact<StorySpineArtifact>(source, SPINE_SCHEMA, validateOrderedIdentity('turns', 'turn', 'id'));
@@ -78,7 +81,10 @@ export const parseDetailArtifact = (source: string) => parseArtifact<DetailArtif
     if (!isRecord(item) || !Array.isArray(item.cast_ids) || typeof item.pov !== 'string') return;
     if (new Set(item.cast_ids).size !== item.cast_ids.length) errors.push(`${String(item.ref)} 的出场人物不能重复`);
     if (!item.cast_ids.includes(item.pov)) errors.push(`${String(item.ref)} 的出场人物必须包含 POV`);
+    if (Array.isArray(item.scenes) && item.scenes.length > 4) errors.push(`${String(item.ref)} 最多包含 4 个场景`);
   });
+  const sceneCounts = value.chapters.map((item) => isRecord(item) && Array.isArray(item.scenes) ? item.scenes.length : 0);
+  sceneCounts.slice(1).forEach((count, index) => { if (Math.abs(count - sceneCounts[index]) > 1) errors.push('相邻章节场景数最多相差 1'); });
 });
 export const parseChapterArtifact = (source: string) => parseArtifact<ChapterArtifactVnext>(source, CHAPTER_SCHEMA);
 export const parseCoverArtifact = (source: string) => parseArtifact<CoverArtifactVnext>(source, COVER_SCHEMA);

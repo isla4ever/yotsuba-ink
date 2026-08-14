@@ -20,6 +20,7 @@ from novel_workflow.runtime.graph.chapter_review import (
     freeze_review_roles,
     send_reviewers_or_failure,
 )
+from novel_workflow.runtime.graph.chapter_length import evaluate_chapter_length
 from novel_workflow.runtime.graph.chapter_writeback import (
     await_commit_receipt,
     enqueue_domain_commit,
@@ -93,6 +94,9 @@ def build_chapter_graph(
         run_id = state["run_id"]
         chapter_id = state["active_chapter_id"]
         chapter_number = state["active_chapter_number"]
+        detail_chapter = executor.detail(state).chapters[chapter_number - 1]
+        if detail_chapter.ref != chapter_id:
+            raise ValueError("Active chapter does not match the frozen Detail Artifact")
         attempt = int((state.get("chapter_attempts") or {}).get(chapter_id) or 1)
         operation_key = f"{run_id}:{chapter_id}:generate:{attempt}"
         definition = executor.runs.definition(run_id)
@@ -139,13 +143,14 @@ def build_chapter_graph(
             content = _read_prose_receipt(payload)
             artifact = _chapter_artifact(
                 chapter_id=chapter_id,
-                chapter_number=chapter_number,
                 attempt=attempt,
                 content=content,
+                title=detail_chapter.title,
             )
             _validate_generated_chapter(
                 artifact,
                 chapter_id=chapter_id,
+                expected_title=detail_chapter.title,
             )
         else:
             response = None
@@ -154,13 +159,14 @@ def build_chapter_graph(
                 payload = {"content": response.content}
                 artifact = _chapter_artifact(
                     chapter_id=chapter_id,
-                    chapter_number=chapter_number,
                     attempt=attempt,
                     content=response.content,
+                    title=detail_chapter.title,
                 )
                 _validate_generated_chapter(
                     artifact,
                     chapter_id=chapter_id,
+                    expected_title=detail_chapter.title,
                 )
             except Exception as exc:
                 executor.operations.fail(
@@ -243,6 +249,15 @@ def build_chapter_graph(
     builder.add_node("prepare_context", guarded_node(executor, "text.prepare_context", "text", prepare_context))
     builder.add_node("generate_prose", guarded_node(executor, "text.generate_prose", "text", generate_prose))
     builder.add_node(
+        "check_length_contract",
+        guarded_node(
+            executor,
+            "text.check_length_contract",
+            "text",
+            lambda state: evaluate_chapter_length(executor, state),
+        ),
+    )
+    builder.add_node(
         "plan_review_roles",
         guarded_node(
             executor,
@@ -271,7 +286,18 @@ def build_chapter_graph(
         {"generate": "prepare_context", "finish": "finish_chapters", "failure": "fail_chapter"},
     )
     builder.add_conditional_edges("prepare_context", lambda state: failure_route(state, "generate_prose"), {"failure": "fail_chapter", "generate_prose": "generate_prose"})
-    builder.add_conditional_edges("generate_prose", lambda state: failure_route(state, "plan_review_roles"), {"failure": "fail_chapter", "plan_review_roles": "plan_review_roles"})
+    builder.add_conditional_edges("generate_prose", lambda state: failure_route(state, "check_length_contract"), {"failure": "fail_chapter", "check_length_contract": "check_length_contract"})
+    builder.add_conditional_edges(
+        "check_length_contract",
+        lambda state: (
+            "failure" if state.get("failure") is not None else state.get("chapter_gate_action", "review")
+        ),
+        {
+            "review": "plan_review_roles",
+            "regenerate": "prepare_context",
+            "failure": "fail_chapter",
+        },
+    )
     builder.add_conditional_edges("plan_review_roles", send_reviewers_or_failure)
     builder.add_edge("review_chapter", "evaluate_review_gate")
     builder.add_conditional_edges(
@@ -307,9 +333,12 @@ def _validate_generated_chapter(
     artifact: ChapterArtifact,
     *,
     chapter_id: str,
+    expected_title: str,
 ) -> None:
     if artifact.chapter_id != chapter_id or artifact.author_status != "candidate":
         raise ValueError("Chapter Provider output must target the frozen chapter as a candidate")
+    if artifact.title != expected_title:
+        raise ValueError("Chapter title must be inherited from the frozen Detail Artifact")
 
 
 _CHAPTER_NETWORK_ATTEMPTS = 3
@@ -334,14 +363,14 @@ async def _generate_chapter_with_retry(executor: StageExecutor, request: Any) ->
 def _chapter_artifact(
     *,
     chapter_id: str,
-    chapter_number: int,
     attempt: int,
     content: str,
+    title: str,
 ) -> ChapterArtifact:
     return ChapterArtifact(
         chapter_id=chapter_id,
         version_id=f"{chapter_id}-v{attempt}",
-        title=f"第{chapter_number}章",
+        title=title,
         content=content,
         author_status="candidate",
     )

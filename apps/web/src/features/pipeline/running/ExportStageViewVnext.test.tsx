@@ -12,6 +12,7 @@ const artifact = {
   chapter_version_ids: ['chapter-1-v1-accepted', 'chapter-2-v1-accepted'],
   cover_asset_id: 'cover-a',
   metadata: { title: '雾港旧声', author: '', version_note: '' },
+  volumes: [{ title: '雾港残响', chapter_count: 2 }],
 };
 
 describe('ExportStageViewVnext', () => {
@@ -42,7 +43,8 @@ describe('ExportStageViewVnext', () => {
     const title = container.querySelector<HTMLInputElement>('input[value="雾港旧声"]');
     expect(title?.readOnly).toBe(true);
     expect(container.querySelector('input[value="cover-a"]')).toBeNull();
-    expect(container.querySelector('.vnext-version-list')?.textContent).toContain('chapter-2-v1-accepted');
+    expect(container.textContent).toContain('chapter-2-v1-accepted');
+    expect(container.textContent).toContain('雾港残响');
 
     const markdown = Array.from(container.querySelectorAll<HTMLButtonElement>('.vnext-export-format button'))
       .find((button) => button.textContent?.includes('Markdown'));

@@ -72,5 +72,6 @@ function exportResult(ready: boolean) {
     chapter_version_ids: ready ? ['chapter-1-accepted'] : [],
     cover_asset_id: ready ? 'asset-cover-1' : '',
     metadata: { title: '雾港', author: '', version_note: '' },
+    volumes: [{ title: '雾港残响', chapter_count: ready ? 1 : 1 }],
   };
 }

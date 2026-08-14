@@ -59,8 +59,8 @@ def test_run_creation_derives_scale_profile_and_persists_graph_read_model(tmp_pa
     assert stored["definition"]["workflow_id"] == project["workflow_id"]
     assert len(stored["definition"]["workflow_digest"]) == 64
     assert stored["definition"]["scale_profile"]["chapter_target_soft"] == 2
-    assert stored["definition"]["scale_profile"]["chapter_min_reasonable"] == 1
-    assert stored["definition"]["scale_profile"]["chapter_max_reasonable"] == 3
+    assert "chapter_min_reasonable" not in stored["definition"]["scale_profile"]
+    assert "chapter_max_reasonable" not in stored["definition"]["scale_profile"]
     assert stored["read_model"]["active_stage_id"] == "brief"
     assert stored["read_model"]["thread_id"] == "run-phase27"
 

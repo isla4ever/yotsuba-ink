@@ -28,10 +28,12 @@ from novel_workflow.workflows.executable_contract import (
 from novel_workflow.output_contracts.artifacts_vnext import (
     CharacterBibleArtifact,
     CoverArtifact,
+    DetailArtifact,
     ExportArtifact,
     VolumeArchitectureArtifact,
     StoryBriefArtifact,
     StorySpineArtifact,
+    validate_detail_writeback_identity,
 )
 
 
@@ -347,8 +349,12 @@ def _save_edited_candidate(
         )
         turn_ids = {turn.id for turn in spine.turns}
     if stage_id == "detail":
-        detail = stores.artifacts.latest(run_id, "detail", status="candidate").payload
-        chapter_refs = {str(item["ref"]) for item in detail.get("chapters") or []}
+        source_detail = DetailArtifact.model_validate(
+            stores.artifacts.latest(run_id, "detail", status="candidate").payload
+        )
+        candidate_detail = DetailArtifact.model_validate(artifact)
+        validate_detail_writeback_identity(source_detail, candidate_detail)
+        chapter_refs = {item.ref for item in source_detail.chapters}
         architecture = VolumeArchitectureArtifact.model_validate(
             stores.artifacts.latest(run_id, "volumes").payload
         )

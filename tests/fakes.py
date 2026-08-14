@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import struct
 import zlib
 from typing import Any
@@ -122,7 +123,7 @@ class FakeNarrativeProvider:
         elif request.stage_id == "detail":
             scale = request.context["material"]["scale_projection"]
             start = int(scale["chapter_number_start"])
-            count = int(scale["chapter_target_soft"])
+            count = int(scale["chapter_target"])
             cast_ids = [
                 item["id"]
                 for item in request.context["material"]["selected_dossiers"]
@@ -136,12 +137,13 @@ class FakeNarrativeProvider:
                         "cast_ids": cast_ids,
                         "scenes": [
                             {
-                                "place": "档案室" if offset == 0 else "旧潮道",
-                                "objective": "取得登记簿" if offset == 0 else "播放母带",
-                                "conflict": "管理员拒绝" if offset == 0 else "广播系统拦截",
-                                "turn": "发现删除签名" if offset == 0 else "同伴承认沉默",
-                                "result": "拿到副本" if offset == 0 else "真相公开",
+                                "place": "档案室" if scene == 0 else "旧潮道",
+                                "objective": "取得登记簿" if scene == 0 else "核对母带",
+                                "conflict": "管理员拒绝" if scene == 0 else "广播系统拦截",
+                                "turn": "发现删除签名" if scene == 0 else "同伴承认沉默",
+                                "result": "拿到副本" if scene == 0 else "确认播放路径",
                             }
+                            for scene in range(2)
                         ],
                         "handoff": "追查签名来源" if offset == 0 else "承担记忆损失",
                     }
@@ -178,7 +180,10 @@ class FakeNarrativeProvider:
 
     async def generate_chapter(self, request: ChapterGenerationRequest) -> PlainTextProviderResult:
         self.chapter_requests.append(request)
-        return PlainTextProviderResult(content=f"{request.chapter_id} 的冻结正文。", usage={"total_tokens": 4})
+        target = _chapter_character_target(request.context)
+        prefix = f"{request.chapter_id}正文"
+        content = prefix + "文" * max(0, target - len(prefix)) if target else f"{prefix}。"
+        return PlainTextProviderResult(content=content, usage={"total_tokens": 4})
 
     async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
         self.review_requests.append(request)
@@ -191,3 +196,13 @@ class FakeNarrativeProvider:
     async def generate_cover_image(self, request: CoverImageRequest) -> GeneratedImage:
         self.cover_requests.append(request)
         return GeneratedImage(content=fake_png_bytes(seed=request.candidate_index), mime_type="image/png", provider_asset_id=f"asset-{request.candidate_index}", usage={"total_tokens": 1})
+
+
+def _chapter_character_target(context: dict[str, Any]) -> int | None:
+    manifest = context["material"]["chapter_context_manifest"]
+    for snippet in manifest["snippets"]:
+        if snippet["purpose"] != "chapter_length_contract":
+            continue
+        contract = json.loads(snippet["text"])
+        return int(contract["target_characters"])
+    return None

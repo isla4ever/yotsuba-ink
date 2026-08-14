@@ -10,6 +10,7 @@ import { VolumeStageView } from './VolumeStageView';
 const artifact = {
   volumes: [{
     id: 'volume-1',
+    title: '雾港残响',
     promise: '找到失踪母带的来源',
     conflict: '广播站封锁证据',
     climax: '在全港广播原始录音',

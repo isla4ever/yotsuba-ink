@@ -174,8 +174,14 @@ def _markdown(artifact: ExportArtifact, chapters: list[ChapterArtifact]) -> byte
     sections = [f"# {artifact.metadata.title}"]
     if artifact.metadata.author:
         sections.append(f"作者：{artifact.metadata.author}")
-    for chapter in chapters:
-        sections.append(f"## {chapter.title}\n\n{chapter.content}")
+    chapter_number = 0
+    cursor = 0
+    for volume_number, volume in enumerate(artifact.volumes, start=1):
+        sections.append(f"## 第{volume_number}卷 {volume.title}")
+        for chapter in chapters[cursor : cursor + volume.chapter_count]:
+            chapter_number += 1
+            sections.append(f"### 第{chapter_number}章 {chapter.title}\n\n{chapter.content}")
+        cursor += volume.chapter_count
     return ("\n\n".join(sections).rstrip() + "\n").encode("utf-8")
 
 
@@ -184,6 +190,7 @@ def _json_export(artifact: ExportArtifact, chapters: list[ChapterArtifact]) -> b
         "metadata": artifact.metadata.model_dump(mode="json"),
         "chapter_version_ids": artifact.chapter_version_ids,
         "cover_asset_id": artifact.cover_asset_id,
+        "volumes": [volume.model_dump(mode="json") for volume in artifact.volumes],
         "chapters": [
             chapter.model_dump(mode="json", include={"chapter_id", "version_id", "title", "content"})
             for chapter in chapters
@@ -205,6 +212,7 @@ def _zip_export(
         "metadata": artifact.metadata.model_dump(mode="json"),
         "chapter_version_ids": artifact.chapter_version_ids,
         "cover_asset_id": artifact.cover_asset_id,
+        "volumes": [volume.model_dump(mode="json") for volume in artifact.volumes],
     }
     if cover_asset is not None:
         record, _ = cover_asset

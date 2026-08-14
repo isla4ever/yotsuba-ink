@@ -11,10 +11,15 @@ const artifact = {
   chapters: [{
     ref: 'chapter-1',
     volume_ref: 'volume-1',
+    title: '档案余烬',
+    target_characters: 3000,
     purpose: '取得档案',
     pov: 'subject-lin',
     cast_ids: ['subject-lin'],
-    scenes: [{ place: '档案室', objective: '取得登记簿', conflict: '管理员拒绝', turn: '认出编号', result: '换得副本' }],
+    scenes: [
+      { place: '档案室', objective: '取得登记簿', conflict: '管理员拒绝', turn: '认出编号', result: '换得副本' },
+      { place: '旧潮道', objective: '转移副本', conflict: '出口被封', turn: '找到暗门', result: '带走副本' },
+    ],
     handoff: '广播站开始清理档案',
   }],
 };
@@ -48,6 +53,7 @@ describe('DetailStageViewVnext', () => {
     expect(povChips.map((chip) => chip.textContent)).toEqual(['林岚', '周屿']);
     expect(povChips[0]?.getAttribute('aria-pressed')).toBe('true');
     expect(container.textContent).toContain('volume-1 · chapter-1');
+    expect(container.textContent).toContain('3,000 字');
     expect(container.textContent).not.toContain('义务');
 
     const castGroup = container.querySelector('[aria-label="本章出场人物"]');

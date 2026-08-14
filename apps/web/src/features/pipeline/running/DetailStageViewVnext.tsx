@@ -35,14 +35,15 @@ export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, r
         {artifact.chapters.map((item, index) => (
           <button className={item.ref === chapter.ref ? 'active' : ''} key={item.ref} onClick={() => setSelectedRef(item.ref)} type="button">
             <span>{String(index + 1).padStart(2, '0')}</span>
-            <strong>{item.purpose}</strong>
-            <em>{item.volume_ref} · {item.scenes.length} 场景</em>
+            <strong>{item.title}</strong>
+            <em>{item.volume_ref} · {item.scenes.length} 场景{item.target_characters ? ` · ${item.target_characters.toLocaleString()} 字` : ''}</em>
           </button>
         ))}
       </nav>
       <div className="vnext-detail-main">
         <section className="vnext-artifact-section">
-          <header><div><span>章节施工图</span><strong>{chapter.volume_ref} · {chapter.ref}</strong></div></header>
+          <header><div><span>章节施工图</span><strong>{chapter.volume_ref} · {chapter.ref}{chapter.target_characters ? ` · ${chapter.target_characters.toLocaleString()} 字` : ''}</strong></div></header>
+          <label className="vnext-field vnext-title-field"><span>章名</span><input maxLength={12} minLength={2} onChange={(event) => updateChapter({ title: event.target.value })} readOnly={readOnly} value={chapter.title} /></label>
           <label className="vnext-field vnext-wide"><span>章节目的</span><textarea onChange={(event) => updateChapter({ purpose: event.target.value })} readOnly={readOnly} rows={3} value={chapter.purpose} /></label>
           <div className="vnext-ref-field">
             <span>POV 视角（本章唯一）</span>
@@ -70,11 +71,11 @@ export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, r
           </div>
         </section>
         <section className="vnext-artifact-section">
-          <header><div><span>场景序列</span><strong>{chapter.scenes.length}</strong></div>{!readOnly && chapter.scenes.length < 8 ? <button className="vnext-add-command" onClick={() => updateChapter({ scenes: [...chapter.scenes, emptyScene()] })} type="button"><Plus size={15} />新增场景</button> : null}</header>
+          <header><div><span>场景序列</span><strong>{chapter.scenes.length} / 4</strong></div>{!readOnly && chapter.scenes.length < 4 ? <button className="vnext-add-command" onClick={() => updateChapter({ scenes: [...chapter.scenes, emptyScene()] })} type="button"><Plus size={15} />新增场景</button> : null}</header>
           <div className="vnext-scene-list">
             {chapter.scenes.map((scene, index) => (
               <article className="vnext-scene-row" key={`${chapter.ref}-scene-${index + 1}`}>
-                <div className="vnext-scene-heading"><span>场景 {index + 1}</span><input aria-label="场景地点" onChange={(event) => updateChapter({ scenes: updateItem(chapter.scenes, index, { place: event.target.value }) })} readOnly={readOnly} value={scene.place} />{!readOnly && chapter.scenes.length > 1 ? <button aria-label="删除场景" onClick={() => updateChapter({ scenes: chapter.scenes.filter((_, itemIndex) => itemIndex !== index) })} title="删除场景" type="button"><Trash2 size={15} /></button> : null}</div>
+                <div className="vnext-scene-heading"><span>场景 {index + 1}</span><input aria-label="场景地点" onChange={(event) => updateChapter({ scenes: updateItem(chapter.scenes, index, { place: event.target.value }) })} readOnly={readOnly} value={scene.place} />{!readOnly && chapter.scenes.length > 2 ? <button aria-label="删除场景" onClick={() => updateChapter({ scenes: chapter.scenes.filter((_, itemIndex) => itemIndex !== index) })} title="删除场景" type="button"><Trash2 size={15} /></button> : null}</div>
                 <div className="vnext-scene-fields">
                   <SceneField label="目标" onChange={(objective) => updateChapter({ scenes: updateItem(chapter.scenes, index, { objective }) })} readOnly={readOnly} value={scene.objective} />
                   <SceneField label="冲突" onChange={(conflict) => updateChapter({ scenes: updateItem(chapter.scenes, index, { conflict }) })} readOnly={readOnly} value={scene.conflict} />
