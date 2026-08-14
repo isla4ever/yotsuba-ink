@@ -33,6 +33,20 @@ export function updateStageInputDefault(stage: WorkflowStage, key: string, value
   };
 }
 
+/**
+ * Like updateStageInputDefault, but appends the field when a workflow saved
+ * before the key existed does not carry it in its input schema.
+ */
+export function upsertStageInputDefault(stage: WorkflowStage, key: string, label: string, value: unknown): WorkflowStage {
+  if (stage.input_schema.some((field) => field.key === key)) {
+    return updateStageInputDefault(stage, key, value);
+  }
+  return {
+    ...stage,
+    input_schema: [...stage.input_schema, { key, label, type: 'number', required: false, default: value }],
+  };
+}
+
 export function parseTagInput(value: string) {
   return value
     .split(/[,\n，、]/)
@@ -70,17 +84,16 @@ export function coerceFieldValue(field: InputField, raw: string | boolean) {
 }
 
 export function extractWorldbuilding(events: RunEvent[]): WorldbuildingView {
-  const latestInfo = events.find((event) => event.type === 'artifact.committed' && event.stage_id === 'info');
-  const result = latestInfo?.payload;
+  const latestBrief = events.find((event) => event.type === 'artifact.committed' && event.stage_id === 'brief');
+  const result = latestBrief?.payload;
   if (!result) return defaultWorldbuilding;
 
-  const promise = recordFrom(result.story_promise);
   return {
     source: '创作立项 Artifact',
     seed: firstString(result.premise),
     rules: arrayFrom(result.world_rules) || [],
-    tone: firstString(promise?.tone),
-    impact: [firstString(result.thematic_question), firstString(result.ending_promise)].filter(Boolean),
+    tone: firstString(result.voice),
+    impact: [firstString(result.theme), firstString(result.ending_promise)].filter(Boolean),
   };
 }
 
@@ -97,10 +110,4 @@ function arrayFrom(...values: unknown[]) {
     if (typeof value === 'string' && value.trim()) return parseTagInput(value);
   }
   return null;
-}
-
-function recordFrom(value: unknown) {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
 }

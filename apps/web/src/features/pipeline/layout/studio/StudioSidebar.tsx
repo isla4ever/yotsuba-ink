@@ -1,8 +1,9 @@
-import { BookOpen, Clock3, Layers, Library, Plus, Search, Settings } from 'lucide-react';
+import { BookOpen, Clock3, Layers, Library, Search, Settings } from 'lucide-react';
 import { useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRunStateContext, useUICommandContext } from '../../state/pipelineShellContext';
 import { paletteShortcutHint } from '../commandPaletteModel';
+import { studioKnowledgeRoute, studioSettingsRoute } from '../../lib/stageRoutes';
 import { nextSidebarFocusTarget } from '../../lib/sidebarKeyboardNavigation';
 
 /**
@@ -59,10 +60,6 @@ export function StudioSidebar() {
           <span aria-hidden="true" className="sidebar-item-icon"><Library size={16} /></span>
           <span className="sidebar-item-label">作品库</span>
         </button>
-        <button className="workbench-sidebar-item" onClick={ui.requestNewProject} title="创建新作品" type="button">
-          <span aria-hidden="true" className="sidebar-item-icon"><Plus size={16} /></span>
-          <span className="sidebar-item-label">新建作品</span>
-        </button>
         <button aria-current={templateView ? 'page' : undefined} className={`workbench-sidebar-item${templateView ? ' active' : ''}`} onClick={() => navigate('/studio?view=templates')} title="管理工作流模板" type="button">
           <span aria-hidden="true" className="sidebar-item-icon"><Layers size={16} /></span>
           <span className="sidebar-item-label">工作流模板</span>
@@ -70,7 +67,7 @@ export function StudioSidebar() {
       </div>
       <span aria-hidden="true" className="workbench-sidebar-separator" />
       <div aria-label="全局入口" className="workbench-sidebar-group" role="group">
-        <button aria-haspopup="dialog" className={`workbench-sidebar-item${ui.knowledgeOpen ? ' active' : ''}`} onClick={ui.openKnowledge} title="管理项目资料与检索依据" type="button">
+        <button aria-current={run.routePhase === 'studio-knowledge' ? 'page' : undefined} className={`workbench-sidebar-item${run.routePhase === 'studio-knowledge' ? ' active' : ''}`} onClick={() => navigate(studioKnowledgeRoute)} title="纵览全部作品的知识资料" type="button">
           <span aria-hidden="true" className="sidebar-item-icon"><BookOpen size={16} /></span>
           <span className="sidebar-item-label">知识资料</span>
         </button>
@@ -79,7 +76,7 @@ export function StudioSidebar() {
           <span className="sidebar-item-label">创作历史</span>
           {run.historyItems.length ? <span className="sidebar-item-badge">{run.historyItems.length}</span> : null}
         </button>
-        <button aria-haspopup="dialog" className={`workbench-sidebar-item${ui.settingsOpen ? ' active' : ''}`} onClick={ui.openSettings} title="编辑服务、模型和工作流偏好" type="button">
+        <button aria-current={run.routePhase === 'studio-settings' ? 'page' : undefined} className={`workbench-sidebar-item${run.routePhase === 'studio-settings' ? ' active' : ''}`} onClick={() => navigate(studioSettingsRoute)} title="管理全局 AI 服务与默认模型" type="button">
           <span aria-hidden="true" className="sidebar-item-icon"><Settings size={16} /></span>
           <span className="sidebar-item-label">模型与设置</span>
         </button>

@@ -9,7 +9,7 @@ import type { RunEvent } from '../contracts';
 function renderPalette(open: boolean, workflowConfig: Partial<WorkflowConfigSlice> = {}) {
   return renderToStaticMarkup(
     <PipelineShellTestProviders
-      events={[{ type: 'node_completed', node_id: 'info' } as RunEvent]}
+      events={[{ type: 'node_completed', node_id: 'brief' } as RunEvent]}
       runState={{
         runHasStarted: true,
       }}
@@ -38,7 +38,7 @@ describe('CommandPalette', () => {
     expect(html).toContain('role="combobox"');
     const activeDescendant = html.match(/aria-activedescendant="([^"]+)"/)?.[1];
     expect(activeDescendant).toBeTruthy();
-    expect(activeDescendant).toContain('stage-info');
+    expect(activeDescendant).toContain('stage-brief');
     const highlightedOption = html.split('<div').find((chunk) => chunk.includes(`id="${activeDescendant}"`));
     expect(highlightedOption).toContain('aria-selected="true"');
     for (const label of ['导航', '全局', '外观']) expect(html).toContain(`aria-label="${label}"`);
@@ -47,8 +47,8 @@ describe('CommandPalette', () => {
   it('keeps every balanced stage command available', () => {
     const html = renderPalette(true, { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', false) });
     expect(html).not.toContain('平衡模式下后续阶段在驾驶舱内查看');
-    expect(html).toContain('全书梗概');
+    expect(html).toContain('故事脊柱');
     const activeDescendant = html.match(/aria-activedescendant="([^"]+)"/)?.[1];
-    expect(activeDescendant).toContain('stage-info');
+    expect(activeDescendant).toContain('stage-brief');
   });
 });

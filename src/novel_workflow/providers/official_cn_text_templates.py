@@ -40,9 +40,10 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 model_pattern="mimo-v2.5-pro*",
                 capability_docs=["https://mimo.mi.com/docs/zh-CN/api/chat/openai-api"],
                 stage_extra_body_parameters={
-                    "info": {"thinking": {"type": "enabled"}},
-                    "summary": {"thinking": {"type": "disabled"}},
-                    "outline": {"thinking": {"type": "enabled"}},
+                    "brief": {"thinking": {"type": "enabled"}},
+                    "spine": {"thinking": {"type": "disabled"}},
+                    "cast": {"thinking": {"type": "enabled"}},
+                    "volumes": {"thinking": {"type": "enabled"}},
                     "detail": {"thinking": {"type": "enabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
@@ -87,17 +88,19 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 model_pattern="deepseek-v4-pro*",
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
                 stage_request_parameters={
-                    "info": {"reasoning_effort": "high"},
+                    "brief": {"reasoning_effort": "high"},
+                    "cast": {"reasoning_effort": "high"},
                 },
                 stage_extra_body_parameters={
-                    "info": {"thinking": {"type": "enabled"}},
-                    # Summary is a compact structured compression node. Keeping
+                    "brief": {"thinking": {"type": "enabled"}},
+                    # Spine is a compact causal-structure node. Keeping
                     # its output budget for JSON avoids reasoning consuming the
                     # response envelope before the artifact is complete.
-                    "summary": {"thinking": {"type": "disabled"}},
-                    # Outline and detail are bounded structured artifacts. Their
+                    "spine": {"thinking": {"type": "disabled"}},
+                    "cast": {"thinking": {"type": "disabled"}},
+                    # Volumes and Detail are bounded structured artifacts. Their
                     # response budget must remain available for the JSON object.
-                    "outline": {"thinking": {"type": "disabled"}},
+                    "volumes": {"thinking": {"type": "disabled"}},
                     "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
@@ -112,12 +115,14 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 model_pattern="deepseek-v4-flash*",
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
                 stage_request_parameters={
-                    "info": {"reasoning_effort": "high"},
+                    "brief": {"reasoning_effort": "high"},
+                    "cast": {"reasoning_effort": "high"},
                 },
                 stage_extra_body_parameters={
-                    "info": {"thinking": {"type": "enabled"}},
-                    "summary": {"thinking": {"type": "disabled"}},
-                    "outline": {"thinking": {"type": "disabled"}},
+                    "brief": {"thinking": {"type": "enabled"}},
+                    "spine": {"thinking": {"type": "disabled"}},
+                    "cast": {"thinking": {"type": "disabled"}},
+                    "volumes": {"thinking": {"type": "disabled"}},
                     "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
@@ -164,9 +169,10 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 ],
                 json_schema_strict=True,
                 stage_request_parameters={
-                    "info": {"reasoning_effort": "high"},
-                    "summary": {"reasoning_effort": "low"},
-                    "outline": {"reasoning_effort": "high"},
+                    "brief": {"reasoning_effort": "high"},
+                    "spine": {"reasoning_effort": "low"},
+                    "cast": {"reasoning_effort": "max"},
+                    "volumes": {"reasoning_effort": "high"},
                     "detail": {"reasoning_effort": "max"},
                     "text": {"reasoning_effort": "low"},
                     "text.evidence": {"reasoning_effort": "low"},
@@ -210,15 +216,17 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
                 model_pattern="glm-5.2*",
                 capability_docs=["https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"],
                 stage_request_parameters={
-                    "info": {"reasoning_effort": "high"},
-                    "outline": {"reasoning_effort": "high"},
+                    "brief": {"reasoning_effort": "high"},
+                    "cast": {"reasoning_effort": "high"},
+                    "volumes": {"reasoning_effort": "high"},
                     "detail": {"reasoning_effort": "high", "stream": True},
                     "text.review": {"reasoning_effort": "high"},
                 },
                 stage_extra_body_parameters={
-                    "info": {"thinking": {"type": "enabled"}},
-                    "summary": {"thinking": {"type": "disabled"}},
-                    "outline": {"thinking": {"type": "enabled"}},
+                    "brief": {"thinking": {"type": "enabled"}},
+                    "spine": {"thinking": {"type": "disabled"}},
+                    "cast": {"thinking": {"type": "enabled"}},
+                    "volumes": {"thinking": {"type": "enabled"}},
                     "detail": {"thinking": {"type": "enabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},

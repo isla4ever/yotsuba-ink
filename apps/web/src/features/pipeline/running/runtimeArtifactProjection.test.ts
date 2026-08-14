@@ -3,97 +3,63 @@ import type { RunEvent } from '../contracts';
 import { runEvent } from '../contracts/runEventTestFactory';
 import { runtimeArtifactProjection } from './runtimeArtifactProjection';
 
-const info = JSON.stringify({
+const brief = JSON.stringify({
   title: '雾港母带',
   premise: '调查一卷会改写记忆的失踪母带。',
-  story_promise: { genre: '悬疑', audience: '成人', tone: '克制' },
+  promise: '母带来源会被查明。',
   world_rules: ['广播只会覆盖被明确标记的记忆'],
-  thematic_question: '公开真相是否值得失去私人记忆？',
+  theme: '公开真相是否值得失去私人记忆？',
   ending_promise: '母带来源会在终章公开。',
-  voice: { viewpoint: '第三人称有限视角', tense: '过去时', texture: '听觉细节', avoid: [] },
-  cast_requirements: [],
+  voice: '第三人称有限视角，过去时，以听觉细节为主。',
+  length_envelope: { word_target_soft: 80000, chapter_target_soft: 24 },
 });
 
-const characters = JSON.stringify({
-  characters: [{
-    id: 'char-lin',
-    name: '林默',
-    tier: 'protagonist',
-    narrative_function: '承担真相调查',
-    external_goal: '找到母带',
-    inner_need: '承认自己需要同伴',
-    arc: { start: '独自调查', turning_point: '共享证据', end: '共同公开真相' },
-    first_appearance_window: 'chapter:1',
-    hard_boundaries: [],
-  }],
-  relationships: [],
-  npc_slots: [],
+const cast = JSON.stringify({
+  subjects: [{ id: 'subject-lin', name: '林默', kind: 'protagonist', function: '承担真相调查', drive: '找到母带', change: '接受共同记忆', debut: 'chapter:1', limits: [], demand_refs: ['demand-investigator'] }],
+  relations: [],
 });
 
 const detail = JSON.stringify({
   chapters: [{
-    id: 'chapter-1',
-    number: 1,
+    ref: 'chapter-1',
+    volume_ref: 'volume-1',
     purpose: '取得第一份证据',
-    pov_character_id: 'char-lin',
-    scenes: [{
-      id: 'scene-1',
-      location: '旧港仓库',
-      goal: '取回母带',
-      obstacle: '仓库被封锁',
-      turn: '发现一份副本',
-      outcome: '带走副本',
-    }],
-    obligations: [
-      { kind: 'character', ref_id: 'char-lin', action: '让林默主动共享线索' },
-      { kind: 'world_rule', ref_id: 'rule-radio', action: '展示广播规则的代价' },
-      { kind: 'thread', ref_id: 'thread-watch', action: '投放怀表线索' },
-    ],
-    handoff: { unresolved_actions: [], emotional_carryover: [], next_pressure: '追兵接近' },
+    pov: 'subject-lin',
+    cast_ids: ['subject-lin'],
+    scenes: [{ place: '旧港仓库', objective: '取回母带', conflict: '仓库被封锁', turn: '发现一份副本', result: '带走副本' }],
+    handoff: '追兵开始接近',
   }],
 });
 
 describe('runtimeArtifactProjection', () => {
-  it('projects only vNext artifacts and the latest stable writeback event', () => {
+  it('projects only Phase 27 artifacts and the latest stable writeback event', () => {
     const events: RunEvent[] = [
       runEvent('writeback.committed', { run_id: 'run-1', stage_id: 'detail', sequence: 4, payload: { transaction_id: 'tx-old' } }),
       runEvent('writeback.queued', { run_id: 'run-1', stage_id: 'detail', sequence: 5, payload: { transaction_id: 'tx-current' } }),
     ];
 
-    const projection = runtimeArtifactProjection({
-      activeStageType: 'detail',
-      characters,
-      detail,
-      events,
-      info,
-      outline: '',
-      summary: '',
-    });
+    const projection = runtimeArtifactProjection({ activeStageType: 'detail', brief, cast, detail, events, spine: '', volumes: '' });
 
     expect(projection.characterGraph?.nodes).toHaveLength(1);
-    expect(projection.characterGraph?.updated_by).toBe('characters-artifact');
+    expect(projection.characterGraph?.updated_by).toBe('character-bible-artifact');
     expect(projection.worldbuilding?.rules).toEqual(['广播只会覆盖被明确标记的记忆']);
     expect(projection.stage).toEqual({
-      character: '1 条人物义务引用冻结角色',
-      worldbuilding: '1 条世界规则义务，仅作章节约束提示',
-      foreshadow: '1 条线索义务与 1 个章节交接',
+      character: '1 个 POV 引用人物圣经',
+      worldbuilding: '1 个场景按需读取证据',
+      foreshadow: '1 条章节交接进入 Context Manifest',
     });
-    expect(projection.writeback).toEqual({
-      status: 'queued',
-      label: '写回已进入事务队列',
-      transactionId: 'tx-current',
-    });
+    expect(projection.writeback).toEqual({ status: 'queued', label: '写回已进入事务队列', transactionId: 'tx-current' });
   });
 
-  it('does not project old Detail fields or unrelated stage writebacks', () => {
+  it('does not project retired Detail fields or unrelated stage writebacks', () => {
     const projection = runtimeArtifactProjection({
       activeStageType: 'detail',
-      characters,
+      brief,
+      cast,
       detail: JSON.stringify({ schema_version: 3, chapters: [], character_shift: [] }),
       events: [runEvent('writeback.failed', { run_id: 'run-1', stage_id: 'text', sequence: 2, payload: { transaction_id: 'tx-text' } })],
-      info,
-      outline: '',
-      summary: '',
+      spine: '',
+      volumes: '',
     });
 
     expect(projection.stage).toEqual({});

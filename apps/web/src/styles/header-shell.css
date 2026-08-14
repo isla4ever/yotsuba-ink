@@ -17,7 +17,6 @@
 
 .canvas-shell,
 .inspector,
-.settings-dialog-inner,
 .insight-card,
 .config-section,
 .knowledge-mini-card,
@@ -32,7 +31,6 @@
 
 .canvas-shell > *,
 .inspector > *,
-.settings-dialog-inner > *,
 .insight-card > *,
 .config-section > *,
 .knowledge-mini-card > *,
@@ -336,6 +334,12 @@
 
 .quality-mode-tabs button:disabled {
   cursor: not-allowed;
+}
+
+/* A locked switch still has to say which mode is running: the disabled dimming
+   applies to the choices you cannot take, not to the current state. */
+.quality-mode-tabs button.active:disabled {
+  opacity: 1;
 }
 
 .quality-mode-tabs strong {

@@ -1,449 +1,224 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.runtime.graph.provider_gateway import (
-    ChapterDraftResult,
-    ChapterEvidenceRequest,
-    ChapterEvidenceResult,
     ChapterGenerationRequest,
     ChapterReviewRequest,
     ChapterReviewResult,
     CoverImageRequest,
+    PlainTextProviderResult,
+    ProposalGenerationRequest,
     ProviderOperationError,
-    RegistryNarrativeProviderGateway,
+    FrozenNarrativeProviderGateway,
     StageGenerationRequest,
+    StructuredProviderResult,
 )
-from novel_workflow.runtime.graph.chapter_writeback import _bind_evidence_spans
-from novel_workflow.runtime.graph.evidence_candidates import (
-    build_chapter_evidence_candidates,
-)
-from novel_workflow.storage.narrative_run_repository import CoverAssetBinding, ProviderBinding
-from novel_workflow.workflows.schemas import ModelSettings
+from novel_workflow.storage.narrative_run_repository import ProviderBinding
+from tests.phase27_bindings import cover_asset_binding, provider_binding
+
+
+def brief() -> dict[str, Any]:
+    return {
+        "title": "雾港旧声", "premise": "修复师追查母带", "promise": "真相伴随代价", "world_rules": ["广播覆盖记忆"],
+        "theme": "真相的代价", "ending_promise": "真相公开", "voice": "克制", "length_envelope": {"word_target_soft": 10000, "chapter_target_soft": 2},
+    }
 
 
 class CapturingTextProvider(TextProvider):
-    name = "capturing-provider"
+    name = "capturing"
 
-    def __init__(self) -> None:
-        self.calls: list[dict[str, Any]] = []
-        self.last_usage = {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
-        self.last_response_diagnostic = {"finish_reason": "stop"}
+    def __init__(self, *, structured: dict[str, Any] | None = None) -> None:
+        self.structured = structured or brief()
+        self.calls: list[tuple[str, str]] = []
 
-    async def generate_text(
-        self,
-        prompt: str,
-        *,
-        task_name: str,
-        context: dict[str, Any],
-    ) -> str:
-        raise AssertionError("The Graph gateway must use strict structured output")
+    async def generate_text(self, prompt: str, *, task_name: str, context: dict[str, Any]) -> str:
+        self.calls.append((task_name, prompt))
+        return "第一章正文。"
 
-    async def generate_strict_structured(
-        self,
-        prompt: str,
-        *,
-        task_name: str,
-        context: dict[str, Any],
-        schema: dict[str, Any],
-    ) -> dict[str, Any]:
-        self.calls.append({
-            "prompt": prompt,
-            "task_name": task_name,
-            "context": context,
-            "schema": schema,
-        })
-        return {
-            "title": "雾港母带",
-            "premise": "调查失踪母带。",
-            "story_promise": {"genre": "悬疑", "audience": "成人", "tone": "克制"},
-            "world_rules": ["广播会覆盖记忆"],
-            "thematic_question": "真相的代价是什么？",
-            "ending_promise": "终章公开来源。",
-            "voice": {"viewpoint": "第三人称", "tense": "过去时", "texture": "听觉", "avoid": []},
-            "cast_requirements": [],
-        }
-
-
-class InvalidArtifactTextProvider(CapturingTextProvider):
-    async def generate_strict_structured(
-        self,
-        prompt: str,
-        *,
-        task_name: str,
-        context: dict[str, Any],
-        schema: dict[str, Any],
-    ) -> dict[str, Any]:
-        self.calls.append({
-            "prompt": prompt,
-            "task_name": task_name,
-            "context": context,
-            "schema": schema,
-        })
-        return {"title": "缺少合同字段"}
-
-
-class CapturingReviewTextProvider(CapturingTextProvider):
-    def __init__(self, payload: dict[str, Any]) -> None:
-        super().__init__()
-        self.payload = payload
-
-    async def generate_strict_structured(
-        self,
-        prompt: str,
-        *,
-        task_name: str,
-        context: dict[str, Any],
-        schema: dict[str, Any],
-    ) -> dict[str, Any]:
-        self.calls.append({
-            "prompt": prompt,
-            "task_name": task_name,
-            "context": context,
-            "schema": schema,
-        })
-        return self.payload
-
-
-class CapturingRegistry:
-    def __init__(self, provider: TextProvider) -> None:
-        self.provider = provider
-        self.requests: list[tuple[str, ModelSettings]] = []
-
-    def text_for(self, provider_profile_id: str, settings: ModelSettings) -> TextProvider:
-        self.requests.append((provider_profile_id, settings))
-        return self.provider
+    async def generate_strict_structured(self, prompt: str, *, task_name: str, context: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+        self.calls.append((task_name, prompt))
+        return self.structured
 
 
 class CapturingImageProvider(ImageProvider):
-    name = "capturing-image-provider"
-
-    def __init__(self) -> None:
-        self.calls: list[dict[str, Any]] = []
+    name = "image"
 
     async def generate_cover(self, prompt: str, *, context: dict[str, Any]) -> GeneratedImage:
-        self.calls.append({"prompt": prompt, "context": context})
-        return GeneratedImage(content=b"image", mime_type="image/png")
+        return GeneratedImage(content=b"image", mime_type="image/png", provider_asset_id="asset-1")
 
 
-class CapturingImageRegistry:
-    def __init__(self, provider: ImageProvider) -> None:
-        self.provider = provider
-        self.provider_ids: list[str] = []
-
-    def image_for(self, provider_profile_id: str) -> ImageProvider:
-        self.provider_ids.append(provider_profile_id)
-        return self.provider
-
-
-@pytest.mark.asyncio
-async def test_graph_gateway_applies_the_frozen_provider_binding_without_fallback() -> None:
-    provider = CapturingTextProvider()
-    registry = CapturingRegistry(provider)
-    binding = ProviderBinding(
+def binding(stage_id: str = "brief") -> ProviderBinding:
+    return provider_binding(
+        stage_id,
         provider_profile_id="provider-primary",
         model="model-frozen",
-        temperature=0.31,
-        max_tokens=2345,
-        top_p=0.73,
-        timeout_seconds=87,
-        prompt_template="Use the frozen story contract.",
+        max_tokens=1000,
     )
 
-    result = await RegistryNarrativeProviderGateway(registry).generate_stage(  # type: ignore[arg-type]
-        StageGenerationRequest(
-            operation_key="run-1:info:generate:1",
-            run_id="run-1",
-            stage_id="info",
-            attempt=1,
-            binding=binding,
-            context={"genre": "悬疑"},
-        )
-    )
 
-    assert result.payload["title"] == "雾港母带"
-    assert result.usage == {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
-    assert result.diagnostic == {"finish_reason": "stop"}
-    assert len(registry.requests) == 1
-    provider_id, settings = registry.requests[0]
-    assert provider_id == "provider-primary"
-    assert settings.model_dump() == {
-        "model": "model-frozen",
-        "temperature": 0.31,
-        "max_tokens": 2345,
-        "top_p": 0.73,
-        "timeout_seconds": 87,
+def chapter_context_manifest() -> dict[str, Any]:
+    text = "chapter script"
+    payload: dict[str, Any] = {
+        "task": "chapter-1",
+        "required": ["detail.chapter"],
+        "optional": [],
+        "forbidden": ["full_canon"],
+        "snippets": [{
+            "ref": "detail.chapter",
+            "purpose": "chapter_script",
+            "text": text,
+            "source_hash": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        }],
+        "budget": {"input_chars": len(text), "output_tokens": 100},
     }
-    assert provider.calls[0]["context"] == {"idempotency_key": "run-1:info:generate:1"}
-    assert "Use the frozen story contract." in provider.calls[0]["prompt"]
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    payload["manifest_hash"] = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+    return payload
+
+
+def gateway(
+    text: TextProvider,
+    *,
+    image: ImageProvider | None = None,
+) -> FrozenNarrativeProviderGateway:
+    return FrozenNarrativeProviderGateway(
+        lambda secret_ref: f"saved-secret-for-{secret_ref}",
+        text_provider_factory=lambda frozen, secret: text,
+        image_provider_factory=lambda frozen, secret: image or CapturingImageProvider(),
+    )
 
 
 @pytest.mark.asyncio
-async def test_graph_gateway_rejects_invalid_artifacts_with_the_current_operation_receipt() -> None:
-    provider = InvalidArtifactTextProvider()
-    registry = CapturingRegistry(provider)
-    binding = ProviderBinding(provider_profile_id="provider-primary", model="model-frozen")
+async def test_stage_gateway_uses_exact_frozen_binding_and_current_contract() -> None:
+    provider = CapturingTextProvider()
+    result = await gateway(provider).generate_stage(StageGenerationRequest(operation_key="run:brief:1", run_id="run", stage_id="brief", attempt=1, binding=binding(), context={"target": "brief", "material": {"project_brief": {}, "length_envelope": {}}}))
+    assert result.payload["title"] == "雾港旧声"
+    assert provider.calls[0][0] == "brief"
 
-    with pytest.raises(ProviderOperationError) as raised:
-        await RegistryNarrativeProviderGateway(registry).generate_stage(  # type: ignore[arg-type]
+
+@pytest.mark.asyncio
+async def test_stage_gateway_rejects_invalid_json_shape_without_repair() -> None:
+    provider = CapturingTextProvider(structured={"title": "missing"})
+    with pytest.raises(ProviderOperationError):
+        await gateway(provider).generate_stage(StageGenerationRequest(operation_key="run:brief:1", run_id="run", stage_id="brief", attempt=1, binding=binding(), context={"target": "brief", "material": {"project_brief": {}, "length_envelope": {}}}))
+
+
+@pytest.mark.asyncio
+async def test_schema_digest_drift_stops_before_secret_or_provider_resolution() -> None:
+    frozen = binding()
+    structured_tasks = dict(frozen.structured_tasks)
+    structured_tasks["brief"] = structured_tasks["brief"].model_copy(
+        update={"schema_digest": "0" * 64}
+    )
+    drifted = frozen.model_copy(update={"structured_tasks": structured_tasks})
+    secret_calls: list[str] = []
+    factory_calls: list[tuple[ProviderBinding, str]] = []
+
+    def secret_resolver(secret_ref: str) -> str:
+        secret_calls.append(secret_ref)
+        return "offline-secret"
+
+    def provider_factory(
+        provider_binding: ProviderBinding,
+        secret: str,
+    ) -> TextProvider:
+        factory_calls.append((provider_binding, secret))
+        return CapturingTextProvider()
+
+    frozen_gateway = FrozenNarrativeProviderGateway(
+        secret_resolver,
+        text_provider_factory=provider_factory,
+    )
+
+    with pytest.raises(ProviderOperationError) as captured:
+        await frozen_gateway.generate_stage(
             StageGenerationRequest(
-                operation_key="run-1:info:generate:1",
-                run_id="run-1",
-                stage_id="info",
+                operation_key="run:brief:drift",
+                run_id="run",
+                stage_id="brief",
                 attempt=1,
-                binding=binding,
-                context={"genre": "悬疑"},
+                binding=drifted,
+                context={
+                    "target": "brief",
+                    "material": {"project_brief": {}, "length_envelope": {}},
+                },
             )
         )
 
-    assert raised.value.operation_key == "run-1:info:generate:1"
-    assert raised.value.usage == {"prompt_tokens": 21, "completion_tokens": 8, "total_tokens": 29}
+    assert captured.value.diagnostic["code"] == "schema_digest_mismatch"
+    assert secret_calls == []
+    assert factory_calls == []
 
 
 @pytest.mark.asyncio
-async def test_graph_gateway_locks_each_review_schema_to_its_frozen_lane() -> None:
-    provider = CapturingReviewTextProvider(
-        ChapterReviewResult(role="continuity").model_dump(mode="json")
+async def test_chapter_gateway_is_plain_text_and_never_parses_json() -> None:
+    provider = CapturingTextProvider()
+    result = await gateway(provider).generate_chapter(ChapterGenerationRequest(operation_key="run:chapter-1:1", run_id="run", chapter_id="chapter-1", chapter_number=1, binding=binding("text"), context={"target": "text", "material": {"chapter_context_manifest": chapter_context_manifest()}}))
+    assert isinstance(result, PlainTextProviderResult)
+    assert result.content == "第一章正文。"
+    assert provider.calls[0][0] == "text"
+
+
+@pytest.mark.asyncio
+async def test_review_gateway_locks_role_to_the_requested_lane() -> None:
+    provider = CapturingTextProvider(structured=ChapterReviewResult(role="continuity").model_dump(mode="json"))
+    request = ChapterReviewRequest(operation_key="run:review", run_id="run", chapter_id="chapter-1", chapter_version_id="chapter-1-v1", role="continuity", required=True, binding=binding("text"), context={"target": "text.review", "material": {"chapter": {"content": "正文"}}})
+    result = await gateway(provider).review_chapter(request)
+    assert result.payload["role"] == "continuity"
+
+
+@pytest.mark.asyncio
+async def test_character_review_finding_without_a_frozen_subject_is_rejected() -> None:
+    provider = CapturingTextProvider(
+        structured={
+            "role": "character",
+            "available": True,
+            "findings": [
+                {"code": "early_appearance", "severity": "blocking", "claim": "提前出场", "evidence": "王建国走进值班室", "subject_ids": []}
+            ],
+        }
     )
-    registry = CapturingRegistry(provider)
     request = ChapterReviewRequest(
-        operation_key="run-1:chapter-1:review:chapter-1-v1:continuity",
-        run_id="run-1",
+        operation_key="run:review",
+        run_id="run",
         chapter_id="chapter-1",
         chapter_version_id="chapter-1-v1",
-        role="continuity",
+        role="character",
         required=True,
-        binding=ProviderBinding(
-            provider_profile_id="provider-primary",
-            model="model-frozen",
-        ),
-        context={"target": "text.review.continuity"},
-    )
-
-    result = await RegistryNarrativeProviderGateway(registry).review_chapter(  # type: ignore[arg-type]
-        request
-    )
-
-    assert result.payload["role"] == "continuity"
-    call = provider.calls[0]
-    assert call["task_name"] == "text.review"
-    assert call["context"] == {"idempotency_key": request.operation_key}
-    assert call["schema"]["properties"]["role"]["const"] == "continuity"
-    assert '"const": "continuity"' in call["prompt"]
-    assert "Report only violations directly evidenced" in call["prompt"]
-    assert "items not required in this chapter" in call["prompt"]
-    assert "blocking finding requires a direct conflict" in call["prompt"]
-    assert "through dramatized choices, consequences, and behavior" in call["prompt"]
-    assert "never require an explicit theme statement" in call["prompt"]
-
-
-@pytest.mark.asyncio
-async def test_graph_gateway_makes_a_targeted_revision_replace_conflicting_source_text() -> None:
-    provider = CapturingReviewTextProvider({
-        "chapter_id": "chapter-1",
-        "title": "退潮的档案",
-        "content": "档案系统投影仍在，冲突证据已经删除。",
-        "author_status": "candidate",
-    })
-    registry = CapturingRegistry(provider)
-    direction = "删除提前泄露的员工宿舍替换证据，保留档案系统投影。"
-
-    await RegistryNarrativeProviderGateway(registry).generate_chapter(  # type: ignore[arg-type]
-        ChapterGenerationRequest(
-            operation_key="run-1:chapter-1:generate:3",
-            run_id="run-1",
-            chapter_id="chapter-1",
-            chapter_number=1,
-            binding=ProviderBinding(
-                provider_profile_id="provider-primary",
-                model="model-frozen",
-            ),
-            context={
-                "material": {
-                    "revision_request": {
-                        "direction": direction,
-                        "source_chapter": {
-                            "version_id": "chapter-1-v2",
-                            "content": "与修订方向冲突的旧正文。",
-                        },
-                    }
-                }
+        binding=binding("text"),
+        context={
+            "target": "text.review",
+            "material": {
+                "chapter": {"content": "王建国走进值班室"},
+                "appearance_policy": {"eligible_subject_ids": ["subject-1"], "not_yet_eligible_subject_ids": ["subject-2"]},
             },
-        )
-    )
-
-    prompt = provider.calls[0]["prompt"]
-    assert "controlling instruction" in prompt
-    assert "immutable draft to replace" in prompt
-    assert "rewrite or remove every source passage" in prompt
-    assert direction in prompt
-    assert prompt.rstrip().endswith(direction)
-    assert set(provider.calls[0]["schema"]["properties"]) == {
-        "chapter_id",
-        "title",
-        "content",
-        "author_status",
-    }
-    assert "version_id" not in provider.calls[0]["schema"]["properties"]
-
-
-def test_chapter_provider_draft_excludes_runtime_owned_version_id() -> None:
-    with pytest.raises(ValidationError):
-        ChapterDraftResult.model_validate({
-            "chapter_id": "chapter-1",
-            "version_id": "provider-owned-version",
-            "title": "退潮的档案",
-            "content": "正文。",
-            "author_status": "candidate",
-        })
-
-
-@pytest.mark.asyncio
-async def test_graph_gateway_evidence_contract_derives_offsets_outside_the_provider_schema() -> None:
-    provider = CapturingReviewTextProvider({
-        "claims": [{
-            "kind": "summary",
-            "claim": "林溯决定前往旧港。",
-            "span_ids": ["span-0002"],
-        }]
-    })
-    registry = CapturingRegistry(provider)
-
-    await RegistryNarrativeProviderGateway(registry).extract_chapter_evidence(  # type: ignore[arg-type]
-        ChapterEvidenceRequest(
-            operation_key="run-1:chapter-1:evidence:chapter-1-v1-accepted",
-            run_id="run-1",
-            chapter_id="chapter-1",
-            chapter_version_id="chapter-1-v1-accepted",
-            content="潮水正在上涨。\n我必须在那之前，回到旧港。",
-            binding=ProviderBinding(
-                provider_profile_id="provider-primary",
-                model="model-frozen",
-            ),
-        )
-    )
-
-    call = provider.calls[0]
-    claim_schema = call["schema"]["$defs"]["EvidenceClaimProposal"]["properties"]
-    assert set(claim_schema) == {"kind", "claim", "span_ids"}
-    assert "hard maximum" in call["prompt"]
-    assert "never return four or more" in call["prompt"]
-    assert "Do not copy quote text" in call["prompt"]
-    assert '"span_id": "span-0002"' in call["prompt"]
-
-
-def test_evidence_candidates_keep_repeated_text_as_distinct_exact_spans() -> None:
-    content = "潮水上涨。\n潮水上涨。"
-
-    candidates = build_chapter_evidence_candidates(content)
-
-    assert [(item.span_id, item.start, item.end, item.quote) for item in candidates] == [
-        ("span-0001", 0, 5, "潮水上涨。"),
-        ("span-0002", 6, 11, "潮水上涨。"),
-    ]
-
-
-@pytest.mark.parametrize(
-    ("span_ids", "message"),
-    [
-        (["span-9999"], "unknown source span"),
-        (["span-0001", "span-0001"], "repeats one source span"),
-    ],
-)
-def test_evidence_binding_rejects_invalid_candidate_ids(
-    span_ids: list[str],
-    message: str,
-) -> None:
-    result = ChapterEvidenceResult.model_validate({
-        "claims": [{
-            "kind": "summary",
-            "claim": "潮水正在上涨。",
-            "span_ids": span_ids,
-        }]
-    })
-
-    with pytest.raises(ValueError, match=message):
-        _bind_evidence_spans("潮水正在上涨。", result)
-
-
-@pytest.mark.asyncio
-async def test_graph_gateway_rejects_a_review_role_outside_its_frozen_lane() -> None:
-    provider = CapturingReviewTextProvider(
-        ChapterReviewResult(role="character").model_dump(mode="json")
-    )
-    registry = CapturingRegistry(provider)
-    operation_key = "run-1:chapter-1:review:chapter-1-v1:continuity"
-
-    with pytest.raises(ProviderOperationError, match="frozen lane") as raised:
-        await RegistryNarrativeProviderGateway(registry).review_chapter(  # type: ignore[arg-type]
-            ChapterReviewRequest(
-                operation_key=operation_key,
-                run_id="run-1",
-                chapter_id="chapter-1",
-                chapter_version_id="chapter-1-v1",
-                role="continuity",
-                required=True,
-                binding=ProviderBinding(
-                    provider_profile_id="provider-primary",
-                    model="model-frozen",
-                ),
-                context={"target": "text.review.continuity"},
-            )
-        )
-
-    assert raised.value.operation_key == operation_key
-    assert raised.value.usage == provider.last_usage
-    assert raised.value.diagnostic == provider.last_response_diagnostic
-
-
-def test_provider_binding_rejects_inherit_and_unknown_fallback_fields() -> None:
-    with pytest.raises(ValidationError, match="explicit profile"):
-        ProviderBinding(provider_profile_id="inherit", model="model")
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        ProviderBinding.model_validate({
-            "provider_profile_id": "provider-primary",
-            "model": "model",
-            "fallback_targets": [{"provider_profile_id": "provider-backup"}],
-        })
-
-
-@pytest.mark.asyncio
-async def test_graph_gateway_applies_the_frozen_image_binding_without_switching() -> None:
-    provider = CapturingImageProvider()
-    registry = CapturingImageRegistry(provider)
-    binding = CoverAssetBinding(
-        provider_profile_id="image-primary",
-        model="image-frozen",
-        candidate_count=3,
-        size="1024x1536",
-        quality="high",
-        timeout_seconds=91,
-    )
-
-    result = await RegistryNarrativeProviderGateway(registry).generate_cover_image(  # type: ignore[arg-type]
-        CoverImageRequest(
-            operation_key="run-1:cover:image:1:candidate:2",
-            run_id="run-1",
-            candidate_index=2,
-            generation_attempt=1,
-            binding=binding,
-            prompt="literary cover",
-        )
-    )
-
-    assert result.content == b"image"
-    assert registry.provider_ids == ["image-primary"]
-    assert provider.calls == [{
-        "prompt": "literary cover",
-        "context": {
-            "idempotency_key": "run-1:cover:image:1:candidate:2",
-            "model": "image-frozen",
-            "size": "1024x1536",
-            "quality": "high",
-            "timeout_seconds": 91,
         },
-    }]
+    )
+    with pytest.raises(ProviderOperationError):
+        await gateway(provider).review_chapter(request)
+
+
+@pytest.mark.asyncio
+async def test_proposal_gateway_validates_narrow_json_contract() -> None:
+    provider = CapturingTextProvider(structured={"proposals": [{"demand_key": "demand-a", "function": "取证", "required_change": "作证", "active_turn_refs": ["turn-1"]}]})
+    result = await gateway(provider).generate_proposal(ProposalGenerationRequest(operation_key="run:proposal", run_id="run", proposal_type="role_demand", binding=binding("spine"), context={"target": "cast", "material": {}}))
+    assert result.payload["proposals"][0]["demand_key"] == "demand-a"
+
+
+@pytest.mark.asyncio
+async def test_image_gateway_keeps_explicit_profile_and_binding() -> None:
+    provider = CapturingImageProvider()
+    request = CoverImageRequest(operation_key="run:cover:image:1", run_id="run", candidate_index=1, generation_attempt=1, binding=cover_asset_binding(provider_profile_id="image-primary", model="image-model"), prompt="封面")
+    image = await gateway(CapturingTextProvider(), image=provider).generate_cover_image(request)
+    assert image.provider_asset_id == "asset-1"

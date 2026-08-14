@@ -9,22 +9,15 @@ import { DetailStageViewVnext } from './DetailStageViewVnext';
 
 const artifact = {
   chapters: [{
-    id: 'chapter-1',
-    number: 1,
+    ref: 'chapter-1',
+    volume_ref: 'volume-1',
     purpose: '取得档案',
-    pov_character_id: 'char-lin',
-    scenes: [{ id: 'scene-1', location: '档案室', goal: '取得登记簿', obstacle: '管理员拒绝', turn: '认出编号', outcome: '换得副本' }],
-    obligations: [{ kind: 'character' as const, ref_id: 'char-lin', action: '承担调查决定' }],
-    handoff: { unresolved_actions: [], emotional_carryover: [], next_pressure: '广播站开始清理档案' },
+    pov: 'subject-lin',
+    cast_ids: ['subject-lin'],
+    scenes: [{ place: '档案室', objective: '取得登记簿', conflict: '管理员拒绝', turn: '认出编号', result: '换得副本' }],
+    handoff: '广播站开始清理档案',
   }],
 };
-
-const options = [
-  { id: 'char-lin', kind: 'character' as const, label: '林岚' },
-  { id: 'thread-tape', kind: 'thread' as const, label: '追查母带' },
-  { id: 'world-rule-1', kind: 'world_rule' as const, label: '广播覆盖个人记忆' },
-  { id: 'ending-promise', kind: 'promise' as const, label: '真相最终公开' },
-];
 
 describe('DetailStageViewVnext', () => {
   let container: HTMLDivElement;
@@ -41,28 +34,36 @@ describe('DetailStageViewVnext', () => {
     container.remove();
   });
 
-  it('allows obligations to select only frozen upstream references', () => {
+  it('keeps POV references frozen and edits the compact scene contract', () => {
     const onArtifactChange = vi.fn();
     act(() => root.render(<DetailStageViewVnext
-      characters={[{ id: 'char-lin', name: '林岚' }]}
-      obligationOptions={options}
+      characters={[{ id: 'subject-lin', name: '林岚' }, { id: 'subject-zhou', name: '周屿' }]}
       onArtifactChange={onArtifactChange}
       readOnly={false}
       result={JSON.stringify(artifact)}
     />));
 
-    const reference = container.querySelector<HTMLSelectElement>('select[aria-label="义务引用"]');
-    expect(reference?.options).toHaveLength(1);
-    expect(reference?.options[0]?.value).toBe('char-lin');
-    expect(container.querySelector('input[aria-label="义务引用"]')).toBeNull();
+    const povGroup = container.querySelector('[aria-label="POV"]');
+    const povChips = Array.from(povGroup?.querySelectorAll<HTMLButtonElement>('button') ?? []);
+    expect(povChips.map((chip) => chip.textContent)).toEqual(['林岚', '周屿']);
+    expect(povChips[0]?.getAttribute('aria-pressed')).toBe('true');
+    expect(container.textContent).toContain('volume-1 · chapter-1');
+    expect(container.textContent).not.toContain('义务');
 
-    const kind = container.querySelector<HTMLSelectElement>('select[aria-label="义务类型"]');
+    const castGroup = container.querySelector('[aria-label="本章出场人物"]');
+    const supporting = Array.from(castGroup?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+      .find((button) => button.textContent?.includes('周屿'));
+    act(() => supporting?.click());
+    expect(onArtifactChange.mock.calls[onArtifactChange.mock.calls.length - 1]?.[0].chapters[0].cast_ids).toEqual(['subject-lin', 'subject-zhou']);
+
+    const place = container.querySelector<HTMLInputElement>('input[aria-label="场景地点"]');
     act(() => {
-      if (!kind) return;
-      kind.value = 'promise';
-      kind.dispatchEvent(new Event('change', { bubbles: true }));
+      if (!place) return;
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(place, '封存库');
+      place.dispatchEvent(new Event('input', { bubbles: true }));
     });
     const changed = onArtifactChange.mock.calls[onArtifactChange.mock.calls.length - 1]?.[0];
-    expect(changed.chapters[0].obligations[0]).toMatchObject({ kind: 'promise', ref_id: 'ending-promise' });
+    expect(changed.chapters[0].volume_ref).toBe('volume-1');
+    expect(changed.chapters[0].scenes[0]).toMatchObject({ place: '封存库', objective: '取得登记簿', conflict: '管理员拒绝', turn: '认出编号', result: '换得副本' });
   });
 });

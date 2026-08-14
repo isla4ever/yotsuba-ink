@@ -7,7 +7,7 @@ import { stageArtifactLabel, stageConfigurationReadiness } from '../lib/planning
 
 export const pipelineNodeTypes = { stageCompact: StageCompactNode, crosscutting: CrosscuttingNode };
 
-const crosscuttingTargetIds = ['summary', 'outline', 'detail', 'text'];
+const crosscuttingTargetIds = ['spine', 'volumes', 'detail', 'text'];
 export type PipelineLayoutVariant = 'planning' | 'cockpit-vertical';
 
 export function isCanvasNodeActivationKey(key: string) {
@@ -203,26 +203,28 @@ export function createCanvasLayout(
 
 function defaultPosition(stageId: string, index: number) {
   const map: Record<string, { x: number; y: number }> = {
-    info: { x: -12, y: 178 },
-    summary: { x: 176, y: 178 },
-    outline: { x: 364, y: 178 },
-    detail: { x: 552, y: 178 },
-    text: { x: 740, y: 178 },
-    cover: { x: 928, y: 178 },
-    export: { x: 1116, y: 178 },
+    brief: { x: -12, y: 178 },
+    spine: { x: 176, y: 178 },
+    cast: { x: 364, y: 178 },
+    volumes: { x: 552, y: 178 },
+    detail: { x: 740, y: 178 },
+    text: { x: 928, y: 178 },
+    cover: { x: 1116, y: 178 },
+    export: { x: 1304, y: 178 },
   };
   return map[stageId] ?? { x: -12 + index * 188, y: 178 };
 }
 
 function cockpitPosition(stageId: string, index: number) {
   const map: Record<string, { x: number; y: number }> = {
-    info: { x: 204, y: 42 },
-    summary: { x: 204, y: 166 },
-    outline: { x: 204, y: 290 },
-    detail: { x: 204, y: 414 },
-    text: { x: 204, y: 538 },
-    cover: { x: 204, y: 662 },
-    export: { x: 204, y: 786 },
+    brief: { x: 204, y: 42 },
+    spine: { x: 204, y: 166 },
+    cast: { x: 204, y: 290 },
+    volumes: { x: 204, y: 414 },
+    detail: { x: 204, y: 538 },
+    text: { x: 204, y: 662 },
+    cover: { x: 204, y: 786 },
+    export: { x: 204, y: 910 },
   };
   return map[stageId] ?? { x: 204, y: 42 + index * 124 };
 }

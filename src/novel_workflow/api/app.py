@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from novel_workflow.api.bootstrap import init_app_state
 from novel_workflow.api.routes import archive_runs_router, cover_assets_router, knowledge_router, projects_router, prompts_router, provider_models_router, providers_router, references_router, run_history_router, runs_router, workflow_router
+from novel_workflow.workflows.executable_contract import executable_workflows
 
 
 @asynccontextmanager
@@ -32,7 +33,9 @@ def create_app() -> FastAPI:
         return {
             "status": "ok",
             "providers": app.state.providers.describe(),
-            "workflows": [item["id"] for item in app.state.workflow_store.list()],
+            "workflows": [
+                item.id for item in executable_workflows(app.state.workflow_store.list())
+            ],
         }
 
     app.include_router(workflow_router)

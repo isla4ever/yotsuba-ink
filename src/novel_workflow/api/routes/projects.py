@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from novel_workflow.storage.project_schemas import ProjectCreateRequest, ProjectPatchRequest, ProjectRecord
 from novel_workflow.storage.project_store import ProjectStoreError
+from novel_workflow.workflows.executable_contract import WorkflowContractError
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -23,6 +24,11 @@ async def create_project(request: Request, payload: ProjectCreateRequest) -> Pro
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Unknown workflow template: {payload.template_workflow_id}") from exc
+    except WorkflowContractError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
 
 
 @router.get("/{project_id}")

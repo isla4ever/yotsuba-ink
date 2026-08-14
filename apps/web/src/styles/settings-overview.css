@@ -1,11 +1,5 @@
-.settings-overview-dialog .settings-dialog-inner {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
 .settings-overview {
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 3px;
 }
 
 .settings-overview-list {
@@ -567,18 +561,6 @@
 }
 
 @media (max-width: 760px) {
-  .settings-overview-dialog.settings-dialog {
-    height: 100dvh;
-    width: 100vw;
-  }
-
-  .settings-overview-dialog .settings-dialog-inner {
-    border-radius: 0;
-    height: 100dvh;
-    max-height: 100dvh;
-    padding: 14px;
-  }
-
   .settings-overview-list > section {
     align-items: start;
     grid-template-columns: 24px minmax(0, 1fr);

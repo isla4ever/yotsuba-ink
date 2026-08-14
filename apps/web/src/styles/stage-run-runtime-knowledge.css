@@ -52,30 +52,3 @@
 .stage-run-main.variant-focus-main {
   grid-template-rows: minmax(0, 1fr);
 }
-
-.stage-run-main.info-main .recommendation-command-card {
-  display: grid;
-  gap: 12px;
-  grid-template-rows: auto auto auto minmax(138px, 0.54fr) minmax(190px, 0.92fr) minmax(0, auto);
-  max-height: 100%;
-  overflow: hidden;
-}
-
-.stage-run-main.info-main .info-recommendation-board {
-  grid-template-rows: minmax(0, 1fr);
-}
-
-.stage-run-main.info-main .recommendation-footer.inline-footer {
-  align-items: center;
-  background: color-mix(in srgb, var(--panel-muted) 70%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-2) 16%, var(--border));
-  border-radius: 14px;
-  display: flex;
-  flex: 0 0 auto;
-  gap: 10px;
-  justify-content: space-between;
-  min-height: 0;
-  padding: 9px 10px;
-  position: relative;
-  z-index: 4;
-}

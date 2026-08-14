@@ -27,7 +27,7 @@ class EvidenceRecord(BaseModel):
     run_id: str
     chapter_id: str
     chapter_version_id: str
-    kind: Literal["fact", "character", "relationship", "foreshadow", "summary"]
+    kind: Literal["fact", "character", "relationship", "foreshadow", "spine"]
     claim: str = Field(min_length=1, max_length=2000)
     spans: list[EvidenceSpan] = Field(min_length=1)
     created_at: str
@@ -45,7 +45,7 @@ class EvidenceStore:
         run_id: str,
         chapter_id: str,
         chapter_version_id: str,
-        kind: Literal["fact", "character", "relationship", "foreshadow", "summary"],
+        kind: Literal["fact", "character", "relationship", "foreshadow", "spine"],
         claim: str,
         spans: list[EvidenceSpan],
     ) -> EvidenceRecord:

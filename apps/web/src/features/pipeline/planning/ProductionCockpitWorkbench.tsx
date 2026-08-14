@@ -1,15 +1,15 @@
 import '../../../styles/entry-planning.css';
-import { DatabaseZap, Globe2, Settings2, ShieldCheck, X } from 'lucide-react';
+import { DatabaseZap, Globe2, ShieldCheck, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CharacterForceGraphPanel } from '../running/insights/CharacterForceGraphPanel';
-import type { CanvasLayout, InspectorTarget, KnowledgeDocument, RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
+import type { InspectorTarget, KnowledgeDocument, RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
 import { extractWorldbuilding } from '../lib/stageConfig';
 import { stageLabelForUi } from '../lib/display';
 import { backdropMotionVariants, overlayExitDurationMs, sheetMotionVariants } from '../lib/motion';
 import { CockpitDetailDialog } from './CockpitDetailDialog';
+import { CockpitPipelineRail } from './CockpitPipelineRail';
 import { CockpitRunLog } from './CockpitRunLog';
-import { PipelineCanvas } from './PipelineCanvas';
 import { StageInspector } from './StageInspector';
 import { activeCockpitStageId, latestNodeStatus, runtimeElapsedSeconds } from './cockpitRuntime';
 import { useOverlayDialog } from '../state/useOverlayDialog';
@@ -23,7 +23,6 @@ type Props = {
   mode?: 'fast' | 'balanced';
   runHasStarted?: boolean;
   onCanvasSelect: (target: InspectorTarget) => void;
-  onLayoutChange: (layout: CanvasLayout) => void;
   onOpenKnowledgeManager: () => void;
   onStageChange: (stage: WorkflowStage) => void;
   onAddModelOption: (providerId: string, model: string) => void;
@@ -36,7 +35,6 @@ export function ProductionCockpitWorkbench({
   runHasStarted = false,
   onCanvasSelect,
   onAddModelOption,
-  onLayoutChange,
   onOpenKnowledgeManager,
   onStageChange,
   selectedId,
@@ -89,19 +87,13 @@ export function ProductionCockpitWorkbench({
 
   return (
     <section className={`fast-preview-workbench cockpit-mode-${mode}`}>
-      <section className="production-cockpit-canvas-panel">
-        <PipelineCanvas
-          events={events}
-          layoutVariant="cockpit-vertical"
-          lockedViewport
-          mode="cockpit"
-          onLayoutChange={onLayoutChange}
-          onSelect={handleSelect}
-          runtimeLayersEnabled={runHasStarted}
-          selectedId={activeStage.id}
-          workflow={workflow}
-        />
-      </section>
+      <CockpitPipelineRail
+        activeStageId={activeStage.id}
+        events={events}
+        onSelectStage={(stageId) => handleSelect({ kind: 'stage', id: stageId })}
+        runHasStarted={runHasStarted}
+        workflow={workflow}
+      />
 
       <section className="fast-runtime-column">
         <CockpitRunLog
@@ -115,83 +107,52 @@ export function ProductionCockpitWorkbench({
             setDetailPanel('stage');
           }}
         />
-        <div className="cockpit-widget-grid">
-          <button
-            className="cockpit-visual-widget wiki-widget"
-            disabled={!runHasStarted}
-            onClick={() => setDetailPanel('wiki')}
-            title={runHasStarted ? '查看 Wiki 事实读写' : '启动创作后可查看 Wiki 事实读写'}
-            type="button"
-          >
-            <span className="cockpit-widget-orb"><DatabaseZap size={18} /></span>
-            <span className="cockpit-widget-copy">
-              <small>运行状态</small>
-              <strong>Wiki 事实层</strong>
-              <em>{wikiStatus}</em>
-            </span>
-            <span className="cockpit-widget-metrics">
-              <b>{wikiReads + wikiWrites}</b>
-              <small>事件</small>
-            </span>
-          </button>
-          <button
-            className="cockpit-visual-widget quality-widget"
-            disabled={!runHasStarted}
-            onClick={() => setDetailPanel('quality')}
-            title={runHasStarted ? '查看质量检查' : '启动创作后可查看质量检查'}
-            type="button"
-          >
-            <span className="cockpit-widget-orb"><ShieldCheck size={18} /></span>
-            <span className="cockpit-widget-copy">
-              <small>质量检查</small>
-              <strong>质量监控</strong>
-              <em>{qualityStatus}</em>
-            </span>
-            <span className="cockpit-widget-metrics">
-              <b>{qualityChecks || '0'}</b>
-              <small>检查</small>
-            </span>
-          </button>
-        </div>
       </section>
 
-      <section className="fast-observation-column">
+      <aside className="fast-observation-column">
         <CharacterForceGraphPanel events={events} qualityMode={mode} surface="bare" />
-        <div className="cockpit-side-widget-grid">
-          <div className="cockpit-entry-row">
-            <button className="cockpit-visual-widget knowledge-widget" onClick={() => setDetailPanel('knowledge')} type="button">
-              <span className="cockpit-widget-orb"><DatabaseZap size={18} /></span>
-              <span className="cockpit-widget-copy">
-                <small>创作依据</small>
-                <strong>知识库资料台</strong>
-                <em>{knowledgeDocuments.length ? '项目资料已接入前置规划' : '未选项目资料，创作立项不会触发知识库检索'}</em>
-              </span>
-              <span className="cockpit-widget-metrics">
-                <b>{knowledgeDocuments.length}</b>
-                <small>{knowledgeChunks || referenceEvents} 片段</small>
-              </span>
-            </button>
-            <button
-              className="cockpit-visual-widget world-widget"
-              disabled={!runHasStarted}
-              onClick={() => setDetailPanel('worldbuilding')}
-              title={runHasStarted ? '查看世界观产物' : '启动创作后可查看世界观产物'}
-              type="button"
-            >
-              <span className="cockpit-widget-orb"><Globe2 size={18} /></span>
-              <span className="cockpit-widget-copy">
-                <small>设定资产</small>
-                <strong>世界观</strong>
-                <em>{worldStatus}</em>
-              </span>
-              <span className="cockpit-widget-metrics">
-                <b>{world.rules.length}</b>
-                <small>硬设定</small>
-              </span>
-            </button>
-          </div>
+        <div className="cockpit-aux-stack">
+          <AuxTile
+            disabled={!runHasStarted}
+            hint={wikiStatus}
+            icon={<DatabaseZap size={15} />}
+            kicker="运行状态"
+            metric={wikiReads + wikiWrites}
+            metricLabel="事件"
+            onClick={() => setDetailPanel('wiki')}
+            title="Wiki 事实层"
+          />
+          <AuxTile
+            disabled={!runHasStarted}
+            hint={qualityStatus}
+            icon={<ShieldCheck size={15} />}
+            kicker="质量检查"
+            metric={qualityChecks}
+            metricLabel="检查"
+            onClick={() => setDetailPanel('quality')}
+            title="质量监控"
+          />
+          <AuxTile
+            hint={knowledgeDocuments.length ? '项目资料已接入前置规划' : '未选项目资料，立项不触发检索'}
+            icon={<DatabaseZap size={15} />}
+            kicker="创作依据"
+            metric={knowledgeDocuments.length}
+            metricLabel={`${knowledgeChunks || referenceEvents} 片段`}
+            onClick={() => setDetailPanel('knowledge')}
+            title="知识库资料"
+          />
+          <AuxTile
+            disabled={!runHasStarted}
+            hint={worldStatus}
+            icon={<Globe2 size={15} />}
+            kicker="设定资产"
+            metric={world.rules.length}
+            metricLabel="硬设定"
+            onClick={() => setDetailPanel('worldbuilding')}
+            title="世界观"
+          />
         </div>
-      </section>
+      </aside>
       <AnimatePresence>
         {detailPanel ? (
           <CockpitDetailDialog
@@ -253,6 +214,47 @@ export function ProductionCockpitWorkbench({
         ) : null}
       </AnimatePresence>
     </section>
+  );
+}
+
+function AuxTile({
+  disabled = false,
+  hint,
+  icon,
+  kicker,
+  metric,
+  metricLabel,
+  onClick,
+  title,
+}: {
+  disabled?: boolean;
+  hint: string;
+  icon: ReactNode;
+  kicker: string;
+  metric: number;
+  metricLabel: string;
+  onClick: () => void;
+  title: string;
+}) {
+  return (
+    <button
+      className="cockpit-aux-tile"
+      disabled={disabled}
+      onClick={onClick}
+      title={disabled ? `启动创作后可查看${title}` : `查看${title}`}
+      type="button"
+    >
+      <span className="cockpit-aux-icon">{icon}</span>
+      <span className="cockpit-aux-copy">
+        <small>{kicker}</small>
+        <strong>{title}</strong>
+        <em>{hint}</em>
+      </span>
+      <span className="cockpit-aux-metric">
+        <b>{metric}</b>
+        <small>{metricLabel}</small>
+      </span>
+    </button>
   );
 }
 

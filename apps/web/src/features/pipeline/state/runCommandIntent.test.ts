@@ -14,15 +14,15 @@ describe('run command intent', () => {
     }))).toEqual({ type: 'none' });
   });
 
-  it('continues Info before considering pause or a new run', () => {
+  it('continues Brief before considering pause or a new run', () => {
     expect(resolveRunCommandIntent(context({
       activeRunId: 'balanced-run',
-      infoContinueReady: true,
+      briefContinueReady: true,
       paused: true,
       workspacePhase: 'running',
     }))).toEqual({
       type: 'continue',
-      stageId: 'info',
+      stageId: 'brief',
     });
   });
 
@@ -41,7 +41,7 @@ describe('run command intent', () => {
   it('does not resume a deep checkpoint before confirmation', () => {
     expect(resolveRunCommandIntent(context({
       activeRunId: 'deep-run',
-      checkpointStageId: 'summary',
+      checkpointStageId: 'spine',
       paused: true,
       qualityMode: 'deep',
       workspacePhase: 'running',
@@ -73,12 +73,12 @@ function context(overrides: Partial<IntentParams> = {}): IntentParams {
     activeRunId: '',
     checkpointContinueReady: false,
     checkpointStageId: '',
-    infoContinueReady: false,
+    briefContinueReady: false,
     paused: false,
     qualityMode: 'balanced',
     runControlState: 'idle',
     running: false,
-    selectedStageType: 'info',
+    selectedStageType: 'brief',
     workspacePhase: 'planning',
     ...overrides,
   };

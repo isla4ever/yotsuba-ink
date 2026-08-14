@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
-from novel_workflow.output_contracts.artifacts_vnext import ChapterArtifact
+from novel_workflow.output_contracts.artifacts_vnext import ChapterArtifact, ContextManifest
 from novel_workflow.runtime.graph.provider_gateway import (
-    ChapterDraftResult,
     ChapterGenerationRequest,
     ProviderOperationError,
 )
@@ -25,7 +25,10 @@ from novel_workflow.runtime.graph.chapter_writeback import (
     enqueue_domain_commit,
     extract_evidence,
 )
-from novel_workflow.runtime.graph.stage_executor import StageExecutor
+from novel_workflow.runtime.graph.stage_executor import (
+    StageExecutor,
+    _is_transient_network_error,
+)
 from novel_workflow.runtime.graph.failure import (
     emit_terminal_failure,
     failure_route,
@@ -51,16 +54,40 @@ def build_chapter_graph(
             return {"chapter_gate_action": "finish"}
         chapter = detail.chapters[next_number - 1]
         attempts = dict(state.get("chapter_attempts") or {})
-        attempts.setdefault(chapter.id, 1)
+        attempts.setdefault(chapter.ref, 1)
         return {
             "active_stage_id": "text",
             "active_chapter_number": next_number,
-            "active_chapter_id": chapter.id,
+            "active_chapter_id": chapter.ref,
+            "context_manifest_ref": "",
             "chapter_gate_action": "generate",
             "chapter_attempts": attempts,
             "stage_status": copy_stage_status(state, "text", "running"),
             "status": "running",
         }
+
+    def prepare_context(state: NarrativeRunState) -> dict[str, Any]:
+        run_id = state["run_id"]
+        chapter_id = state["active_chapter_id"]
+        attempt = int((state.get("chapter_attempts") or {}).get(chapter_id) or 1)
+        definition = executor.runs.definition(run_id)
+        binding = definition.provider_bindings.get("text")
+        if binding is None:
+            raise ProviderOperationError("No frozen Provider binding for text")
+        budget = executor.output_budget_planner(state).for_chapter(binding)
+        context = executor.context_compiler().chapter(
+            state,
+            output_tokens=budget.max_tokens,
+        )
+        manifest = ContextManifest.model_validate(
+            context["material"]["chapter_context_manifest"]
+        )
+        record = executor.context_manifests.write(
+            run_id,
+            attempt=attempt,
+            manifest=manifest,
+        )
+        return {"context_manifest_ref": record.manifest_id}
 
     async def generate_prose(state: NarrativeRunState) -> dict[str, Any]:
         run_id = state["run_id"]
@@ -72,18 +99,28 @@ def build_chapter_graph(
         binding = definition.provider_bindings.get("text")
         if binding is None:
             raise ProviderOperationError("No frozen Provider binding for text")
-        revision_direction = str(
-            (state.get("chapter_revision_directions") or {}).get(chapter_id) or ""
-        ).strip()
-        if attempt > 1 and not revision_direction:
-            raise ValueError("A repeated chapter generation requires an explicit revision direction")
+        manifest_ref = str(state.get("context_manifest_ref") or "")
+        if not manifest_ref:
+            raise ValueError("Chapter generation requires a frozen Context Manifest")
+        manifest_record = executor.context_manifests.read(run_id, manifest_ref)
+        if manifest_record.chapter_id != chapter_id or manifest_record.attempt != attempt:
+            raise ValueError("Context Manifest does not match the active chapter attempt")
+        planner = executor.output_budget_planner(state)
+        budget = planner.for_chapter(binding)
+        context = {
+            "target": "text",
+            "sources": {},
+            "material": {
+                "chapter_context_manifest": manifest_record.manifest.model_dump(mode="json")
+            },
+        }
         request = ChapterGenerationRequest(
             operation_key=operation_key,
             run_id=run_id,
             chapter_id=chapter_id,
             chapter_number=chapter_number,
-            binding=binding,
-            context=executor.context_compiler().chapter(state),
+            binding=budget.bind(binding),
+            context=planner.attach(context, budget),
         )
         receipt = executor.operations.begin(
             run_id=run_id,
@@ -99,8 +136,13 @@ def build_chapter_graph(
             )
         if receipt.status == "succeeded":
             payload = receipt.result
-            draft = ChapterDraftResult.model_validate(payload)
-            artifact = _chapter_artifact(draft, chapter_id=chapter_id, attempt=attempt)
+            content = _read_prose_receipt(payload)
+            artifact = _chapter_artifact(
+                chapter_id=chapter_id,
+                chapter_number=chapter_number,
+                attempt=attempt,
+                content=content,
+            )
             _validate_generated_chapter(
                 artifact,
                 chapter_id=chapter_id,
@@ -108,10 +150,14 @@ def build_chapter_graph(
         else:
             response = None
             try:
-                response = await executor.provider.generate_chapter(request)
-                payload = response.payload
-                draft = ChapterDraftResult.model_validate(payload)
-                artifact = _chapter_artifact(draft, chapter_id=chapter_id, attempt=attempt)
+                response = await _generate_chapter_with_retry(executor, request)
+                payload = {"content": response.content}
+                artifact = _chapter_artifact(
+                    chapter_id=chapter_id,
+                    chapter_number=chapter_number,
+                    attempt=attempt,
+                    content=response.content,
+                )
                 _validate_generated_chapter(
                     artifact,
                     chapter_id=chapter_id,
@@ -187,12 +233,14 @@ def build_chapter_graph(
             "stage_status": copy_stage_status(state, "text", "completed"),
             "status": "running",
             "active_chapter_id": "",
+            "context_manifest_ref": "",
         }
 
     def fail_chapter(state: NarrativeRunState) -> dict[str, Any]:
         return emit_terminal_failure(executor, state, "text")
 
     builder.add_node("prepare_chapter", guarded_node(executor, "text.prepare_chapter", "text", prepare_chapter))
+    builder.add_node("prepare_context", guarded_node(executor, "text.prepare_context", "text", prepare_context))
     builder.add_node("generate_prose", guarded_node(executor, "text.generate_prose", "text", generate_prose))
     builder.add_node(
         "plan_review_roles",
@@ -220,8 +268,9 @@ def build_chapter_graph(
         lambda state: (
             "failure" if state.get("failure") is not None else state.get("chapter_gate_action", "finish")
         ),
-        {"generate": "generate_prose", "finish": "finish_chapters", "failure": "fail_chapter"},
+        {"generate": "prepare_context", "finish": "finish_chapters", "failure": "fail_chapter"},
     )
+    builder.add_conditional_edges("prepare_context", lambda state: failure_route(state, "generate_prose"), {"failure": "fail_chapter", "generate_prose": "generate_prose"})
     builder.add_conditional_edges("generate_prose", lambda state: failure_route(state, "plan_review_roles"), {"failure": "fail_chapter", "plan_review_roles": "plan_review_roles"})
     builder.add_conditional_edges("plan_review_roles", send_reviewers_or_failure)
     builder.add_edge("review_chapter", "evaluate_review_gate")
@@ -232,7 +281,7 @@ def build_chapter_graph(
         ),
         {
             "accept": "commit_chapter",
-            "regenerate": "generate_prose",
+            "regenerate": "prepare_context",
             "cancel": END,
             "failure": "fail_chapter",
         },
@@ -263,19 +312,48 @@ def _validate_generated_chapter(
         raise ValueError("Chapter Provider output must target the frozen chapter as a candidate")
 
 
+_CHAPTER_NETWORK_ATTEMPTS = 3
+
+
+async def _generate_chapter_with_retry(executor: StageExecutor, request: Any) -> Any:
+    """Long prose calls are the slowest in the chain; a timeout or dropped
+    connection must not kill the whole run when a fresh attempt can succeed."""
+    for round_index in range(_CHAPTER_NETWORK_ATTEMPTS):
+        try:
+            return await executor.provider.generate_chapter(request)
+        except Exception as exc:
+            if (
+                round_index >= _CHAPTER_NETWORK_ATTEMPTS - 1
+                or not _is_transient_network_error(exc)
+            ):
+                raise
+            await asyncio.sleep(2 * (round_index + 1))
+    raise RuntimeError("unreachable")
+
+
 def _chapter_artifact(
-    draft: ChapterDraftResult,
     *,
     chapter_id: str,
+    chapter_number: int,
     attempt: int,
+    content: str,
 ) -> ChapterArtifact:
     return ChapterArtifact(
-        chapter_id=draft.chapter_id,
+        chapter_id=chapter_id,
         version_id=f"{chapter_id}-v{attempt}",
-        title=draft.title,
-        content=draft.content,
-        author_status=draft.author_status,
+        title=f"第{chapter_number}章",
+        content=content,
+        author_status="candidate",
     )
+
+
+def _read_prose_receipt(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        raise ValueError("Chapter prose receipt must be an object")
+    content = payload.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("Chapter prose receipt must contain non-empty text")
+    return content
 
 
 def _signature(value: Any) -> str:

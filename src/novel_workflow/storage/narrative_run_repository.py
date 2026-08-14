@@ -8,9 +8,17 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
+from novel_workflow.providers.frozen_contract import (
+    FrozenProviderConfig,
+    FrozenProviderTemplate,
+    FrozenStructuredTask,
+    frozen_provider_config_digest,
+    frozen_provider_template_digest,
+    prompt_digest,
+)
 from novel_workflow.providers.usage import ProviderUsageSummary
 from novel_workflow.storage.atomic_json import atomic_write_json, read_json, require_safe_id
-from novel_workflow.workflows.book_scale_plan import BookScalePlan
+from novel_workflow.workflows.narrative_scale import NarrativeScaleProfile
 
 
 RunStatus = Literal[
@@ -28,12 +36,20 @@ class ProviderBinding(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider_profile_id: str = Field(min_length=1, max_length=120)
+    provider_config: FrozenProviderConfig
+    template_id: str = Field(min_length=1, max_length=120)
+    provider_template: FrozenProviderTemplate
+    provider_config_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provider_template_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     model: str = Field(min_length=1, max_length=200)
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=1800, ge=1)
     top_p: float = Field(default=0.95, ge=0, le=1)
     timeout_seconds: int = Field(default=120, ge=1)
-    prompt_template: str = ""
+    prompt_template_id: str = Field(min_length=1, max_length=120)
+    prompt_template: str = Field(min_length=1)
+    prompt_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    structured_tasks: dict[str, FrozenStructuredTask]
 
     @field_validator("provider_profile_id")
     @classmethod
@@ -43,11 +59,36 @@ class ProviderBinding(BaseModel):
             raise ValueError("Provider binding must name an explicit profile")
         return provider_id
 
+    @model_validator(mode="after")
+    def validate_frozen_snapshot(self) -> "ProviderBinding":
+        if self.provider_config.provider_profile_id != self.provider_profile_id:
+            raise ValueError("Provider binding profile does not match its frozen config")
+        if self.provider_config.kind != "openai-compatible":
+            raise ValueError("Text Provider binding requires an openai-compatible config")
+        if self.provider_config.template_id != self.template_id:
+            raise ValueError("Provider binding template does not match its frozen config")
+        if self.provider_template.id != self.template_id:
+            raise ValueError("Provider binding template does not match its frozen snapshot")
+        if self.provider_template.kind != "openai-compatible":
+            raise ValueError("Text Provider binding requires a text template snapshot")
+        if frozen_provider_config_digest(self.provider_config) != self.provider_config_digest:
+            raise ValueError("Provider config digest does not match its frozen snapshot")
+        if frozen_provider_template_digest(self.provider_template) != self.provider_template_digest:
+            raise ValueError("Provider template digest does not match its frozen snapshot")
+        if prompt_digest(self.prompt_template) != self.prompt_digest:
+            raise ValueError("Prompt digest does not match its frozen content")
+        return self
+
 
 class CoverAssetBinding(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider_profile_id: str = Field(min_length=1, max_length=120)
+    provider_config: FrozenProviderConfig
+    template_id: str = Field(min_length=1, max_length=120)
+    provider_template: FrozenProviderTemplate
+    provider_config_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provider_template_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     model: str = Field(min_length=1, max_length=200)
     candidate_count: int = Field(ge=1, le=4)
     size: str = Field(pattern=r"^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$")
@@ -68,6 +109,20 @@ class CoverAssetBinding(BaseModel):
         width, height = (int(item) for item in self.size.split("x", maxsplit=1))
         if not (256 <= width <= 8192 and 256 <= height <= 8192):
             raise ValueError("Cover image dimensions must stay between 256 and 8192 pixels")
+        if self.provider_config.provider_profile_id != self.provider_profile_id:
+            raise ValueError("Cover binding profile does not match its frozen config")
+        if self.provider_config.kind != "openai-compatible-image":
+            raise ValueError("Cover binding requires an image Provider config")
+        if self.provider_config.template_id != self.template_id:
+            raise ValueError("Cover binding template does not match its frozen config")
+        if self.provider_template.id != self.template_id:
+            raise ValueError("Cover binding template does not match its frozen snapshot")
+        if self.provider_template.kind != "openai-compatible-image":
+            raise ValueError("Cover binding requires an image template snapshot")
+        if frozen_provider_config_digest(self.provider_config) != self.provider_config_digest:
+            raise ValueError("Cover Provider config digest does not match its frozen snapshot")
+        if frozen_provider_template_digest(self.provider_template) != self.provider_template_digest:
+            raise ValueError("Cover Provider template digest does not match its frozen snapshot")
         return self
 
     def aspect_ratio(self) -> float:
@@ -93,13 +148,15 @@ class BranchOrigin(BaseModel):
 class RunDefinition(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    architecture_version: Literal["phase26-vnext"] = "phase26-vnext"
+    architecture_version: Literal["phase27-vnext"] = "phase27-vnext"
     run_id: str
     project_id: str
+    workflow_id: str
     workflow_revision: str
+    workflow_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     quality_mode: Literal["fast", "balanced", "deep"] = "balanced"
     inputs: dict[str, Any]
-    book_scale_plan: BookScalePlan
+    scale_profile: NarrativeScaleProfile
     provider_bindings: dict[StageId, ProviderBinding]
     cover_asset_binding: CoverAssetBinding
     export_preferences: ExportPreferences
@@ -114,8 +171,9 @@ class RunReadModel(BaseModel):
     project_id: str
     thread_id: str
     status: RunStatus
-    active_stage_id: StageId = "info"
+    active_stage_id: StageId = "brief"
     active_chapter_number: int = 0
+    context_manifest_ref: str = ""
     stage_status: dict[StageId, StageStatus]
     artifact_refs: dict[StageId, str] = Field(default_factory=dict)
     pending_decisions: list[dict[str, Any]] = Field(default_factory=list)
@@ -138,10 +196,12 @@ class NarrativeRunRepository:
         *,
         run_id: str,
         project_id: str,
+        workflow_id: str,
         workflow_revision: str,
+        workflow_digest: str,
         quality_mode: Literal["fast", "balanced", "deep"],
         inputs: dict[str, Any],
-        book_scale_plan: BookScalePlan,
+        scale_profile: NarrativeScaleProfile,
         provider_bindings: dict[StageId, ProviderBinding],
         cover_asset_binding: CoverAssetBinding,
         export_preferences: ExportPreferences,
@@ -156,10 +216,12 @@ class NarrativeRunRepository:
             definition = RunDefinition(
                 run_id=run_id,
                 project_id=project_id,
+                workflow_id=workflow_id,
                 workflow_revision=workflow_revision,
+                workflow_digest=workflow_digest,
                 quality_mode=quality_mode,
                 inputs=inputs,
-                book_scale_plan=book_scale_plan,
+                scale_profile=scale_profile,
                 provider_bindings=provider_bindings,
                 cover_asset_binding=cover_asset_binding,
                 export_preferences=export_preferences,
@@ -168,7 +230,7 @@ class NarrativeRunRepository:
             )
             atomic_write_json(definition_path, definition.model_dump(mode="json"))
             initial_status: dict[StageId, StageStatus] = {stage: "locked" for stage in STAGE_ORDER}
-            initial_status["info"] = "available"
+            initial_status["brief"] = "available"
             projection = RunReadModel(
                 run_id=run_id,
                 project_id=project_id,

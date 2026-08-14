@@ -11,7 +11,11 @@ import {
 } from './storage';
 import type { RunEvent } from '../contracts';
 import { defaultWorkflow } from './defaultWorkflow';
-import { buildBookScalePlan } from '../lib/bookScalePlan';
+
+const lengthEnvelope = {
+  word_target_soft: 100_000,
+  chapter_target_soft: 3,
+};
 
 function memoryWindow(seed: Record<string, string> = {}) {
   const store = new Map<string, string>(Object.entries(seed));
@@ -32,7 +36,7 @@ function storedRunControl(runId: string): StoredRunControlState {
     paused: false,
     runSource: 'backend',
     runControlState: 'running',
-    selectedId: 'summary',
+    selectedId: 'spine',
     workspacePhase: 'running',
   };
 }
@@ -64,7 +68,7 @@ describe('project-scoped workspace storage (mine 1)', () => {
         title: '恢复角色',
         theme: '旧港',
         quality_mode: 'balanced' as const,
-        book_scale_plan: buildBookScalePlan('total_chapters', 3),
+        length_envelope: lengthEnvelope,
         run_intent: {
           project_brief: { narrative_profile: '意象织造者' },
           knowledge_strategy: {},
@@ -86,7 +90,7 @@ describe('project-scoped workspace storage (mine 1)', () => {
     expect(win.__store.has(`${runControlStorageKey}:proj-1`)).toBe(true);
     expect(loadRunControlLocally()).toMatchObject({
       activeRunId: 'run-1',
-      selectedId: 'summary',
+      selectedId: 'spine',
       workspacePhase: 'planning',
     });
   });

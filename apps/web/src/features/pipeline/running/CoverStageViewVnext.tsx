@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CoverAssetRecord } from '../contracts';
 import { coverAssetUrl, getCoverAssets } from '../services/coverAssetApi';
 import { parseCoverArtifact, type CoverArtifactVnext } from './artifactsVnext';
+import { PaletteSwatchField } from './PaletteSwatchField';
+import { PhraseTagField } from './PhraseTagField';
 import { VnextArtifactError } from './VnextArtifactError';
 
 type Props = {
@@ -48,8 +50,14 @@ export function CoverStageViewVnext({ onArtifactChange, readOnly, result, runId,
             {assetState === 'loading' ? '读取中' : assetState === 'error' ? '资产不可用' : `${assets.length} 张`}
           </span>
         </header>
-        <div className="vnext-cover-preview">
-          {preview ? <img alt="当前封面候选" src={coverAssetUrl(runId, preview.asset_id)} /> : <ImageOff aria-hidden="true" size={28} />}
+        <div className={`vnext-cover-preview${preview ? '' : ' empty'}`}>
+          {preview ? <img alt="当前封面候选" src={coverAssetUrl(runId, preview.asset_id)} /> : (
+            <div className="vnext-cover-preview-empty">
+              <ImageOff aria-hidden="true" size={28} />
+              <strong>{assetState === 'loading' ? '正在读取封面候选' : assetState === 'error' ? '候选资产暂不可用' : '尚未生成封面候选'}</strong>
+              <span>{assetState === 'error' ? '资产存储无法访问；生成回执可在诊断中查看。' : '根据视觉 Brief 生成候选后，在此比较并选定正式封面。'}</span>
+            </div>
+          )}
         </div>
         <div aria-label="封面候选" className="vnext-cover-candidate-rail" role="list">
           {assets.map((asset) => {
@@ -76,15 +84,24 @@ export function CoverStageViewVnext({ onArtifactChange, readOnly, result, runId,
         <header><div><Palette size={15} /><span>视觉 Brief</span><strong>{briefReadOnly && !readOnly ? '候选已绑定' : `${artifact.brief.palette.length} 色`}</strong></div></header>
         <label className="vnext-field"><span>核心概念</span><textarea onChange={(event) => update({ ...artifact, brief: { ...artifact.brief, concept: event.target.value } })} readOnly={briefReadOnly} rows={4} value={artifact.brief.concept} /></label>
         <label className="vnext-field"><span>画面指令</span><textarea onChange={(event) => update({ ...artifact, brief: { ...artifact.brief, image_prompt: event.target.value } })} readOnly={briefReadOnly} rows={9} value={artifact.brief.image_prompt} /></label>
-        <div className="vnext-field-grid">
-          <label className="vnext-field"><span>色彩</span><textarea onChange={(event) => update({ ...artifact, brief: { ...artifact.brief, palette: lines(event.target.value) } })} readOnly={briefReadOnly} rows={4} value={artifact.brief.palette.join('\n')} /></label>
-          <label className="vnext-field"><span>排除项</span><textarea onChange={(event) => update({ ...artifact, brief: { ...artifact.brief, negative_constraints: lines(event.target.value) } })} readOnly={briefReadOnly} rows={4} value={artifact.brief.negative_constraints.join('\n')} /></label>
+        <PaletteSwatchField
+          label="色彩基调"
+          onChange={(palette) => update({ ...artifact, brief: { ...artifact.brief, palette } })}
+          readOnly={briefReadOnly}
+          values={artifact.brief.palette}
+        />
+        <div className="vnext-ref-field">
+          <span>排除项（画面中不允许出现）</span>
+          <PhraseTagField
+            addLabel="新增排除项"
+            ariaLabel="排除项"
+            onChange={(negative_constraints) => update({ ...artifact, brief: { ...artifact.brief, negative_constraints } })}
+            placeholder="例如：不要出现文字"
+            readOnly={briefReadOnly}
+            values={artifact.brief.negative_constraints}
+          />
         </div>
       </section>
     </div>
   );
-}
-
-function lines(value: string) {
-  return value.split('\n').map((item) => item.trim()).filter(Boolean);
 }

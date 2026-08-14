@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 StageId = Literal[
-    "info",
-    "characters",
-    "summary",
-    "outline",
+    "brief",
+    "spine",
+    "cast",
+    "volumes",
     "detail",
     "text",
     "cover",
@@ -17,10 +17,10 @@ StageId = Literal[
 ]
 
 STAGE_ORDER: tuple[StageId, ...] = (
-    "info",
-    "characters",
-    "summary",
-    "outline",
+    "brief",
+    "spine",
+    "cast",
+    "volumes",
     "detail",
     "text",
     "cover",
@@ -28,10 +28,10 @@ STAGE_ORDER: tuple[StageId, ...] = (
 )
 
 STAGE_LABELS: dict[StageId, str] = {
-    "info": "创作立项",
-    "characters": "人物编排",
-    "summary": "全书梗概",
-    "outline": "分卷大纲",
+    "brief": "创作立项",
+    "spine": "故事脊柱",
+    "cast": "人物编排",
+    "volumes": "分卷架构",
     "detail": "章节施工图",
     "text": "正文",
     "cover": "封面",
@@ -47,260 +47,295 @@ class StrictArtifact(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
-class StoryPromise(StrictArtifact):
-    genre: str = Field(min_length=1, max_length=120)
-    audience: str = Field(min_length=1, max_length=160)
-    tone: str = Field(min_length=1, max_length=240)
-
-
-class NarrativeVoice(StrictArtifact):
-    viewpoint: str = Field(min_length=1, max_length=120)
-    tense: str = Field(min_length=1, max_length=80)
-    texture: str = Field(min_length=1, max_length=500)
-    avoid: list[str] = Field(max_length=30)
-
-
-class CastRequirement(StrictArtifact):
-    function: str = Field(min_length=1, max_length=240)
-    importance: Literal["protagonist", "major", "functional", "npc"]
+class LengthEnvelope(StrictArtifact):
+    word_target_soft: Optional[int] = Field(default=None, ge=1, le=10_000_000)
+    chapter_target_soft: Optional[int] = Field(default=None, ge=1, le=10_000)
 
 
 class StoryBriefArtifact(StrictArtifact):
     title: str = Field(min_length=1, max_length=200)
     premise: str = Field(min_length=1, max_length=2000)
-    story_promise: StoryPromise
-    world_rules: list[str] = Field(min_length=1, max_length=40)
-    thematic_question: str = Field(min_length=1, max_length=500)
+    promise: str = Field(min_length=1, max_length=1000)
+    world_rules: list[str] = Field(min_length=1, max_length=24)
+    theme: str = Field(min_length=1, max_length=600)
     ending_promise: str = Field(min_length=1, max_length=1000)
-    voice: NarrativeVoice
-    cast_requirements: list[CastRequirement] = Field(max_length=40)
+    voice: str = Field(min_length=1, max_length=600)
+    length_envelope: LengthEnvelope
 
 
-CharacterTier = Literal["protagonist", "major", "functional"]
+class SpineTurn(StrictArtifact):
+    id: str = Field(pattern=r"^turn-[1-9][0-9]*$")
+    cause: str = Field(min_length=1, max_length=1200)
+    change: str = Field(min_length=1, max_length=1200)
 
 
-class CharacterArc(StrictArtifact):
-    start: str = Field(min_length=1, max_length=500)
-    turning_point: str = Field(min_length=1, max_length=500)
-    end: str = Field(min_length=1, max_length=500)
+class SpineTurnDraft(StrictArtifact):
+    cause: str = Field(min_length=1, max_length=1200)
+    change: str = Field(min_length=1, max_length=1200)
 
 
-class CharacterRecord(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    name: str = Field(min_length=1, max_length=120)
-    tier: CharacterTier
-    narrative_function: str = Field(min_length=1, max_length=500)
-    external_goal: str = Field(min_length=1, max_length=500)
-    inner_need: str = Field(min_length=1, max_length=500)
-    arc: CharacterArc
-    first_appearance_window: str = Field(
-        pattern=r"^chapter:[1-9][0-9]*(?:-[1-9][0-9]*)?$"
+class StorySpineArtifact(StrictArtifact):
+    turns: list[SpineTurn] = Field(min_length=1, max_length=120)
+    ending: str = Field(min_length=1, max_length=1600)
+    open_questions: list[str] = Field(max_length=16)
+    progress_types: list[Literal["information", "relationship", "external", "internal"]] = Field(
+        min_length=1, max_length=4
     )
-    hard_boundaries: list[str] = Field(max_length=30)
 
-    @field_validator("first_appearance_window")
-    @classmethod
-    def validate_appearance_window(cls, value: str) -> str:
-        return _validate_appearance_window(value)
+    @model_validator(mode="after")
+    def unique_turns(self) -> "StorySpineArtifact":
+        ids = [turn.id for turn in self.turns]
+        if ids != [f"turn-{index}" for index in range(1, len(ids) + 1)]:
+            raise ValueError("Spine turn ids must be deterministic and contiguous")
+        return self
 
 
-class CharacterRelationship(StrictArtifact):
-    source_id: str = Field(min_length=1, max_length=120)
-    target_id: str = Field(min_length=1, max_length=120)
-    nature: str = Field(min_length=1, max_length=240)
-    initial_state: str = Field(min_length=1, max_length=500)
+class StorySpineDraftArtifact(StrictArtifact):
+    turns: list[SpineTurnDraft] = Field(min_length=1, max_length=120)
+    ending: str = Field(min_length=1, max_length=1600)
+    open_questions: list[str] = Field(max_length=16)
+    progress_types: list[Literal["information", "relationship", "external", "internal"]] = Field(
+        min_length=1, max_length=4
+    )
+
+
+class RoleDemandProposal(StrictArtifact):
+    demand_key: str = Field(pattern=r"^demand-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    function: str = Field(min_length=1, max_length=400)
+    required_change: str = Field(min_length=1, max_length=600)
+    # A principal role can legitimately stay active across every spine turn,
+    # so this cap must track StorySpineArtifact.turns (max 120), not a fixed dozen.
+    active_turn_refs: list[str] = Field(min_length=1, max_length=120)
+
+
+class CastDemand(StrictArtifact):
+    """Rebuildable pressure diagnostic, never a character-count authority."""
+
+    subject_id: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    pressure: int = Field(ge=0, le=200)
+    signals: list[str] = Field(max_length=12)
+    recommendation: Literal["keep", "split", "merge", "review"]
+
+
+class VolumeBoundaryProposal(StrictArtifact):
+    boundary_key: str = Field(pattern=r"^boundary-[1-9][0-9]*$")
+    # One volume may absorb most of a long spine; keep in step with the 120-turn ceiling.
+    turn_refs: list[str] = Field(min_length=1, max_length=120)
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class RoleDemandProposalBatch(StrictArtifact):
+    proposals: list[RoleDemandProposal] = Field(min_length=1, max_length=24)
+
+
+class VolumeBoundaryProposalBatch(StrictArtifact):
+    proposals: list[VolumeBoundaryProposal] = Field(min_length=1, max_length=24)
+
+
+class ContextSnippet(StrictArtifact):
+    ref: str = Field(min_length=1, max_length=160)
+    purpose: str = Field(min_length=1, max_length=160)
+    text: str = Field(min_length=1, max_length=12_000)
+    source_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class ContextBudget(StrictArtifact):
+    input_chars: int = Field(ge=1, le=500_000)
+    output_tokens: int = Field(ge=1, le=1_000_000)
+
+
+class ContextManifest(StrictArtifact):
+    task: str = Field(pattern=r"^chapter-[1-9][0-9]*$")
+    required: list[str] = Field(min_length=1, max_length=8)
+    optional: list[str] = Field(max_length=12)
+    forbidden: list[str] = Field(min_length=1, max_length=12)
+    snippets: list[ContextSnippet] = Field(max_length=16)
+    budget: ContextBudget
+    manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def validate_integrity(self) -> "ContextManifest":
+        required = self.required
+        optional = self.optional
+        if len(required) != len(set(required)) or len(optional) != len(set(optional)):
+            raise ValueError("Context Manifest refs must be unique")
+        if set(required) & set(optional):
+            raise ValueError("Context Manifest required and optional refs must be disjoint")
+        snippet_refs = [snippet.ref for snippet in self.snippets]
+        if len(snippet_refs) != len(set(snippet_refs)):
+            raise ValueError("Context Manifest snippet refs must be unique")
+        if set(snippet_refs) != set(required) | set(optional):
+            raise ValueError("Context Manifest refs must match its snippets exactly")
+        if any(_content_hash(snippet.text) != snippet.source_hash for snippet in self.snippets):
+            raise ValueError("Context Manifest source hash does not match snippet text")
+        if self.budget.input_chars != sum(len(snippet.text) for snippet in self.snippets):
+            raise ValueError("Context Manifest input character budget does not match snippets")
+        payload = self.model_dump(mode="json", exclude={"manifest_hash"})
+        if _content_hash(_canonical_json(payload)) != self.manifest_hash:
+            raise ValueError("Context Manifest hash does not match its signed payload")
+        return self
+
+
+CharacterKind = Literal["protagonist", "major", "functional", "npc", "historical_record"]
+
+
+class CharacterSubject(StrictArtifact):
+    id: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    name: str = Field(min_length=1, max_length=120)
+    kind: CharacterKind
+    function: str = Field(min_length=1, max_length=500)
+    drive: str = Field(min_length=1, max_length=600)
+    change: str = Field(min_length=1, max_length=600)
+    debut: str = Field(pattern=r"^chapter:[1-9][0-9]*(?:-[1-9][0-9]*)?$")
+    limits: list[str] = Field(min_length=1, max_length=16)
+    demand_refs: list[str] = Field(min_length=1, max_length=8)
+
+
+class CharacterDossier(StrictArtifact):
+    """Provider-authored dossier; the runtime binds its preallocated subject id."""
+
+    name: str = Field(min_length=1, max_length=120)
+    kind: CharacterKind
+    function: str = Field(min_length=1, max_length=500)
+    drive: str = Field(min_length=1, max_length=600)
+    change: str = Field(min_length=1, max_length=600)
+    debut: str = Field(pattern=r"^chapter:[1-9][0-9]*(?:-[1-9][0-9]*)?$")
+    limits: list[str] = Field(min_length=1, max_length=16)
+    demand_refs: list[str] = Field(min_length=1, max_length=8)
+
+
+class CharacterDossierBatch(StrictArtifact):
+    subjects: list[CharacterDossier] = Field(min_length=1, max_length=24)
+
+
+class CharacterRelation(StrictArtifact):
+    a: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    b: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    type: str = Field(min_length=1, max_length=160)
     pressure: str = Field(min_length=1, max_length=500)
 
 
-class NpcSlot(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    function: str = Field(min_length=1, max_length=500)
-    first_appearance_window: str = Field(
-        pattern=r"^chapter:[1-9][0-9]*(?:-[1-9][0-9]*)?$"
-    )
-    limits: list[str] = Field(max_length=30)
-
-    @field_validator("first_appearance_window")
-    @classmethod
-    def validate_appearance_window(cls, value: str) -> str:
-        return _validate_appearance_window(value)
+class CharacterRelationBatch(StrictArtifact):
+    relations: list[CharacterRelation] = Field(max_length=360)
 
 
 class CharacterBibleArtifact(StrictArtifact):
-    characters: list[CharacterRecord] = Field(min_length=1, max_length=80)
-    relationships: list[CharacterRelationship] = Field(max_length=300)
-    npc_slots: list[NpcSlot] = Field(max_length=120)
+    subjects: list[CharacterSubject] = Field(min_length=1, max_length=120)
+    relations: list[CharacterRelation] = Field(max_length=360)
 
     @model_validator(mode="after")
     def validate_registry(self) -> "CharacterBibleArtifact":
-        character_ids = [item.id for item in self.characters]
-        slot_ids = [item.id for item in self.npc_slots]
-        if len(character_ids) != len(set(character_ids)):
-            raise ValueError("Character ids must be unique")
-        if len(slot_ids) != len(set(slot_ids)) or set(character_ids) & set(slot_ids):
-            raise ValueError("NPC slot ids must be unique and distinct from character ids")
-        known = set(character_ids)
-        if not any(item.tier == "protagonist" for item in self.characters):
+        ids = [subject.id for subject in self.subjects]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Character subject ids must be unique")
+        if not any(subject.kind == "protagonist" for subject in self.subjects):
             raise ValueError("Character Bible must register at least one protagonist")
-        for relation in self.relationships:
-            if relation.source_id == relation.target_id:
-                raise ValueError("A character relationship cannot target itself")
-            if relation.source_id not in known or relation.target_id not in known:
-                raise ValueError("Character relationships must reference registered characters")
+        known = set(ids)
+        for relation in self.relations:
+            if relation.a == relation.b or relation.a not in known or relation.b not in known:
+                raise ValueError("Character relations must reference two registered subjects")
         return self
 
 
-class SummaryBeat(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    phase: str = Field(min_length=1, max_length=120)
-    event: str = Field(min_length=1, max_length=1000)
-    consequence: str = Field(min_length=1, max_length=1000)
+class VolumeContract(StrictArtifact):
+    id: str = Field(pattern=r"^volume-[1-9][0-9]*$")
+    # Default keeps artifacts from runs created before volume titles existed
+    # readable; new generations enforce a non-empty title at unit validation.
+    title: str = Field(default="", max_length=80)
+    promise: str = Field(min_length=1, max_length=1000)
+    conflict: str = Field(min_length=1, max_length=1000)
+    climax: str = Field(min_length=1, max_length=1200)
+    closure: str = Field(min_length=1, max_length=1200)
+    # Keep in step with the 120-turn spine ceiling: one volume may own most turns.
+    turn_refs: list[str] = Field(min_length=1, max_length=120)
+    cast_ids: list[str] = Field(min_length=1, max_length=80)
+    thread_ids: list[str] = Field(max_length=40)
+    length_hint: Literal["short", "medium", "long"]
 
 
-class CharacterOutcome(StrictArtifact):
-    character_id: str = Field(min_length=1, max_length=120)
-    outcome: str = Field(min_length=1, max_length=1000)
+class VolumeContractDraft(StrictArtifact):
+    title: str = Field(default="", max_length=80)
+    promise: str = Field(min_length=1, max_length=1000)
+    conflict: str = Field(min_length=1, max_length=1000)
+    climax: str = Field(min_length=1, max_length=1200)
+    closure: str = Field(min_length=1, max_length=1200)
+    cast_ids: list[str] = Field(min_length=1, max_length=80)
+    thread_ids: list[str] = Field(max_length=40)
+    length_hint: Literal["short", "medium", "long"]
 
 
-class SummaryArtifact(StrictArtifact):
-    beats: list[SummaryBeat] = Field(min_length=1, max_length=80)
-    climax: str = Field(min_length=1, max_length=1500)
-    resolution: str = Field(min_length=1, max_length=1500)
-    character_outcomes: list[CharacterOutcome] = Field(max_length=80)
+class VolumeArchitectureDraftArtifact(StrictArtifact):
+    volumes: list[VolumeContractDraft] = Field(min_length=1, max_length=24)
+
+
+class VolumeArchitectureArtifact(StrictArtifact):
+    volumes: list[VolumeContract] = Field(min_length=1, max_length=24)
 
     @model_validator(mode="after")
-    def validate_summary_registry(self) -> "SummaryArtifact":
-        _require_unique([item.id for item in self.beats], "Summary beat ids")
-        _require_unique(
-            [item.character_id for item in self.character_outcomes],
-            "Summary character outcomes",
-        )
+    def unique_and_contiguous(self) -> "VolumeArchitectureArtifact":
+        ids = [volume.id for volume in self.volumes]
+        if ids != [f"volume-{index}" for index in range(1, len(ids) + 1)]:
+            raise ValueError("Volume ids must be deterministic and contiguous")
         return self
 
 
-class VolumeTurn(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    event: str = Field(min_length=1, max_length=1000)
-    consequence: str = Field(min_length=1, max_length=1000)
-
-
-class CharacterWindow(StrictArtifact):
-    character_id: str = Field(min_length=1, max_length=120)
-    entry_state: str = Field(min_length=1, max_length=500)
-    exit_state: str = Field(min_length=1, max_length=500)
-    turn_id: str = Field(min_length=1, max_length=120)
-
-
-class ThreadWindow(StrictArtifact):
-    thread_id: str = Field(min_length=1, max_length=120)
-    kind: Literal["plot", "relationship", "mystery", "foreshadow"]
-    action: str = Field(min_length=1, max_length=500)
-    chapter_window: str = Field(min_length=1, max_length=120)
-
-
-class VolumePlan(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    chapter_window: str = Field(min_length=1, max_length=120)
-    objective: str = Field(min_length=1, max_length=1000)
-    turns: list[VolumeTurn] = Field(min_length=1, max_length=40)
-    ending_state: str = Field(min_length=1, max_length=1000)
-    character_windows: list[CharacterWindow] = Field(max_length=120)
-    thread_windows: list[ThreadWindow] = Field(max_length=120)
-
-    @model_validator(mode="after")
-    def validate_volume_registry(self) -> "VolumePlan":
-        _chapter_window(self.chapter_window)
-        turn_ids = [item.id for item in self.turns]
-        _require_unique(turn_ids, "Volume turn ids")
-        known_turns = set(turn_ids)
-        unknown_turns = {
-            item.turn_id for item in self.character_windows if item.turn_id not in known_turns
-        }
-        if unknown_turns:
-            raise ValueError(
-                f"Character windows reference unknown turns: {sorted(unknown_turns)}"
-            )
-        _require_unique(
-            [item.character_id for item in self.character_windows],
-            "Volume character windows",
-        )
-        for item in self.thread_windows:
-            start, end = _chapter_window(item.chapter_window)
-            volume_start, volume_end = _chapter_window(self.chapter_window)
-            if start < volume_start or end > volume_end:
-                raise ValueError("Thread windows must stay inside their volume chapter window")
-        return self
-
-
-class OutlineArtifact(StrictArtifact):
-    volumes: list[VolumePlan] = Field(min_length=1, max_length=40)
-
-    @model_validator(mode="after")
-    def validate_volume_windows(self) -> "OutlineArtifact":
-        _require_unique([item.id for item in self.volumes], "Outline volume ids")
-        expected_start = 1
-        for volume in self.volumes:
-            start, end = _chapter_window(volume.chapter_window)
-            if start != expected_start:
-                raise ValueError("Outline volume windows must be contiguous and start at chapter one")
-            expected_start = end + 1
-        return self
-
-
-class ScenePlan(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    location: str = Field(min_length=1, max_length=300)
-    goal: str = Field(min_length=1, max_length=700)
-    obstacle: str = Field(min_length=1, max_length=700)
+class DetailScene(StrictArtifact):
+    place: str = Field(min_length=1, max_length=300)
+    objective: str = Field(min_length=1, max_length=700)
+    conflict: str = Field(min_length=1, max_length=700)
     turn: str = Field(min_length=1, max_length=700)
-    outcome: str = Field(min_length=1, max_length=700)
+    result: str = Field(min_length=1, max_length=700)
 
 
-class ChapterObligation(StrictArtifact):
-    kind: Literal["character", "thread", "world_rule", "promise"]
-    ref_id: str = Field(min_length=1, max_length=120)
-    action: str = Field(min_length=1, max_length=500)
-
-
-class ChapterHandoff(StrictArtifact):
-    unresolved_actions: list[str] = Field(max_length=30)
-    emotional_carryover: list[str] = Field(max_length=30)
-    next_pressure: str = Field(max_length=700)
-
-
-class ChapterPlan(StrictArtifact):
-    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$")
-    number: int = Field(ge=1)
+class DetailChapter(StrictArtifact):
+    ref: str = Field(pattern=r"^chapter-[1-9][0-9]*$")
+    volume_ref: str = Field(pattern=r"^volume-[1-9][0-9]*$")
+    # The chapter title is decided at the detail stage (the only stage that
+    # knows what the chapter is about) and flows into the prose artifact.
+    title: str = Field(default="", max_length=80)
     purpose: str = Field(min_length=1, max_length=1000)
-    pov_character_id: str = Field(min_length=1, max_length=120)
-    scenes: list[ScenePlan] = Field(min_length=1, max_length=3)
-    obligations: list[ChapterObligation] = Field(max_length=40)
-    handoff: ChapterHandoff
+    pov: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    cast_ids: list[str] = Field(min_length=1, max_length=80)
+    scenes: list[DetailScene] = Field(min_length=1, max_length=8)
+    handoff: str = Field(min_length=1, max_length=800)
+
+    @model_validator(mode="after")
+    def validate_cast(self) -> "DetailChapter":
+        _validate_chapter_cast(self.pov, self.cast_ids)
+        return self
 
 
 class DetailArtifact(StrictArtifact):
-    chapters: list[ChapterPlan] = Field(min_length=1, max_length=1000)
+    chapters: list[DetailChapter] = Field(min_length=1, max_length=2000)
 
     @model_validator(mode="after")
-    def validate_chapters(self) -> "DetailArtifact":
-        ids = [item.id for item in self.chapters]
-        numbers = [item.number for item in self.chapters]
-        if len(ids) != len(set(ids)):
-            raise ValueError("Chapter ids must be unique")
-        if numbers != list(range(1, len(numbers) + 1)):
-            raise ValueError("Chapter numbers must be contiguous and start at one")
-        for chapter in self.chapters:
-            if chapter.id != f"chapter-{chapter.number}":
-                raise ValueError("Chapter ids must match their frozen chapter number")
-            _require_unique(
-                [scene.id for scene in chapter.scenes],
-                f"Scene ids in {chapter.id}",
-            )
+    def unique_chapters(self) -> "DetailArtifact":
+        refs = [chapter.ref for chapter in self.chapters]
+        if refs != [f"chapter-{index}" for index in range(1, len(refs) + 1)]:
+            raise ValueError("Detail chapter refs must be deterministic and contiguous")
         return self
 
 
+class DetailSegmentChapter(StrictArtifact):
+    title: str = Field(default="", max_length=80)
+    purpose: str = Field(min_length=1, max_length=1000)
+    pov: str = Field(pattern=r"^subject-[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+    cast_ids: list[str] = Field(min_length=1, max_length=80)
+    scenes: list[DetailScene] = Field(min_length=1, max_length=8)
+    handoff: str = Field(min_length=1, max_length=800)
+
+    @model_validator(mode="after")
+    def validate_cast(self) -> "DetailSegmentChapter":
+        _validate_chapter_cast(self.pov, self.cast_ids)
+        return self
+
+
+class DetailSegmentArtifact(StrictArtifact):
+    chapters: list[DetailSegmentChapter] = Field(min_length=1, max_length=200)
+
+
 class ChapterArtifact(StrictArtifact):
-    chapter_id: str = Field(min_length=1, max_length=120)
+    chapter_id: str = Field(pattern=r"^chapter-[1-9][0-9]*$")
     version_id: str = Field(min_length=1, max_length=160)
     title: str = Field(min_length=1, max_length=240)
     content: str = Field(min_length=1)
@@ -325,18 +360,35 @@ class ExportMetadata(StrictArtifact):
     version_note: str = Field(max_length=500)
 
 
+class ExportVolume(StrictArtifact):
+    """Volume grouping for delivery rendering: consecutive chapters per volume."""
+
+    title: str = Field(default="", max_length=80)
+    chapter_count: int = Field(ge=1)
+
+
 class ExportArtifact(StrictArtifact):
     format: Literal["md", "json", "zip"]
     chapter_version_ids: list[str] = Field(min_length=1)
     cover_asset_id: str = Field(max_length=200)
     metadata: ExportMetadata
+    # Empty for runs exported before volume grouping existed.
+    volumes: list[ExportVolume] = Field(default_factory=list, max_length=24)
+
+    @model_validator(mode="after")
+    def validate_volume_grouping(self) -> "ExportArtifact":
+        if self.volumes:
+            counted = sum(volume.chapter_count for volume in self.volumes)
+            if counted != len(self.chapter_version_ids):
+                raise ValueError("Export volume grouping must cover every chapter exactly once")
+        return self
 
 
 ARTIFACT_MODELS: dict[StageId, type[StrictArtifact]] = {
-    "info": StoryBriefArtifact,
-    "characters": CharacterBibleArtifact,
-    "summary": SummaryArtifact,
-    "outline": OutlineArtifact,
+    "brief": StoryBriefArtifact,
+    "spine": StorySpineArtifact,
+    "cast": CharacterBibleArtifact,
+    "volumes": VolumeArchitectureArtifact,
     "detail": DetailArtifact,
     "text": ChapterArtifact,
     "cover": CoverArtifact,
@@ -344,184 +396,162 @@ ARTIFACT_MODELS: dict[StageId, type[StrictArtifact]] = {
 }
 
 
-def _validate_appearance_window(value: str) -> str:
-    bounds = value.removeprefix("chapter:").split("-", maxsplit=1)
-    if len(bounds) == 2 and int(bounds[1]) < int(bounds[0]):
-        raise ValueError("Character appearance window must be ordered")
-    return value
-
-
 def validate_artifact_vnext(
     stage_id: StageId,
     payload: Any,
     *,
-    character_ids: set[str] | None = None,
-    required_outcome_character_ids: set[str] | None = None,
-    npc_slot_ids: set[str] | None = None,
-    obligation_ref_ids: dict[str, set[str]] | None = None,
-    chapter_ids: set[str] | None = None,
-    chapter_version_ids: list[str] | None = None,
+    subject_ids: set[str] | None = None,
+    chapter_refs: set[str] | None = None,
+    demand_keys: set[str] | None = None,
+    turn_ids: set[str] | None = None,
+    volume_cast_ids: dict[str, set[str]] | None = None,
     cover_asset_ids: set[str] | None = None,
+    chapter_version_ids: list[str] | None = None,
     export_title: str | None = None,
+    **_: Any,
 ) -> StrictArtifact:
     artifact = ARTIFACT_MODELS[stage_id].model_validate(payload)
-    known_characters = character_ids or set()
-    if isinstance(artifact, CharacterBibleArtifact) and chapter_ids is not None:
-        total_chapters = len(chapter_ids)
-        windows = [
-            *(item.first_appearance_window for item in artifact.characters),
-            *(item.first_appearance_window for item in artifact.npc_slots),
-        ]
-        if any(_chapter_window(value)[1] > total_chapters for value in windows):
-            raise ValueError("Character appearance windows must stay inside the frozen BookScalePlan")
-    if isinstance(artifact, SummaryArtifact) and known_characters:
-        unknown = {item.character_id for item in artifact.character_outcomes} - known_characters
-        if unknown:
-            raise ValueError(f"Summary references unknown characters: {sorted(unknown)}")
-    if isinstance(artifact, SummaryArtifact) and required_outcome_character_ids:
-        missing = required_outcome_character_ids - {
-            item.character_id for item in artifact.character_outcomes
-        }
-        if missing:
-            raise ValueError(
-                f"Summary is missing required character outcomes: {sorted(missing)}"
-            )
-    if isinstance(artifact, OutlineArtifact) and known_characters:
-        unknown = {
-            item.character_id
-            for volume in artifact.volumes
-            for item in volume.character_windows
-        } - known_characters
-        if unknown:
-            raise ValueError(f"Outline references unknown characters: {sorted(unknown)}")
-        if chapter_ids is not None:
-            covered = {
-                f"chapter-{number}"
+    known_subjects = subject_ids or set()
+    if isinstance(artifact, CharacterBibleArtifact):
+        known = {item.id for item in artifact.subjects}
+        if demand_keys is not None:
+            referenced_demands = {
+                demand_ref for item in artifact.subjects for demand_ref in item.demand_refs
+            }
+            unknown_demands = referenced_demands - demand_keys
+            if unknown_demands:
+                raise ValueError(f"Character Bible references unknown role demands: {sorted(unknown_demands)}")
+            missing_demands = demand_keys - referenced_demands
+            if missing_demands:
+                raise ValueError(f"Character Bible does not cover role demands: {sorted(missing_demands)}")
+        if chapter_refs is not None and any(
+            _chapter_end(item.debut) > len(chapter_refs) for item in artifact.subjects
+        ):
+            raise ValueError("Character debut windows exceed the frozen detail range")
+        if known_subjects and not known.issubset(known_subjects):
+            raise ValueError("Character Bible introduced a subject outside the frozen registry")
+    if isinstance(artifact, VolumeArchitectureArtifact):
+        if turn_ids is not None:
+            unknown_turns = {
+                turn_ref
                 for volume in artifact.volumes
-                for number in range(
-                    _chapter_window(volume.chapter_window)[0],
-                    _chapter_window(volume.chapter_window)[1] + 1,
-                )
+                for turn_ref in volume.turn_refs
+                if turn_ref not in turn_ids
             }
-            if covered != chapter_ids:
-                raise ValueError("Outline volume windows must exactly cover the frozen BookScalePlan")
-    if isinstance(artifact, DetailArtifact):
-        if known_characters:
-            unknown = {item.pov_character_id for item in artifact.chapters} - known_characters
+            if unknown_turns:
+                raise ValueError(f"Volume references unknown spine turns: {sorted(unknown_turns)}")
+        if known_subjects:
+            unknown = {
+                subject_id
+                for volume in artifact.volumes
+                for subject_id in volume.cast_ids
+                if subject_id not in known_subjects
+            }
             if unknown:
-                raise ValueError(f"Detail references unknown POV characters: {sorted(unknown)}")
-            registered_refs = known_characters | (npc_slot_ids or set())
-            unknown_obligations = {
-                obligation.ref_id
-                for chapter in artifact.chapters
-                for obligation in chapter.obligations
-                if obligation.kind == "character" and obligation.ref_id not in registered_refs
-            }
-            if unknown_obligations:
-                raise ValueError(
-                    f"Detail references unknown character obligations: {sorted(unknown_obligations)}"
-                )
-        if obligation_ref_ids is not None:
-            unknown_by_kind = {
-                kind: sorted({
-                    obligation.ref_id
-                    for chapter in artifact.chapters
-                    for obligation in chapter.obligations
-                    if obligation.kind == kind
-                    and obligation.ref_id not in allowed
-                })
-                for kind, allowed in obligation_ref_ids.items()
-            }
-            unknown_by_kind = {
-                kind: values for kind, values in unknown_by_kind.items() if values
-            }
-            if unknown_by_kind:
-                raise ValueError(
-                    f"Detail references unknown frozen obligations: {unknown_by_kind}"
-                )
-        if chapter_ids is not None and {item.id for item in artifact.chapters} != chapter_ids:
-            raise ValueError("Detail chapters must exactly match the frozen BookScalePlan")
+                raise ValueError(f"Volume references unknown subjects: {sorted(unknown)}")
+    if isinstance(artifact, DetailArtifact):
+        if known_subjects:
+            unknown = {
+                subject_id
+                for item in artifact.chapters
+                for subject_id in item.cast_ids
+            } - known_subjects
+            if unknown:
+                raise ValueError(f"Detail references unknown subjects: {sorted(unknown)}")
+        if volume_cast_ids is not None:
+            for item in artifact.chapters:
+                allowed = volume_cast_ids.get(item.volume_ref)
+                if allowed is None:
+                    raise ValueError(f"Detail references unknown volume: {item.volume_ref}")
+                outside_volume = set(item.cast_ids) - allowed
+                if outside_volume:
+                    raise ValueError(
+                        f"Detail chapter references subjects outside {item.volume_ref}: {sorted(outside_volume)}"
+                    )
+        if chapter_refs is not None and {item.ref for item in artifact.chapters} != chapter_refs:
+            raise ValueError("Detail chapters must match the frozen chapter refs")
     if isinstance(artifact, CoverArtifact) and artifact.selected_asset_id:
         if cover_asset_ids is not None and artifact.selected_asset_id not in cover_asset_ids:
-            raise ValueError("Cover selects an asset outside the active immutable candidate set")
+            raise ValueError("Cover selects an asset outside the immutable candidate set")
     if isinstance(artifact, ExportArtifact):
         if chapter_version_ids is not None and artifact.chapter_version_ids != chapter_version_ids:
-            raise ValueError("Export chapter versions must exactly match the accepted manuscript")
-        if artifact.cover_asset_id and cover_asset_ids is not None:
-            if artifact.cover_asset_id not in cover_asset_ids:
-                raise ValueError("Export references an unknown immutable cover asset")
+            raise ValueError("Export chapter versions must match the accepted manuscript")
+        if cover_asset_ids is not None and artifact.cover_asset_id not in cover_asset_ids:
+            raise ValueError("Export references an unknown cover asset")
         if export_title is not None and artifact.metadata.title != export_title:
-            raise ValueError("Export title must match the committed Story Brief")
+            raise ValueError("Export title must match the committed brief")
     return artifact
 
 
-def required_summary_outcome_ids(artifact: CharacterBibleArtifact) -> set[str]:
-    return {
-        item.id for item in artifact.characters if item.tier in {"protagonist", "major"}
-    }
+def _chapter_end(window: str) -> int:
+    bounds = window.removeprefix("chapter:").split("-", maxsplit=1)
+    return int(bounds[-1])
 
 
-def detail_obligation_registry(
-    story: StoryBriefArtifact,
-    characters: CharacterBibleArtifact,
-    outline: OutlineArtifact,
-) -> dict[str, list[dict[str, str]]]:
-    character_refs = [
-        {"id": item.id, "label": item.name}
-        for item in characters.characters
-    ] + [
-        {"id": item.id, "label": f"NPC: {item.function}"}
-        for item in characters.npc_slots
-    ]
-    thread_refs: dict[str, str] = {}
-    for volume in outline.volumes:
-        for item in volume.thread_windows:
-            thread_refs.setdefault(item.thread_id, item.action)
-    return {
-        "character": character_refs,
-        "thread": [
-            {"id": key, "label": value}
-            for key, value in sorted(thread_refs.items())
-        ],
-        "world_rule": [
-            {"id": f"world-rule-{index}", "label": value}
-            for index, value in enumerate(story.world_rules, start=1)
-        ],
-        "promise": [
-            {"id": "thematic-question", "label": story.thematic_question},
-            {"id": "ending-promise", "label": story.ending_promise},
-        ],
-    }
+def _validate_chapter_cast(pov: str, cast_ids: list[str]) -> None:
+    if len(cast_ids) != len(set(cast_ids)):
+        raise ValueError("Detail chapter cast ids must be unique")
+    if pov not in cast_ids:
+        raise ValueError("Detail chapter cast ids must include its POV")
 
 
-def detail_obligation_ref_ids(
-    story: StoryBriefArtifact,
-    characters: CharacterBibleArtifact,
-    outline: OutlineArtifact,
-) -> dict[str, set[str]]:
-    return {
-        kind: {item["id"] for item in items}
-        for kind, items in detail_obligation_registry(
-            story,
-            characters,
-            outline,
-        ).items()
-    }
+def _canonical_json(value: Any) -> str:
+    import json
+
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def _require_unique(values: list[str], label: str) -> None:
-    if len(values) != len(set(values)):
-        raise ValueError(f"{label} must be unique")
+def _content_hash(value: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _chapter_window(value: str) -> tuple[int, int]:
-    if not value.startswith("chapter:"):
-        raise ValueError("Chapter windows must use chapter:N or chapter:N-M")
-    match = value.removeprefix("chapter:").split("-", maxsplit=1)
-    if not all(item.isdigit() and int(item) > 0 for item in match):
-        raise ValueError("Chapter windows must use chapter:N or chapter:N-M")
-    start = int(match[0])
-    end = int(match[-1])
-    if end < start:
-        raise ValueError("Chapter windows must be ordered")
-    return start, end
+def required_cast_subject_ids(artifact: CharacterBibleArtifact) -> set[str]:
+    return {subject.id for subject in artifact.subjects}
+
+
+__all__ = [
+    "ARTIFACT_MODELS",
+    "CharacterBibleArtifact",
+    "CastDemand",
+    "CharacterDossier",
+    "CharacterDossierBatch",
+    "ContextBudget",
+    "CharacterRelation",
+    "CharacterRelationBatch",
+    "CharacterSubject",
+    "ChapterArtifact",
+    "DetailArtifact",
+    "DetailChapter",
+    "DetailScene",
+    "DetailSegmentChapter",
+    "DetailSegmentArtifact",
+    "ExportArtifact",
+    "ExportMetadata",
+    "CoverArtifact",
+    "CoverBrief",
+    "ContextManifest",
+    "ContextSnippet",
+    "LengthEnvelope",
+    "RoleDemandProposal",
+    "RoleDemandProposalBatch",
+    "SpineTurn",
+    "SpineTurnDraft",
+    "StageId",
+    "STAGE_LABELS",
+    "STAGE_ORDER",
+    "StoryBriefArtifact",
+    "StorySpineArtifact",
+    "StorySpineDraftArtifact",
+    "StrictArtifact",
+    "VolumeArchitectureArtifact",
+    "VolumeArchitectureDraftArtifact",
+    "VolumeBoundaryProposal",
+    "VolumeBoundaryProposalBatch",
+    "VolumeContract",
+    "VolumeContractDraft",
+    "required_cast_subject_ids",
+    "stage_pointer",
+    "validate_artifact_vnext",
+]

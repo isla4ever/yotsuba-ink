@@ -27,6 +27,7 @@ from novel_workflow.providers.structured_parsing import (
     parse_exact_json_object_result,
 )
 from novel_workflow.providers.templates import provider_template
+from novel_workflow.providers.frozen_contract import FrozenProviderTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class OpenAICompatibleTextProvider(TextProvider):
         top_p: float = 0.95,
         timeout_seconds: int = 120,
         template_id: str = "openai-compatible-text",
+        template: FrozenProviderTemplate | None = None,
         client: AsyncOpenAI | None = None,
         prefill_client: AsyncOpenAI | None = None,
     ) -> None:
@@ -56,7 +58,9 @@ class OpenAICompatibleTextProvider(TextProvider):
         self.top_p = top_p
         self.timeout_seconds = timeout_seconds
         self.template_id = template_id
-        self.template = provider_template(template_id, "openai-compatible")
+        self.template = template or provider_template(template_id, "openai-compatible")
+        if self.template.id != template_id or self.template.kind != "openai-compatible":
+            raise ValueError("Text Provider template snapshot does not match its binding")
         self.last_usage: dict[str, int] = {}
         self.last_response_diagnostic: dict[str, Any] = {}
         self._client = client or create_openai_client(
@@ -120,6 +124,11 @@ class OpenAICompatibleTextProvider(TextProvider):
             top_p=top_p,
             timeout_seconds=timeout_seconds,
             template_id=self.template_id,
+            template=(
+                self.template
+                if isinstance(self.template, FrozenProviderTemplate)
+                else None
+            ),
             client=self._client,
             prefill_client=self._prefill_client,
         )
@@ -167,12 +176,6 @@ class OpenAICompatibleTextProvider(TextProvider):
             prompt_cache_key=prompt_cache_key,
             disable_thinking=disable_thinking,
         )
-        if json_mode and plan.structured_decision and plan.structured_decision.rejection_reason:
-            raise ProviderResponseError(
-                "strict_schema_unsupported",
-                "Selected Provider cannot accept the frozen structured schema: "
-                f"{plan.structured_decision.rejection_reason}",
-            )
         token_field = "max_completion_tokens" if "max_completion_tokens" in plan.request else (
             "max_tokens" if "max_tokens" in plan.request else "omitted"
         )

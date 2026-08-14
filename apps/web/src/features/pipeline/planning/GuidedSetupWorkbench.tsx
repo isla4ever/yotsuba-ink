@@ -40,7 +40,7 @@ export function GuidedSetupWorkbench({
   workflow,
 }: Props) {
   const setup = useSetupFlow(workflow.id, steps);
-  const infoStage = workflow.nodes.find((stage) => stage.type === 'info');
+  const briefStage = workflow.nodes.find((stage) => stage.type === 'brief');
   const activeIndex = steps.findIndex((step) => step.id === setup.flow.activeStepId);
   const onReview = setup.flow.activeStepId === 'review';
   const blocking = setup.currentStep?.issues.find((issue) => issue.severity === 'blocking');
@@ -67,14 +67,14 @@ export function GuidedSetupWorkbench({
             }}
           >
             <div className="setup-step-panel" data-direction={setup.flow.direction} key={setup.flow.activeStepId}>
-              {setup.flow.activeStepId === 'story' ? <StorySetupSection stage={infoStage} onChange={onStageChange} /> : null}
+              {setup.flow.activeStepId === 'story' ? <StorySetupSection stage={briefStage} qualityMode={workflow.quality_mode} onChange={onStageChange} /> : null}
               {setup.flow.activeStepId === 'ai-service' ? (
                 <AiServiceSetupSection readiness={readiness} workflow={workflow} onReadinessRefresh={onReadinessRefresh} onWorkflowChange={onWorkflowChange} />
               ) : null}
               {onReview ? (
                 <SetupReviewSection
                   knowledgeDocuments={knowledgeDocuments}
-                  stage={infoStage}
+                  stage={briefStage}
                   steps={steps}
                   workflow={workflow}
                   onOpenKnowledgeManager={onOpenKnowledgeManager}

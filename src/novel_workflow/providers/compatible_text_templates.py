@@ -119,7 +119,8 @@ COMPATIBLE_VENDOR_TEXT_PROVIDER_TEMPLATES = (
                 json_schema_strict=True,
                 sampling_parameter_mode="none",
                 stage_request_parameters={
-                    "summary": {"reasoning_effort": "low"},
+                    "spine": {"reasoning_effort": "low"},
+                    "cast": {"reasoning_effort": "high"},
                     "detail": {"reasoning_effort": "high"},
                     "text.review": {"reasoning_effort": "high"},
                 },
@@ -128,12 +129,16 @@ COMPATIBLE_VENDOR_TEXT_PROVIDER_TEMPLATES = (
                 model_pattern="qwen/qwen3.6-27b*",
                 capability_docs=["https://console.groq.com/docs/model/qwen/qwen3.6-27b"],
                 stage_request_parameters={
-                    "info": {
+                    "brief": {
                         "reasoning_effort": "default",
                         "reasoning_format": "hidden",
                     },
-                    "summary": {"reasoning_effort": "none"},
-                    "outline": {
+                    "spine": {"reasoning_effort": "none"},
+                    "cast": {
+                        "reasoning_effort": "default",
+                        "reasoning_format": "hidden",
+                    },
+                    "volumes": {
                         "reasoning_effort": "default",
                         "reasoning_format": "hidden",
                     },
@@ -175,9 +180,10 @@ COMPATIBLE_VENDOR_TEXT_PROVIDER_TEMPLATES = (
                 capability_docs=["https://docs.together.ai/docs/inference/chat/reasoning"],
                 sampling_parameter_mode="none",
                 stage_request_parameters={
-                    "info": {"reasoning_effort": "medium"},
-                    "summary": {"reasoning_effort": "low"},
-                    "outline": {"reasoning_effort": "medium"},
+                    "brief": {"reasoning_effort": "medium"},
+                    "spine": {"reasoning_effort": "low"},
+                    "cast": {"reasoning_effort": "high"},
+                    "volumes": {"reasoning_effort": "medium"},
                     "detail": {"reasoning_effort": "high"},
                     "text": {"reasoning_effort": "low"},
                     "text.evidence": {"reasoning_effort": "low"},
@@ -208,9 +214,10 @@ COMPATIBLE_VENDOR_TEXT_PROVIDER_TEMPLATES = (
         supports_prompt_cache_key=True,
         prompt_cache_key_header="x-grok-conv-id",
         stage_request_parameters={
-            "info": {"reasoning_effort": "medium"},
-            "summary": {"reasoning_effort": "low"},
-            "outline": {"reasoning_effort": "medium"},
+            "brief": {"reasoning_effort": "medium"},
+            "spine": {"reasoning_effort": "low"},
+            "cast": {"reasoning_effort": "high"},
+            "volumes": {"reasoning_effort": "medium"},
             "detail": {"reasoning_effort": "high"},
             "text": {"reasoning_effort": "low"},
             "text.evidence": {"reasoning_effort": "low"},
@@ -278,7 +285,8 @@ COMPATIBLE_VENDOR_TEXT_PROVIDER_TEMPLATES = (
         json_schema_strict=True,
         sampling_parameter_mode="none",
         stage_request_parameters={
-            "summary": {"reasoning_effort": "low"},
+            "spine": {"reasoning_effort": "low"},
+            "cast": {"reasoning_effort": "high"},
             "detail": {"reasoning_effort": "high"},
             "text.review": {"reasoning_effort": "high"},
         },

@@ -8,6 +8,7 @@ import {
   indexedRunningNodeExists,
   indexedStageStatus,
   RUN_EVENT_LIMIT,
+  trimRunEventWindow,
 } from './runEventIndex';
 import { createInitialRunState, runReducer } from './runReducer';
 import { hasRecoverableRun, hasRunningNodeFromEvents } from './runSelectors';
@@ -15,7 +16,7 @@ import { latestNodeStatus } from '../planning/cockpitRuntime';
 import type { RunControlState, RunEvent } from '../contracts';
 import { runEvent as makeRunEvent } from '../contracts/runEventTestFactory';
 
-const stageIds = ['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export'];
+const stageIds = ['brief', 'spine', 'cast', 'volumes', 'detail', 'text', 'cover', 'export'];
 
 function event(type: string, nodeId = '', extra: Partial<RunEvent> = {}): RunEvent {
   return makeRunEvent(type, {
@@ -55,9 +56,9 @@ describe('runEventIndex (F6)', () => {
   it('index selectors match direct stable-event scans on a synthetic run', () => {
     const streams: RunEvent[][] = [
       [],
-      [event('node.started', 'info')],
-      [event('artifact.committed', 'info', { node_id: 'info.commit_artifact', payload: {} })],
-      [event('node.completed', 'info'), event('node.started', 'info')],
+      [event('node.started', 'brief')],
+      [event('artifact.committed', 'brief', { node_id: 'brief.commit_artifact', payload: {} })],
+      [event('node.completed', 'brief'), event('node.started', 'brief')],
       [event('run.completed'), event('node.started', 'text')],
       [event('run.failed', 'text'), event('node.started', 'text')],
       [...syntheticStream(80)].reverse(),
@@ -78,35 +79,35 @@ describe('runEventIndex (F6)', () => {
 
   it('derives completed stage ids from committed Artifacts', () => {
     const newestFirst = [
-      event('artifact.committed', 'summary', { node_id: 'summary.commit_artifact', payload: {} }),
-      event('artifact.committed', 'info', { node_id: 'info.commit_artifact', payload: {} }),
-      event('artifact.committed', 'info', { node_id: 'info.commit_artifact', payload: {} }),
-      event('node.started', 'outline'),
+      event('artifact.committed', 'spine', { node_id: 'spine.commit_artifact', payload: {} }),
+      event('artifact.committed', 'brief', { node_id: 'brief.commit_artifact', payload: {} }),
+      event('artifact.committed', 'brief', { node_id: 'brief.commit_artifact', payload: {} }),
+      event('node.started', 'volumes'),
     ];
-    expect(indexedCompletedStageIds(buildRunEventIndex(newestFirst))).toEqual(['summary', 'info']);
+    expect(indexedCompletedStageIds(buildRunEventIndex(newestFirst))).toEqual(['spine', 'brief']);
   });
 
   it('keeps a human interrupt distinct from active generation', () => {
     const awaiting = buildRunEventIndex([
-      event('checkpoint.saved', 'characters'),
-      event('decision.required', 'characters'),
-      event('artifact.candidate_ready', 'characters'),
+      event('checkpoint.saved', 'cast'),
+      event('decision.required', 'cast'),
+      event('artifact.candidate_ready', 'cast'),
     ]);
-    expect(indexedStageStatus(awaiting, 'characters')).toBe('awaiting');
+    expect(indexedStageStatus(awaiting, 'cast')).toBe('awaiting');
 
     const resumed = buildRunEventIndex([
-      event('decision.resolved', 'characters'),
-      event('decision.required', 'characters'),
+      event('decision.resolved', 'cast'),
+      event('decision.required', 'cast'),
     ]);
-    expect(indexedStageStatus(resumed, 'characters')).toBe('running');
+    expect(indexedStageStatus(resumed, 'cast')).toBe('running');
   });
 
   it('does not let a later checkpoint diagnostic erase stage completion', () => {
     const index = buildRunEventIndex([
-      event('checkpoint.saved', 'summary'),
-      event('artifact.committed', 'summary', { node_id: 'summary.commit_artifact', payload: {} }),
+      event('checkpoint.saved', 'spine'),
+      event('artifact.committed', 'spine', { node_id: 'spine.commit_artifact', payload: {} }),
     ]);
-    expect(indexedStageStatus(index, 'summary')).toBe('done');
+    expect(indexedStageStatus(index, 'spine')).toBe('done');
   });
 
   it('reducer keeps events and index equivalent across the 500-event trim', () => {
@@ -115,8 +116,8 @@ describe('runEventIndex (F6)', () => {
       events: [],
       paused: false,
       runControlState: 'running',
-      selectedId: 'info',
-      stageId: 'info',
+      selectedId: 'brief',
+      stageId: 'brief',
       workspacePhase: 'running',
     });
     for (const item of syntheticStream(RUN_EVENT_LIMIT + 40)) {
@@ -125,5 +126,41 @@ describe('runEventIndex (F6)', () => {
     expect(state.events.length).toBe(RUN_EVENT_LIMIT);
     expect(state.eventIndex).toEqual(buildRunEventIndex(state.events));
     expect(indexedRunningNodeExists(state.eventIndex)).toBe(hasRunningNodeFromEvents(state.events));
+  });
+
+  it('pins stage-closing events past the trim window so early stages stay done', () => {
+    let state = createInitialRunState({
+      activeRunId: 'run-1',
+      events: [],
+      paused: false,
+      runControlState: 'running',
+      selectedId: 'brief',
+      stageId: 'brief',
+      workspacePhase: 'running',
+    });
+    const receive = (item: RunEvent) => {
+      state = runReducer(state, { type: 'event_received', event: item });
+    };
+    receive(event('artifact.committed', 'brief', { node_id: 'brief.commit_artifact', payload: {} }));
+    receive(event('artifact.committed', 'spine', { node_id: 'spine.commit_artifact', payload: {} }));
+    for (let step = 0; step < RUN_EVENT_LIMIT + 10; step += 1) {
+      receive(event('node.started', 'text'));
+    }
+    // Window keeps the newest events plus one pinned closing event per stage.
+    expect(state.events.length).toBe(RUN_EVENT_LIMIT + 2);
+    expect(indexedStageStatus(state.eventIndex, 'brief')).toBe('done');
+    expect(indexedStageStatus(state.eventIndex, 'spine')).toBe('done');
+    expect(state.eventIndex).toEqual(buildRunEventIndex(state.events));
+  });
+
+  it('trimRunEventWindow keeps at most one pinned closing event per stage', () => {
+    const closing = (stage: string) => event('artifact.committed', stage, { node_id: `${stage}.commit_artifact`, payload: {} });
+    const filler = Array.from({ length: RUN_EVENT_LIMIT }, () => event('node.started', 'text'));
+    const newestFirst = [...filler, closing('brief'), closing('brief'), closing('spine')];
+    const trimmed = trimRunEventWindow(newestFirst);
+    expect(trimmed.length).toBe(RUN_EVENT_LIMIT + 2);
+    const pinnedStages = trimmed.slice(RUN_EVENT_LIMIT).map((item) => item.stage_id);
+    expect(pinnedStages).toEqual(['brief', 'spine']);
+    expect(trimRunEventWindow(filler)).toBe(filler);
   });
 });

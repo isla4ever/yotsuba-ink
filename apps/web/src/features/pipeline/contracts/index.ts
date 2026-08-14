@@ -1,6 +1,6 @@
-export * from './bookScale';
 export * from './coverAsset';
 export * from './knowledge';
+export * from './narrativeScale';
 export * from './project';
 export * from './reference';
 export * from './run';

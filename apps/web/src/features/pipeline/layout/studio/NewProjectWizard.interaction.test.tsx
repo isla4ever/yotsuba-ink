@@ -10,6 +10,7 @@ import { NewProjectWizard } from './NewProjectWizard';
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
 const defaultWorkflow: WorkflowDefinition = {
+  architecture_version: 'phase27-vnext',
   id: 'default-novel-workflow',
   name: '默认工作流',
   version: '1',

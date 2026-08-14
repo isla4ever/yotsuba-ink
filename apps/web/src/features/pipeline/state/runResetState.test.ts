@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { RunEvent } from '../contracts';
 import { runEvent } from '../contracts/runEventTestFactory';
-import { buildBookScalePlan } from '../lib/bookScalePlan';
 import { captureRunResetSnapshot } from './runResetState';
+
+const lengthEnvelope = {
+  word_target_soft: 100_000,
+  chapter_target_soft: 3,
+};
 
 describe('captureRunResetSnapshot', () => {
   it('captures the current run for a paused local-only restore', () => {
     const events: RunEvent[] = [
       runEvent('checkpoint.saved', { run_id: 'run-reset-safe', stage_id: 'detail', node_id: 'graph.checkpoint', checkpoint_id: 'cp-detail', occurred_at: '2026-07-19T12:00:01Z', sequence: 2 }),
-      runEvent('run.started', { run_id: 'run-reset-safe', stage_id: 'info', node_id: 'load_run', occurred_at: '2026-07-19T12:00:00Z', sequence: 1 }),
+      runEvent('run.started', { run_id: 'run-reset-safe', stage_id: 'brief', node_id: 'load_run', occurred_at: '2026-07-19T12:00:00Z', sequence: 1 }),
     ];
 
     const snapshot = captureRunResetSnapshot({
@@ -19,7 +23,7 @@ describe('captureRunResetSnapshot', () => {
         approvalSource: '服务端来源稿',
         checkpointContinueReady: false,
         checkpointStageId: 'detail',
-        infoContinueReady: false,
+        briefContinueReady: false,
       },
       events,
       inputs: {
@@ -27,7 +31,7 @@ describe('captureRunResetSnapshot', () => {
         title: '撤销恢复测试',
         theme: '旧港',
         quality_mode: 'balanced',
-        book_scale_plan: buildBookScalePlan('total_chapters', 3),
+        length_envelope: lengthEnvelope,
         run_intent: {
           project_brief: { narrative_profile: '心理戏剧家' },
           knowledge_strategy: {},
@@ -40,6 +44,7 @@ describe('captureRunResetSnapshot', () => {
         paused: false,
         runControlState: 'running',
         selectedId: 'detail',
+        stickyArtifacts: { chapters: {}, stages: {} },
       },
     });
 
@@ -68,7 +73,7 @@ describe('captureRunResetSnapshot', () => {
         approvalSource: '',
         checkpointContinueReady: false,
         checkpointStageId: '',
-        infoContinueReady: false,
+        briefContinueReady: false,
       },
       events: [],
       runSource: 'backend',
@@ -76,7 +81,8 @@ describe('captureRunResetSnapshot', () => {
         activeRunId: 'starting-run',
         paused: false,
         runControlState: 'starting',
-        selectedId: 'info',
+        selectedId: 'brief',
+        stickyArtifacts: { chapters: {}, stages: {} },
       },
     });
 

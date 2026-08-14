@@ -128,7 +128,7 @@ export function ReferenceResearchPanel({ stage, knowledgeDocuments, onChange, on
   const retry = searchState.retry === 'smart' ? runSmartSearch : runKnowledgeSearch;
 
   return (
-    <section aria-busy={searchState.status === 'loading'} className="reference-panel info-reference-panel">
+    <section aria-busy={searchState.status === 'loading'} className="reference-panel brief-reference-panel">
       <div className="reference-panel-head">
         <span>{selectedMode.icon}<span>参考资料</span></span>
         <small>参考摘要只进入前置创作立项，并保留可追溯的真实来源。</small>

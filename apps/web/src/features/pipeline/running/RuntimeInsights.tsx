@@ -9,7 +9,7 @@ type Props = RuntimeInsightContext & {
   compactPanelKeys: readonly RuntimePanelKey[];
   panelKeys: readonly RuntimePanelKey[];
   visible: boolean;
-  onEditInfo?: (target: 'worldbuilding' | 'character') => void;
+  onEditBrief?: (target: 'worldbuilding' | 'character') => void;
   onOpenPanel: (panel: RuntimePanelKey) => void;
 };
 
@@ -18,7 +18,7 @@ export function RuntimeInsights({
   compactPanelKeys,
   panelKeys,
   visible,
-  onEditInfo,
+  onEditBrief,
   onOpenPanel,
   ...context
 }: Props) {
@@ -29,6 +29,7 @@ export function RuntimeInsights({
           animate="animate"
           aria-label={panelKeys.length ? '阶段运行面板' : '阶段上下文入口'}
           className={`stage-run-side panels-${panelKeys.length} stage-${activeStage.type}${panelKeys.length === 0 ? ' context-rail' : ''}`}
+          data-scroll-region={panelKeys.length ? 'runtime' : 'context'}
           exit="exit"
           initial="initial"
           variants={routeMotionVariants}
@@ -38,7 +39,7 @@ export function RuntimeInsights({
               {...context}
               key={panel}
               panel={panel}
-              onEditInfo={activeStage.type === 'info' ? onEditInfo : undefined}
+              onEditBrief={activeStage.type === 'brief' ? onEditBrief : undefined}
             />
           ))}
           {compactPanelKeys.length ? (
@@ -53,6 +54,7 @@ export function RuntimeInsights({
                     characterGraphOverride={context.characterGraphOverride}
                     artifactProjection={context.artifactProjection}
                     events={context.events}
+                    contextManifest={context.contextManifest}
                     key={panel}
                     memoryEvents={context.memoryEvents}
                     panel={panel}

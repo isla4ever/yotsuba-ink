@@ -5,7 +5,7 @@ import {
   downloadRunExportReceipt,
 } from '../services/runHistoryApi';
 import type { RunSource } from '../lib/runSource';
-import { resolveServerRunRecovery, type HydratedRunState } from './runState';
+import { resolveServerRunPresentation, resolveServerRunRecovery, type HydratedRunState } from './runState';
 
 type Options = {
   activeRunId: string;
@@ -30,7 +30,8 @@ export function useRunHistoryActions(options: Options) {
     options.cancelInitialRecovery();
     try {
       const source = await getRun(item.run_id);
-      const resolution = resolveServerRunRecovery(source, item.run_id);
+      // Explicit open: terminal runs are presented read-only instead of discarded.
+      const resolution = resolveServerRunPresentation(source, item.run_id);
       if (resolution.kind !== 'restore') {
         options.onWarning('该作品的最新运行没有可恢复的 LangGraph 状态。');
         return '';
@@ -40,7 +41,7 @@ export function useRunHistoryActions(options: Options) {
       options.setRunSource('backend');
       void options.onRestore(resolution.hydrated, resolution.reconnect);
       options.onWarning('');
-      return resolution.hydrated.selectedId || item.current_stage.id || 'info';
+      return resolution.hydrated.selectedId || item.current_stage.id || 'brief';
     } catch (error) {
       options.onWarning(`恢复作品运行失败：${errorMessage(error)}`);
       return '';
@@ -58,19 +59,18 @@ export function useRunHistoryActions(options: Options) {
         return '';
       }
     }
-    if (options.activeRunId && (options.running || ['starting', 'running', 'stop_requested'].includes(options.runControlState))) {
-      options.onWarning('当前运行仍在执行，请等待进入人工决策点或完成后再切换创作历史。');
+    return restoreProjectRun(item);
+  }, [options.activeRunId, options.onWarning, restoreProjectRun]);
+
+  const branchFromCheckpoint = useCallback(async (item: RunHistoryItem) => {
+    if (options.activeRunId && options.activeRunId !== item.run_id && (options.running || ['starting', 'running', 'stop_requested'].includes(options.runControlState))) {
+      options.onWarning('当前运行仍在执行，请等待当前操作结束后再创建检查点分支。');
       return '';
     }
-    if (item.status === 'running') {
-      options.onWarning('该运行仍标记为执行中，请从原会话继续观察，避免并发恢复。');
+    if (!item.can_branch || !item.checkpoint_id) {
+      options.onWarning('该运行没有可创建分支的人工决策检查点。');
       return '';
     }
-    if (!item.can_branch) {
-      options.onWarning(item.status === 'completed' ? '已完成运行保持只读，请在历史中查看或重新下载交付包。' : '该运行没有可创建分支的人工决策检查点。');
-      return '';
-    }
-    options.cancelInitialRecovery();
     try {
       const source = await getRun(item.run_id);
       if (
@@ -82,11 +82,7 @@ export function useRunHistoryActions(options: Options) {
         return '';
       }
       const targetRunId = branchRunId();
-      await createRunBranch(
-        item.run_id,
-        source.read_model.checkpoint_id,
-        targetRunId,
-      );
+      await createRunBranch(item.run_id, source.read_model.checkpoint_id, targetRunId);
       const branch = await getRun(targetRunId);
       const resolution = resolveServerRunRecovery(branch, targetRunId);
       if (resolution.kind !== 'restore') {
@@ -96,30 +92,15 @@ export function useRunHistoryActions(options: Options) {
       options.stopActiveStream();
       await options.onProjectContext(branch.definition.project_id);
       options.setRunSource('backend');
-      const hydrated = resolution.hydrated;
-      void options.onRestore(hydrated, resolution.reconnect);
+      void options.onRestore(resolution.hydrated, resolution.reconnect);
       options.onWarning('');
-      return hydrated.selectedId || item.current_stage.id || 'info';
-    } catch (error) {
-      options.onWarning(`打开历史运行失败：${errorMessage(error)}`);
-      return '';
-    }
-  }, [options]);
-
-  const branchFromCheckpoint = useCallback(async (item: RunHistoryItem) => {
-    if (options.activeRunId && options.activeRunId !== item.run_id && (options.running || ['starting', 'running', 'stop_requested'].includes(options.runControlState))) {
-      options.onWarning('当前运行仍在执行，请等待当前操作结束后再创建检查点分支。');
-      return '';
-    }
-    try {
-      const stageId = await openRun(item);
-      if (stageId) await options.historyRefresh();
-      return stageId;
+      await options.historyRefresh();
+      return resolution.hydrated.selectedId || item.current_stage.id || 'brief';
     } catch (error) {
       options.onWarning(`创建检查点分支失败：${errorMessage(error)}`);
       return '';
     }
-  }, [openRun, options]);
+  }, [options]);
 
   const downloadExport = useCallback(async (item: RunHistoryItem, requestedReceipt?: ExportReceipt) => {
     const receipt = requestedReceipt ?? item.latest_export;

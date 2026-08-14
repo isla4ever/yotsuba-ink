@@ -7,9 +7,10 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from novel_workflow.knowledge import KnowledgeBase
+from novel_workflow.orchestration.run_preflight import RunPreflightService
 from novel_workflow.providers.registry import ProviderRegistry
 from novel_workflow.runtime.graph.execution_service import NarrativeExecutionService
-from novel_workflow.runtime.graph.provider_gateway import RegistryNarrativeProviderGateway
+from novel_workflow.runtime.graph.provider_gateway import FrozenNarrativeProviderGateway
 from novel_workflow.archive import LegacyRunViewer
 from novel_workflow.references import ReferenceStore, TavilySearchClient
 from novel_workflow.storage.json_store import JsonStore
@@ -32,19 +33,29 @@ def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
     app.state.knowledge_base = KnowledgeBase(root / "knowledge")
     app.state.providers = ProviderRegistry.from_env()
     seed_defaults(app)
+    app.state.run_preflight = RunPreflightService(
+        provider_store=app.state.provider_store,
+        prompt_store=app.state.prompt_store,
+        secret_store=app.state.provider_secret_store,
+    )
     app.state.narrative_execution = NarrativeExecutionService(
         root / "native_runtime",
-        lambda: RegistryNarrativeProviderGateway(app.state.providers),
+        lambda: FrozenNarrativeProviderGateway(
+            app.state.provider_secret_store.get_api_key,
+        ),
     )
     app.state.narrative_stores = app.state.narrative_execution.stores
     app.state.run_history = RunHistoryProjection(
         app.state.narrative_stores.runs,
         app.state.narrative_stores.exports,
+        app.state.narrative_stores.chapters,
     )
     app.state.project_store = ProjectStore(
         root / "projects",
         workflow_store=app.state.workflow_store,
         run_history=app.state.run_history,
+        provider_profiles=lambda: list_provider_profiles(app),
+        secret_resolver=app.state.provider_secret_store.get_api_key,
     )
     # Historical runs are an offline, read-only surface and never share the
     # production Run repository or graph checkpoint directory.

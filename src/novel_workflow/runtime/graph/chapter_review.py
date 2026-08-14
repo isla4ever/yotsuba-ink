@@ -7,12 +7,12 @@ from typing import Any
 
 from langgraph.types import Send
 
-from novel_workflow.runtime.graph.chapter_capacity import evaluate_chapter_capacity
 from novel_workflow.runtime.graph.chapter_decision import request_chapter_decision
 from novel_workflow.runtime.graph.provider_gateway import (
     ChapterReviewRequest,
     ChapterReviewResult,
     ProviderOperationError,
+    validate_review_result_contract,
 )
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.state import NarrativeRunState
@@ -46,6 +46,70 @@ def freeze_review_roles(
     }
 
 
+async def _review_with_contract_retry(
+    executor: StageExecutor,
+    request: ChapterReviewRequest,
+) -> tuple[Any, ChapterReviewResult]:
+    """One retry that tells the reviewer how its last answer broke the contract.
+
+    A required lane that returns a malformed finding — an unquoted excerpt, a
+    finding with no frozen subject — is discarded whole, and a discarded
+    required lane stops the author decision on a chapter that may be fine. The
+    reviewer usually repairs the shape when the exact rejection is quoted back,
+    so retrying once here is cheaper than making the author regenerate prose.
+    """
+    last: ProviderOperationError | None = None
+    for attempt in range(2):
+        candidate = request if last is None else _with_contract_note(request, str(last))
+        try:
+            response = await executor.provider.review_chapter(candidate)
+        except ProviderOperationError as exc:
+            if attempt or not isinstance(exc.__cause__, ValueError):
+                raise
+            last = exc
+            continue
+        return response, drop_compliance_findings(
+            ChapterReviewResult.model_validate(response.payload)
+        )
+    raise last if last is not None else ProviderOperationError(
+        "Chapter review exhausted its contract retry", operation_key=request.operation_key
+    )
+
+
+_COMPLIANCE_CLAIMS = ("无违规", "未违反", "没有违反", "不存在违规", "符合", "一致", "no violation")
+_VIOLATION_CLAIMS = ("不符合", "不一致", "未能符合", "并不一致")
+
+
+def drop_compliance_findings(result: ChapterReviewResult) -> ChapterReviewResult:
+    """Discard findings whose own claim says the chapter obeys the rule.
+
+    Reviewers periodically answer a constraint check by restating that the
+    chapter satisfies it, and still stamp the entry blocking. Such an entry
+    stops the author on a chapter its own text declares clean, and it carries
+    nothing to act on, so it is dropped rather than shown or counted.
+    """
+    kept = [finding for finding in result.findings if not _asserts_compliance(finding.claim)]
+    if len(kept) == len(result.findings):
+        return result
+    return result.model_copy(update={"findings": kept})
+
+
+def _asserts_compliance(claim: str) -> bool:
+    text = claim.strip()
+    if not text or any(marker in text for marker in _VIOLATION_CLAIMS):
+        return False
+    return any(marker in text for marker in _COMPLIANCE_CLAIMS)
+
+
+def _with_contract_note(request: ChapterReviewRequest, reason: str) -> ChapterReviewRequest:
+    context = dict(request.context)
+    context["contract_violation"] = (
+        f"Your previous answer was rejected: {reason}. Return only findings that satisfy the contract, "
+        "or an empty findings list."
+    )
+    return request.model_copy(update={"context": context})
+
+
 async def execute_review(
     executor: StageExecutor,
     state: NarrativeRunState,
@@ -59,6 +123,8 @@ async def execute_review(
     binding = executor.runs.definition(run_id).provider_bindings.get("text")
     if binding is None:
         raise ProviderOperationError("No frozen Provider binding for text review")
+    planner = executor.output_budget_planner(state)
+    budget = planner.for_review(binding)
     request = ChapterReviewRequest(
         operation_key=operation_key,
         run_id=run_id,
@@ -66,8 +132,8 @@ async def execute_review(
         chapter_version_id=version_id,
         role=role,
         required=required,
-        binding=binding,
-        context=executor.context_compiler().review(state, role),
+        binding=budget.bind(binding),
+        context=planner.attach(executor.context_compiler().review(state, role), budget),
     )
     executor.events.append(
         run_id,
@@ -95,10 +161,7 @@ async def execute_review(
     else:
         response = None
         try:
-            response = await executor.provider.review_chapter(request)
-            result = ChapterReviewResult.model_validate(response.payload)
-            if result.role != role:
-                raise ValueError("Reviewer result role does not match its frozen lane")
+            response, result = await _review_with_contract_retry(executor, request)
         except Exception as exc:
             executor.operations.fail(
                 run_id,
@@ -174,12 +237,6 @@ def evaluate_review_gate(
         for finding in result.findings
         if finding.severity == "blocking"
     ]
-    chapter = executor.chapters.read(run_id, chapter_id, version_id).artifact
-    definition = executor.runs.definition(run_id)
-    capacity = evaluate_chapter_capacity(chapter.content, definition.book_scale_plan)
-    capacity_blocker = capacity.blocking_finding()
-    if capacity_blocker is not None:
-        blocking.append(capacity_blocker)
     return request_chapter_decision(
         executor,
         state,
@@ -188,7 +245,6 @@ def evaluate_review_gate(
             "optional_review_unavailable": unavailable_optional,
             "blocking_findings": blocking,
             "reviewed_roles": sorted(results),
-            "capacity": capacity.as_dict(),
         },
     )
 
@@ -208,6 +264,7 @@ def send_reviewers_or_failure(state: NarrativeRunState) -> str | list[Send]:
                 "artifact_refs": state.get("artifact_refs") or {},
                 "chapter_attempts": state.get("chapter_attempts") or {},
                 "chapter_revision_directions": state.get("chapter_revision_directions") or {},
+                "context_manifest_ref": state.get("context_manifest_ref") or "",
                 "review_role": item["role"],
                 "review_required": item["required"],
             },

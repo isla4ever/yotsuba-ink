@@ -154,43 +154,290 @@
   padding: 8px 10px;
 }
 
-/* ---------- Project card wall ---------- */
+/* ---------- Bookshelf: standing spines + reading desk ---------- */
 
-.studio-card-wall {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  margin-top: 20px;
+/* The library is the page, not a card floating in it: the shelf and the desk
+   take the height the viewport gives them instead of leaving a dead half-page. */
+.studio-projects {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.studio-project-card {
-  background: var(--surface-2);
-  border: 1px solid var(--stroke-2);
-  border-radius: var(--radius-surface);
-  box-shadow: var(--card-top-highlight);
-  color: inherit;
+.studio-bookshelf-layout {
+  align-items: stretch;
+  display: grid;
+  flex: 1;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  margin-top: 24px;
+  min-height: min(520px, 58vh);
+}
+
+.studio-shelf {
+  align-content: flex-end;
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-height: 300px;
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  position: relative;
+}
+
+/* The shelf board the books stand on. */
+.studio-shelf-board {
+  background: linear-gradient(
+    color-mix(in srgb, var(--stroke-3) 90%, transparent),
+    color-mix(in srgb, var(--stroke-2) 40%, transparent)
+  );
+  border-radius: 3px;
+  bottom: 8px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+  content: '';
+  height: 6px;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.studio-book-spine {
+  align-items: center;
+  background:
+    linear-gradient(105deg, rgba(255, 255, 255, 0.09), transparent 28%),
+    linear-gradient(
+      color-mix(in srgb, var(--project-accent) 30%, var(--surface-2)),
+      color-mix(in srgb, var(--project-accent) 12%, var(--surface-2))
+    );
+  border: 1px solid color-mix(in srgb, var(--project-accent) 34%, var(--stroke-2));
+  border-radius: 4px 7px 7px 4px;
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--project-accent) 60%, transparent),
+    0 8px 18px rgba(0, 0, 0, 0.3);
+  color: var(--text);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   font: inherit;
+  gap: 12px;
+  height: clamp(264px, 42vh, 360px);
+  justify-content: flex-start;
+  padding: var(--space-4) var(--space-2) var(--space-3);
+  transform-origin: bottom center;
+  transition:
+    transform var(--duration-standard) var(--ease-standard),
+    box-shadow var(--duration-standard) var(--ease-standard),
+    border-color var(--duration-standard) var(--ease-standard);
+  width: 52px;
+}
+
+.studio-book-spine:hover,
+.studio-book-spine:focus-visible {
+  border-color: color-mix(in srgb, var(--project-accent) 62%, var(--stroke-3));
+  transform: translateY(-10px);
+}
+
+.studio-book-spine.selected {
+  border-color: color-mix(in srgb, var(--project-accent) 78%, var(--stroke-3));
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--project-accent) 80%, transparent),
+    0 16px 30px rgba(0, 0, 0, 0.42);
+  transform: translateY(-14px);
+}
+
+.spine-band {
+  background: color-mix(in srgb, var(--project-accent) 80%, transparent);
+  border-radius: 2px;
+  display: block;
+  flex: none;
+  height: 4px;
+  width: 22px;
+}
+
+.spine-title {
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  max-height: 68%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  writing-mode: vertical-rl;
+}
+
+.spine-words {
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  margin-top: auto;
+  writing-mode: vertical-rl;
+}
+
+.studio-book-spine.new-book {
+  background: transparent;
+  border: 1px dashed var(--stroke-3);
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.studio-book-spine.new-book:hover,
+.studio-book-spine.new-book:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Reading desk: detail panel for the selected work. */
+.studio-book-desk {
+  background: var(--surface-2);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--card-top-highlight);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.desk-cover {
+  align-items: center;
+  background:
+    radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.14), transparent 42%),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--project-accent) 44%, var(--surface-2)),
+      color-mix(in srgb, var(--project-accent) 10%, var(--surface-2)) 78%
+    );
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  min-height: 150px;
+  padding: 26px;
+}
+
+.desk-cover-title {
+  color: var(--text);
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.desk-cover-rule {
+  background: color-mix(in srgb, var(--text) 60%, transparent);
+  height: 1px;
+  width: 56px;
+}
+
+.desk-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-5);
+}
+
+/* Only the open button is pinned to the bottom: a second auto margin on the
+   progress dots would tear the panel into two floating halves. */
+.studio-book-desk .studio-card-progress {
+  margin-top: 0;
+}
+
+/* Named stages instead of a bare dot row: the desk should say where the book
+   actually stands without opening it. */
+.desk-stage-list {
+  display: grid;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.desk-stage-row {
+  align-items: center;
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  padding: 5px var(--space-2);
+}
+
+.desk-stage-row.current {
+  background: color-mix(in srgb, var(--project-accent) 12%, transparent);
+}
+
+.desk-stage-label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desk-stage-row.completed .desk-stage-label { color: var(--text); }
+
+.desk-stage-state {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.desk-head {
+  align-items: baseline;
+  display: flex;
   gap: 10px;
-  min-height: 168px;
-  padding: 16px 16px 14px;
-  position: relative;
-  text-align: left;
-  transition: border-color var(--duration-standard) var(--ease-standard), box-shadow var(--duration-standard) var(--ease-standard);
+  justify-content: space-between;
 }
 
-/* Hover contract: stroke enhancement + brighter top highlight only. */
-.studio-project-card:hover,
-.studio-project-card:focus-visible {
-  border-color: var(--stroke-3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+.desk-head h2 {
+  font-size: 17px;
+  font-weight: 550;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.studio-project-card[aria-busy="true"] {
-  cursor: progress;
-  opacity: 0.72;
+.desk-summary {
+  color: var(--muted);
+  display: -webkit-box;
+  font-size: 12.5px;
+  line-height: 1.65;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.desk-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.desk-metrics > div {
+  background: color-mix(in srgb, var(--surface-1) 70%, transparent);
+  border: 1px solid var(--stroke-2);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+
+.desk-metrics dt {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.desk-metrics dd {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin: 3px 0 0;
+}
+
+.desk-open-button {
+  justify-content: center;
+  margin-top: auto;
 }
 
 .studio-card-status.opening {
@@ -203,30 +450,10 @@
     gap: 28px;
     padding: 12px 14px 44px;
   }
-}
 
-.studio-card-accent {
-  background: var(--project-accent);
-  border-radius: 2px;
-  display: block;
-  height: 3px;
-  width: 40px;
-}
-
-.studio-card-head {
-  align-items: baseline;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.studio-card-head h3 {
-  font-size: 15px;
-  font-weight: 500;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  .studio-bookshelf-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .studio-card-status {
@@ -240,16 +467,6 @@
 
 .studio-card-status.archived {
   opacity: 0.7;
-}
-
-.studio-card-summary {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .studio-card-progress {
@@ -274,42 +491,6 @@
 .studio-progress-dot.current {
   background: color-mix(in srgb, var(--project-accent) 55%, transparent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--project-accent) 24%, transparent);
-}
-
-.studio-card-meta {
-  color: var(--muted);
-  display: flex;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.studio-card-words {
-  color: var(--text);
-}
-
-.studio-new-card {
-  align-items: center;
-  background: transparent;
-  border: 1px dashed var(--stroke-3);
-  border-radius: var(--radius-surface);
-  color: var(--muted);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  font: inherit;
-  font-size: 13px;
-  gap: 8px;
-  justify-content: center;
-  min-height: 168px;
-  transition: border-color var(--duration-standard) var(--ease-standard), color var(--duration-standard) var(--ease-standard);
-}
-
-.studio-new-card:hover,
-.studio-new-card:focus-visible {
-  border-color: var(--accent);
-  color: var(--text);
 }
 
 /* ---------- Empty state ---------- */
@@ -355,10 +536,42 @@
   border: 1px solid var(--stroke-1);
   border-radius: var(--radius-surface);
   box-shadow: var(--card-top-highlight);
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 12px 14px;
+  display: grid;
+  gap: var(--space-3) var(--space-4);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: var(--space-4) var(--space-5);
+}
+
+/* The stage chain sits in the card itself: a template is unreadable without
+   knowing which stages and models a new book inherits. */
+.studio-template-chain {
+  display: grid;
+  gap: var(--space-2);
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.studio-template-chain li {
+  background: var(--surface-0);
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+.studio-template-chain strong { font-size: 12.5px; font-weight: 550; }
+
+.studio-template-chain small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .studio-template-info {
@@ -516,13 +729,16 @@
   --project-accent: var(--color-mode-primary);
 }
 
-/* Studio cards derive the same variable per-card from their own hue. */
-.studio-project-card {
-  --project-accent: var(--color-mode-primary);
+/* Each book derives its accent from the project's own hue so the shelf
+ * reads as distinct volumes rather than uniform cards. */
+.studio-book-spine,
+.studio-book-desk {
+  --project-accent: hsl(var(--project-accent-hue, 160) 46% 56%);
 }
 
-:root[data-theme="light"] .studio-project-card {
-  --project-accent: var(--color-mode-primary);
+:root[data-theme="light"] .studio-book-spine,
+:root[data-theme="light"] .studio-book-desk {
+  --project-accent: hsl(var(--project-accent-hue, 160) 46% 44%);
 }
 
 /* Consumer 1: sidebar project header (name + accent mark + back-to-studio). */
@@ -545,7 +761,15 @@
 }
 
 .sidebar-project-title {
+  flex: 1;
   min-width: 0;
+}
+
+/* Back and collapse live in the header instead of costing a nav row each. */
+.sidebar-project-tools {
+  display: flex;
+  flex: none;
+  gap: 4px;
 }
 
 .sidebar-project-title .sidebar-item-label {
@@ -566,10 +790,12 @@
   cursor: pointer;
   display: inline-flex;
   flex: none;
+  height: 26px;
   justify-content: center;
-  margin-left: auto;
-  padding: 4px;
+  min-height: 0;
+  padding: 0;
   transition: border-color var(--duration-standard) var(--ease-standard), color var(--duration-standard) var(--ease-standard);
+  width: 26px;
 }
 
 .sidebar-project-back:hover,
@@ -580,6 +806,26 @@
 
 .workbench-sidebar.collapsed .sidebar-project-title {
   display: none;
+}
+
+/* Collapsed rail: the header stacks its two icon buttons so neither collides
+   with the accent dot inside the 56px column. */
+.workbench-sidebar.collapsed .sidebar-project-header {
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+
+.workbench-sidebar.collapsed .sidebar-project-accent {
+  display: none;
+}
+
+.workbench-sidebar.collapsed .sidebar-project-tools {
+  flex-direction: column;
+}
+
+.workbench-sidebar.collapsed .sidebar-project-back {
+  height: 32px;
+  width: 32px;
 }
 
 /* Consumer 2: current-item indicator bar picks up the project accent. */
@@ -596,4 +842,75 @@
   position: absolute;
   top: 6px;
   width: 2px;
+}
+
+/* Studio-scoped knowledge overview: one shelf card per book. */
+.studio-knowledge-overview {
+  display: grid;
+  gap: 18px;
+}
+
+.studio-knowledge-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.studio-knowledge-group {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.studio-knowledge-group > header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.studio-knowledge-group > header h2 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.studio-knowledge-group > header span {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.studio-knowledge-group > header button {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.studio-knowledge-doc-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.studio-knowledge-doc-list li {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 8px;
+  color: var(--text-soft);
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  padding: 7px 10px;
+}
+
+.studio-knowledge-doc-list li strong {
+  color: var(--text);
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

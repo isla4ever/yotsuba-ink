@@ -8,11 +8,10 @@ from novel_workflow.memory.canon_store import CanonFact
 from novel_workflow.output_contracts.artifacts_vnext import (
     STAGE_ORDER,
     CharacterBibleArtifact,
-    OutlineArtifact,
+    DetailArtifact,
+    StorySpineArtifact,
     StageId,
-    StoryBriefArtifact,
-    detail_obligation_ref_ids,
-    required_summary_outcome_ids,
+    VolumeArchitectureArtifact,
     validate_artifact_vnext,
 )
 from novel_workflow.runtime.graph.checkpoint_branch import (
@@ -63,10 +62,12 @@ class NarrativeBranchService:
         stores.runs.create(
             run_id=target_run_id,
             project_id=source.project_id,
+            workflow_id=source.workflow_id,
             workflow_revision=source.workflow_revision,
+            workflow_digest=source.workflow_digest,
             quality_mode=source.quality_mode,
             inputs=source.inputs,
-            book_scale_plan=source.book_scale_plan,
+            scale_profile=source.scale_profile,
             provider_bindings=source.provider_bindings,
             cover_asset_binding=source.cover_asset_binding,
             export_preferences=source.export_preferences,
@@ -77,6 +78,7 @@ class NarrativeBranchService:
         )
         stores.cover_assets.copy_run(source_run_id, target_run_id)
         self._copy_artifacts(target_run_id, artifact_plan)
+        self._copy_context_manifests(source_run_id, target_run_id, values)
         chapter_versions = self._copy_chapters(source_run_id, target_run_id, values)
         evidence_map = self._copy_evidence(
             source_run_id,
@@ -177,58 +179,54 @@ class NarrativeBranchService:
             if current is None or record.status == "committed":
                 validation_sources[record.stage_id] = record
 
-        character_record = validation_sources.get("characters")
+        character_record = validation_sources.get("cast")
         characters = (
             CharacterBibleArtifact.model_validate(character_record.payload)
             if character_record is not None
             else None
         )
-        story_record = validation_sources.get("info")
-        story = (
-            StoryBriefArtifact.model_validate(story_record.payload)
-            if story_record is not None
+        spine_record = validation_sources.get("spine")
+        turn_ids = (
+            {turn.id for turn in StorySpineArtifact.model_validate(spine_record.payload).turns}
+            if spine_record is not None
             else None
         )
-        outline_record = validation_sources.get("outline")
-        outline = (
-            OutlineArtifact.model_validate(outline_record.payload)
-            if outline_record is not None
+        volumes_record = validation_sources.get("volumes")
+        volume_cast_ids = (
+            {
+                volume.id: set(volume.cast_ids)
+                for volume in VolumeArchitectureArtifact.model_validate(
+                    volumes_record.payload
+                ).volumes
+            }
+            if volumes_record is not None
             else None
         )
-        chapter_ids = {
-            f"chapter-{number}"
-            for number in range(
-                1,
-                self.runtime.stores.runs.definition(source_run_id).book_scale_plan.total_chapters
-                + 1,
-            )
+        chapter_refs = {
+            item.ref
+            for record in validation_sources.values()
+            if record.stage_id == "detail"
+            for item in DetailArtifact.model_validate(record.payload).chapters
         }
         plan: list[tuple[ArtifactRecord, dict[str, Any]]] = []
         for record in records:
             kwargs: dict[str, Any] = {}
-            if record.stage_id in {"summary", "outline", "detail"}:
+            if record.stage_id in {"volumes", "detail"}:
                 if characters is None:
                     raise BranchConflictError(
                         f"Branch {record.stage_id} artifact has no frozen Character Bible"
                     )
-                kwargs["character_ids"] = {item.id for item in characters.characters}
-            if record.stage_id == "summary" and characters is not None:
-                kwargs["required_outcome_character_ids"] = required_summary_outcome_ids(
-                    characters
-                )
-            if record.stage_id in {"characters", "outline", "detail"}:
-                kwargs["chapter_ids"] = chapter_ids
+                kwargs["subject_ids"] = {item.id for item in characters.subjects}
+            if record.stage_id == "volumes" and turn_ids is not None:
+                kwargs["turn_ids"] = turn_ids
+            if record.stage_id == "detail" and chapter_refs:
+                kwargs["chapter_refs"] = chapter_refs
             if record.stage_id == "detail":
-                if story is None or characters is None or outline is None:
+                if volume_cast_ids is None:
                     raise BranchConflictError(
-                        "Branch Detail artifact is missing a frozen upstream Artifact"
+                        "Branch Detail artifact has no frozen Volume Architecture"
                     )
-                kwargs["npc_slot_ids"] = {item.id for item in characters.npc_slots}
-                kwargs["obligation_ref_ids"] = detail_obligation_ref_ids(
-                    story,
-                    characters,
-                    outline,
-                )
+                kwargs["volume_cast_ids"] = volume_cast_ids
             validate_artifact_vnext(record.stage_id, record.payload, **kwargs)
             plan.append((record, kwargs))
         return plan
@@ -276,6 +274,24 @@ class NarrativeBranchService:
                 target_run_id, record.artifact.model_dump(mode="json")
             )
         return set(refs.values())
+
+    def _copy_context_manifests(
+        self,
+        source_run_id: str,
+        target_run_id: str,
+        values: list[dict[str, Any]],
+    ) -> None:
+        refs = {
+            str(value.get("context_manifest_ref") or "")
+            for value in values
+            if value.get("context_manifest_ref")
+        }
+        for manifest_id in sorted(refs):
+            self.runtime.stores.context_manifests.copy(
+                source_run_id=source_run_id,
+                target_run_id=target_run_id,
+                manifest_id=manifest_id,
+            )
 
     def _copy_evidence(
         self,

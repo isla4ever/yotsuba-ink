@@ -112,6 +112,8 @@
   --mode-aura-soft: color-mix(in srgb, var(--mode-aura) 12%, transparent);
 
   /* Compatibility aliases. Migrate consumers incrementally. */
+  --line: var(--color-border-subtle);
+  --surface: var(--color-surface-base);
   --bg: var(--color-canvas);
   --bg-soft: var(--color-canvas-subtle);
   --panel: var(--color-surface-base);

@@ -20,12 +20,18 @@ export type RunActionPresentation = {
 export type ModeRoutePolicy = {
   planningSurface: 'planning' | 'cockpit';
   stageRoutes: 'none' | 'all';
+  /**
+   * Run monitor console availability per quality mode:
+   * fast lands there by default, balanced can toggle in/out,
+   * deep never leaves the item-by-item workbench.
+   */
+  monitor: 'default' | 'available' | 'none';
 };
 
 type Params = {
   approvalPending: boolean;
   checkpointContinueReady: boolean;
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
   qualityMode: QualityMode;
   runControlState: RunControlState;
   running: boolean;
@@ -47,7 +53,7 @@ export function runActionPresentation(params: Params): RunActionPresentation {
   if (params.selectedStageStatus === 'attention' && params.selectedStageType === 'export') {
     return awaitingAction('等待导出就绪', '请先补齐章节、封面、质量与事实冲突校验');
   }
-  if (params.infoContinueReady) return continueAction('继续进入人物圣经', '显示阶段结算并进入人物编排');
+  if (params.briefContinueReady) return continueAction('继续进入故事脊柱', '显示阶段结算并进入故事脊柱');
   if (params.checkpointContinueReady && params.selectedStageType === 'export') {
     return { key: 'return', label: '返回控制台', title: '导出完成，返回工作台', disabled: false, visualState: 'continue-ready' };
   }
@@ -67,13 +73,13 @@ export function runActionPresentation(params: Params): RunActionPresentation {
 }
 
 export function modeRoutePolicy(mode: QualityMode, automationCockpitReady: boolean): ModeRoutePolicy {
-  if (mode === 'fast') return { planningSurface: 'cockpit', stageRoutes: 'none' };
+  if (mode === 'fast') return { planningSurface: 'cockpit', stageRoutes: 'none', monitor: 'default' };
   if (mode === 'balanced') {
     return automationCockpitReady
-      ? { planningSurface: 'cockpit', stageRoutes: 'all' }
-      : { planningSurface: 'planning', stageRoutes: 'all' };
+      ? { planningSurface: 'cockpit', stageRoutes: 'all', monitor: 'available' }
+      : { planningSurface: 'planning', stageRoutes: 'all', monitor: 'available' };
   }
-  return { planningSurface: 'planning', stageRoutes: 'all' };
+  return { planningSurface: 'planning', stageRoutes: 'all', monitor: 'none' };
 }
 
 export function canNavigateToStage(policy: ModeRoutePolicy, stageId: string) {

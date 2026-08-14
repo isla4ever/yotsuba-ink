@@ -41,7 +41,7 @@ export function StageDecisionControls({
     && (stage.type !== 'text' || event.chapter_id === chapterId)
   ));
   const targetReady = stage.type !== 'text' || Boolean(chapterId);
-  const decisionEnabled = workflow.quality_mode !== 'fast' && stage.type !== 'info';
+  const decisionEnabled = workflow.quality_mode !== 'fast';
   const canDraft = decisionEnabled && completed && !confirmed && targetReady && Boolean(pendingDecision);
   const canConfirm = decisionEnabled && completed && !confirmed && artifactReady && !confirming && Boolean(pendingDecision);
   const showDecisionBar = decisionEnabled && !confirmed;
@@ -96,7 +96,7 @@ function stageDecisionTitle(stage: WorkflowStage, completed: boolean, artifactRe
     if (stage.type === 'cover') return '封面资产尚未就绪';
     return '阶段产物仍有必填内容待补充';
   }
-  if (stage.type === 'text') return '全部章节已完成审校，可进行阶段定稿';
+  if (stage.type === 'text') return '当前章节已完成审校，可保存本章版本';
   if (stage.type === 'cover') return '正式封面已选，可进行定稿';
   if (stage.type === 'export') return '交付格式与元数据已确认，可生成正式文件';
   return '本阶段已生成，等待人工定稿';
@@ -109,7 +109,7 @@ function stageDecisionHint(stage: WorkflowStage, completed: boolean, missingLabe
     const remaining = missingLabels.length > 2 ? `，另 ${missingLabels.length - 2} 项` : '';
     return `请先处理：${visible}${remaining}。`;
   }
-  if (stage.type === 'text') return '确认定稿后，已采纳提案写入正典，并进入下一阶段。';
+  if (stage.type === 'text') return '保存当前章节版本后继续下一章；末章完成后自动进入封面。';
   if (stage.type === 'cover') return '确认定稿后，正式封面将用于导出。';
   if (stage.type === 'export') return '确认后按已接受章节版本物化不可变交付文件。';
   return '确认定稿后自动进入下一阶段。';

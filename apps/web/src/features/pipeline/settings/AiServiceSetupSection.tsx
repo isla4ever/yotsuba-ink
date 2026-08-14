@@ -1,11 +1,17 @@
-import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import type { WorkflowDefinition } from '../contracts';
 import { ButtonLoadingIndicator } from '../layout/ButtonLoadingIndicator';
 import { LoadingButton } from '../layout/LoadingButton';
+import {
+  connectedProvider,
+  stagesNeedingRebind,
+  withStagesBoundToConnectedProviders,
+} from '../lib/providerBinding';
 import { providerReadinessSummary } from '../lib/setupProgress';
 import type { ProviderReadinessState } from './useProviderReadiness';
 import { ProviderManagerSheet } from './ProviderManagerSheet';
+import { useProviderAvailability } from './useProviderAvailability';
 
 type Props = {
   readiness: ProviderReadinessState;
@@ -16,7 +22,13 @@ type Props = {
 
 export function AiServiceSetupSection({ readiness, workflow, onReadinessRefresh, onWorkflowChange }: Props) {
   const [managerOpen, setManagerOpen] = useState(false);
+  const availability = useProviderAvailability(true);
   const failedChecks = readiness.report?.checks.filter((check) => !check.ready) ?? [];
+  // Secret flags only exist on the live profile list, so binding repair reads
+  // connection state from there rather than from the workflow's snapshot.
+  const liveWorkflow = { ...workflow, provider_profiles: availability.profiles };
+  const unboundStages = availability.status === 'ready' ? stagesNeedingRebind(liveWorkflow) : [];
+  const repairTarget = unboundStages.length ? connectedProvider(availability.profiles, 'openai-compatible') : undefined;
   const statusLabel = readiness.status === 'loading'
     ? '正在检查配置'
     : readiness.status === 'failed'
@@ -55,7 +67,22 @@ export function AiServiceSetupSection({ readiness, workflow, onReadinessRefresh,
       </div>
 
       <div className="ai-service-actions">
-        <button className="tech-button" id="setup-ai-service-manager" type="button" onClick={() => setManagerOpen(true)}><KeyRound size={15} />管理 AI 服务</button>
+        {repairTarget ? (
+          <button
+            className="tech-button"
+            type="button"
+            onClick={() => {
+              onWorkflowChange({
+                ...withStagesBoundToConnectedProviders(liveWorkflow),
+                provider_profiles: workflow.provider_profiles,
+              });
+              onReadinessRefresh();
+            }}
+          >
+            <Wand2 size={15} />把 {unboundStages.length} 个阶段切到「{repairTarget.name}」
+          </button>
+        ) : null}
+        <button className="tech-button ghost" id="setup-ai-service-manager" type="button" onClick={() => setManagerOpen(true)}><KeyRound size={15} />管理 AI 服务</button>
         <LoadingButton className="ghost" loading={readiness.status === 'loading'} loadingLabel="检查中" onClick={onReadinessRefresh}><RefreshCw size={14} />重新检查配置</LoadingButton>
       </div>
       <ProviderManagerSheet

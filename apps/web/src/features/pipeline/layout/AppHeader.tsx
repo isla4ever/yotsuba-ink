@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, TriangleAlert } from 'lucide-react';
+import { Activity, CheckCircle2, LayoutPanelLeft, MonitorDot, TriangleAlert } from 'lucide-react';
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 import { CreationActionDock } from './CreationActionDock';
@@ -61,7 +61,7 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
   const modeSwitchLocked = !canSwitchModeFromFacts({
     approvalPending: run.approvalPending,
     checkpointContinueReady: run.checkpointContinueReady,
-    infoContinueReady: run.infoContinueReady,
+    briefContinueReady: run.briefContinueReady,
     paused: run.runControlState === 'paused',
     recoverable: run.runHasStarted,
     runControlState: run.runControlState,
@@ -129,6 +129,33 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
       />
 
       <div className="header-actions">
+        {/* Attachment, not recoverability: the toggle must survive run.failed /
+            run.completed so the terminal console stays reachable. */}
+        {run.activeRunId !== '' && routePolicy.monitor !== 'none' ? (
+          run.routePhase === 'monitor' ? (
+            routePolicy.stageRoutes === 'all' ? (
+              <button
+                className="header-monitor-toggle"
+                onClick={() => ui.navigateStage(run.selectedStage.id)}
+                title="返回当前阶段工作台"
+                type="button"
+              >
+                <LayoutPanelLeft size={14} />
+                阶段工作台
+              </button>
+            ) : null
+          ) : (
+            <button
+              className="header-monitor-toggle"
+              onClick={ui.openMonitor}
+              title="打开创作控制台：卷章结构、内容与运行日志同屏"
+              type="button"
+            >
+              <MonitorDot size={14} />
+              创作控制台
+            </button>
+          )
+        ) : null}
         <GlobalToolDock showGlobalEntries={!sidebarVisible} />
         <CreationActionDock disabled={modeSwitchLocked} onQualityModeChange={handleQualityModeChange} />
       </div>

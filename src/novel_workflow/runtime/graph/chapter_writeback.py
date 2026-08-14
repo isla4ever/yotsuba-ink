@@ -30,13 +30,14 @@ async def extract_evidence(
     binding = executor.runs.definition(run_id).provider_bindings.get("text")
     if binding is None:
         raise ProviderOperationError("No frozen Provider binding for evidence extraction")
+    budget = executor.output_budget_planner(state).for_evidence(binding)
     request = ChapterEvidenceRequest(
         operation_key=operation_key,
         run_id=run_id,
         chapter_id=chapter_id,
         chapter_version_id=version_id,
         content=chapter.content,
-        binding=binding,
+        binding=budget.bind(binding),
     )
     receipt = executor.operations.begin(
         run_id=run_id,

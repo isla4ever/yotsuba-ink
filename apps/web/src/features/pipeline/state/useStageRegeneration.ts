@@ -6,6 +6,7 @@ type StageRegenerationOptions = {
   activeRunId: string;
   eventsRef: MutableRefObject<RunEvent[]>;
   onWarning: (message: string) => void;
+  onDecisionSubmitted?: () => Promise<void>;
   workflow: WorkflowDefinition;
 };
 
@@ -13,6 +14,7 @@ export function useStageRegeneration({
   activeRunId,
   eventsRef,
   onWarning,
+  onDecisionSubmitted,
   workflow,
 }: StageRegenerationOptions) {
   const requestEpochRef = useRef(0);
@@ -36,6 +38,7 @@ export function useStageRegeneration({
         undefined,
         direction,
       );
+      await onDecisionSubmitted?.();
       return requestEpochRef.current === requestEpoch;
     } catch (error) {
       onWarning(`${stage.label} 换一稿失败：${errorMessage(error)}`);

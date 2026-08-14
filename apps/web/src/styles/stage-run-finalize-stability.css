@@ -1,14 +1,13 @@
-.stage-run-main.decision-capable:not(.info-main) {
-  padding-bottom: 74px;
-  position: relative;
-}
-
 .stage-decision-slot {
   bottom: 0;
-  left: 0;
+  background: color-mix(in srgb, var(--panel) 98%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--accent-2) 26%, var(--border));
+  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.22);
+  margin: 0;
   min-height: 64px;
-  position: absolute;
-  right: 0;
+  padding: 8px 12px 10px;
+  position: sticky;
+  z-index: 8;
   will-change: opacity, transform;
 }
 
@@ -21,6 +20,10 @@
   min-height: 64px;
 }
 
+.stage-decision-slot .stage-decision-bar {
+  border-radius: 6px;
+}
+
 .stage-decision-actions > button {
   min-width: 96px;
 }
@@ -30,14 +33,12 @@
 }
 
 @media (max-width: 720px) {
-  .stage-run-main.decision-capable:not(.info-main) {
-    padding-bottom: 122px;
-  }
-
   .stage-decision-slot,
   .stage-decision-slot .stage-finalize-tray-inner {
     min-height: 112px;
   }
+
+  .stage-decision-slot { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 
   .stage-decision-bar {
     align-items: stretch;

@@ -14,8 +14,8 @@ import type { RunEvent } from '../contracts';
 import { runEvent } from '../contracts/runEventTestFactory';
 
 const stages = [
-  { id: 'info', label: '创作立项定稿', type: 'info' as const },
-  { id: 'summary', label: '梗概定稿', type: 'summary' as const },
+  { id: 'brief', label: '创作立项定稿', type: 'brief' as const },
+  { id: 'spine', label: '梗概定稿', type: 'spine' as const },
   { id: 'text', label: '正文生成', type: 'text' as const },
 ];
 
@@ -65,9 +65,9 @@ describe('sidebarStageItems route policy', () => {
 describe('sidebarStageItems status derivation', () => {
   it('derives real stage status from run events instead of faking progress', () => {
     const events = [
-      event('node.started', 'summary'),
-      { ...event('artifact.committed', 'info'), payload: {}, node_id: 'info.commit_artifact' },
-      event('node.started', 'info'),
+      event('node.started', 'spine'),
+      { ...event('artifact.committed', 'brief'), payload: {}, node_id: 'brief.commit_artifact' },
+      event('node.started', 'brief'),
     ];
     const items = sidebarStageItems({
       policy: modeRoutePolicy('deep', false),
@@ -106,7 +106,7 @@ describe('sidebarStageItems status derivation', () => {
       policy: modeRoutePolicy('deep', false),
       qualityMode: 'deep',
       runHasStarted: true,
-      stageRuntimes: runtimesFrom([event('decision.required', 'summary')]),
+      stageRuntimes: runtimesFrom([event('decision.required', 'spine')]),
       stages,
     });
     expect(items[1]).toMatchObject({ status: 'awaiting', statusLabel: '待决策' });

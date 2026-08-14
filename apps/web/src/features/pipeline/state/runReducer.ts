@@ -5,12 +5,25 @@ import {
   buildRunEventIndex,
   emptyRunEventIndex,
   RUN_EVENT_LIMIT,
+  trimRunEventWindow,
   type RunEventIndex,
 } from './runEventIndex';
 import type { HydratedRunState } from './runState';
 import { selectMemoryEvents } from './runSelectors';
 
 export type WorkspacePhase = 'planning' | 'running';
+
+/**
+ * Latest artifact event per stage / per text chapter, kept outside the capped
+ * event ring: a long run (40 chapters ≈ 1800 events) trims early artifacts out
+ * of `events`, and run-wide surfaces like the monitor console must still
+ * present the whole book structure. Committed artifacts always win over
+ * candidates; entries never expire until the run is reset or replaced.
+ */
+export type StickyArtifacts = {
+  stages: Record<string, RunEvent>;
+  chapters: Record<string, RunEvent>;
+};
 
 export type RunState = {
   activeRunId: string;
@@ -26,6 +39,7 @@ export type RunState = {
   running: boolean;
   selectedId: string;
   selectedInspectorTarget: InspectorTarget;
+  stickyArtifacts: StickyArtifacts;
   workspacePhase: WorkspacePhase;
 };
 
@@ -52,6 +66,8 @@ export function createInitialRunState(params: {
   runControlState: RunControlState;
   selectedId: string;
   stageId: string;
+  /** Persisted stage artifact events that outlived the capped event window. */
+  stickyStageEvents?: RunEvent[];
   workspacePhase: WorkspacePhase;
 }): RunState {
   const selectedId = params.activeRunId ? params.selectedId : params.stageId;
@@ -68,8 +84,33 @@ export function createInitialRunState(params: {
     running: false,
     selectedId,
     selectedInspectorTarget: stageTarget(selectedId),
+    stickyArtifacts: stickyArtifactsFromEvents(params.events, params.stickyStageEvents ?? []),
     workspacePhase: params.workspacePhase,
   };
+}
+
+export function stickyArtifactsFromEvents(events: RunEvent[], seedEvents: RunEvent[] = []): StickyArtifacts {
+  let sticky: StickyArtifacts = { chapters: {}, stages: {} };
+  // Seed entries were persisted before older events got evicted, so they apply
+  // first; `events` is newest-first, so replay it oldest-first to let newer win.
+  for (const event of seedEvents) {
+    sticky = stickyArtifactsForEvent(sticky, event);
+  }
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    sticky = stickyArtifactsForEvent(sticky, events[index]);
+  }
+  return sticky;
+}
+
+function stickyArtifactsForEvent(current: StickyArtifacts, event: RunEvent): StickyArtifacts {
+  if (event.type !== 'artifact.committed' && event.type !== 'artifact.candidate_ready') return current;
+  if (event.payload == null || !event.stage_id) return current;
+  if (event.chapter_id && event.stage_id === 'text') {
+    return { ...current, chapters: { ...current.chapters, [event.chapter_id]: event } };
+  }
+  const existing = current.stages[event.stage_id];
+  if (existing?.type === 'artifact.committed' && event.type === 'artifact.candidate_ready') return current;
+  return { ...current, stages: { ...current.stages, [event.stage_id]: event } };
 }
 
 export function runReducer(state: RunState, action: RunAction): RunState {
@@ -103,6 +144,7 @@ export function runReducer(state: RunState, action: RunAction): RunState {
         running: false,
         selectedId: action.stageId,
         selectedInspectorTarget: stageTarget(action.stageId),
+        stickyArtifacts: { chapters: {}, stages: {} },
         workspacePhase: 'planning',
       };
     case 'run_restored':
@@ -112,6 +154,10 @@ export function runReducer(state: RunState, action: RunAction): RunState {
         events: action.hydrated.events,
         eventIndex: buildRunEventIndex(action.hydrated.events),
         memoryEvents: selectMemoryEvents(action.hydrated.events),
+        stickyArtifacts: stickyArtifactsFromEvents(
+          action.hydrated.events,
+          action.hydrated.stickyStageEvents ?? [],
+        ),
         paused: action.hydrated.paused,
         runControlState: action.hydrated.runControlState,
         running: false,
@@ -142,6 +188,7 @@ export function runReducer(state: RunState, action: RunAction): RunState {
         running: true,
         selectedId: action.stageId,
         selectedInspectorTarget: stageTarget(action.stageId),
+        stickyArtifacts: { chapters: {}, stages: {} },
         workspacePhase: 'running',
       };
     case 'selected_id_changed':
@@ -169,7 +216,9 @@ export function stageIdForRunEventNavigation(event: RunEvent): string {
 function stateForRunEvent(state: RunState, event: RunEvent): RunState {
   const stageId = stageIdForRunEventNavigation(event);
   const trimmed = state.events.length >= RUN_EVENT_LIMIT;
-  const events = [event, ...state.events].slice(0, RUN_EVENT_LIMIT);
+  // Trimming pins each stage's closing event past the window so events-derived
+  // stage projections survive long runs (see trimRunEventWindow).
+  const events = trimRunEventWindow([event, ...state.events]);
   let next: RunState = {
     ...state,
     activeRunId: event.run_id || state.activeRunId,
@@ -180,6 +229,7 @@ function stateForRunEvent(state: RunState, event: RunEvent): RunState {
     memoryEvents: isMemoryEvent(event)
       ? [event, ...state.memoryEvents].slice(0, 40)
       : state.memoryEvents,
+    stickyArtifacts: stickyArtifactsForEvent(state.stickyArtifacts, event),
   };
   if (stageId) {
     next = {

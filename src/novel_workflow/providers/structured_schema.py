@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from novel_workflow.providers.model_capabilities import EffectiveRequestPolicy
+from novel_workflow.providers.errors import ProviderResponseError
 
 _REMOVED_CONSTRAINTS = {
     "default",
@@ -63,7 +64,10 @@ def structured_format_decision(
         candidate = _normalize_openai_subset(candidate)
     reason = _schema_incompatibility(candidate, policy=policy)
     if reason:
-        return StructuredFormatDecision(None, "rejected", reason)
+        raise ProviderResponseError(
+            "strict_schema_unsupported",
+            f"Selected Provider cannot accept the frozen structured schema: {reason}",
+        )
     return StructuredFormatDecision(
         {
             "type": "json_schema",
@@ -197,7 +201,8 @@ def _nesting_depth(value: Any, depth: int = 0) -> int:
         return max((_nesting_depth(item, depth) for item in value), default=depth)
     if not isinstance(value, dict):
         return depth
-    next_depth = depth + 1 if value.get("type") in {"object", "array"} else depth
+    schema_type = value.get("type")
+    next_depth = depth + 1 if isinstance(schema_type, str) and schema_type in {"object", "array"} else depth
     return max([next_depth, *(_nesting_depth(item, next_depth) for item in value.values())])
 
 

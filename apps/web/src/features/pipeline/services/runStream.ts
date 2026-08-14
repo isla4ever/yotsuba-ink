@@ -1,7 +1,13 @@
 import type { RunControlState, RunEvent } from '../contracts';
 
 type ConsumeRunStreamOptions = {
-  onEvent: (event: RunEvent) => void | Promise<void>;
+  onEvent?: (event: RunEvent) => void | Promise<void>;
+  /**
+   * Batch sink: receives every event decoded from one read chunk at once.
+   * Replaying a finished run arrives as a few large chunks, so handling them as
+   * batches keeps the console from repainting itself event by event.
+   */
+  onEvents?: (events: RunEvent[]) => void | Promise<void>;
   response: Response;
   signal?: AbortSignal;
 };
@@ -12,6 +18,7 @@ const COMPLETE_EVENTS = new Set(['run.completed']);
 
 export async function consumeRunEventStream({
   onEvent,
+  onEvents,
   response,
   signal,
 }: ConsumeRunStreamOptions): Promise<RunControlState> {
@@ -21,7 +28,7 @@ export async function consumeRunEventStream({
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let terminal: RunControlState = 'completed';
+  let terminal: RunControlState | null = null;
 
   const abort = () => {
     try {
@@ -32,6 +39,15 @@ export async function consumeRunEventStream({
   };
   signal?.addEventListener('abort', abort, { once: true });
 
+  const deliver = async (events: RunEvent[]) => {
+    if (!events.length) return;
+    if (onEvents) await onEvents(events);
+    for (const event of events) {
+      if (!onEvents && onEvent) await onEvent(event);
+      terminal = controlStateForEvent(event, terminal);
+    }
+  };
+
   try {
     while (true) {
       if (signal?.aborted) throw new DOMException('Run stream aborted', 'AbortError');
@@ -39,25 +55,11 @@ export async function consumeRunEventStream({
       buffer += decoder.decode(value, { stream: !done });
       const parsed = drainSseEvents(buffer);
       buffer = parsed.remainder;
-      for (const event of parsed.events) {
-        await onEvent(event);
-        const nextTerminal = terminalStateForEvent(event);
-        if (nextTerminal) {
-          terminal = nextTerminal;
-          if (nextTerminal !== 'completed') {
-            abort();
-            return nextTerminal;
-          }
-        }
-      }
+      await deliver(parsed.events);
       if (done) break;
     }
-    const parsed = drainSseEvents(`${buffer}\n\n`);
-    for (const event of parsed.events) {
-      await onEvent(event);
-      terminal = terminalStateForEvent(event) ?? terminal;
-    }
-    return terminal;
+    await deliver(drainSseEvents(`${buffer}\n\n`).events);
+    return terminal ?? 'completed';
   } finally {
     signal?.removeEventListener('abort', abort);
   }
@@ -117,9 +119,13 @@ function isRunEvent(value: unknown): value is RunEvent {
     && typeof event.checkpoint_id === 'string';
 }
 
-function terminalStateForEvent(event: RunEvent): RunControlState | null {
+function controlStateForEvent(
+  event: RunEvent,
+  current: RunControlState | null,
+): RunControlState | null {
   if (PAUSE_EVENTS.has(event.type)) return 'paused';
+  if (event.type === 'decision.resolved') return null;
   if (FAIL_EVENTS.has(event.type)) return 'failed';
   if (COMPLETE_EVENTS.has(event.type)) return 'completed';
-  return null;
+  return current;
 }

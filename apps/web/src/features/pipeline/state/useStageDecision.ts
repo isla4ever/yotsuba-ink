@@ -17,15 +17,16 @@ import {
 } from './stageDecisionState';
 import { useStageRegeneration } from './useStageRegeneration';
 import {
-  clearInfoApprovalDraft,
-  loadInfoApprovalDraft,
-  saveInfoApprovalDraft,
-} from './infoApprovalDraftStorage';
+  clearBriefApprovalDraft,
+  loadBriefApprovalDraft,
+  saveBriefApprovalDraft,
+} from './briefApprovalDraftStorage';
 
 type StageDecisionOptions = {
   activeRunId: string;
   eventsRef: MutableRefObject<RunEvent[]>;
   onWarning: (message: string) => void;
+  onDecisionSubmitted?: () => Promise<void>;
   workflow: WorkflowDefinition;
 };
 
@@ -33,6 +34,7 @@ export function useStageDecision({
   activeRunId,
   eventsRef,
   onWarning,
+  onDecisionSubmitted,
   workflow,
 }: StageDecisionOptions) {
   const [state, setState] = useState(initialStageDecisionState);
@@ -40,12 +42,13 @@ export function useStageDecision({
     activeRunId,
     eventsRef,
     onWarning,
+    onDecisionSubmitted,
     workflow,
   });
 
   function setApprovalDraft(approvalDraft: string) {
     if (state.approvalPending && state.approvalSource) {
-      saveInfoApprovalDraft(activeRunId, state.approvalSource, approvalDraft);
+      saveBriefApprovalDraft(activeRunId, state.approvalSource, approvalDraft);
     }
     setState((current) => ({ ...current, approvalDraft }));
   }
@@ -53,13 +56,13 @@ export function useStageDecision({
   function restore(hydrated: HydratedRunState) {
     const restored = restoreStageDecisionState(hydrated);
     const localDraft = restored.approvalPending
-      ? loadInfoApprovalDraft(hydrated.activeRunId, restored.approvalSource)
+      ? loadBriefApprovalDraft(hydrated.activeRunId, restored.approvalSource)
       : '';
     setState({ ...restored, approvalDraft: localDraft || restored.approvalDraft });
   }
 
   function reset() {
-    clearInfoApprovalDraft(activeRunId);
+    clearBriefApprovalDraft(activeRunId);
     regeneration.resetRegeneration();
     setState(initialStageDecisionState);
   }
@@ -69,14 +72,14 @@ export function useStageDecision({
   }
 
   function applyEvent(event: RunEvent) {
-    if (event.type === 'artifact.committed' && event.stage_id === 'info') clearInfoApprovalDraft(event.run_id || activeRunId);
+    if (event.type === 'artifact.committed' && event.stage_id === 'brief') clearBriefApprovalDraft(event.run_id || activeRunId);
     setState((current) => {
       const next = stageDecisionStateForEvent(current, event);
-      if (!isInfoSourceEvent(event) || !next.approvalPending || !next.approvalSource) return next;
+      if (!isBriefSourceEvent(event) || !next.approvalPending || !next.approvalSource) return next;
       if (next.approvalSource === current.approvalSource && current.approvalDraft) {
         return { ...next, approvalDraft: current.approvalDraft };
       }
-      const localDraft = loadInfoApprovalDraft(event.run_id || activeRunId, next.approvalSource);
+      const localDraft = loadBriefApprovalDraft(event.run_id || activeRunId, next.approvalSource);
       return localDraft ? { ...next, approvalDraft: localDraft } : next;
     });
   }
@@ -107,24 +110,24 @@ export function useStageDecision({
     if (!activeRunId) return false;
     const parsedArtifact = parseApprovalArtifact(artifact);
     try {
-      await submitGraphDecision('info', 'accept', parsedArtifact);
+      await submitGraphDecision('brief', 'accept', parsedArtifact);
     } catch (error) {
       onWarning(`创作立项定稿提交失败：${errorMessage(error)}`);
       return false;
     }
-    clearInfoApprovalDraft(activeRunId);
+    clearBriefApprovalDraft(activeRunId);
     return true;
   }
 
   async function regenerateBrief(direction = '强化悬疑钩子与人物关系') {
     if (!activeRunId || !state.approvalPending) return false;
-    return regeneration.regenerateStageDraft('info', direction);
+    return regeneration.regenerateStageDraft('brief', direction);
   }
 
   async function confirmStageArtifact(stageId: string, editedArtifact?: string) {
     if (!activeRunId) return false;
     const stage = workflow.nodes.find((item) => item.id === stageId);
-    if (!stage || stage.id === 'info') return false;
+    if (!stage || stage.id === 'brief') return false;
     const artifact = editedArtifact?.trim()
       ? parseApprovalArtifact(editedArtifact)
       : selectLatestStageArtifact(eventsRef.current, stage.id) ?? {};
@@ -177,6 +180,7 @@ export function useStageDecision({
         ? artifact as Record<string, unknown>
         : undefined,
     );
+    await onDecisionSubmitted?.();
   }
 }
 
@@ -186,6 +190,6 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : '未知错误';
 }
 
-function isInfoSourceEvent(event: RunEvent) {
-  return event.stage_id === 'info' && event.type === 'artifact.candidate_ready';
+function isBriefSourceEvent(event: RunEvent) {
+  return event.stage_id === 'brief' && event.type === 'artifact.candidate_ready';
 }

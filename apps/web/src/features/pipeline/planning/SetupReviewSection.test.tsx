@@ -5,7 +5,7 @@ import { defaultWorkflow } from '../state/defaultWorkflow';
 import { reviewReferenceCardId } from '../lib/setupProgress';
 import { SetupReviewSection, withReferenceSummary } from './SetupReviewSection';
 
-const infoStage = defaultWorkflow.nodes.find((stage) => stage.type === 'info') as WorkflowStage;
+const briefStage = defaultWorkflow.nodes.find((stage) => stage.type === 'brief') as WorkflowStage;
 
 function completeSteps(): SetupStep[] {
   return [
@@ -15,7 +15,7 @@ function completeSteps(): SetupStep[] {
   ];
 }
 
-function render(steps: SetupStep[], stage: WorkflowStage = infoStage) {
+function render(steps: SetupStep[], stage: WorkflowStage = briefStage) {
   return renderToStaticMarkup(
     <SetupReviewSection
       knowledgeDocuments={[]}
@@ -60,7 +60,7 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
         target: { stepId: 'review', fieldId: reviewReferenceCardId },
       }],
     };
-    const stage = withReferenceSummary(infoStage, '检索意图：群像悬疑结构参考。');
+    const stage = withReferenceSummary(briefStage, '检索意图：群像悬疑结构参考。');
     const html = render(steps, stage);
 
     expect(html).toContain('aria-expanded="true"');
@@ -85,7 +85,7 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
     const html = renderToStaticMarkup(
       <SetupReviewSection
         knowledgeDocuments={[]}
-        stage={infoStage}
+        stage={briefStage}
         steps={steps}
         workflow={{ ...defaultWorkflow, quality_mode: 'legacy' as typeof defaultWorkflow.quality_mode }}
         onOpenKnowledgeManager={() => undefined}
@@ -100,9 +100,9 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
   });
 
   it('writes summary edits back to the info stage reference_summary input', () => {
-    const next = withReferenceSummary(infoStage, '手动整理的参考要点');
+    const next = withReferenceSummary(briefStage, '手动整理的参考要点');
     expect(next.input_schema.find((field) => field.key === 'reference_summary')?.default).toBe('手动整理的参考要点');
     // The source stage stays untouched (autosave diffing depends on immutability).
-    expect(infoStage.input_schema.find((field) => field.key === 'reference_summary')?.default).toBe('');
+    expect(briefStage.input_schema.find((field) => field.key === 'reference_summary')?.default).toBe('');
   });
 });

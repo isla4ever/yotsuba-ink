@@ -35,7 +35,7 @@
 .story-core-card p,
 .cover-brief-card p,
 .cover-prompt-card p,
-.stage-summary-insight p {
+.stage-status-insight p {
   color: var(--text-soft);
   font-size: 13px;
   line-height: 1.65;

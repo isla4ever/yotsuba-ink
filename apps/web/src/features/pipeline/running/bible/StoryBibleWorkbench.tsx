@@ -46,7 +46,7 @@ export function StoryBibleWorkbench({ section }: Props) {
           ))}
         </nav>
       </header>
-      {section === 'characters' ? <CharactersSection events={events} workflow={workflow} /> : null}
+      {section === 'cast' ? <CharactersSection events={events} workflow={workflow} /> : null}
       {section === 'world' ? <WorldSection events={events} /> : null}
       {section === 'foreshadow' ? <ForeshadowSection events={events} /> : null}
       {section === 'facts' ? <FactsSection events={events} /> : null}

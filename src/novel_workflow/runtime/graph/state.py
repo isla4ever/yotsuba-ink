@@ -22,6 +22,7 @@ class GraphFailure(TypedDict):
     code: str
     retryable: bool
     evidence_ref: NotRequired[str]
+    message: NotRequired[str]
 
 
 def keep_first_failure(
@@ -38,12 +39,13 @@ class NarrativeRunState(TypedDict, total=False):
     project_id: str
     workflow_revision: str
     quality_mode: Literal["fast", "balanced", "deep"]
-    book_scale_plan_ref: str
+    scale_profile_ref: str
     artifact_refs: dict[StageId, str]
     candidate_artifact_refs: dict[StageId, str]
     chapter_version_refs: dict[str, str]
     chapter_attempts: dict[str, int]
     chapter_revision_directions: dict[str, str]
+    context_manifest_ref: str
     active_stage_id: StageId
     active_chapter_number: int
     active_chapter_id: str
@@ -56,6 +58,9 @@ class NarrativeRunState(TypedDict, total=False):
     decision_ids: dict[StageId, str]
     pending_operation_refs: Annotated[list[str], operator.add]
     review_operation_refs: Annotated[list[str], operator.add]
+    role_demand_proposals: list[dict[str, Any]]
+    subject_refs: list[dict[str, str]]
+    volume_boundary_proposal: dict[str, Any]
     pending_evidence_refs: list[str]
     pending_writeback_ref: str
     active_review_roles: list[dict[str, Any]]

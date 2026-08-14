@@ -1,1555 +1,95 @@
 from __future__ import annotations
 
 import asyncio
-import io
+import hashlib
 import json
-import struct
-import zipfile
-import zlib
 from typing import Any
 
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 
+from novel_workflow.output_contracts.artifacts_vnext import (
+    ContextManifest,
+    RoleDemandProposalBatch,
+    StoryBriefArtifact,
+    StorySpineArtifact,
+    VolumeBoundaryProposalBatch,
+    validate_artifact_vnext,
+)
+from novel_workflow.providers.errors import ProviderResponseError
 from novel_workflow.runtime.graph.provider_gateway import (
-    ChapterEvidenceRequest,
-    ChapterEvidenceResult,
-    ChapterGenerationRequest,
     ChapterReviewRequest,
     ChapterReviewResult,
-    CoverImageRequest,
-    ReviewFinding,
-    StageGenerationRequest,
     StructuredProviderResult,
 )
-from novel_workflow.runtime.graph.evidence_candidates import (
-    build_chapter_evidence_candidates,
-)
-from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.runtime.graph.branch_service import NarrativeBranchService
-from novel_workflow.runtime.graph.chapter_capacity import evaluate_chapter_capacity
-from novel_workflow.runtime.graph.chapter_decision import save_edited_chapter_candidate
-from novel_workflow.runtime.graph.chapter_review import DEFAULT_REVIEWERS, freeze_review_roles
-from novel_workflow.runtime.graph.execution_service import NarrativeExecutionService
 from novel_workflow.runtime.graph.runtime import (
-    DecisionReplayConflict,
     NarrativeRuntime,
+    decision_operation_key,
     filesystem_stores,
+    open_sqlite_runtime,
 )
-from novel_workflow.runtime.graph.runtime import open_sqlite_runtime
 from novel_workflow.storage.narrative_run_repository import (
-    CoverAssetBinding,
     ExportPreferences,
     ProviderBinding,
 )
-from novel_workflow.workflows.book_scale_plan import BookScalePlan, build_book_scale_plan
+from novel_workflow.workflows.narrative_scale import NarrativeScaleProfile
+from tests.fakes import FakeNarrativeProvider
+from tests.phase27_bindings import cover_asset_binding, provider_binding
 
 
-def _run_contract_args() -> dict[str, Any]:
-    return {
-        "cover_asset_binding": CoverAssetBinding(
-            provider_profile_id="fake-image",
-            model="fake-image-model",
-            candidate_count=3,
-            size="256x384",
-            quality="medium",
-            failure_policy="fail_run",
-        ),
-        "export_preferences": ExportPreferences(format="zip"),
-    }
+class InterruptingReviewProvider(FakeNarrativeProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self._review_started = {
+            "continuity": asyncio.Event(),
+            "character": asyncio.Event(),
+        }
+        self._stop_once = True
 
-
-def _book_plan(chapter_count: int) -> BookScalePlan:
-    return build_book_scale_plan(
-        target_mode="total_chapters",
-        target_value=chapter_count,
-    )
-
-
-def test_deep_mode_freezes_every_parallel_reviewer_as_required() -> None:
-    balanced = freeze_review_roles(DEFAULT_REVIEWERS, "balanced")
-    deep = freeze_review_roles(DEFAULT_REVIEWERS, "deep")
-
-    assert balanced["active_review_roles"][-1] == {"role": "prose", "required": False}
-    assert all(item["required"] for item in deep["active_review_roles"])
-
-
-def test_chapter_capacity_keeps_soft_targets_diagnostic_and_hard_limits_blocking() -> None:
-    plan = _book_plan(1)
-    hard_underflow = evaluate_chapter_capacity(
-        "字" * (plan.chapter_hard_min_chars - 1),
-        plan,
-    )
-    soft_underflow = evaluate_chapter_capacity(
-        "字" * plan.chapter_hard_min_chars,
-        plan,
-    )
-    within_soft = evaluate_chapter_capacity(
-        "字" * plan.chapter_target_chars,
-        plan,
-    )
-
-    assert hard_underflow.status == "hard_underflow"
-    assert hard_underflow.blocking_finding()["code"] == "chapter.capacity.hard_min"  # type: ignore[index]
-    assert soft_underflow.status == "soft_underflow"
-    assert soft_underflow.blocking_finding() is None
-    assert within_soft.status == "within_soft"
-    assert within_soft.blocking_finding() is None
-
-
-class FakeNarrativeProvider:
-    def __init__(self, chapter_count: int = 2) -> None:
-        self.chapter_count = chapter_count
-        self.stage_calls: list[str] = []
-        self.stage_requests: list[StageGenerationRequest] = []
-        self.chapter_calls: list[str] = []
-        self.chapter_requests: list[ChapterGenerationRequest] = []
-        self.review_calls: list[str] = []
-        self.review_requests: list[ChapterReviewRequest] = []
-        self.evidence_calls: list[str] = []
-        self.image_calls: list[str] = []
-
-    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
-        self.stage_calls.append(request.operation_key)
-        self.stage_requests.append(request)
-        payload = _stage_payload(request.stage_id, chapter_count=self.chapter_count)
-        material = request.context.get("material") or {}
-        if request.stage_id == "outline" and material.get("target_volume"):
-            target = material["target_volume"]
-            payload["volumes"][0]["id"] = target["id"]
-            payload["volumes"][0]["chapter_window"] = target["chapter_window"]
-        if request.stage_id == "detail" and material.get("target_chapters"):
-            targets = {item["id"] for item in material["target_chapters"]}
-            payload["chapters"] = [
-                chapter for chapter in payload["chapters"] if chapter["id"] in targets
-            ]
-        return _response(payload)
-
-    async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
-        self.chapter_calls.append(request.operation_key)
-        self.chapter_requests.append(request)
-        return _response({
-            "chapter_id": request.chapter_id,
-            "title": f"第{request.chapter_number}章",
-            "content": f"{request.chapter_id} 的冻结正文。",
-            "author_status": "candidate",
-        })
-
-    async def generate_cover_image(self, request: CoverImageRequest) -> GeneratedImage:
-        self.image_calls.append(request.operation_key)
-        return GeneratedImage(
-            content=_png(256, 384, request.candidate_index),
-            mime_type="image/png",
-            provider_asset_id=f"provider-cover-{request.candidate_index}",
-            usage={"input_tokens": 2, "output_tokens": 3, "total_tokens": 5},
-        )
-
-    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
-        self.review_calls.append(request.operation_key)
-        self.review_requests.append(request)
-        return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
-
-    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
-        self.evidence_calls.append(request.operation_key)
-        candidate = build_chapter_evidence_candidates(request.content)[0]
-        result = ChapterEvidenceResult.model_validate({
-            "claims": [{
-                "kind": "summary",
-                "claim": f"{request.chapter_id} 已完成。",
-                "span_ids": [candidate.span_id],
-            }]
-        })
-        return _response(result.model_dump(mode="json"))
-
-
-class BlockingReviewProvider(FakeNarrativeProvider):
-    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
-        self.review_calls.append(request.operation_key)
-        findings = []
-        if request.role == "continuity":
-            findings.append(
-                ReviewFinding(
-                    code="continuity-conflict",
-                    severity="blocking",
-                    claim="本章与冻结交接冲突。",
-                    evidence="候选正文中的明确句子。",
-                )
-            )
-        result = ChapterReviewResult(role=request.role, findings=findings)
-        return _response(result.model_dump(mode="json"))
-
-
-class FailingStageProvider(FakeNarrativeProvider):
-    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
-        self.stage_calls.append(request.operation_key)
-        raise RuntimeError("stage provider unavailable")
-
-
-class FailingChapterProvider(FakeNarrativeProvider):
-    async def generate_chapter(self, request: ChapterGenerationRequest) -> StructuredProviderResult:
-        self.chapter_calls.append(request.operation_key)
-        raise RuntimeError("chapter provider unavailable")
-
-
-class MismatchedChapterTargetProvider(FakeNarrativeProvider):
-    async def generate_chapter(
-        self, request: ChapterGenerationRequest
+    async def review_chapter(
+        self,
+        request: ChapterReviewRequest,
     ) -> StructuredProviderResult:
-        response = await super().generate_chapter(request)
-        return response.model_copy(
-            update={"payload": {**response.payload, "chapter_id": "chapter-wrong"}}
+        self.review_requests.append(request)
+        if request.chapter_id == "chapter-1" and request.role in self._review_started:
+            self._review_started[request.role].set()
+        if request.chapter_id == "chapter-1" and request.role == "prose" and self._stop_once:
+            await asyncio.gather(*(event.wait() for event in self._review_started.values()))
+            await asyncio.sleep(0)
+            self._stop_once = False
+            raise SimulatedProcessStop("process stopped during parallel review")
+        return StructuredProviderResult(
+            payload=ChapterReviewResult(role=request.role).model_dump(mode="json"),
+            usage={"total_tokens": 1},
         )
-
-
-class FailingEvidenceProvider(FakeNarrativeProvider):
-    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
-        response = await super().generate_stage(request)
-        payload = response.payload
-        if request.stage_id == "detail":
-            return _response({"chapters": payload["chapters"][:1]})
-        return response
-
-    async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult:
-        self.evidence_calls.append(request.operation_key)
-        raise RuntimeError("evidence provider unavailable")
 
 
 class SimulatedProcessStop(BaseException):
     pass
 
 
-class InterruptedParallelReviewProvider(FakeNarrativeProvider):
-    def __init__(self) -> None:
-        super().__init__(chapter_count=1)
-        self.interrupt_reviews = True
-        self._continuity_done = asyncio.Event()
-        self._prose_done = asyncio.Event()
-
-    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
-        self.review_calls.append(request.operation_key)
-        if not self.interrupt_reviews:
-            return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
-        if request.role == "continuity":
-            self._continuity_done.set()
-            return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
-        if request.role == "prose":
-            self._prose_done.set()
-            return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
-        await self._continuity_done.wait()
-        await self._prose_done.wait()
-        await asyncio.sleep(0.05)
-        raise SimulatedProcessStop("simulated process stop during parallel review")
-
-
-class UnavailableRequiredAndOptionalReviewProvider(FakeNarrativeProvider):
-    def __init__(self) -> None:
-        super().__init__(chapter_count=1)
-
-    async def review_chapter(self, request: ChapterReviewRequest) -> StructuredProviderResult:
-        self.review_calls.append(request.operation_key)
-        if request.role in {"continuity", "prose"}:
-            raise RuntimeError(f"{request.role} reviewer unavailable")
-        return _response(ChapterReviewResult(role=request.role).model_dump(mode="json"))
-
-
-class MismatchedReviewRoleProvider(FakeNarrativeProvider):
-    async def review_chapter(
-        self, request: ChapterReviewRequest
-    ) -> StructuredProviderResult:
-        self.review_calls.append(request.operation_key)
-        role = "character" if request.role == "continuity" else request.role
-        return _response(ChapterReviewResult(role=role).model_dump(mode="json"))
-
-
-class FrozenNpcDetailProvider(FakeNarrativeProvider):
-    async def generate_stage(self, request: StageGenerationRequest) -> StructuredProviderResult:
-        response = await super().generate_stage(request)
-        payload = response.payload
-        if request.stage_id == "characters":
-            payload["npc_slots"] = [
-                {
-                    "id": "npc-archive-system",
-                    "function": "发出档案访问警报",
-                    "first_appearance_window": "chapter:1",
-                    "limits": ["不得承担 POV", "不得解决主冲突"],
-                }
-            ]
-        elif request.stage_id == "detail":
-            payload["chapters"][0]["obligations"] = [
-                {
-                    "kind": "character",
-                    "ref_id": "npc-archive-system",
-                    "action": "在违规访问时发出警报",
-                }
-            ]
-        return response
-
-
-def _response(payload: dict[str, Any]) -> StructuredProviderResult:
-    return StructuredProviderResult(
-        payload=payload,
-        usage={"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10},
-        diagnostic={"finish_reason": "stop"},
-    )
-
-
-@pytest.mark.asyncio
-async def test_langgraph_is_the_single_runtime_with_interrupts_and_sequential_chapters(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "runtime")
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
+def _bindings() -> dict[str, ProviderBinding]:
+    return {
+        stage: provider_binding(stage)
+        for stage in ("brief", "spine", "cast", "volumes", "detail", "text", "cover")
     }
+
+
+def _create_run(stores: Any, run_id: str, *, quality_mode: str = "fast") -> None:
     stores.runs.create(
-        run_id="run-graph-1",
+        run_id=run_id,
         project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
+        workflow_id="workflow-1",
+        workflow_revision="phase27-vnext",
+        workflow_digest="a" * 64,
+        quality_mode=quality_mode,
+        inputs={"project_brief": {"genre": "悬疑"}},
+        scale_profile=NarrativeScaleProfile(chapter_target_soft=2, chapter_min_reasonable=1, chapter_max_reasonable=4),
+        provider_bindings=_bindings(),
+        cover_asset_binding=cover_asset_binding(),
+        export_preferences=ExportPreferences(format="zip"),
     )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-graph-1")
-    decision_types: list[str] = []
-    while projection.pending_decisions:
-        decision = projection.pending_decisions[0]
-        decision_types.append(str(decision["type"]))
-        projection = await runtime.resume(
-            "run-graph-1",
-            _accept_command(stores, "run-graph-1", decision),
-        )
-
-    assert projection.status == "completed"
-    assert decision_types == (
-        ["stage_artifact_decision"] * 5
-        + ["chapter_author_decision"] * 2
-        + ["stage_artifact_decision"] * 2
-    )
-    assert provider.stage_calls == [
-        "run-graph-1:info:generate:1",
-        "run-graph-1:characters:generate:1",
-        "run-graph-1:summary:generate:1",
-        "run-graph-1:outline:generate:1:volume-1",
-        "run-graph-1:detail:generate:1:chapters-1-2",
-        "run-graph-1:cover:generate:1",
-    ]
-    assert provider.chapter_calls == [
-        "run-graph-1:chapter-1:generate:1",
-        "run-graph-1:chapter-2:generate:1",
-    ]
-    assert len(provider.review_calls) == 6
-    assert provider.evidence_calls == [
-        "run-graph-1:chapter-1:evidence:chapter-1-v1-accepted",
-        "run-graph-1:chapter-2:evidence:chapter-2-v1-accepted",
-    ]
-    assert all("chapter-1" in item for item in provider.review_calls[:3])
-    assert all("chapter-2" in item for item in provider.review_calls[3:])
-    contexts = {request.stage_id: request.context for request in provider.stage_requests}
-    assert contexts["info"]["sources"] == {}
-    assert contexts["info"]["material"]["project_brief"] == {"genre": "悬疑"}
-    assert set(contexts["characters"]["material"]) == {"book_scale_plan", "story_brief"}
-    assert set(contexts["summary"]["material"]) == {
-        "book_scale_plan",
-        "story_brief",
-        "character_bible",
-    }
-    assert set(contexts["outline"]["material"]) == {
-        "book_scale_plan",
-        "story_brief",
-        "character_bible",
-        "summary",
-        "target_volume",
-    }
-    assert set(contexts["detail"]["material"]) == {
-        "book_scale_plan",
-        "story_brief",
-        "character_bible",
-        "summary",
-        "outline",
-        "obligation_registry",
-        "target_chapters",
-    }
-    assert contexts["detail"]["material"]["obligation_registry"] == {
-        "character": [{"id": "char-lin", "label": "林默"}],
-        "thread": [],
-        "world_rule": [
-            {"id": "world-rule-1", "label": "公开广播会覆盖个人记忆"}
-        ],
-        "promise": [
-            {
-                "id": "thematic-question",
-                "label": "共同记忆是否值得以个人真相为代价？",
-            },
-            {"id": "ending-promise", "label": "真相会被公开。"},
-        ],
-    }
-    assert contexts["outline"]["material"]["target_volume"]["chapter_window"] == "chapter:1-2"
-    assert contexts["detail"]["material"]["target_chapters"] == [
-        {"id": "chapter-1", "number": 1},
-        {"id": "chapter-2", "number": 2},
-    ]
-    assert set(contexts["cover"]["material"]) == {
-        "story",
-        "cast",
-        "narrative_arc",
-        "volume_objectives",
-        "chapter_motifs",
-    }
-    assert all("project_inputs" not in json.dumps(context) for context in contexts.values())
-    assert all("upstream_artifacts" not in json.dumps(context) for context in contexts.values())
-    assert provider.chapter_requests[0].context["material"]["previous_accepted_chapter"] is None
-    previous = provider.chapter_requests[1].context["material"]["previous_accepted_chapter"]
-    assert previous["version_id"] == "chapter-1-v1-accepted"
-    assert previous["content"] == "chapter-1 的冻结正文。"
-    reviews = {request.role: request.context["material"] for request in provider.review_requests[:3]}
-    assert all(material["chapter"]["content"] == "chapter-1 的冻结正文。" for material in reviews.values())
-    assert "character_bible" in reviews["character"]
-    assert "previous_accepted_chapter" in reviews["continuity"]
-    assert "voice" in reviews["prose"]
-    assert "character_bible" not in reviews["prose"]
-    assert [item.artifact.author_status for item in stores.chapters.list("run-graph-1")].count("accepted") == 2
-    assert stores.artifacts.latest("run-graph-1", "export").payload["chapter_version_ids"] == [
-        "chapter-1-v1-accepted",
-        "chapter-2-v1-accepted",
-    ]
-    exports = stores.exports.list("run-graph-1")
-    assert len(exports) == 1
-    export_record, export_content = stores.exports.content(
-        "run-graph-1", exports[0].export_id
-    )
-    assert export_record.format == "zip"
-    assert export_record.chapter_version_ids == [
-        "chapter-1-v1-accepted",
-        "chapter-2-v1-accepted",
-    ]
-    with zipfile.ZipFile(io.BytesIO(export_content)) as archive:
-        assert archive.namelist() == ["雾港母带.md", "cover.png", "manifest.json"]
-        manuscript = archive.read("雾港母带.md").decode("utf-8")
-        assert "chapter-1 的冻结正文。" in manuscript
-        assert "chapter-2 的冻结正文。" in manuscript
-    evidence = stores.evidence.list("run-graph-1")
-    assert len(evidence) == 2
-    assert [(item.spans[0].start, item.spans[0].end, item.spans[0].quote) for item in evidence] == [
-        (0, len(f"chapter-{number} 的冻结正文。"), f"chapter-{number} 的冻结正文。")
-        for number in range(1, 3)
-    ]
-    assert len(stores.canon.facts("run-graph-1")) == 2
-    assert len(stores.wiki.list("run-graph-1")) == 2
-    events = stores.events.read("run-graph-1")
-    assert [event.type for event in events].count("evidence.proposed") == 2
-    assert [event.type for event in events].count("writeback.committed") == 2
-    assert [event.type for event in events].count("review.started") == 6
-    # Export has no author interrupt, but its deterministic policy acceptance
-    # uses the same receipt contract as the eight explicit decisions above.
-    assert [event.type for event in events].count("decision.resolved") == 9
-    assert [event.type for event in events].count("checkpoint.saved") > 0
-
-    usage = stores.operations.usage_summary("run-graph-1")
-    assert usage.provider_operations == 19
-    assert usage.succeeded_operations == 19
-    assert usage.failed_operations == 0
-    assert usage.total_tokens == 175
-    assert stores.runs.read("run-graph-1").provider_usage == usage
-    latest_node_usage = next(
-        event.payload["provider_usage"]
-        for event in reversed(events)
-        if event.type == "node.completed" and event.payload
-    )
-    assert latest_node_usage["provider_operations"] == 19
-    assert latest_node_usage["total_tokens"] == 175
-
-    graph_state = await runtime.state("run-graph-1")
-    serialized = json.dumps(graph_state, ensure_ascii=False)
-    assert "冻结正文" not in serialized
-    assert "upstream_artifacts" not in serialized
-    assert graph_state["chapter_version_refs"] == {
-        "chapter-1": "chapter-1-v1-accepted",
-        "chapter-2": "chapter-2-v1-accepted",
-    }
-
-
-@pytest.mark.asyncio
-async def test_fast_mode_completes_three_chapters_through_the_same_graph_policy(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "fast-three-chapter-runtime")
-    provider = FakeNarrativeProvider(chapter_count=3)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-fast-three",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="fast",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(3),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-fast-three")
-
-    assert projection.status == "completed"
-    assert projection.pending_decisions == []
-    assert provider.chapter_calls == [
-        f"run-fast-three:chapter-{number}:generate:1" for number in range(1, 4)
-    ]
-    assert len(provider.review_calls) == 9
-    assert len(stores.evidence.list("run-fast-three")) == 3
-    assert len(stores.canon.facts("run-fast-three")) == 3
-    assert stores.artifacts.latest("run-fast-three", "export").payload[
-        "chapter_version_ids"
-    ] == [f"chapter-{number}-v1-accepted" for number in range(1, 4)]
-
-
-@pytest.mark.asyncio
-async def test_long_outline_and_detail_use_receipted_structured_units(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "long-structured-runtime")
-    provider = FakeNarrativeProvider(chapter_count=18)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-long-structured",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(18),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-long-structured")
-    while projection.pending_decisions:
-        decision = projection.pending_decisions[0]
-        if decision["node_id"] == "detail.human_decision":
-            break
-        projection = await runtime.resume(
-            "run-long-structured",
-            {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    assert provider.stage_calls[-5:] == [
-        "run-long-structured:outline:generate:1:volume-1",
-        "run-long-structured:outline:generate:1:volume-2",
-        "run-long-structured:detail:generate:1:chapters-1-8",
-        "run-long-structured:detail:generate:1:chapters-9-16",
-        "run-long-structured:detail:generate:1:chapters-17-18",
-    ]
-    detail = stores.artifacts.latest("run-long-structured", "detail", status="candidate")
-    assert [chapter["id"] for chapter in detail.payload["chapters"]] == [
-        f"chapter-{number}" for number in range(1, 19)
-    ]
-    for operation_key in provider.stage_calls[-5:]:
-        receipt = stores.operations.read("run-long-structured", operation_key)
-        assert receipt.kind == "stage_generation_unit"
-        assert receipt.status == "succeeded"
-
-
-@pytest.mark.asyncio
-async def test_sqlite_checkpoint_resumes_the_same_interrupt_without_duplicate_provider_call(tmp_path) -> None:
-    root = tmp_path / "durable-runtime"
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores = filesystem_stores(root)
-    stores.runs.create(
-        run_id="run-durable-1",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as first_runtime:
-        first = await first_runtime.start("run-durable-1")
-        info_decision = first.pending_decisions[0]
-    async with open_sqlite_runtime(root, provider) as resumed_runtime:
-        second = await resumed_runtime.resume(
-            "run-durable-1",
-            {
-                "decision_id": info_decision["decision_id"],
-                "domain_revision": info_decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    assert second.status == "awaiting_decision"
-    assert second.active_stage_id == "characters"
-    assert provider.stage_calls == [
-        "run-durable-1:info:generate:1",
-        "run-durable-1:characters:generate:1",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_duplicate_stage_decision_is_idempotent_and_conflicts_do_not_fail_the_run(tmp_path) -> None:
-    root = tmp_path / "decision-replay-runtime"
-    provider = FakeNarrativeProvider(chapter_count=1)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores = filesystem_stores(root)
-    stores.runs.create(
-        run_id="run-decision-replay",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        first = await runtime.start("run-decision-replay")
-        decision = first.pending_decisions[0]
-        command = {
-            "decision_id": decision["decision_id"],
-            "domain_revision": decision["domain_revision"],
-            "action": "accept",
-        }
-        after_accept = await runtime.resume("run-decision-replay", command)
-
-    async with open_sqlite_runtime(root, provider) as recovered:
-        replayed = await recovered.resume("run-decision-replay", command)
-        with pytest.raises(DecisionReplayConflict):
-            await recovered.resume(
-                "run-decision-replay",
-                command | {"action": "cancel"},
-            )
-
-    assert after_accept.pending_decisions == replayed.pending_decisions
-    assert replayed.active_stage_id == "characters"
-    assert replayed.status == "awaiting_decision"
-    assert provider.stage_calls == [
-        "run-decision-replay:info:generate:1",
-        "run-decision-replay:characters:generate:1",
-    ]
-    assert not any(event.type == "run.failed" for event in stores.events.read("run-decision-replay"))
-
-
-@pytest.mark.asyncio
-async def test_duplicate_chapter_decision_does_not_repeat_writeback_or_advance_again(tmp_path) -> None:
-    root = tmp_path / "chapter-decision-replay-runtime"
-    provider = FakeNarrativeProvider(chapter_count=2)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores = filesystem_stores(root)
-    stores.runs.create(
-        run_id="run-chapter-decision-replay",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        first = await _advance_to_first_chapter(runtime, "run-chapter-decision-replay")
-        decision = first.pending_decisions[0]
-        command = {
-            "decision_id": decision["decision_id"],
-            "domain_revision": decision["domain_revision"],
-            "action": "accept",
-        }
-        after_accept = await runtime.resume("run-chapter-decision-replay", command)
-
-    async with open_sqlite_runtime(root, provider) as recovered:
-        replayed = await recovered.resume("run-chapter-decision-replay", command)
-
-    assert after_accept.pending_decisions == replayed.pending_decisions
-    assert replayed.pending_decisions[0]["chapter_id"] == "chapter-2"
-    assert replayed.active_chapter_number == 2
-    assert provider.evidence_calls == [
-        "run-chapter-decision-replay:chapter-1:evidence:chapter-1-v1-accepted"
-    ]
-    assert len(stores.canon.facts("run-chapter-decision-replay")) == 1
-    assert len(stores.wiki.list("run-chapter-decision-replay")) == 1
-
-
-@pytest.mark.asyncio
-async def test_parallel_review_pending_writes_resume_only_the_unfinished_lane(tmp_path) -> None:
-    root = tmp_path / "parallel-review-recovery-runtime"
-    provider = InterruptedParallelReviewProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores = filesystem_stores(root)
-    stores.runs.create(
-        run_id="run-parallel-review-recovery",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        projection = await runtime.start("run-parallel-review-recovery")
-        while projection.pending_decisions:
-            decision = projection.pending_decisions[0]
-            command = {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            }
-            if decision["node_id"] == "detail.human_decision":
-                with pytest.raises(SimulatedProcessStop):
-                    await runtime.resume("run-parallel-review-recovery", command)
-                snapshot = await runtime.graph.aget_state(
-                    {"configurable": {"thread_id": "run-parallel-review-recovery"}},
-                    subgraphs=True,
-                )
-                chapter_snapshot = snapshot.tasks[0].state
-                assert hasattr(chapter_snapshot, "tasks")
-                pending_writes = repr([task.result for task in chapter_snapshot.tasks])
-                assert ":continuity" in pending_writes
-                assert ":prose" in pending_writes
-                break
-            projection = await runtime.resume("run-parallel-review-recovery", command)
-        else:
-            raise AssertionError("Detail decision was not reached")
-
-    provider.interrupt_reviews = False
-    execution = NarrativeExecutionService(root, lambda: provider)
-    await execution.recover_incomplete()
-    await execution.wait("run-parallel-review-recovery")
-    projection = execution.stores.runs.read("run-parallel-review-recovery")
-
-    assert projection.pending_decisions[0]["type"] == "chapter_author_decision"
-    reason = projection.pending_decisions[0]["reason"]
-    assert reason["required_review_unavailable"] == []
-    assert reason["optional_review_unavailable"] == []
-    assert reason["reviewed_roles"] == ["character", "continuity", "prose"]
-    assert reason["capacity"]["status"] == "hard_underflow"
-    assert [item["code"] for item in reason["blocking_findings"]] == [
-        "chapter.capacity.hard_min"
-    ]
-    calls_by_role = [key.rsplit(":", 1)[-1] for key in provider.review_calls]
-    assert calls_by_role.count("continuity") == 1
-    assert calls_by_role.count("prose") == 1
-    assert calls_by_role.count("character") == 2
-
-
-@pytest.mark.asyncio
-async def test_required_and_optional_review_failures_share_one_author_decision_without_fallback(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "review-unavailable-runtime")
-    provider = UnavailableRequiredAndOptionalReviewProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-review-unavailable",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await _advance_to_first_chapter(runtime, "run-review-unavailable")
-
-    reason = projection.pending_decisions[0]["reason"]
-    assert reason["required_review_unavailable"] == ["continuity"]
-    assert reason["optional_review_unavailable"] == ["prose"]
-    assert reason["reviewed_roles"] == ["character", "continuity", "prose"]
-    assert reason["capacity"]["status"] == "hard_underflow"
-    assert [item["code"] for item in reason["blocking_findings"]] == [
-        "chapter.capacity.hard_min"
-    ]
-    assert len(provider.review_calls) == 3
-    assert not any("fallback" in event.node_id for event in stores.events.read("run-review-unavailable"))
-
-
-@pytest.mark.asyncio
-async def test_local_review_contract_failure_keeps_usage_and_closes_the_receipt(
-    tmp_path,
-) -> None:
-    stores = filesystem_stores(tmp_path / "review-contract-runtime")
-    provider = MismatchedReviewRoleProvider(chapter_count=1)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in (
-            "info",
-            "characters",
-            "summary",
-            "outline",
-            "detail",
-            "text",
-            "cover",
-        )
-    }
-    stores.runs.create(
-        run_id="run-review-contract",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await _advance_to_first_chapter(runtime, "run-review-contract")
-
-    receipt = stores.operations.read(
-        "run-review-contract",
-        "run-review-contract:chapter-1:review:chapter-1-v1:continuity",
-    )
-    assert receipt.status == "failed"
-    assert receipt.usage["total_tokens"] == 10
-    assert stores.operations.usage_summary("run-review-contract").pending_operations == 0
-    assert projection.pending_decisions[0]["reason"]["required_review_unavailable"] == [
-        "continuity"
-    ]
-
-
-@pytest.mark.asyncio
-async def test_edited_chapter_is_saved_as_an_immutable_candidate_before_acceptance(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "edited-chapter-runtime")
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-edited-chapter",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-    projection = await _advance_to_first_chapter(runtime, "run-edited-chapter")
-    decision = projection.pending_decisions[0]
-    source_version_id = str(decision["artifact_ref"])
-    source = stores.chapters.read(
-        "run-edited-chapter", "chapter-1", source_version_id
-    )
-    edited_payload = source.artifact.model_dump(mode="json")
-    edited_payload["content"] = "人工编辑后的第一章正文。"
-
-    edited = save_edited_chapter_candidate(
-        stores.chapters,
-        stores.events,
-        run_id="run-edited-chapter",
-        chapter_id="chapter-1",
-        source_version_id=source_version_id,
-        payload=edited_payload,
-    )
-    projection = await runtime.resume(
-        "run-edited-chapter",
-        {
-            "decision_id": decision["decision_id"],
-            "domain_revision": decision["domain_revision"],
-            "action": "accept",
-            "candidate_chapter_version_id": edited.version_id,
-        },
-    )
-
-    assert edited.version_id.startswith("chapter-1-edit-")
-    assert edited.artifact.author_status == "edited"
-    assert stores.chapters.read(
-        "run-edited-chapter", "chapter-1", source_version_id
-    ).artifact.content == "chapter-1 的冻结正文。"
-    accepted = stores.chapters.read(
-        "run-edited-chapter", "chapter-1", f"{edited.version_id}-accepted"
-    )
-    assert accepted.artifact.content == "人工编辑后的第一章正文。"
-    assert accepted.artifact.author_status == "accepted"
-    assert projection.pending_decisions[0]["chapter_id"] == "chapter-2"
-
-
-@pytest.mark.asyncio
-async def test_targeted_chapter_regeneration_carries_direction_and_repeats_review(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "chapter-regeneration-runtime")
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-regenerate-chapter",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-    projection = await _advance_to_first_chapter(runtime, "run-regenerate-chapter")
-    first_decision = projection.pending_decisions[0]
-
-    projection = await runtime.resume(
-        "run-regenerate-chapter",
-        {
-            "decision_id": first_decision["decision_id"],
-            "domain_revision": first_decision["domain_revision"],
-            "action": "regenerate",
-            "direction": "收紧追逐节奏，并保留母带线索。",
-        },
-    )
-
-    assert provider.chapter_calls == [
-        "run-regenerate-chapter:chapter-1:generate:1",
-        "run-regenerate-chapter:chapter-1:generate:2",
-    ]
-    revision = provider.chapter_requests[1].context["material"]["revision_request"]
-    assert revision["direction"] == "收紧追逐节奏，并保留母带线索。"
-    assert revision["source_chapter"]["version_id"] == "chapter-1-v1"
-    assert revision["source_chapter"]["content"] == "chapter-1 的冻结正文。"
-    assert projection.pending_decisions[0]["artifact_ref"] == "chapter-1-v2"
-    first_receipt = stores.operations.read(
-        "run-regenerate-chapter",
-        "run-regenerate-chapter:chapter-1:generate:1",
-    )
-    revised_receipt = stores.operations.read(
-        "run-regenerate-chapter",
-        "run-regenerate-chapter:chapter-1:generate:2",
-    )
-    assert "version_id" not in first_receipt.result
-    assert "version_id" not in revised_receipt.result
-    assert len(provider.review_calls) == 6
-    assert all(":chapter-1-v1:" in item for item in provider.review_calls[:3])
-    assert all(":chapter-1-v2:" in item for item in provider.review_calls[3:])
-    resolved = [
-        event
-        for event in stores.events.read("run-regenerate-chapter")
-        if event.type == "decision.resolved" and event.chapter_id == "chapter-1"
-    ]
-    assert resolved[0].payload == {
-        "decision_id": first_decision["decision_id"],
-        "action": "regenerate",
-        "artifact_ref": "chapter-1-v1",
-        "direction": "收紧追逐节奏，并保留母带线索。",
-    }
-
-
-@pytest.mark.asyncio
-async def test_chapter_cancel_terminates_the_run_before_cover(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "chapter-cancel-runtime")
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-cancel-chapter",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-    projection = await _advance_to_first_chapter(runtime, "run-cancel-chapter")
-    decision = projection.pending_decisions[0]
-
-    projection = await runtime.resume(
-        "run-cancel-chapter",
-        {
-            "decision_id": decision["decision_id"],
-            "domain_revision": decision["domain_revision"],
-            "action": "cancel",
-        },
-    )
-
-    assert projection.status == "cancelled"
-    assert projection.active_stage_id == "text"
-    assert projection.pending_decisions == []
-    assert all(":cover:" not in operation for operation in provider.stage_calls)
-    assert "cover" not in projection.artifact_refs
-    assert "export" not in projection.artifact_refs
-
-
-@pytest.mark.asyncio
-async def test_stage_interrupt_accepts_an_immutable_edited_candidate(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "runtime")
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-edited-candidate",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-edited-candidate")
-    decision = projection.pending_decisions[0]
-    edited_payload = _stage_payload("info") | {"title": "雾港回声"}
-    edited = stores.artifacts.save_candidate(
-        "run-edited-candidate",
-        "info",
-        edited_payload,
-        source=f"user-decision:{decision['decision_id']}",
-    )
-
-    projection = await runtime.resume(
-        "run-edited-candidate",
-        {
-            "decision_id": decision["decision_id"],
-            "domain_revision": decision["domain_revision"],
-            "action": "accept",
-            "candidate_artifact_id": edited.artifact_id,
-        },
-    )
-
-    committed = stores.artifacts.latest("run-edited-candidate", "info")
-    assert committed.payload["title"] == "雾港回声"
-    assert committed.source == f"decision:{decision['decision_id']}"
-    assert projection.active_stage_id == "characters"
-    assert provider.stage_calls == [
-        "run-edited-candidate:info:generate:1",
-        "run-edited-candidate:characters:generate:1",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_branch_copies_checkpoint_lineage_and_resumes_under_a_new_run_identity(tmp_path) -> None:
-    root = tmp_path / "branch-runtime"
-    stores = filesystem_stores(root)
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-branch-source",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        source = await runtime.start("run-branch-source")
-        branch = await NarrativeBranchService(runtime).create(
-            source_run_id="run-branch-source",
-            target_run_id="run-branch-target",
-            checkpoint_id=source.checkpoint_id,
-        )
-        decision = branch.pending_decisions[0]
-        resumed = await runtime.resume(
-            "run-branch-target",
-            {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    assert branch.status == "awaiting_decision"
-    assert decision["thread_id"] == "run-branch-target"
-    assert decision["decision_id"].startswith("run-branch-target:info:")
-    assert resumed.active_stage_id == "characters"
-    assert stores.runs.read("run-branch-source").status == "awaiting_decision"
-    assert stores.runs.definition("run-branch-target").branch_origin is not None
-    assert stores.artifacts.latest("run-branch-target", "info").payload["title"] == "雾港母带"
-    branch_events = stores.events.read("run-branch-target")
-    assert [event.type for event in branch_events[:3]] == [
-        "branch.created",
-        "artifact.candidate_ready",
-        "decision.required",
-    ]
-    assert branch_events[1].payload_ref == decision["artifact_ref"]
-    assert branch_events[2].payload == decision
-    assert all(event.run_id == event.thread_id == "run-branch-target" for event in branch_events)
-    assert provider.stage_calls == [
-        "run-branch-source:info:generate:1",
-        "run-branch-target:characters:generate:1",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_branch_from_older_sqlite_checkpoint_excludes_later_source_history(tmp_path) -> None:
-    root = tmp_path / "older-checkpoint-branch-runtime"
-    stores = filesystem_stores(root)
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-older-source",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        info = await runtime.start("run-older-source")
-        info_checkpoint_id = info.checkpoint_id
-        source_at_characters = await runtime.resume(
-            "run-older-source",
-            {
-                "decision_id": info.pending_decisions[0]["decision_id"],
-                "domain_revision": info.pending_decisions[0]["domain_revision"],
-                "action": "accept",
-            },
-        )
-        assert source_at_characters.active_stage_id == "characters"
-        assert stores.artifacts.latest(
-            "run-older-source", "characters", status="candidate"
-        ).status == "candidate"
-
-        branch = await NarrativeBranchService(runtime).create(
-            source_run_id="run-older-source",
-            target_run_id="run-older-target",
-            checkpoint_id=info_checkpoint_id,
-        )
-        with pytest.raises(FileNotFoundError):
-            stores.artifacts.latest("run-older-target", "characters", status="candidate")
-
-        decision = branch.pending_decisions[0]
-        resumed = await runtime.resume(
-            "run-older-target",
-            {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    assert branch.active_stage_id == "info"
-    assert resumed.active_stage_id == "characters"
-    assert provider.stage_calls == [
-        "run-older-source:info:generate:1",
-        "run-older-source:characters:generate:1",
-        "run-older-target:characters:generate:1",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_branch_from_resolved_interrupt_excludes_appended_future_writes(tmp_path) -> None:
-    root = tmp_path / "resolved-interrupt-branch-runtime"
-    stores = filesystem_stores(root)
-    provider = FakeNarrativeProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-resolved-source",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        info = await runtime.start("run-resolved-source")
-        characters = await runtime.resume(
-            "run-resolved-source",
-            {
-                "decision_id": info.pending_decisions[0]["decision_id"],
-                "domain_revision": info.pending_decisions[0]["domain_revision"],
-                "action": "accept",
-            },
-        )
-        characters_checkpoint_id = characters.checkpoint_id
-        summary = await runtime.resume(
-            "run-resolved-source",
-            {
-                "decision_id": characters.pending_decisions[0]["decision_id"],
-                "domain_revision": characters.pending_decisions[0]["domain_revision"],
-                "action": "accept",
-            },
-        )
-        assert summary.active_stage_id == "summary"
-
-        branch = await NarrativeBranchService(runtime).create(
-            source_run_id="run-resolved-source",
-            target_run_id="run-resolved-target",
-            checkpoint_id=characters_checkpoint_id,
-        )
-        branch_snapshot = await runtime.graph.aget_state(
-            {"configurable": {"thread_id": "run-resolved-target"}},
-            subgraphs=True,
-        )
-        branch_child = branch_snapshot.tasks[0].state
-        with pytest.raises(FileNotFoundError):
-            stores.artifacts.latest(
-                "run-resolved-target", "characters", status="committed"
-            )
-        resumed = await runtime.resume(
-            "run-resolved-target",
-            {
-                "decision_id": branch.pending_decisions[0]["decision_id"],
-                "domain_revision": branch.pending_decisions[0]["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    assert branch.active_stage_id == "characters"
-    assert branch.stage_status["characters"] == "awaiting_decision"
-    assert branch.pending_decisions[0]["domain_revision"] == 1
-    assert branch_child.values["domain_revision"] == 1
-    assert "characters" not in branch_child.values["artifact_refs"]
-    assert stores.artifacts.latest(
-        "run-resolved-target", "characters", status="candidate"
-    ).artifact_id == branch.pending_decisions[0]["artifact_ref"]
-    assert resumed.active_stage_id == "summary"
-    assert provider.stage_calls == [
-        "run-resolved-source:info:generate:1",
-        "run-resolved-source:characters:generate:1",
-        "run-resolved-source:summary:generate:1",
-        "run-resolved-target:summary:generate:1",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_branch_at_chapter_interrupt_keeps_stage_and_chapter_references_isolated(tmp_path) -> None:
-    root = tmp_path / "chapter-branch-runtime"
-    stores = filesystem_stores(root)
-    provider = BlockingReviewProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-chapter-branch-source",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        source = await runtime.start("run-chapter-branch-source")
-        while source.pending_decisions[0]["type"] == "stage_artifact_decision":
-            decision = source.pending_decisions[0]
-            source = await runtime.resume(
-                "run-chapter-branch-source",
-                {
-                    "decision_id": decision["decision_id"],
-                    "domain_revision": decision["domain_revision"],
-                    "action": "accept",
-                },
-            )
-        assert source.pending_decisions[0]["type"] == "chapter_author_decision"
-
-        branch = await NarrativeBranchService(runtime).create(
-            source_run_id="run-chapter-branch-source",
-            target_run_id="run-chapter-branch-target",
-            checkpoint_id=source.checkpoint_id,
-        )
-        decision = branch.pending_decisions[0]
-        resumed = await runtime.resume(
-            "run-chapter-branch-target",
-            {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    assert stores.runs.read("run-chapter-branch-source").status == "awaiting_decision"
-    assert stores.chapters.read(
-        "run-chapter-branch-target", "chapter-1", "chapter-1-v1"
-    ).artifact.author_status == "candidate"
-    assert stores.artifacts.latest("run-chapter-branch-target", "detail").stage_id == "detail"
-    assert provider.chapter_calls == [
-        "run-chapter-branch-source:chapter-1:generate:1",
-        "run-chapter-branch-target:chapter-2:generate:1",
-    ]
-    assert resumed.active_stage_id == "text"
-    assert resumed.status == "awaiting_decision"
-
-
-@pytest.mark.asyncio
-async def test_branch_at_detail_interrupt_preserves_frozen_npc_validation_context(tmp_path) -> None:
-    root = tmp_path / "detail-npc-branch-runtime"
-    stores = filesystem_stores(root)
-    provider = FrozenNpcDetailProvider(chapter_count=1)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-detail-npc-source",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-
-    async with open_sqlite_runtime(root, provider) as runtime:
-        source = await runtime.start("run-detail-npc-source")
-        while source.pending_decisions[0]["node_id"] != "detail.human_decision":
-            source = await runtime.resume(
-                "run-detail-npc-source",
-                _accept_command(
-                    stores,
-                    "run-detail-npc-source",
-                    source.pending_decisions[0],
-                ),
-            )
-
-        branch = await NarrativeBranchService(runtime).create(
-            source_run_id="run-detail-npc-source",
-            target_run_id="run-detail-npc-target",
-            checkpoint_id=source.checkpoint_id,
-        )
-        resumed = await runtime.resume(
-            "run-detail-npc-target",
-            _accept_command(
-                stores,
-                "run-detail-npc-target",
-                branch.pending_decisions[0],
-            ),
-        )
-
-    copied = stores.artifacts.latest(
-        "run-detail-npc-target",
-        "detail",
-        status="candidate",
-    )
-    assert copied.payload["chapters"][0]["obligations"][0]["ref_id"] == (
-        "npc-archive-system"
-    )
-    assert branch.pending_decisions[0]["node_id"] == "detail.human_decision"
-    assert resumed.pending_decisions[0]["type"] == "chapter_author_decision"
-    assert provider.chapter_calls == ["run-detail-npc-target:chapter-1:generate:1"]
-
-
-@pytest.mark.asyncio
-async def test_stage_provider_failure_terminates_through_graph_failure_nodes(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "stage-failure-runtime")
-    provider = FailingStageProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-stage-failure",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-stage-failure")
-    events = stores.events.read("run-stage-failure")
-
-    assert projection.status == "failed"
-    assert projection.failure is not None
-    assert projection.failure["node_id"] == "info.generate_candidate"
-    assert projection.failure["evidence_ref"] == "run-stage-failure:info:generate:1"
-    assert [(event.type, event.node_id) for event in events if event.type == "run.failed"] == [
-        ("run.failed", "info.generate_candidate")
-    ]
-    assert [(event.type, event.node_id) for event in events if event.type == "node.failed"] == [
-        ("node.failed", "info.generate_candidate")
-    ]
-    assert {
-        event.payload_ref
-        for event in events
-        if event.type in {"node.failed", "run.failed"}
-    } == {"run-stage-failure:info:generate:1"}
-
-
-@pytest.mark.asyncio
-async def test_chapter_provider_failure_terminates_through_graph_failure_nodes(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "chapter-failure-runtime")
-    provider = FailingChapterProvider()
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-chapter-failure",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(2),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-chapter-failure")
-    while projection.pending_decisions:
-        decision = projection.pending_decisions[0]
-        projection = await runtime.resume(
-            "run-chapter-failure",
-            {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-    events = stores.events.read("run-chapter-failure")
-
-    assert projection.status == "failed"
-    assert projection.failure is not None
-    assert projection.failure["node_id"] == "text.generate_prose"
-    assert projection.failure["evidence_ref"] == "run-chapter-failure:chapter-1:generate:1"
-    assert [(event.type, event.node_id) for event in events if event.type == "run.failed"] == [
-        ("run.failed", "text.generate_prose")
-    ]
-    assert [(event.type, event.node_id) for event in events if event.type == "node.failed"] == [
-        ("node.failed", "text.generate_prose")
-    ]
-    assert {
-        event.payload_ref
-        for event in events
-        if event.type in {"node.failed", "run.failed"}
-    } == {"run-chapter-failure:chapter-1:generate:1"}
-
-
-@pytest.mark.asyncio
-async def test_local_chapter_target_failure_keeps_usage_and_closes_the_receipt(
-    tmp_path,
-) -> None:
-    stores = filesystem_stores(tmp_path / "chapter-contract-runtime")
-    provider = MismatchedChapterTargetProvider(chapter_count=1)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-chapter-contract",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-chapter-contract")
-    while projection.pending_decisions:
-        decision = projection.pending_decisions[0]
-        projection = await runtime.resume(
-            "run-chapter-contract",
-            {
-                "decision_id": decision["decision_id"],
-                "domain_revision": decision["domain_revision"],
-                "action": "accept",
-            },
-        )
-
-    operation_key = "run-chapter-contract:chapter-1:generate:1"
-    receipt = stores.operations.read("run-chapter-contract", operation_key)
-    assert projection.status == "failed"
-    assert projection.failure is not None
-    assert projection.failure["node_id"] == "text.generate_prose"
-    assert receipt.status == "failed"
-    assert receipt.usage["total_tokens"] == 10
-    assert stores.operations.usage_summary("run-chapter-contract").pending_operations == 0
-    assert stores.chapters.list("run-chapter-contract") == []
-
-
-@pytest.mark.asyncio
-async def test_evidence_failure_keeps_prose_but_never_creates_a_writeback(tmp_path) -> None:
-    stores = filesystem_stores(tmp_path / "evidence-failure-runtime")
-    provider = FailingEvidenceProvider(chapter_count=1)
-    bindings = {
-        stage: ProviderBinding(provider_profile_id="fake", model="fake-model")
-        for stage in ("info", "characters", "summary", "outline", "detail", "text", "cover")
-    }
-    stores.runs.create(
-        run_id="run-evidence-failure",
-        project_id="project-1",
-        workflow_revision="phase26-vnext",
-        quality_mode="balanced",
-        inputs={"genre": "悬疑"},
-        book_scale_plan=_book_plan(1),
-        provider_bindings=bindings,
-        **_run_contract_args(),
-    )
-    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
-
-    projection = await runtime.start("run-evidence-failure")
-    while projection.pending_decisions:
-        decision = projection.pending_decisions[0]
-        projection = await runtime.resume(
-            "run-evidence-failure",
-            _accept_command(stores, "run-evidence-failure", decision),
-        )
-
-    operation_key = "run-evidence-failure:chapter-1:evidence:chapter-1-v1-accepted"
-    events = stores.events.read("run-evidence-failure")
-    assert projection.status == "completed"
-    assert stores.operations.read("run-evidence-failure", operation_key).status == "failed"
-    assert [item.artifact.author_status for item in stores.chapters.list("run-evidence-failure")] == [
-        "candidate",
-        "accepted",
-    ]
-    assert stores.evidence.list("run-evidence-failure") == []
-    assert stores.canon.facts("run-evidence-failure") == []
-    assert stores.wiki.list("run-evidence-failure") == []
-    assert not any(event.type == "evidence.proposed" for event in events)
-    assert not any(event.type.startswith("writeback.") for event in events)
 
 
 async def _advance_to_first_chapter(
@@ -1561,7 +101,7 @@ async def _advance_to_first_chapter(
         projection.pending_decisions
         and projection.pending_decisions[0]["type"] == "stage_artifact_decision"
     ):
-        decision = projection.pending_decisions[0]
+        decision = dict(projection.pending_decisions[0])
         projection = await runtime.resume(
             run_id,
             {
@@ -1570,128 +110,617 @@ async def _advance_to_first_chapter(
                 "action": "accept",
             },
         )
+    assert projection.status == "awaiting_decision", projection.failure
     assert projection.pending_decisions[0]["type"] == "chapter_author_decision"
     assert projection.pending_decisions[0]["chapter_id"] == "chapter-1"
     assert projection.active_chapter_number == 1
     return projection
 
 
-def _accept_command(stores: Any, run_id: str, decision: dict[str, Any]) -> dict[str, Any]:
+def test_proposal_batches_are_strict_and_turn_refs_are_validated_at_graph_boundary() -> None:
+    role = RoleDemandProposalBatch.model_validate({"proposals": [{"demand_key": "demand-a", "function": "取证", "required_change": "作证", "active_turn_refs": ["turn-1"]}]})
+    assert role.proposals[0].demand_key == "demand-a"
+    boundary = VolumeBoundaryProposalBatch.model_validate({"proposals": [{"boundary_key": "boundary-1", "turn_refs": ["turn-x"], "reason": "bad"}]})
+    assert boundary.proposals[0].turn_refs == ["turn-x"]
+
+
+def test_scale_profile_is_soft_guidance_with_reasonable_bounds() -> None:
+    profile = NarrativeScaleProfile(chapter_target_soft=2, chapter_min_reasonable=1, chapter_max_reasonable=4)
+    assert profile.chapter_target_soft == 2
+    with pytest.raises(ValueError):
+        NarrativeScaleProfile(chapter_target_soft=8, chapter_min_reasonable=1, chapter_max_reasonable=4)
+
+
+def test_context_manifest_hash_and_forbidden_sections_are_explicit() -> None:
+    text = "chapter script"
+    source_hash = hashlib.sha256(text.encode()).hexdigest()
+    payload = {"task": "chapter-1", "required": ["detail.chapter"], "optional": [], "forbidden": ["full_canon"], "snippets": [{"ref": "detail.chapter", "purpose": "script", "text": text, "source_hash": source_hash}], "budget": {"input_chars": len(text), "output_tokens": 100}}
+    payload["manifest_hash"] = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    manifest = ContextManifest.model_validate(payload)
+    assert manifest.forbidden == ["full_canon"]
+    with pytest.raises(ValueError, match="source hash"):
+        ContextManifest.model_validate({**payload, "snippets": [{**payload["snippets"][0], "text": "tampered"}]})
+
+
+@pytest.mark.asyncio
+async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-phase27")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    projection = await runtime.start("run-phase27")
+    assert projection.status == "completed", projection.failure
+    assert [request.stage_id for request in provider.stage_requests] == ["brief", "spine", "cast", "volumes", "detail", "cover"]
+    assert [request.proposal_type for request in provider.proposal_requests] == ["role_demand", "cast_relation", "volume_boundary"]
+    assert [request.chapter_id for request in provider.chapter_requests] == ["chapter-1", "chapter-2"]
+    manifests = stores.context_manifests.list("run-phase27")
+    assert [(item.chapter_id, item.attempt) for item in manifests] == [
+        ("chapter-1", 1),
+        ("chapter-2", 1),
+    ]
+    assert all(
+        set(request.context["material"]) == {"chapter_context_manifest"}
+        for request in provider.chapter_requests
+    )
+    assert all(
+        request.context["material"]["chapter_context_manifest"]["manifest_hash"]
+        in {item.manifest.manifest_hash for item in manifests}
+        for request in provider.chapter_requests
+    )
+    # Sequential chapters must see the previous accepted ending, not only the
+    # planned one-line handoff, so prose time/place/knowledge state continues.
+    second_manifest = provider.chapter_requests[1].context["material"]["chapter_context_manifest"]
+    ending_snippets = [
+        item for item in second_manifest["snippets"] if item["ref"] == "previous.ending_excerpt"
+    ]
+    assert len(ending_snippets) == 1
+    accepted_first = stores.chapters.read(
+        "run-phase27", "chapter-1", "chapter-1-v1-accepted"
+    ).artifact.content
+    assert accepted_first.strip().endswith(ending_snippets[0]["text"][-40:])
+    # Canon facts committed from accepted chapters must bind later prose.
+    canon_snippets = [
+        item for item in second_manifest["snippets"] if item["ref"] == "canon.established_facts"
+    ]
+    assert len(canon_snippets) == 1
+    assert "本章完成施工图目标" in canon_snippets[0]["text"]
+    assert sorted(
+        (request.chapter_id, request.role) for request in provider.review_requests
+    ) == sorted(
+        (chapter_id, role)
+        for chapter_id in ("chapter-1", "chapter-2")
+        for role in ("character", "continuity", "prose")
+    )
+    assert [request.chapter_id for request in provider.evidence_requests] == ["chapter-1", "chapter-2"]
+    assert [request.candidate_index for request in provider.cover_requests] == [1]
+    detail = stores.artifacts.latest("run-phase27", "detail").payload
+    assert [item["ref"] for item in detail["chapters"]] == ["chapter-1", "chapter-2"]
+    assert stores.artifacts.latest("run-phase27", "export").payload["chapter_version_ids"] == ["chapter-1-v1-accepted", "chapter-2-v1-accepted"]
+    candidate_stages = {
+        event.stage_id
+        for event in stores.events.read("run-phase27")
+        if event.type == "artifact.candidate_ready"
+    }
+    assert candidate_stages == {
+        "brief",
+        "spine",
+        "cast",
+        "volumes",
+        "detail",
+        "text",
+        "cover",
+        "export",
+    }
+    assert len(stores.evidence.list("run-phase27")) == 2
+    assert len(stores.canon.facts("run-phase27")) == 2
+    assert len(stores.wiki.list("run-phase27")) == 2
+    assert stores.outbox.read(
+        "run-phase27", "outbox-chapter-1-chapter-1-v1-accepted"
+    ).status == "committed"
+    assert stores.outbox.read(
+        "run-phase27", "outbox-chapter-2-chapter-2-v1-accepted"
+    ).status == "committed"
+    assert len(stores.cover_assets.list("run-phase27")) == 1
+    assert len(stores.exports.list("run-phase27")) == 1
+
+
+@pytest.mark.asyncio
+async def test_fast_run_projects_live_read_model_between_checkpoints(tmp_path) -> None:
+    """Fast mode never interrupts, so the read model must be projected from
+    super-step checkpoints mid-run — otherwise state polling and the monitor
+    console see `created` until the whole run finishes."""
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+    observed: list[Any] = []
+
+    async def generate_stage_with_probe(request):
+        if request.stage_id == "detail":
+            observed.append(stores.runs.read("run-live-projection"))
+        return await original_generate_stage(request)
+
+    provider.generate_stage = generate_stage_with_probe
+    _create_run(stores, "run-live-projection")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    projection = await runtime.start("run-live-projection")
+
+    assert projection.status == "completed", projection.failure
+    assert observed, "detail stage probe never ran"
+    mid_run = observed[0]
+    assert mid_run.status == "running"
+    assert mid_run.stage_status["brief"] == "completed"
+    assert mid_run.active_stage_id not in ("", "brief")
+
+
+@pytest.mark.asyncio
+async def test_stage_unit_contract_violation_triggers_one_repair_retry(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+    broken_once = {"done": False}
+
+    async def generate_stage_with_bad_kind(request):
+        result = await original_generate_stage(request)
+        if request.stage_id == "cast" and not broken_once["done"]:
+            broken_once["done"] = True
+            payload = json.loads(json.dumps(result.payload))
+            payload["subjects"][0]["kind"] = "antagonist"
+            return result.model_copy(update={"payload": payload})
+        return result
+
+    provider.generate_stage = generate_stage_with_bad_kind
+    _create_run(stores, "run-contract-repair")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    projection = await runtime.start("run-contract-repair")
+
+    assert projection.status == "completed", projection.failure
+    cast_keys = [
+        request.operation_key
+        for request in provider.stage_requests
+        if request.stage_id == "cast"
+    ]
+    assert len(cast_keys) == 2
+    assert cast_keys[1] == f"{cast_keys[0]}:repair-1"
+    repair_request = next(
+        request
+        for request in provider.stage_requests
+        if request.operation_key.endswith(":repair-1")
+    )
+    assert "antagonist" in str(
+        repair_request.context["contract_repair"]["previous_attempt_error"]
+    )
+    assert stores.operations.read("run-contract-repair", cast_keys[0]).status == "failed"
+    assert stores.operations.read("run-contract-repair", cast_keys[1]).status == "succeeded"
+
+
+@pytest.mark.asyncio
+async def test_guarded_failure_appends_terminal_run_failed_event(tmp_path) -> None:
+    """SSE observers must see exactly one terminal event when the graph halts.
+
+    `derive_cast_demand` failures previously ended the graph without any
+    run.failed event, leaving live monitors showing an auto-advancing run.
+    """
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+
+    async def generate_proposal_always_invalid(request):
+        raise ProviderResponseError("unauthorized", "Provider rejected the API key")
+
+    provider.generate_proposal = generate_proposal_always_invalid
+    _create_run(stores, "run-halt-event")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    projection = await runtime.start("run-halt-event")
+
+    assert projection.status == "failed"
+    terminal = [
+        event for event in stores.events.read("run-halt-event") if event.type == "run.failed"
+    ]
+    assert len(terminal) == 1
+    assert terminal[0].payload["node_id"] == "spine.derive_cast_demand"
+    assert "rejected the API key" in terminal[0].payload["message"]
+
+
+@pytest.mark.asyncio
+async def test_stage_unit_transient_network_error_retries_and_completes(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+    dropped_once = {"done": False}
+
+    async def generate_stage_with_one_network_drop(request):
+        if request.stage_id == "brief" and not dropped_once["done"]:
+            dropped_once["done"] = True
+            raise ProviderResponseError(
+                "network_error", "Provider network error: APIConnectionError"
+            )
+        return await original_generate_stage(request)
+
+    provider.generate_stage = generate_stage_with_one_network_drop
+    _create_run(stores, "run-network-retry")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    projection = await runtime.start("run-network-retry")
+
+    assert projection.status == "completed", projection.failure
+    # The dropped first attempt never reached the fake's request log; the
+    # successful retry ran under a distinct :net-1 operation key while the
+    # original key kept its failed receipt for the audit trail.
+    brief_keys = [
+        request.operation_key
+        for request in provider.stage_requests
+        if request.stage_id == "brief"
+    ]
+    assert brief_keys == ["run-network-retry:brief:generate:1:net-1"]
+    original = stores.operations.read(
+        "run-network-retry", "run-network-retry:brief:generate:1"
+    )
+    assert original.status == "failed"
+    retried = stores.operations.read(
+        "run-network-retry", "run-network-retry:brief:generate:1:net-1"
+    )
+    assert retried.status == "succeeded"
+
+
+@pytest.mark.asyncio
+async def test_provider_receipt_replays_after_process_stop_without_duplicate_call(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-provider-replay")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    original_write = stores.chapters.write
+    stopped = False
+
+    def stop_after_provider_receipt(run_id, payload):
+        nonlocal stopped
+        if not stopped and payload.get("author_status") == "candidate":
+            stopped = True
+            raise SimulatedProcessStop("process stopped after Provider receipt")
+        return original_write(run_id, payload)
+
+    monkeypatch.setattr(stores.chapters, "write", stop_after_provider_receipt)
+    with pytest.raises(SimulatedProcessStop, match="after Provider receipt"):
+        await runtime.start("run-provider-replay")
+
+    receipt = stores.operations.read(
+        "run-provider-replay",
+        "run-provider-replay:chapter-1:generate:1",
+    )
+    assert receipt.status == "succeeded"
+    assert [request.operation_key for request in provider.chapter_requests] == [
+        "run-provider-replay:chapter-1:generate:1"
+    ]
+
+    monkeypatch.setattr(stores.chapters, "write", original_write)
+    recovered = await runtime.recover("run-provider-replay")
+
+    assert recovered.status == "completed", recovered.failure
+    assert [request.operation_key for request in provider.chapter_requests] == [
+        "run-provider-replay:chapter-1:generate:1",
+        "run-provider-replay:chapter-2:generate:1",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_parallel_review_recovery_calls_only_the_unfinished_lane(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = InterruptingReviewProvider()
+    _create_run(stores, "run-review-replay")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    with pytest.raises(SimulatedProcessStop, match="parallel review"):
+        await runtime.start("run-review-replay")
+
+    chapter_one_keys = {
+        role: f"run-review-replay:chapter-1:review:chapter-1-v1:{role}"
+        for role in ("continuity", "character", "prose")
+    }
+    assert stores.operations.read(
+        "run-review-replay", chapter_one_keys["continuity"]
+    ).status == "succeeded"
+    assert stores.operations.read(
+        "run-review-replay", chapter_one_keys["character"]
+    ).status == "succeeded"
+    assert stores.operations.read(
+        "run-review-replay", chapter_one_keys["prose"]
+    ).status == "pending"
+
+    recovered = await runtime.recover("run-review-replay")
+
+    assert recovered.status == "completed", recovered.failure
+    chapter_one_calls = [
+        request.operation_key
+        for request in provider.review_requests
+        if request.chapter_id == "chapter-1"
+    ]
+    assert chapter_one_calls.count(chapter_one_keys["continuity"]) == 1
+    assert chapter_one_calls.count(chapter_one_keys["character"]) == 1
+    assert chapter_one_calls.count(chapter_one_keys["prose"]) == 2
+    assert all(
+        stores.operations.read("run-review-replay", operation_key).status == "succeeded"
+        for operation_key in chapter_one_keys.values()
+    )
+
+
+@pytest.mark.asyncio
+async def test_completed_projection_rebuilds_from_graph_without_provider_calls(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-projection-rebuild")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    completed = await runtime.start("run-projection-rebuild")
+    call_count = sum(
+        len(items)
+        for items in (
+            provider.stage_requests,
+            provider.proposal_requests,
+            provider.chapter_requests,
+            provider.review_requests,
+            provider.evidence_requests,
+            provider.cover_requests,
+        )
+    )
+    stores.runs.project(
+        "run-projection-rebuild",
+        completed.model_copy(
+            update={
+                "status": "created",
+                "active_stage_id": "brief",
+                "artifact_refs": {},
+                "checkpoint_id": "",
+            }
+        ),
+    )
+
+    rebuilt = await runtime.refresh_projection("run-projection-rebuild")
+
+    assert rebuilt.status == "completed"
+    assert rebuilt.active_stage_id == "export"
+    assert rebuilt.artifact_refs == completed.artifact_refs
+    assert rebuilt.checkpoint_id == completed.checkpoint_id
+    assert call_count == sum(
+        len(items)
+        for items in (
+            provider.stage_requests,
+            provider.proposal_requests,
+            provider.chapter_requests,
+            provider.review_requests,
+            provider.evidence_requests,
+            provider.cover_requests,
+        )
+    )
+    assert len(stores.context_manifests.list("run-projection-rebuild")) == 2
+    assert len(stores.evidence.list("run-projection-rebuild")) == 2
+    assert len(stores.canon.facts("run-projection-rebuild")) == 2
+    assert len(stores.wiki.list("run-projection-rebuild")) == 2
+    assert len(stores.exports.list("run-projection-rebuild")) == 1
+
+
+@pytest.mark.asyncio
+async def test_cast_batches_keep_every_preallocated_subject(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider(subject_count=6)
+    _create_run(stores, "run-cast-batches")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-cast-batches")
+
+    assert projection.status == "completed", projection.failure
+    cast_requests = [request for request in provider.stage_requests if request.stage_id == "cast"]
+    assert [len(request.context["material"]["subject_refs"]) for request in cast_requests] == [5, 1]
+    artifact = stores.artifacts.latest("run-cast-batches", "cast").payload
+    assert [subject["id"] for subject in artifact["subjects"]] == [
+        f"subject-{index}" for index in range(1, 7)
+    ]
+    relation_request = next(
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_relation"
+    )
+    assert len(relation_request.context["material"]["subjects"]) == 6
+
+
+@pytest.mark.asyncio
+async def test_cast_group_name_collision_repairs_with_reserved_names(tmp_path) -> None:
+    """A later dossier group reusing an earlier group's name must repair, not fail.
+
+    Groups run sequentially and only see other groups through
+    material.reserved_names; a collision is caught per unit so the contract
+    repair loop retries with the violation in context.
+    """
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider(subject_count=6)
+    original_generate_stage = provider.generate_stage
+    collided_once = {"done": False}
+
+    async def generate_stage_with_name_collision(request):
+        result = await original_generate_stage(request)
+        is_second_group = (
+            request.stage_id == "cast"
+            and request.context["material"]["subject_refs"][0]["id"] == "subject-6"
+        )
+        if is_second_group and not collided_once["done"]:
+            collided_once["done"] = True
+            payload = json.loads(json.dumps(result.payload))
+            payload["subjects"][0]["name"] = "角色1"
+            return result.model_copy(update={"payload": payload})
+        return result
+
+    provider.generate_stage = generate_stage_with_name_collision
+    _create_run(stores, "run-cast-collision")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-cast-collision")
+
+    assert projection.status == "completed", projection.failure
+    second_group_requests = [
+        request
+        for request in provider.stage_requests
+        if request.stage_id == "cast"
+        and request.context["material"]["subject_refs"][0]["id"] == "subject-6"
+    ]
+    assert [request.operation_key.endswith(":repair-1") for request in second_group_requests] == [False, True]
+    assert second_group_requests[1].context["material"]["reserved_names"] == [
+        f"角色{index}" for index in range(1, 6)
+    ]
+    artifact = stores.artifacts.latest("run-cast-collision", "cast").payload
+    names = [subject["name"] for subject in artifact["subjects"]]
+    assert len(names) == len(set(names)) == 6
+
+
+@pytest.mark.asyncio
+async def test_chapter_revision_freezes_a_new_signed_context_manifest(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-revision-manifest", quality_mode="balanced")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    paused = await _advance_to_first_chapter(runtime, "run-revision-manifest")
+    first = stores.context_manifests.list("run-revision-manifest")[0]
+    decision = dict(paused.pending_decisions[0])
+    command = {
+        "decision_id": decision["decision_id"],
+        "domain_revision": decision["domain_revision"],
+        "action": "regenerate",
+        "direction": "收紧追逐节奏",
+    }
+
+    revised_pause = await runtime.resume("run-revision-manifest", command)
+
+    manifests = stores.context_manifests.list("run-revision-manifest")
+    assert [(item.chapter_id, item.attempt) for item in manifests] == [
+        ("chapter-1", 1),
+        ("chapter-1", 2),
+    ]
+    revised = manifests[-1]
+    assert revised.manifest_id != first.manifest_id
+    assert revised.manifest.optional[-1] == "revision.request"
+    assert revised.manifest.snippets[-1].text == "收紧追逐节奏"
+    assert revised_pause.context_manifest_ref == revised.manifest_id
+    assert [request.chapter_id for request in provider.chapter_requests] == [
+        "chapter-1",
+        "chapter-1",
+    ]
+    provider_manifest = provider.chapter_requests[-1].context["material"]
+    assert set(provider_manifest) == {"chapter_context_manifest"}
+    assert (
+        provider_manifest["chapter_context_manifest"]["manifest_hash"]
+        == revised.manifest.manifest_hash
+    )
+
+    replay = await runtime.resume("run-revision-manifest", command)
+
+    assert replay.pending_decisions == revised_pause.pending_decisions
+    assert len(provider.chapter_requests) == 2
+    assert len(stores.context_manifests.list("run-revision-manifest")) == 2
+
+
+@pytest.mark.asyncio
+async def test_branch_copies_only_context_manifest_referenced_by_checkpoint(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-branch-source", quality_mode="balanced")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    paused = await _advance_to_first_chapter(runtime, "run-branch-source")
+    referenced_manifest_id = paused.context_manifest_ref
+    referenced = stores.context_manifests.read(
+        "run-branch-source", referenced_manifest_id
+    )
+    future = stores.context_manifests.write(
+        "run-branch-source",
+        attempt=99,
+        manifest=referenced.manifest,
+    )
+
+    branch = await NarrativeBranchService(runtime).create(
+        source_run_id="run-branch-source",
+        target_run_id="run-branch-target",
+        checkpoint_id=paused.checkpoint_id,
+    )
+
+    copied = stores.context_manifests.list("run-branch-target")
+    assert branch.context_manifest_ref == referenced_manifest_id
+    assert [item.manifest_id for item in copied] == [referenced_manifest_id]
+    assert future.manifest_id not in {item.manifest_id for item in copied}
+
+
+@pytest.mark.asyncio
+async def test_balanced_interrupt_resume_is_exactly_once(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-balanced", quality_mode="balanced")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start("run-balanced")
+
+    assert paused.status == "awaiting_decision"
+    assert paused.active_stage_id == "brief"
+    assert [request.stage_id for request in provider.stage_requests] == ["brief"]
+    decision = dict(paused.pending_decisions[0])
     command = {
         "decision_id": decision["decision_id"],
         "domain_revision": decision["domain_revision"],
         "action": "accept",
     }
-    if decision.get("node_id") != "cover.human_decision":
-        return command
-    source = stores.artifacts.read(run_id, str(decision["artifact_ref"]))
-    assets = stores.cover_assets.list(run_id)
-    attempt = max(item.generation_attempt for item in assets)
-    active = [item for item in assets if item.generation_attempt == attempt]
-    payload = {**source.payload, "selected_asset_id": active[0].asset_id}
-    selected = stores.artifacts.save_candidate(
-        run_id,
-        "cover",
-        payload,
-        source=f"test-decision:{decision['decision_id']}",
-        cover_asset_ids={item.asset_id for item in active},
-    )
-    command["candidate_artifact_id"] = selected.artifact_id
-    return command
+
+    next_pause = await runtime.resume("run-balanced", command)
+
+    assert next_pause.status == "awaiting_decision"
+    assert next_pause.active_stage_id == "spine"
+    assert [request.stage_id for request in provider.stage_requests] == ["brief", "spine"]
+    assert stores.artifacts.latest("run-balanced", "brief").status == "committed"
+    assert stores.operations.read(
+        "run-balanced", decision_operation_key(decision["decision_id"])
+    ).status == "succeeded"
+
+    replay = await runtime.resume("run-balanced", command)
+
+    assert replay.pending_decisions == next_pause.pending_decisions
+    assert [request.stage_id for request in provider.stage_requests] == ["brief", "spine"]
+    assert len(
+        [
+            event
+            for event in stores.events.read("run-balanced")
+            if event.type == "artifact.committed" and event.stage_id == "brief"
+        ]
+    ) == 1
 
 
-def _stage_payload(stage_id: str, *, chapter_count: int = 2) -> dict[str, Any]:
-    if stage_id == "info":
-        return {
-            "title": "雾港母带",
-            "premise": "声音档案员追查一卷会改写公共记忆的母带。",
-            "story_promise": {"genre": "悬疑", "audience": "成人", "tone": "克制"},
-            "world_rules": ["公开广播会覆盖个人记忆"],
-            "thematic_question": "共同记忆是否值得以个人真相为代价？",
-            "ending_promise": "真相会被公开。",
-            "voice": {"viewpoint": "第三人称限知", "tense": "过去时", "texture": "听觉细节", "avoid": []},
-            "cast_requirements": [{"function": "调查真相", "importance": "protagonist"}],
-        }
-    if stage_id == "characters":
-        return {
-            "characters": [
-                {
-                    "id": "char-lin",
-                    "name": "林默",
-                    "tier": "protagonist",
-                    "narrative_function": "承担调查",
-                    "external_goal": "找到母带",
-                    "inner_need": "承认恐惧",
-                    "arc": {"start": "拒绝合作", "turning_point": "共享证据", "end": "接受共同记忆"},
-                    "first_appearance_window": "chapter:1",
-                    "hard_boundaries": [],
-                }
-            ],
-            "relationships": [],
-            "npc_slots": [],
-        }
-    if stage_id == "summary":
-        return {
-            "beats": [{"id": "beat-1", "phase": "opening", "event": "发现母带", "consequence": "开始调查"}],
-            "climax": "公开母带",
-            "resolution": "港区恢复个人记忆",
-            "character_outcomes": [{"character_id": "char-lin", "outcome": "接受共同记忆"}],
-        }
-    if stage_id == "outline":
-        return {
-            "volumes": [
-                {
-                    "id": "volume-1",
-                    "chapter_window": f"chapter:1-{chapter_count}",
-                    "objective": "找到并公开母带",
-                    "turns": [{"id": "turn-1", "event": "找到副本", "consequence": "追捕升级"}],
-                    "ending_state": "真相公开",
-                    "character_windows": [{"character_id": "char-lin", "entry_state": "独行", "exit_state": "合作", "turn_id": "turn-1"}],
-                    "thread_windows": [],
-                }
-            ]
-        }
-    if stage_id == "detail":
-        return {
-            "chapters": [
-                {
-                    "id": f"chapter-{number}",
-                    "number": number,
-                    "purpose": "推进母带调查",
-                    "pov_character_id": "char-lin",
-                    "scenes": [{"id": f"scene-{number}", "location": "雾港", "goal": "寻找线索", "obstacle": "广播干扰", "turn": "发现副本", "outcome": "获得证据"}],
-                    "obligations": [],
-                    "handoff": {"unresolved_actions": [], "emotional_carryover": [], "next_pressure": "追捕升级"},
-                }
-                for number in range(1, chapter_count + 1)
-            ]
-        }
-    if stage_id == "cover":
-        return {
-            "concept": "雾中的港区与磁带",
-            "image_prompt": "一座被广播塔切开的潮湿港区，前景是一卷旧磁带",
-            "palette": ["冷灰", "警示红"],
-            "negative_constraints": ["人物正脸", "文字"],
-        }
-    raise AssertionError(f"Provider must not generate stage {stage_id}")
+@pytest.mark.asyncio
+async def test_sqlite_reopen_recover_preserves_human_interrupt(tmp_path) -> None:
+    root = tmp_path / "runtime"
+    stores = filesystem_stores(root)
+    provider = FakeNarrativeProvider()
+    _create_run(stores, "run-reopen", quality_mode="balanced")
 
+    async with open_sqlite_runtime(root, provider) as runtime:
+        paused = await runtime.start("run-reopen")
+        assert paused.status == "awaiting_decision"
+        decision = dict(paused.pending_decisions[0])
 
-def _png(width: int, height: int, color: int) -> bytes:
-    signature = b"\x89PNG\r\n\x1a\n"
-    row = b"\x00" + bytes((color % 255, 40, 80)) * width
-    pixels = row * height
+    async with open_sqlite_runtime(root, provider) as reopened:
+        recovered = await reopened.recover("run-reopen")
 
-    def chunk(kind: bytes, payload: bytes) -> bytes:
-        return (
-            struct.pack(">I", len(payload))
-            + kind
-            + payload
-            + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+        assert recovered.status == "awaiting_decision"
+        assert recovered.pending_decisions == paused.pending_decisions
+        assert [request.stage_id for request in provider.stage_requests] == ["brief"]
+
+        resumed = await reopened.resume(
+            "run-reopen",
+            {
+                "decision_id": decision["decision_id"],
+                "domain_revision": decision["domain_revision"],
+                "action": "accept",
+            },
         )
 
-    return (
-        signature
-        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-        + chunk(b"IDAT", zlib.compress(pixels))
-        + chunk(b"IEND", b"")
-    )
+    assert resumed.status == "awaiting_decision"
+    assert resumed.active_stage_id == "spine"
+    assert [request.stage_id for request in provider.stage_requests] == ["brief", "spine"]
+    assert filesystem_stores(root).runs.read("run-reopen").checkpoint_id
+
+
+def test_downstream_volume_contract_rejects_unknown_spine_turn() -> None:
+    volume = {"volumes": [{"id": "volume-1", "promise": "p", "conflict": "c", "climax": "x", "closure": "z", "turn_refs": ["turn-x"], "cast_ids": ["subject-lin"], "thread_ids": [], "length_hint": "short"}]}
+    with pytest.raises(ValueError, match="unknown spine turns"):
+        validate_artifact_vnext("volumes", volume, subject_ids={"subject-lin"}, turn_ids={"turn-1"})

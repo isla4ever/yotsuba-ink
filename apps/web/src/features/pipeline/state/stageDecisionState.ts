@@ -8,7 +8,7 @@ export type StageDecisionState = {
   approvalSource: string;
   checkpointContinueReady: boolean;
   checkpointStageId: string;
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
 };
 
 export const initialStageDecisionState: StageDecisionState = {
@@ -17,7 +17,7 @@ export const initialStageDecisionState: StageDecisionState = {
   approvalSource: '',
   checkpointContinueReady: false,
   checkpointStageId: '',
-  infoContinueReady: false,
+  briefContinueReady: false,
 };
 
 export function restoreStageDecisionState(
@@ -29,11 +29,11 @@ export function restoreStageDecisionState(
     approvalSource: hydrated.approvalSource,
     checkpointContinueReady: hydrated.checkpointContinueReady,
     checkpointStageId: hydrated.checkpointStageId,
-    infoContinueReady: hydrated.infoContinueReady,
+    briefContinueReady: hydrated.briefContinueReady,
   };
 }
 
-export function infoApprovedState(
+export function briefApprovedState(
   state: StageDecisionState,
 ): StageDecisionState {
   return {
@@ -41,7 +41,7 @@ export function infoApprovedState(
     approvalPending: false,
     checkpointContinueReady: false,
     checkpointStageId: '',
-    infoContinueReady: true,
+    briefContinueReady: true,
   };
 }
 
@@ -54,7 +54,7 @@ export function stageConfirmedState(
     approvalPending: false,
     checkpointContinueReady: true,
     checkpointStageId: stageId,
-    infoContinueReady: false,
+    briefContinueReady: false,
   };
 }
 
@@ -65,7 +65,7 @@ export function continuationStartedState(
     ...state,
     checkpointContinueReady: false,
     checkpointStageId: '',
-    infoContinueReady: false,
+    briefContinueReady: false,
   };
 }
 
@@ -77,7 +77,7 @@ export function exportReadyState(
     approvalPending: false,
     checkpointContinueReady: true,
     checkpointStageId: 'export',
-    infoContinueReady: false,
+    briefContinueReady: false,
   };
 }
 
@@ -94,7 +94,7 @@ export function decisionStateForPausedStream(
     approvalPending: true,
     checkpointContinueReady: false,
       checkpointStageId: pauseEvent.stage_id ?? '',
-    infoContinueReady: false,
+    briefContinueReady: false,
   };
 }
 
@@ -103,22 +103,22 @@ export function stageDecisionStateForEvent(
   event: RunEvent,
 ): StageDecisionState {
   if (event.type === 'decision.required') {
-    const stageId = event.stage_id || event.node_id?.split('.')[0] || 'info';
+    const stageId = event.stage_id || event.node_id?.split('.')[0] || 'brief';
     return {
       ...state,
       approvalPending: true,
       checkpointContinueReady: false,
       checkpointStageId: stageId,
-      infoContinueReady: false,
+      briefContinueReady: false,
     };
   }
-  if (event.type === 'artifact.candidate_ready' && event.stage_id === 'info' && event.payload) {
+  if (event.type === 'artifact.candidate_ready' && event.stage_id === 'brief' && event.payload) {
     const approvalDraft = formatResult(event.payload);
     return { ...state, approvalDraft, approvalSource: approvalDraft };
   }
   if (event.type === 'artifact.committed' && event.stage_id) {
-    return event.stage_id === 'info'
-      ? infoApprovedState(state)
+    return event.stage_id === 'brief'
+      ? briefApprovedState(state)
       : stageConfirmedState(state, event.stage_id);
   }
   return state;

@@ -1,28 +1,29 @@
 import { useState } from 'react';
-import type { InputField, WorkflowStage } from '../contracts';
+import type { InputField, QualityMode, WorkflowStage } from '../contracts';
 import {
   addTagValue,
   coerceFieldValue,
   removeTagValue,
   updateStageInputDefault,
 } from '../lib/stageConfig';
-import { BookScaleTargetSection } from './BookScaleTargetSection';
+import { LengthEnvelopeSection } from './LengthEnvelopeSection';
 
 type Props = {
   idPrefix?: string;
   stage: WorkflowStage;
+  qualityMode?: QualityMode;
   onChange: (stage: WorkflowStage) => void;
 };
 
 const briefFieldKeys = ['genre', 'audience', 'core_concept', 'keywords', 'taboos'];
 
-export function StoryBriefFields({ idPrefix = 'brief', stage, onChange }: Props) {
+export function StoryBriefFields({ idPrefix = 'brief', stage, qualityMode, onChange }: Props) {
   const fields = briefFieldKeys
     .map((key) => stage.input_schema.find((field) => field.key === key))
     .filter(Boolean) as InputField[];
   return (
     <div className="brief-field-grid">
-      <BookScaleTargetSection idPrefix={idPrefix} stage={stage} onChange={onChange} />
+      <LengthEnvelopeSection idPrefix={idPrefix} stage={stage} qualityMode={qualityMode} onChange={onChange} />
       {fields.map((field) => (
         <BriefInput
           field={field}

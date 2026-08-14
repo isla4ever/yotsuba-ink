@@ -87,3 +87,27 @@ export function templateSummaryLine(workflow: WorkflowDefinition): string {
   const mode = templateQualityLabels[workflow.quality_mode] ?? workflow.quality_mode;
   return `${mode} · ${workflow.nodes.length} 个阶段`;
 }
+
+export type TemplateStageDigestRow = {
+  id: string;
+  label: string;
+  model: string;
+  provider: string;
+};
+
+/**
+ * What a template actually commits a new book to: the stage chain plus the
+ * model each stage will call. Without it the template list is unreadable.
+ */
+export function templateStageDigest(workflow: WorkflowDefinition): TemplateStageDigestRow[] {
+  const providers = new Map(workflow.provider_profiles.map((profile) => [profile.id, profile]));
+  return workflow.nodes.map((stage) => {
+    const profile = providers.get(stage.provider_profile_id);
+    return {
+      id: stage.id,
+      label: stage.label,
+      model: stage.model_settings.model || profile?.default_model || '未指定模型',
+      provider: profile?.name || '未绑定服务',
+    };
+  });
+}

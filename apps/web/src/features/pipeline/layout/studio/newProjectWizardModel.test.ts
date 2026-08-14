@@ -14,6 +14,7 @@ import type { WorkflowDefinition } from '../../contracts';
 
 function workflow(overrides: Partial<WorkflowDefinition>): WorkflowDefinition {
   return {
+    architecture_version: 'phase27-vnext',
     id: 'wf-x',
     name: '模板',
     version: '1',
@@ -86,6 +87,6 @@ describe('new-project wizard flow', () => {
       workflow({ id: 'wf-a', name: 'A 模板', is_template: true }),
     ]);
     expect(list.map((item) => item.id)).toEqual(['default-novel-workflow', 'wf-a', 'wf-b']);
-    expect(templateSummaryLine(workflow({ nodes: [{ id: 'info' } as WorkflowDefinition['nodes'][number]] }))).toBe('平衡档 · 1 个阶段');
+    expect(templateSummaryLine(workflow({ nodes: [{ id: 'brief' } as WorkflowDefinition['nodes'][number]] }))).toBe('平衡档 · 1 个阶段');
   });
 });

@@ -14,6 +14,7 @@ type ResettableRunState = Pick<RunState,
   | 'paused'
   | 'runControlState'
   | 'selectedId'
+  | 'stickyArtifacts'
 >;
 
 export function captureRunResetSnapshot({
@@ -39,6 +40,7 @@ export function captureRunResetSnapshot({
     paused: state.paused,
     runControlState: state.runControlState,
     selectedId: state.selectedId,
+    stickyStageEvents: Object.values(state.stickyArtifacts.stages),
   });
   return {
     runSource,

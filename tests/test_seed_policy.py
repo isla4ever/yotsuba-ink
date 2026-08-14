@@ -44,30 +44,30 @@ def test_scrub_clears_narrative_seeds_and_keeps_structural_defaults():
     original = default_workflow().model_dump()
     scrubbed = scrub_narrative_seeds(original)
 
-    info = _stage_fields(scrubbed, "info")
-    assert info["audience"]["default"] == ""
-    assert info["core_concept"]["default"] == ""
-    assert info["keywords"]["default"] == []
-    assert info["taboos"]["default"] == ""
-    assert info["reference_keywords"]["default"] == []
-    assert info["reference_query_intent"]["default"] == ""
+    brief = _stage_fields(scrubbed, "brief")
+    assert brief["audience"]["default"] == ""
+    assert brief["core_concept"]["default"] == ""
+    assert brief["keywords"]["default"] == []
+    assert brief["taboos"]["default"] == ""
+    assert brief["reference_keywords"]["default"] == []
+    assert brief["reference_query_intent"]["default"] == ""
     # 必填标记不变：清空后这些字段回到「真实必填未填」状态
-    assert info["core_concept"]["required"] is True
-    assert info["keywords"]["required"] is True
+    assert brief["core_concept"]["required"] is True
+    assert brief["keywords"]["required"] is True
 
-    summary = _stage_fields(scrubbed, "summary")
-    assert summary["ending_direction"]["default"] == ""
+    spine = _stage_fields(scrubbed, "spine")
+    assert spine["ending_direction"]["default"] == ""
 
     global_fields = {field["key"]: field for field in scrubbed["global_inputs"]}
     assert global_fields["title"]["default"] == ""
 
-    # 结构性默认保留；成书体量由独立 BookScalePlan 管理。
-    assert info["genre"]["default"] == "悬疑"
-    assert "target_words_range" not in info
-    assert info["reference_mode"]["default"] == "smart_search"
-    assert info["enable_web_search"]["default"] is True
-    assert "target_words" not in summary
-    assert summary["structure"]["default"] == "起承转合"
+    # 结构性默认保留；成书体量由 LengthEnvelope 与 ScaleProfile 提供软约束。
+    assert brief["genre"]["default"] == "悬疑"
+    assert "target_words_range" not in brief
+    assert brief["reference_mode"]["default"] == "smart_search"
+    assert brief["enable_web_search"]["default"] is True
+    assert "target_words" not in spine
+    assert spine["structure"]["default"] == "自适应因果链"
     assert set(global_fields) == {"title"}
 
     assert "stage_configs" not in scrubbed
@@ -79,10 +79,10 @@ def test_scrub_clears_narrative_seeds_and_keeps_structural_defaults():
 def test_scrub_does_not_mutate_input_and_handles_minimal_payloads():
     original = default_workflow().model_dump()
     scrub_narrative_seeds(original)
-    assert _stage_fields(original, "info")["core_concept"]["default"].startswith("旧港")
+    assert _stage_fields(original, "brief")["core_concept"]["default"].startswith("旧港")
     assert {field["key"]: field["default"] for field in original["global_inputs"]}["title"] == "雾港旧声"
 
     assert scrub_narrative_seeds({}) == {}
-    minimal = {"nodes": [{"id": "info", "input_schema": [{"key": "core_concept", "type": "textarea", "default": "x"}]}]}
+    minimal = {"nodes": [{"id": "brief", "input_schema": [{"key": "core_concept", "type": "textarea", "default": "x"}]}]}
     assert scrub_narrative_seeds(minimal)["nodes"][0]["input_schema"][0]["default"] == ""
     assert minimal["nodes"][0]["input_schema"][0]["default"] == "x"

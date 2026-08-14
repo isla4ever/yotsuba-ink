@@ -14,6 +14,7 @@ from novel_workflow.workflows.templates import default_prompt_templates, default
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "novel_workflow"
+WEB_PIPELINE = ROOT / "apps" / "web" / "src" / "features" / "pipeline"
 
 
 def _read_python_files(*parts: str) -> str:
@@ -25,12 +26,25 @@ def _read_python_files(*parts: str) -> str:
     )
 
 
-def test_phase26_has_one_eight_stage_production_order() -> None:
+def _read_files(paths: tuple[Path, ...], suffixes: tuple[str, ...]) -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for root in paths
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.suffix in suffixes
+        and "__pycache__" not in path.parts
+        and "archive" not in path.parts
+        and ".test." not in path.name
+    )
+
+
+def test_phase27_has_one_eight_stage_production_order() -> None:
     assert STAGE_ORDER == (
-        "info",
-        "characters",
-        "summary",
-        "outline",
+        "brief",
+        "spine",
+        "cast",
+        "volumes",
         "detail",
         "text",
         "cover",
@@ -55,13 +69,13 @@ def test_prompt_metadata_and_frontend_fixture_match_graph_context_materials() ->
     assert prompt_metadata == fixture
 
 
-def test_default_text_prompt_keeps_version_identity_in_langgraph() -> None:
+def test_default_text_prompt_keeps_runtime_owned_identity_in_langgraph() -> None:
     text_prompt = next(
         prompt for prompt in default_prompt_templates() if prompt.stage_type == "text"
     )
 
-    assert "不得返回 version_id" in text_prompt.content
-    assert "版本身份由 LangGraph 运行时确定性生成" in text_prompt.content
+    assert "不输出 JSON" in text_prompt.content
+    assert "纯文本流" in text_prompt.content
 
 
 def test_production_uses_langgraph_without_a_direct_langchain_dependency() -> None:
@@ -80,7 +94,8 @@ def test_production_uses_langgraph_without_a_direct_langchain_dependency() -> No
 def test_api_and_graph_do_not_import_deleted_production_paths() -> None:
     source = _read_python_files("api", "runtime/graph", "output_contracts", "storage")
     forbidden_imports = (
-        "novel_workflow.orchestration",
+        "novel_workflow.orchestration.stream",
+        "novel_workflow.orchestration.control",
         "novel_workflow.stages",
         "novel_workflow.acceptance",
         "workflows.runner",
@@ -88,6 +103,12 @@ def test_api_and_graph_do_not_import_deleted_production_paths() -> None:
     )
     for token in forbidden_imports:
         assert token not in source
+
+    orchestration_files = {
+        path.relative_to(SRC / "orchestration").as_posix()
+        for path in (SRC / "orchestration").rglob("*.py")
+    }
+    assert orchestration_files == {"__init__.py", "run_preflight.py"}
 
 
 def test_deleted_runtime_files_cannot_return_as_importable_production_paths() -> None:
@@ -100,8 +121,70 @@ def test_deleted_runtime_files_cannot_return_as_importable_production_paths() ->
         SRC / "storage" / "run_store.py",
         SRC / "storage" / "run_control_store.py",
         SRC / "output_contracts" / "detail_outline.py",
+        SRC / "workflows" / "book_scale_plan.py",
     )
     assert all(not path.exists() for path in deleted)
+
+
+def test_phase27_production_authorities_have_no_retired_stage_identifiers() -> None:
+    backend = _read_files(
+        (SRC,),
+        (".py",),
+    )
+    frontend = _read_files(
+        (WEB_PIPELINE,),
+        (".ts", ".tsx"),
+    )
+    defaults = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            ROOT / "runtime" / "novel_workflow" / "workflows" / "default-novel-workflow.json",
+            *sorted((ROOT / "runtime" / "novel_workflow" / "prompts").glob("*.json")),
+        )
+    )
+    production = "\n".join((backend, frontend, defaults))
+    retired_symbols = re.compile(
+        r"\b(?:BookScalePlan|SummaryArtifact|OutlineArtifact|ChapterPlan|DetailV[123]|detail_v[123])\b"
+    )
+    assert retired_symbols.search(production) is None
+
+    retired_stage_assignment = re.compile(
+        r"\b(?:stage_type|stage_id|active_stage_id|selectedStageType)\b\s*(?:=|:)\s*"
+        r"[\"'](?:info|characters|summary|outline|info_recommend|detail_outline|chapter_text|cover_image|export_artifact)[\"']"
+    )
+    assert retired_stage_assignment.search(production) is None
+
+    runtime_defaults = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            ROOT / "runtime" / "novel_workflow" / "workflows" / "default-novel-workflow.json",
+            *sorted((ROOT / "runtime" / "novel_workflow" / "prompts").glob("*.json")),
+        )
+    )
+    retired_runtime_value = re.compile(
+        r"[\"'](?:info|characters|summary|outline|info_recommend|detail_outline|chapter_text|cover_image|export_artifact)[\"']"
+    )
+    assert retired_runtime_value.search(runtime_defaults) is None
+
+
+def test_phase27_execution_code_does_not_relabel_the_brief_as_info() -> None:
+    production_paths = (
+        SRC / "runtime" / "graph" / "stage_executor.py",
+        SRC / "api" / "routes" / "runs.py",
+    )
+    production = "\n".join(path.read_text(encoding="utf-8") for path in production_paths)
+    assert re.search(r"\binfo(?:_id)?\b", production) is None
+
+
+def test_retired_default_prompts_and_workflow_files_stay_deleted() -> None:
+    retired = (
+        "prompt-info.json",
+        "prompt-characters.json",
+        "prompt-summary.json",
+        "prompt-outline.json",
+    )
+    prompt_root = ROOT / "runtime" / "novel_workflow" / "prompts"
+    assert all(not (prompt_root / name).exists() for name in retired)
 
 
 def test_graph_and_provider_contracts_have_no_implicit_fallback_controls() -> None:

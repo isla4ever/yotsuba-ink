@@ -4,10 +4,10 @@ from typing import Any, Literal
 
 
 PromptStageId = Literal[
-    "info",
-    "characters",
-    "summary",
-    "outline",
+    "brief",
+    "spine",
+    "cast",
+    "volumes",
     "detail",
     "text",
     "cover",
@@ -15,70 +15,62 @@ PromptStageId = Literal[
 
 
 PROMPT_MATERIAL_KEYS: dict[PromptStageId, tuple[str, ...]] = {
-    "info": (
+    "brief": (
         "project_brief",
-        "book_scale_plan",
+        "length_envelope",
         "source_pack",
         "revision_request",
     ),
-    "characters": (
-        "book_scale_plan",
+    "spine": (
         "story_brief",
+        "source_observations",
+        "scale_plan",
         "revision_request",
     ),
-    "summary": (
-        "book_scale_plan",
+    "cast": (
         "story_brief",
-        "character_bible",
+        "story_spine",
+        "role_demand_proposals",
+        "subject_refs",
+        "scale_plan",
         "revision_request",
     ),
-    "outline": (
-        "book_scale_plan",
+    "volumes": (
         "story_brief",
-        "character_bible",
-        "summary",
-        "target_volume",
+        "story_spine",
+        "character_bible_refs",
+        "volume_boundaries",
+        "scale_plan",
+        "closure_policy",
         "revision_request",
     ),
     "detail": (
-        "book_scale_plan",
-        "story_brief",
-        "character_bible",
-        "summary",
-        "outline",
-        "obligation_registry",
-        "target_chapters",
+        "volume_contract",
+        "volume_spine_turns",
+        "scale_projection",
+        "selected_dossiers",
+        "active_thread_refs",
+        "previous_segment_handoff",
         "revision_request",
     ),
     "text": (
-        "book_scale",
-        "story_constraints",
-        "character_bible",
-        "summary_commitments",
-        "volume_plan",
-        "chapter_plan",
-        "previous_handoff",
-        "previous_accepted_chapter",
-        "revision_request",
+        "chapter_context_manifest",
     ),
     "cover": (
-        "story",
-        "cast",
-        "narrative_arc",
-        "volume_objectives",
-        "chapter_motifs",
+        "accepted_story_metadata",
+        "visual_decisions",
         "revision_request",
     ),
 }
 
 
 OPTIONAL_PROMPT_MATERIAL_KEYS: dict[PromptStageId, frozenset[str]] = {
-    "info": frozenset({"source_pack", "revision_request"}),
-    "characters": frozenset({"revision_request"}),
-    "summary": frozenset({"revision_request"}),
-    "outline": frozenset({"target_volume", "revision_request"}),
-    "detail": frozenset({"target_chapters", "revision_request"}),
-    "text": frozenset({"revision_request"}),
+    "brief": frozenset({"source_pack", "revision_request"}),
+    "spine": frozenset({"source_observations", "scale_plan", "revision_request"}),
+    "cast": frozenset({"scale_plan", "revision_request"}),
+    "volumes": frozenset({"scale_plan", "closure_policy", "revision_request"}),
+    "detail": frozenset({"previous_segment_handoff", "revision_request"}),
+    "text": frozenset(),
     "cover": frozenset({"revision_request"}),
 }
 

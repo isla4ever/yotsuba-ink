@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
-from novel_workflow.storage.event_projection import EventProjection
+from novel_workflow.storage.event_projection import EventProjection, RunEventEnvelope
 
 
 def sse_payload(event: dict[str, Any]) -> str:
@@ -42,12 +42,19 @@ async def _event_stream(
         for event in batch:
             sequence = event.sequence
             yield sse_payload(event.model_dump(mode="json"))
-        if any(
-            event.type in {"run.completed", "run.failed", "decision.required"}
-            for event in batch
-        ):
+        if _batch_reaches_terminal(batch):
             return
         await asyncio.sleep(0.25)
+
+
+def _batch_reaches_terminal(batch: list[RunEventEnvelope]) -> bool:
+    terminal = False
+    for event in batch:
+        if event.type in {"run.completed", "run.failed", "decision.required"}:
+            terminal = True
+        elif event.type == "decision.resolved":
+            terminal = False
+    return terminal
 
 
 __all__ = ["observe_run_events", "sse_payload"]

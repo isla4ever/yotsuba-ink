@@ -33,7 +33,7 @@ export const stanceLabels: Record<FactionStance, string> = {
 };
 
 const appearanceStageLabels: Record<NarrativeStageId, string> = {
-  info: '创作立项', characters: '人物编排', summary: '全书梗概', outline: '分卷大纲',
+  brief: '创作立项', spine: '故事脊柱', cast: '人物编排', volumes: '分卷架构',
   detail: '章节施工图', text: '正文创作', cover: '封面', export: '导出',
 };
 
@@ -174,16 +174,16 @@ export type TimelineTick = {
 export const currentTickId = 'current';
 
 const timelineStageTicks: TimelineTick[] = [
-  { id: 'stage:info', label: '基线 · 创作立项', type: 'stage' },
-  { id: 'stage:characters', label: '人物编排', type: 'stage' },
-  { id: 'stage:summary', label: '全书梗概', type: 'stage' },
-  { id: 'stage:outline', label: '分卷大纲', type: 'stage' },
+  { id: 'stage:brief', label: '基线 · 创作立项', type: 'stage' },
+  { id: 'stage:spine', label: '故事脊柱', type: 'stage' },
+  { id: 'stage:cast', label: '人物编排', type: 'stage' },
+  { id: 'stage:volumes', label: '分卷架构', type: 'stage' },
   { id: 'stage:detail', label: '章节施工图', type: 'stage' },
 ];
 
 /** Stage-name → fixed tick index (indices 0–4 of the five planning ticks). */
 const stageTickIndex: Record<string, number> = {
-  info: 0, characters: 1, summary: 2, outline: 3, detail: 4,
+  brief: 0, spine: 1, cast: 2, volumes: 3, detail: 4,
 };
 
 const textStageNames = new Set(['text']);

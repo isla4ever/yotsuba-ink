@@ -8,7 +8,7 @@ import type { WorkflowStage } from '../contracts';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
-const stages = [{ id: 'summary' }, { id: 'outline' }] as WorkflowStage[];
+const stages = [{ id: 'spine' }, { id: 'volumes' }] as WorkflowStage[];
 
 function Harness({ dispatch, expose }: { dispatch: (action: RunAction) => void; expose: (value: RunTransitions) => void }) {
   expose(useRunTransitions({ dispatchRun: dispatch, stages }));
@@ -46,35 +46,35 @@ describe('settlement dwell state machine (D7)', () => {
   });
 
   it('route settlements dwell until the 4s auto-continue, then navigate once', () => {
-    act(() => transitions.startSettlement({ kind: 'route', nextStageId: 'outline', stageId: 'summary' }));
-    expect(transitions.settlementStageId).toBe('summary');
+    act(() => transitions.startSettlement({ kind: 'route', nextStageId: 'volumes', stageId: 'spine' }));
+    expect(transitions.settlementStageId).toBe('spine');
     expect(transitions.settlementDwell).toBe(true);
 
     act(() => vi.advanceTimersByTime(SETTLEMENT_DWELL_MS - 1));
-    expect(transitions.settlementStageId).toBe('summary');
+    expect(transitions.settlementStageId).toBe('spine');
     expect(dispatched).toHaveLength(0);
 
     act(() => vi.advanceTimersByTime(1));
     expect(transitions.settlementStageId).toBe('');
-    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'outline' }]);
+    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'volumes' }]);
   });
 
   it('user 继续 completes immediately and cancels the auto-continue', () => {
-    act(() => transitions.startSettlement({ kind: 'route', nextStageId: 'outline', stageId: 'summary' }));
+    act(() => transitions.startSettlement({ kind: 'route', nextStageId: 'volumes', stageId: 'spine' }));
     act(() => transitions.continueSettlement());
     expect(transitions.settlementStageId).toBe('');
-    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'outline' }]);
+    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'volumes' }]);
 
     act(() => vi.advanceTimersByTime(SETTLEMENT_DWELL_MS * 2));
     expect(dispatched).toHaveLength(1);
   });
 
   it('cockpit auto settlements keep the non-blocking auto-advance timing', () => {
-    act(() => transitions.startSettlement({ kind: 'cockpit_auto', nextStageId: 'outline', stageId: 'summary' }));
+    act(() => transitions.startSettlement({ kind: 'cockpit_auto', nextStageId: 'volumes', stageId: 'spine' }));
     expect(transitions.settlementDwell).toBe(false);
 
     act(() => vi.advanceTimersByTime(900));
-    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'outline' }]);
+    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'volumes' }]);
 
     act(() => vi.advanceTimersByTime(300));
     expect(transitions.settlementStageId).toBe('');

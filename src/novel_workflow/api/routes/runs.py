@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from novel_workflow.api.sse import observe_run_events
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
+from novel_workflow.orchestration.run_preflight import RunPreflightError
 from novel_workflow.runtime.graph.execution_service import RunExecutionConflict
 from novel_workflow.runtime.graph.runtime import (
     decision_operation_key,
@@ -17,43 +18,32 @@ from novel_workflow.runtime.graph.chapter_decision import save_edited_chapter_ca
 from novel_workflow.runtime.graph.branch_service import BranchConflictError
 from novel_workflow.runtime.graph.checkpoint_branch import CheckpointBranchError
 from novel_workflow.runtime.graph.state import NarrativeRunState
-from novel_workflow.storage.narrative_run_repository import ProviderBinding
-from novel_workflow.storage.narrative_run_repository import CoverAssetBinding, ExportPreferences
-from novel_workflow.workflows.book_scale_plan import BookScalePlan
+from novel_workflow.storage.narrative_run_repository import ExportPreferences
+from novel_workflow.workflows.narrative_scale import scale_profile_from_inputs
+from novel_workflow.workflows.executable_contract import (
+    WorkflowContractError,
+    require_executable_workflow,
+    workflow_execution_digest,
+)
 from novel_workflow.output_contracts.artifacts_vnext import (
     CharacterBibleArtifact,
     CoverArtifact,
     ExportArtifact,
-    OutlineArtifact,
+    VolumeArchitectureArtifact,
     StoryBriefArtifact,
-    detail_obligation_ref_ids,
-    required_summary_outcome_ids,
+    StorySpineArtifact,
 )
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
-_PROVIDER_STAGES = ("info", "characters", "summary", "outline", "detail", "text", "cover")
-
-
 class CreateNarrativeRunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     run_id: str = Field(default_factory=lambda: f"run-{uuid4().hex[:16]}", min_length=1, max_length=240)
     project_id: str = Field(min_length=1, max_length=240)
-    workflow_revision: str = Field(default="phase26-vnext", min_length=1, max_length=120)
-    quality_mode: str = Field(default="balanced", pattern=r"^(fast|balanced|deep)$")
+    workflow_id: str = Field(min_length=1, max_length=240)
     inputs: dict[str, Any] = Field(default_factory=dict)
-    book_scale_plan: BookScalePlan
-    provider_bindings: dict[StageId, ProviderBinding]
-    cover_asset_binding: CoverAssetBinding
     export_preferences: ExportPreferences
-
-    @model_validator(mode="after")
-    def require_frozen_bindings(self) -> "CreateNarrativeRunRequest":
-        missing = sorted(set(_PROVIDER_STAGES) - set(self.provider_bindings))
-        if missing:
-            raise ValueError(f"Missing frozen Provider bindings: {', '.join(missing)}")
-        return self
 
 
 class DecisionRequest(BaseModel):
@@ -96,21 +86,45 @@ def _require_run(request: Request, run_id: str) -> None:
 @router.post("")
 async def create_run(request: Request, payload: CreateNarrativeRunRequest) -> dict[str, Any]:
     try:
+        project = request.app.state.project_store.get(payload.project_id)
+        if project.workflow_id != payload.workflow_id:
+            raise WorkflowContractError(
+                "project_workflow_mismatch",
+                "Run workflow does not match the workflow owned by this project",
+            )
+        workflow = require_executable_workflow(
+            request.app.state.workflow_store.read(payload.workflow_id)
+        )
+        bindings = request.app.state.run_preflight.freeze_workflow(workflow)
         definition = _stores(request).runs.create(
             run_id=payload.run_id,
             project_id=payload.project_id,
-            workflow_revision=payload.workflow_revision,
-            quality_mode=payload.quality_mode,  # type: ignore[arg-type]
+            workflow_id=workflow.id,
+            workflow_revision=workflow.version,
+            workflow_digest=workflow_execution_digest(workflow),
+            quality_mode=workflow.quality_mode,
             inputs=payload.inputs,
-            book_scale_plan=payload.book_scale_plan,
-            provider_bindings=payload.provider_bindings,
-            cover_asset_binding=payload.cover_asset_binding,
+            scale_profile=scale_profile_from_inputs(
+                {
+                    "length_envelope": payload.inputs.get("length_envelope"),
+                    "scale_overrides": payload.inputs.get("scale_overrides"),
+                }
+            ),
+            provider_bindings=bindings.provider_bindings,
+            cover_asset_binding=bindings.cover_asset_binding,
             export_preferences=payload.export_preferences,
         )
     except FileExistsError as exc:
         raise HTTPException(status_code=409, detail=f"Run already exists: {payload.run_id}") from exc
+    except (RunPreflightError, WorkflowContractError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Unknown project or workflow") from exc
     request.app.state.project_store.touch_run(payload.project_id, payload.run_id)
     return {"run_id": definition.run_id, "thread_id": definition.run_id, "status": "created"}
 
@@ -172,6 +186,20 @@ async def get_artifact_record(
         record = _stores(request).artifacts.read(run_id, artifact_id)
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=404, detail="Unknown artifact record") from exc
+    return record.model_dump(mode="json")
+
+
+@router.get("/{run_id}/context-manifests/{manifest_id}")
+async def get_context_manifest(
+    request: Request,
+    run_id: str,
+    manifest_id: str,
+) -> dict[str, Any]:
+    _require_run(request, run_id)
+    try:
+        record = _stores(request).context_manifests.read(run_id, manifest_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail="Unknown Context Manifest") from exc
     return record.model_dump(mode="json")
 
 
@@ -300,42 +328,33 @@ def _save_edited_candidate(
     *,
     source: str,
 ):
-    character_ids: set[str] | None = None
-    required_outcome_character_ids: set[str] | None = None
-    npc_slot_ids: set[str] | None = None
-    obligation_ref_ids: dict[str, set[str]] | None = None
-    chapter_ids: set[str] | None = None
+    subject_ids: set[str] | None = None
+    turn_ids: set[str] | None = None
+    volume_cast_ids: dict[str, set[str]] | None = None
+    chapter_refs: set[str] | None = None
     chapter_version_ids: list[str] | None = None
     cover_asset_ids: set[str] | None = None
     export_title: str | None = None
-    if stage_id in {"summary", "outline", "detail"}:
-        character_record = stores.artifacts.latest(run_id, "characters")
+    if stage_id in {"volumes", "detail"}:
+        character_record = stores.artifacts.latest(run_id, "cast")
         character_bible = CharacterBibleArtifact.model_validate(
             character_record.payload
         )
-        character_ids = {
-            item.id for item in character_bible.characters
-        }
-        npc_slot_ids = {
-            item.id for item in character_bible.npc_slots
-        }
-        if stage_id == "summary":
-            required_outcome_character_ids = required_summary_outcome_ids(
-                character_bible
-            )
-    if stage_id in {"outline", "detail"}:
-        total = stores.runs.definition(run_id).book_scale_plan.total_chapters
-        chapter_ids = {f"chapter-{number}" for number in range(1, total + 1)}
-    if stage_id == "detail":
-        obligation_ref_ids = detail_obligation_ref_ids(
-            StoryBriefArtifact.model_validate(
-                stores.artifacts.latest(run_id, "info").payload
-            ),
-            character_bible,
-            OutlineArtifact.model_validate(
-                stores.artifacts.latest(run_id, "outline").payload
-            ),
+        subject_ids = {item.id for item in character_bible.subjects}
+    if stage_id == "volumes":
+        spine = StorySpineArtifact.model_validate(
+            stores.artifacts.latest(run_id, "spine").payload
         )
+        turn_ids = {turn.id for turn in spine.turns}
+    if stage_id == "detail":
+        detail = stores.artifacts.latest(run_id, "detail", status="candidate").payload
+        chapter_refs = {str(item["ref"]) for item in detail.get("chapters") or []}
+        architecture = VolumeArchitectureArtifact.model_validate(
+            stores.artifacts.latest(run_id, "volumes").payload
+        )
+        volume_cast_ids = {
+            volume.id: set(volume.cast_ids) for volume in architecture.volumes
+        }
     if stage_id == "cover":
         cover = CoverArtifact.model_validate(artifact)
         source_cover = CoverArtifact.model_validate(
@@ -356,14 +375,14 @@ def _save_edited_candidate(
         export = ExportArtifact.model_validate(artifact)
         detail = stores.artifacts.latest(run_id, "detail").payload
         accepted = [
-            stores.chapters.latest(run_id, str(chapter["id"])).artifact
+            stores.chapters.latest(run_id, str(chapter["ref"])).artifact
             for chapter in detail["chapters"]
         ]
         if any(item.author_status != "accepted" for item in accepted):
             raise ValueError("Export requires accepted versions for every frozen chapter")
         chapter_version_ids = [item.version_id for item in accepted]
-        info = stores.artifacts.latest(run_id, "info").payload
-        export_title = str(info["title"])
+        brief_artifact = stores.artifacts.latest(run_id, "brief").payload
+        export_title = str(brief_artifact["title"])
         cover = CoverArtifact.model_validate(
             stores.artifacts.latest(run_id, "cover").payload
         )
@@ -375,11 +394,10 @@ def _save_edited_candidate(
         stage_id,
         artifact,
         source=source,
-        character_ids=character_ids,
-        required_outcome_character_ids=required_outcome_character_ids,
-        npc_slot_ids=npc_slot_ids if stage_id == "detail" else None,
-        obligation_ref_ids=obligation_ref_ids,
-        chapter_ids=chapter_ids,
+        subject_ids=subject_ids,
+        turn_ids=turn_ids,
+        volume_cast_ids=volume_cast_ids,
+        chapter_refs=chapter_refs,
         chapter_version_ids=chapter_version_ids,
         cover_asset_ids=cover_asset_ids,
         export_title=export_title,

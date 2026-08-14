@@ -9,6 +9,37 @@ import type { RunControlState, RunEvent } from '../contracts';
 
 export const RUN_EVENT_LIMIT = 500;
 
+/**
+ * Trims a newest-first event list to the capped window while pinning each
+ * stage's newest closing event (committed Artifact / stage-end node) past the
+ * cap. Long runs emit more than the window holds; without the pins, every
+ * events-derived projection (pipeline rail, artifact deck, canvas badges)
+ * regresses completed early stages to "待开始". Bounded: window + one pin per
+ * closed stage.
+ */
+export function trimRunEventWindow(newestFirst: RunEvent[]): RunEvent[] {
+  if (newestFirst.length <= RUN_EVENT_LIMIT) return newestFirst;
+  const window = newestFirst.slice(0, RUN_EVENT_LIMIT);
+  const represented = new Set<string>();
+  for (const event of window) {
+    if (stageCompletedBy(event)) represented.add(eventStageId(event));
+  }
+  const pinned: RunEvent[] = [];
+  for (let cursor = RUN_EVENT_LIMIT; cursor < newestFirst.length; cursor += 1) {
+    const event = newestFirst[cursor];
+    if (!stageCompletedBy(event)) continue;
+    const stageId = eventStageId(event);
+    if (!stageId || represented.has(stageId)) continue;
+    represented.add(stageId);
+    pinned.push(event);
+  }
+  return pinned.length ? [...window, ...pinned] : window;
+}
+
+function eventStageId(event: RunEvent): string {
+  return event.stage_id || event.node_id?.split('.')[0] || '';
+}
+
 export type StageRunStatus = 'idle' | 'running' | 'awaiting' | 'done' | 'attention' | 'failed';
 
 type StageLifecycle = {

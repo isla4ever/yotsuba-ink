@@ -54,7 +54,7 @@ export function useWorkflowActions({
       approvalPending: decision.approvalPending,
       checkpointContinueReady: decision.checkpointContinueReady,
       events: eventsRef.current,
-      infoContinueReady: decision.infoContinueReady,
+      briefContinueReady: decision.briefContinueReady,
       paused: runState.paused,
       runControlState: runState.runControlState,
       running: runState.running,

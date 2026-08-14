@@ -8,11 +8,11 @@ export type StageConfigurationReadiness = {
 };
 
 const artifactLabels: Record<WorkflowStage['type'], string> = {
-  info: '创作契约与世界规则',
-  characters: '人物职责、关系与出场窗口',
-  summary: '故事脊柱与人物结局',
-  outline: '分卷节拍与叙事窗口',
-  detail: '章节施工图、义务与交接',
+  brief: '创作契约、世界规则与长度包络',
+  spine: '因果转折、结局与开放问题',
+  cast: '人物职责、关系与出场窗口',
+  volumes: '完整故事卷合同与叙事引用',
+  detail: '章节施工图、场景推进与交接',
   text: '章节正文定稿',
   cover: '封面简报与选定资产',
   export: '版本选择与交付格式',

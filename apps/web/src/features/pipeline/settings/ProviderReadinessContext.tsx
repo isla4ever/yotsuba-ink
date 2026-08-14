@@ -1,12 +1,25 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import type { SaveStatus } from '../state/useWorkflowAutosave';
 import { useProviderReadiness } from './useProviderReadiness';
 
 type ProviderReadinessController = ReturnType<typeof useProviderReadiness>;
 
 const ProviderReadinessContext = createContext<ProviderReadinessController | null>(null);
 
-export function ProviderReadinessProvider({ children, enabled = true, workflowId }: { children: ReactNode; enabled?: boolean; workflowId: string }) {
+type Props = {
+  children: ReactNode;
+  enabled?: boolean;
+  /** Readiness is computed from the stored workflow, so it re-runs once each save lands. */
+  saveStatus?: SaveStatus;
+  workflowId: string;
+};
+
+export function ProviderReadinessProvider({ children, enabled = true, saveStatus = 'idle', workflowId }: Props) {
   const readiness = useProviderReadiness(workflowId, enabled);
+  const { refresh } = readiness;
+  useEffect(() => {
+    if (enabled && saveStatus === 'saved') refresh();
+  }, [enabled, refresh, saveStatus]);
   return <ProviderReadinessContext.Provider value={readiness}>{children}</ProviderReadinessContext.Provider>;
 }
 

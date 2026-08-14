@@ -20,32 +20,32 @@ export type ArtifactDeckItem = {
 type StageSemantics = Pick<ArtifactDeckItem, 'artifact' | 'decision' | 'nextDependency' | 'writeback'>;
 
 const stageSemantics: Record<WorkflowStage['type'], StageSemantics> = {
-  info: {
-    artifact: '前提 · 世界规则 · 叙事声音',
+  brief: {
+    artifact: '前提 · 读者承诺 · 世界规则 · 长度包络',
     decision: '冻结创作契约',
-    nextDependency: '人物职责与规模约束',
+    nextDependency: '因果脊柱与结局兑现',
     writeback: 'Story Brief Artifact',
   },
-  characters: {
+  spine: {
+    artifact: '因果转折 · 结局 · 开放问题 · 进展类型',
+    decision: '确认故事脊柱',
+    nextDependency: '角色需求与自然卷界',
+    writeback: 'Story Spine Artifact',
+  },
+  cast: {
     artifact: '人物职责 · 关系 · 弧线 · 出场窗口',
     decision: '冻结人物圣经',
-    nextDependency: '角色引用与人物结局约束',
+    nextDependency: '卷级角色引用与压力诊断',
     writeback: 'Character Bible Artifact',
   },
-  summary: {
-    artifact: '故事节拍 · 高潮 · 结局 · 人物结果',
-    decision: '确认故事脊柱',
-    nextDependency: '因果节拍与人物结局',
-    writeback: 'Summary Artifact',
-  },
-  outline: {
-    artifact: '分卷目标 · 转折 · 人物与线索窗口',
-    decision: '冻结分卷方案',
-    nextDependency: '卷目标与章节窗口',
-    writeback: 'Outline Artifact',
+  volumes: {
+    artifact: '卷承诺 · 冲突 · 高潮 · 闭合 · 引用',
+    decision: '冻结分卷架构',
+    nextDependency: '当前卷合同与长度建议',
+    writeback: 'Volume Architecture Artifact',
   },
   detail: {
-    artifact: '章节目的 · 场景 · 义务 · 交接',
+    artifact: '章节目的 · 场景动作 · 结果 · 交接',
     decision: '确认章节施工图',
     nextDependency: '冻结的章节执行计划',
     writeback: 'Detail Artifact',

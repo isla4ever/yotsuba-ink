@@ -60,7 +60,7 @@ export async function downloadRunExportReceipt(
 
 export function parseRunHistoryItem(value: unknown): RunHistoryItem {
   const validStatuses = ['created', 'running', 'awaiting_decision', 'failed', 'completed', 'cancelled'] as const;
-  const stages = ['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export', ''] as const;
+  const stages = ['brief', 'spine', 'cast', 'volumes', 'detail', 'text', 'cover', 'export', ''] as const;
   if (!isRecord(value) || !isRecord(value.current_stage)) return invalidHistory();
   if (!requiredStrings(value, ['run_id', 'project_id', 'title', 'created_at', 'updated_at', 'completed_at', 'summary', 'checkpoint_id'])) return invalidHistory();
   if (!requiredStrings(value.current_stage, ['id', 'label', 'type'])) return invalidHistory();

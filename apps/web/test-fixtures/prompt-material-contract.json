@@ -1,9 +1,9 @@
 {
-  "info": ["project_brief", "book_scale_plan", "source_pack", "revision_request"],
-  "characters": ["book_scale_plan", "story_brief", "revision_request"],
-  "summary": ["book_scale_plan", "story_brief", "character_bible", "revision_request"],
-  "outline": ["book_scale_plan", "story_brief", "character_bible", "summary", "target_volume", "revision_request"],
-  "detail": ["book_scale_plan", "story_brief", "character_bible", "summary", "outline", "obligation_registry", "target_chapters", "revision_request"],
-  "text": ["book_scale", "story_constraints", "character_bible", "summary_commitments", "volume_plan", "chapter_plan", "previous_handoff", "previous_accepted_chapter", "revision_request"],
-  "cover": ["story", "cast", "narrative_arc", "volume_objectives", "chapter_motifs", "revision_request"]
+  "brief": ["project_brief", "length_envelope", "source_pack", "revision_request"],
+  "spine": ["story_brief", "source_observations", "scale_plan", "revision_request"],
+  "cast": ["story_brief", "story_spine", "role_demand_proposals", "subject_refs", "scale_plan", "revision_request"],
+  "volumes": ["story_brief", "story_spine", "character_bible_refs", "volume_boundaries", "scale_plan", "closure_policy", "revision_request"],
+  "detail": ["volume_contract", "volume_spine_turns", "scale_projection", "selected_dossiers", "active_thread_refs", "previous_segment_handoff", "revision_request"],
+  "text": ["chapter_context_manifest"],
+  "cover": ["accepted_story_metadata", "visual_decisions", "revision_request"]
 }

@@ -1,4 +1,4 @@
-import { Database } from 'lucide-react';
+import { CheckCircle2, Database, ShieldAlert } from 'lucide-react';
 import { useMemo } from 'react';
 import { bibleCanonRows, type BibleCanonStatus } from './storyBibleModel';
 import type { RunEvent } from '../../contracts';
@@ -19,17 +19,30 @@ export function FactsSection({ events }: { events: RunEvent[] }) {
       </section>
     );
   }
+  const activeCount = rows.filter((row) => row.status === 'active').length;
   const pendingCount = rows.filter((row) => row.status === 'pending').length;
   return (
     <section className="bible-section bible-facts">
-      <article className="bible-list-card">
-        <h3><Database size={15} />正典事实（{rows.length} 条{pendingCount ? ` · ${pendingCount} 条冲突待裁决` : ''}）</h3>
-        <ul className="bible-fact-list">
+      <dl className="bible-summary-strip">
+        <div><dt><Database size={13} />写回事务</dt><dd>{rows.length}</dd></div>
+        <div data-tone="success"><dt><CheckCircle2 size={13} />生效中</dt><dd>{activeCount}</dd></div>
+        <div data-tone={pendingCount ? 'warning' : undefined}><dt><ShieldAlert size={13} />冲突待裁决</dt><dd>{pendingCount}</dd></div>
+        <div className="bible-summary-note"><dt>正典语义</dt><dd>正文定稿通过写回提案后成为不可矛盾的事实基线</dd></div>
+      </dl>
+      <article className="bible-ledger-card">
+        <header className="bible-ledger-card-head">
+          <h3><Database size={15} />正典事实</h3>
+          <span>{pendingCount ? `${pendingCount} 条冲突待裁决，优先处理` : '无未决冲突'}</span>
+        </header>
+        <ul className="bible-fact-list bible-canon-list">
           {rows.map((row) => (
             <li className={`bible-canon-row ${row.status}`} key={row.key}>
+              <span aria-hidden="true" className={`bible-canon-icon ${row.status}`}>
+                {row.status === 'active' ? <CheckCircle2 size={15} /> : <ShieldAlert size={15} />}
+              </span>
               <span className="bible-fact-text">
                 <strong>{row.target || '未命名对象'}</strong>
-                {row.claim ? ` · ${row.claim}` : ''}
+                {row.claim ? <span className="bible-canon-claim">{row.claim}</span> : null}
                 {row.detail ? <em className="bible-canon-conflict-detail">{row.detail}</em> : null}
               </span>
               <span className={`bible-status-badge canon-${row.status}`}>{statusLabels[row.status]}</span>

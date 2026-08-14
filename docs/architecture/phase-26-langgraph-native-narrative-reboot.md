@@ -283,14 +283,18 @@ CharacterBibleArtifact {
     hard_boundaries[]
   }
   relationships[] { source_id, target_id, nature, initial_state, pressure }
-  npc_slots[] { id, function, first_appearance_window, limits[] }
+  npc_slots[] {
+    id, name, kind: functional | historical,
+    function, first_appearance_window, limits[]
+  }
 }
 ```
 
-- Projection：关系图、阵营图、章节 cast、人物卡摘要、未出场/即将出场列表。
+- `characters` 与 `npc_slots` 共同构成冻结主体注册表；`relationships` 可引用两类稳定 id。具名的已故人物、历史当事人或只通过档案/证言/记录出现的人，必须登记为 `historical`，不得承担 POV 或产生当下行动。
+- Projection：关系图、阵营图、章节 cast、人物卡摘要、未出场/即将出场列表；功能与历史主体同样投影到 3D 星图、关系邻域、出场时间线和聚焦档案，但坐标、颜色与相机状态不写回 Artifact。
 - 小调用：角色方案候选、关系冲突检查、弧线完整度审读。
 - Sidecar：变更提案、批准回执、版本依赖、影响分析。
-- 删除：活动分数、UI 坐标、模型自评、每阶段重复 `character_shift` 总表、自由文本 `relations`。
+- 删除：匿名具名人物、阶段内临时增人、活动分数、UI 坐标、模型自评、每阶段重复 `character_shift` 总表、自由文本 `relations`。
 
 ### 6.4 Summary
 
@@ -384,7 +388,7 @@ Export 核心：`ExportArtifact { format, chapter_version_ids[], cover_asset_id,
 | 阶段 | Provider 唯一返回 / 调用拆分 | 唯一 Prompt material keys | 用户决策与正式写回 | 前端权威投影 |
 | --- | --- | --- | --- | --- |
 | Info | 1 个 `StoryBriefArtifact` | `project_brief`、`book_scale_plan`；仅已选择知识库时有 `source_pack`；可选 `revision_request` | Fast 自动接受；Balanced/Deep 接受、定向换稿或取消；提交 `ArtifactStore.info` | 创作契约表单、世界规则、声音约束、来源采用状态 |
-| Characters | 1 个 `CharacterBibleArtifact` | `book_scale_plan`、`story_brief`；可选 `revision_request` | 冻结角色职责、关系、弧线与首次出现窗口；提交 `ArtifactStore.characters` | 分层人物名册、档案编辑器、关系矩阵、NPC 槽位、出场窗口与只读关系图 |
+| Characters | 1 个 `CharacterBibleArtifact` | `book_scale_plan`、`story_brief`；可选 `revision_request` | 冻结正式角色及功能/历史主体的身份、职责、关系、弧线或使用限制与首次出现窗口；提交 `ArtifactStore.characters` | 分层人物名册、3D 星图、正式角色/主体档案、关系矩阵、出场窗口与只读关系图 |
 | Summary | 1 个 `SummaryArtifact` | `book_scale_plan`、`story_brief`、`character_bible`；可选 `revision_request` | 确认因果链、高潮、结局及全部主角/重要配角结局；提交 `ArtifactStore.summary` | 故事脊柱、因果节拍、人物结局对账 |
 | Outline | 单卷时 1 次；多卷时每卷 1 次，每次只返回一个 `volumes[]` 项，再确定性聚合 | `book_scale_plan`、`story_brief`、`character_bible`、`summary`；分卷调用增加 `target_volume`；可选 `revision_request` | 确认卷目标、转折、人物/线程窗口；提交完整 `ArtifactStore.outline` | 分卷节拍表、只读章节区间、人物窗口和线索窗口 |
 | Detail | 总章数不超过 8 时 1 次；否则按最多 8 章一批，每批只返回冻结目标章节，再确定性聚合 | `book_scale_plan`、`story_brief`、`character_bible`、`summary`、`outline`、`obligation_registry`；分批增加 `target_chapters`；可选 `revision_request` | 确认章节目的、场景、义务和 handoff；提交完整 `ArtifactStore.detail` | 高密度章节施工表、场景编辑、冻结义务选择、跨章交接；不提供正文前 Wiki 写回 |
@@ -402,6 +406,7 @@ Export 核心：`ExportArtifact { format, chapter_version_ids[], cover_asset_id,
 4. 所有核心键都必须显式出现；语义允许为空时返回空字符串或空数组，不能省略。所有 vNext 模型使用 `extra="forbid"`，缺键、额外键、类型错误、枚举错误、范围错误和跨 Artifact 引用错误都形成 `candidate failure`。
 5. Provider 层只证明“完整对象”；Artifact 层再执行 Pydantic schema、BookScalePlan、Character Bible、obligation registry、章节版本和资产集合约束。两层都通过才写成功 operation receipt 和不可变 candidate。
 6. 合同失败进入 LangGraph 明确 failure/interrupt，保留脱敏 evidence ref。用户可取消，或修正 Prompt/Provider 配置后创建新的明确 attempt；不得把失败响应修成看似成功的 Artifact。
+7. 审稿 finding 必须返回 `code/severity/claim/evidence/subject_ids`；`evidence` 必须是当前不可变 `chapter.content` 的非空精确子串，`subject_ids` 使用冻结主体 id，无关人物时显式为 `[]`。Character reviewer 额外读取确定性 `appearance_policy { chapter_number, current_chapter_required_subject_ids, eligible_subject_ids, not_yet_eligible_subject_ids }`；未来窗口主体缺席是合规状态，只有正文精确证据证明其提前出现时才可报告。证据或主体引用不合法时整条 review receipt 失败并进入 `review.unavailable`，不得静默过滤、降级或改写 finding。
 
 ## 7. LangGraph 原生运行设计
 
@@ -630,9 +635,10 @@ info -> characters -> summary -> outline -> detail -> text -> cover -> export
 
 人物阶段是可编辑权威页，现有 `/bible/characters` 改为跨阶段只读投影与变更入口：
 
-- 主区域按主角、重要配角、功能角色、NPC 槽位分组；
+- 主区域按主角、重要配角、功能角色、冻结功能主体和历史主体分组；
 - 关系使用紧凑矩阵/列表，图只做辅助，不作为编辑数据源；
 - 首次出现使用章节窗口控件，展示与 BookScalePlan 的冲突；
+- 桌面星图点击任一正式角色、功能主体或历史主体，都必须同步名册选择并打开对应档案；窄屏默认名册，但不得删除主体档案与关系决策信息；
 - 冻结后编辑会创建 `CharacterChangeProposal`，显示证据、受影响 Summary/Outline/Detail/未完成章节和重新确认范围；
 - 不允许从关系图拖拽直接写语义。
 
@@ -838,7 +844,7 @@ Cover 边界证据：正文完成后全局 Graph 自动进入 Cover；CoverBrief
 
 以下取舍已经批准并进入实现：LangGraph 是唯一生产运行时；生产代码默认禁止直接 LangChain API，高层 `langchain` 包不作为直接依赖；新增 Character Bible 并采用严格串行八阶段；Detail vNext 与历史 Run 断代；Memory/Wiki/Canon/RAG 采用低敏感、证据驱动边界。
 
-用户已经批准在完整离线门通过并推送 GitHub 后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定。结构化阶段、三章正文、人工编辑版本、并发审稿和第 3 章新 Evidence/Outbox 已取得真实证据，但三章退出门尚未完全关闭：第 1、2 章保留旧 Evidence 失败，Cover/Export 未完成，文学样本含两章人工编辑。当前退出门为：
+用户已经批准在完整离线门通过后执行 **Wave 26.7 真实 Provider 验收**，并在两次智谱额度失败后明确批准 DeepSeek 作为新绑定；GitHub 推送顺序随后调整为全部修复、离线门、浏览器矩阵、全新三章和单卷验收完成后的最终一次推送，不在真实验收前制造中间发布。结构化阶段、三章正文、人工编辑版本、并发审稿和第 3 章新 Evidence/Outbox 已取得真实证据，但三章退出门尚未完全关闭：第 1、2 章保留旧 Evidence 失败，Cover/Export 未完成，文学样本含两章人工编辑。当前退出门为：
 
 1. 不启动或恢复 Phase 25 历史 Run，也不恢复 `phase26-deepseek-submission-7c66d1a6-8` 的 Cover failure；
 2. 后续真实验收只使用用户明确批准的 `provider-deepseek-text / deepseek-v4-pro` 冻结文本绑定，不做运行时 Provider/模型切换；图片 Provider 必须单独配置和批准，不能以 fake binding 冒充；
@@ -846,3 +852,5 @@ Cover 边界证据：正文完成后全局 Graph 自动进入 Cover；CoverBrief
 4. 下一次付费验收必须是使用新 Evidence `span_ids` 合同的全新三章 Run，三章均需完成 Evidence 和 exactly-once Canon/Wiki 写回；不得重放第 1、2 章旧 quote failure；
 5. 只有该全新三章 Run 同时满足 13.4 的技术门和人工冷读，才创建 8-12 章生产单卷；单卷必须从新的 Story Brief/Character Bible 开始，不能把当前三章扩写伪装成规模验收；
 6. 8-12 章单卷完成并冷读前，不宣称“投稿级”“第一卷已验收”或“全书已完成”。
+
+2026-08-12 失败证据补记：`phase26-deepseek-three-gate-dcf5623f-2` 在新三章门禁中暴露两个底层合同缺口：具名历史主体未在 Character Bible 冻结，以及人物 reviewer 将未来窗口主体的合规缺席报告为阻断。该 Run 已取消，禁止恢复、改写或复制其 Artifact/checkpoint/Evidence。新合同把具名历史主体登记为 `NpcSlot { id, name, kind, function, first_appearance_window, limits }`，并要求 review finding 携带章节内精确 `evidence` 与冻结 `subject_ids`；Character review context 显式投影当前章可用和未来尚不可用主体。此处只记录失败根因和离线修复方向，不宣称新的真实 Provider 验收已经完成。

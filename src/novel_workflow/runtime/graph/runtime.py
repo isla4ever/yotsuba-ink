@@ -18,6 +18,7 @@ from novel_workflow.runtime.graph.state import NarrativeRunState
 from novel_workflow.storage.artifact_store import ArtifactStore
 from novel_workflow.storage.chapter_store import ChapterStore
 from novel_workflow.storage.cover_asset_store import CoverAssetStore
+from novel_workflow.storage.context_manifest_store import ContextManifestStore
 from novel_workflow.storage.event_projection import EventProjection
 from novel_workflow.storage.evidence_store import EvidenceStore
 from novel_workflow.storage.export_store import ExportStore
@@ -43,6 +44,7 @@ class NarrativeRuntimeStores:
     evidence: EvidenceStore
     exports: ExportStore
     cover_assets: CoverAssetStore
+    context_manifests: ContextManifestStore
     canon: CanonStore
     wiki: WikiProjectionStore
     outbox: DomainOutbox
@@ -76,6 +78,7 @@ class NarrativeRuntime:
             evidence=stores.evidence,
             exports=stores.exports,
             cover_assets=stores.cover_assets,
+            context_manifests=stores.context_manifests,
             outbox=stores.outbox,
             provider=provider,
         )
@@ -162,8 +165,11 @@ class NarrativeRuntime:
         return self.stores.runs.read(run_id)
 
     async def state(self, run_id: str) -> NarrativeRunState:
-        snapshot = await self.graph.aget_state(self._config(run_id))
-        return dict(snapshot.values)
+        snapshot = await self.graph.aget_state(
+            self._config(run_id),
+            subgraphs=True,
+        )
+        return _projection_values(snapshot)
 
     async def refresh_projection(self, run_id: str) -> RunReadModel:
         await self._project(run_id)
@@ -213,7 +219,7 @@ class NarrativeRuntime:
         if not checkpoint_id:
             return
         values = chunk.get("values") if isinstance(chunk.get("values"), dict) else {}
-        stage_id = str(values.get("active_stage_id") or "info")
+        stage_id = str(values.get("active_stage_id") or "brief")
         self.stores.events.append(
             run_id,
             event_id=f"checkpoint:{checkpoint_id}",
@@ -224,13 +230,49 @@ class NarrativeRuntime:
             payload={"next": list(chunk.get("next") or [])},
             checkpoint_id=checkpoint_id,
         )
+        self._project_progress(run_id, values, checkpoint_id)
+
+    def _project_progress(
+        self, run_id: str, values: dict[str, Any], checkpoint_id: str
+    ) -> None:
+        """Project a live read model from super-step checkpoint values.
+
+        Without this, a run that never interrupts (fast mode auto-accepts every
+        decision) stays `created` in the read model until the whole graph
+        finishes, so state polling and the monitor console see nothing move.
+        Interrupt/terminal projection still happens in `_project`, which runs
+        after the stream ends and takes precedence over this mid-stream view.
+        """
+        if not values:
+            return
+        definition = self.stores.runs.definition(run_id)
+        projection = RunReadModel(
+            run_id=run_id,
+            project_id=str(values.get("project_id") or definition.project_id),
+            thread_id=run_id,
+            status=str(values.get("status") or "running"),  # type: ignore[arg-type]
+            active_stage_id=str(values.get("active_stage_id") or "brief"),  # type: ignore[arg-type]
+            active_chapter_number=int(values.get("active_chapter_number") or 0),
+            context_manifest_ref=str(values.get("context_manifest_ref") or ""),
+            stage_status=dict(values.get("stage_status") or {}),
+            artifact_refs=dict(values.get("artifact_refs") or {}),
+            pending_decisions=[],
+            provider_usage=self.stores.operations.usage_summary(run_id),
+            failure=values.get("failure"),
+            checkpoint_id=checkpoint_id,
+            updated_at="",
+        )
+        self.stores.runs.project(run_id, projection)
 
     async def _project(self, run_id: str) -> None:
-        snapshot = await self.graph.aget_state(self._config(run_id))
-        values = dict(snapshot.values or {})
+        snapshot = await self.graph.aget_state(
+            self._config(run_id),
+            subgraphs=True,
+        )
+        values = _projection_values(snapshot)
         stage_status = dict(values.get("stage_status") or {})
         pending = [item.value for item in snapshot.interrupts]
-        active_stage = str(values.get("active_stage_id") or "info")
+        active_stage = str(values.get("active_stage_id") or "brief")
         active_chapter_number = int(values.get("active_chapter_number") or 0)
         status = str(values.get("status") or "running")
         if pending:
@@ -260,6 +302,7 @@ class NarrativeRuntime:
             status=status,  # type: ignore[arg-type]
             active_stage_id=active_stage,  # type: ignore[arg-type]
             active_chapter_number=active_chapter_number,
+            context_manifest_ref=str(values.get("context_manifest_ref") or ""),
             stage_status=stage_status,
             artifact_refs=dict(values.get("artifact_refs") or {}),
             pending_decisions=pending,
@@ -283,8 +326,8 @@ class NarrativeRuntime:
             self.stores.artifacts.read(run_id, detail_ref).payload
         )
         for chapter in detail.chapters:
-            if chapter.id == chapter_id:
-                return chapter.number
+            if chapter.ref == chapter_id:
+                return int(chapter.ref.removeprefix("chapter-"))
         raise ValueError("Chapter decision does not reference the frozen Detail artifact")
 
     @staticmethod
@@ -302,12 +345,39 @@ def filesystem_stores(root: Path) -> NarrativeRuntimeStores:
         evidence=EvidenceStore(root / "evidence"),
         exports=ExportStore(root / "exports"),
         cover_assets=CoverAssetStore(root / "cover_assets"),
+        context_manifests=ContextManifestStore(root / "context_manifests"),
         canon=canon,
         wiki=wiki,
         outbox=DomainOutbox(root / "outbox", canon=canon, wiki=wiki),
         operations=OperationStore(root / "operations"),
         events=EventProjection(root / "events"),
     )
+
+
+def _projection_values(snapshot: Any) -> NarrativeRunState:
+    """Overlay the one active interrupt frontier onto its parent routing state."""
+
+    values = dict(snapshot.values or {})
+    frontiers = _interrupted_frontiers(snapshot)
+    if len(frontiers) > 1:
+        raise ValueError("A narrative Run cannot expose multiple decision frontiers")
+    if frontiers:
+        values.update(dict(frontiers[0].values or {}))
+    return values
+
+
+def _interrupted_frontiers(snapshot: Any) -> list[Any]:
+    frontiers: list[Any] = []
+    for task in getattr(snapshot, "tasks", ()):
+        child = getattr(task, "state", None)
+        if child is None or not hasattr(child, "values"):
+            continue
+        nested = _interrupted_frontiers(child)
+        if nested:
+            frontiers.extend(nested)
+        elif getattr(child, "interrupts", ()) or getattr(task, "interrupts", ()):
+            frontiers.append(child)
+    return frontiers
 
 
 @asynccontextmanager

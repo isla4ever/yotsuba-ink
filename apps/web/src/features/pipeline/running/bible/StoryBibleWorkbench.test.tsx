@@ -18,7 +18,7 @@ function renderBible(section: BibleSection) {
 describe('StoryBibleWorkbench', () => {
   it('renders honest empty states for every section when no run data exists', () => {
     const expectations: Record<BibleSection, string> = {
-      characters: '人物基线尚未建立',
+      cast: '人物基线尚未建立',
       world: '世界观基线尚未建立',
       foreshadow: '伏笔账本为空',
       facts: '正典事实尚未写回',

@@ -1,12 +1,10 @@
+/* No frame around the tools: each control carries its own shape, so the dock is
+   only spacing. A second border around a bordered switch reads as a stray card. */
 .global-tool-dock {
   align-items: center;
-  background: color-mix(in srgb, var(--color-surface-muted) 76%, transparent);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
   display: inline-flex;
-  gap: 3px;
-  min-height: 40px;
-  padding: 2px;
+  gap: var(--space-2);
+  min-height: 36px;
 }
 
 .global-tool-dock > .control-tooltip-trigger {
@@ -18,9 +16,12 @@
   width: 36px;
 }
 
+.global-tool-dock > .control-tooltip-trigger:has(.theme-mode-switch) {
+  width: 54px;
+}
+
 .global-tool-dock .dock-tool,
-.global-tool-dock .run-reset-button,
-.global-tool-dock .theme-mode-switch {
+.global-tool-dock .run-reset-button {
   height: 36px;
   min-height: 36px;
   min-width: 36px;
@@ -53,52 +54,57 @@
   outline: none;
 }
 
+/* The control is a single pill: track, glyphs and thumb, no wrapper frame. */
 .theme-mode-switch {
   align-items: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  cursor: pointer;
   display: inline-flex;
-  justify-content: center;
-  padding: 0;
+  height: 30px;
+  justify-content: space-between;
+  padding: 0 7px;
   position: relative;
+  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+  width: 54px;
 }
 
 .theme-mode-switch:hover {
-  background: color-mix(in srgb, var(--color-mode-primary) 10%, var(--color-surface-raised));
-  border-color: color-mix(in srgb, var(--color-mode-primary) 34%, var(--color-border-subtle));
-  color: var(--color-mode-primary);
+  border-color: color-mix(in srgb, var(--color-mode-primary) 40%, var(--color-border-subtle));
 }
 
-.theme-mode-switch-track {
+.theme-mode-switch-glyph {
   align-items: center;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
   display: inline-flex;
-  height: 24px;
-  justify-content: flex-start;
-  padding: 2px;
-  width: 30px;
+  justify-content: center;
+  position: relative;
+  transition: color var(--duration-standard) var(--ease-standard);
+  z-index: 1;
+}
+
+.theme-mode-switch.dark .theme-mode-switch-glyph.is-moon,
+.theme-mode-switch.light .theme-mode-switch-glyph.is-sun {
+  color: var(--color-mode-primary);
 }
 
 .theme-mode-switch-thumb {
-  align-items: center;
   background: var(--color-surface-raised);
   border: 1px solid color-mix(in srgb, var(--color-mode-primary) 44%, var(--color-border-subtle));
   border-radius: 50%;
-  color: var(--color-mode-primary);
-  display: inline-flex;
-  height: 18px;
-  justify-content: center;
-  transform: translateX(0);
-  transition: transform var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
-  width: 18px;
+  height: 22px;
+  left: 3px;
+  position: absolute;
+  top: 50%;
+  transform: translate(0, -50%);
+  transition: transform var(--duration-standard) var(--ease-emphasized);
+  width: 22px;
+  z-index: 0;
 }
 
 .theme-mode-switch.light .theme-mode-switch-thumb {
-  transform: translateX(6px);
+  transform: translate(24px, -50%);
 }
 
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
@@ -111,9 +117,8 @@
 
 @media (max-width: 640px) {
   .global-tool-dock {
-    gap: 2px;
-    min-height: 34px;
-    padding: 1px;
+    gap: 6px;
+    min-height: 32px;
   }
 
   .global-tool-dock > .control-tooltip-trigger {
@@ -122,15 +127,28 @@
   }
 
   .global-tool-dock .dock-tool,
-  .global-tool-dock .run-reset-button,
-  .global-tool-dock .theme-mode-switch {
+  .global-tool-dock .run-reset-button {
     height: 32px;
     min-height: 32px;
     min-width: 32px;
     width: 32px;
   }
 
-  .global-tool-dock .theme-mode-switch-track {
-    transform: scale(0.9);
+  .global-tool-dock > .control-tooltip-trigger:has(.theme-mode-switch) {
+    width: 48px;
+  }
+
+  .global-tool-dock .theme-mode-switch {
+    height: 28px;
+    width: 48px;
+  }
+
+  .global-tool-dock .theme-mode-switch-thumb {
+    height: 20px;
+    width: 20px;
+  }
+
+  .global-tool-dock .theme-mode-switch.light .theme-mode-switch-thumb {
+    transform: translate(20px, -50%);
   }
 }

@@ -1,5 +1,5 @@
 import { CheckCircle2, ChevronDown, CircleAlert, FileOutput, ShieldCheck } from 'lucide-react';
-import { InfoBriefEditor } from '../brief/InfoBriefEditor';
+import { BriefConfigurationEditor } from '../brief/BriefConfigurationEditor';
 import type { KnowledgeDocument, ProviderProfile, QualityMode, WorkflowStage } from '../contracts';
 import { stageLabelForUi } from '../lib/display';
 import { stageArtifactLabel, stageConfigurationReadiness } from '../lib/planningReadiness';
@@ -54,13 +54,14 @@ export function StageInspector({
 
       <section className="config-section stage-primary-fields">
         <div className="config-section-heading">
-          <h3>{stage.type === 'info' ? '创作 Brief' : '阶段参数'}</h3>
+          <h3>{stage.type === 'brief' ? '创作 Brief' : '阶段参数'}</h3>
           {readiness.total ? <span>{readiness.completed}/{readiness.total}</span> : null}
         </div>
-        {stage.type === 'info' ? (
-          <InfoBriefEditor
+        {stage.type === 'brief' ? (
+          <BriefConfigurationEditor
             idPrefix={inputIdPrefix}
             knowledgeDocuments={knowledgeDocuments}
+            qualityMode={qualityMode}
             stage={stage}
             onChange={onChange}
             onOpenKnowledgeManager={onOpenKnowledgeManager}

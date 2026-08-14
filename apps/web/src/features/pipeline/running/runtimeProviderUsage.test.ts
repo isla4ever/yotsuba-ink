@@ -28,8 +28,8 @@ function event(providerOperations: number, totalTokens: number): RunEvent {
     run_id: 'run-1',
     thread_id: 'run-1',
     type: 'node.completed',
-    stage_id: 'info',
-    node_id: 'info.generate_candidate',
+    stage_id: 'brief',
+    node_id: 'brief.generate_candidate',
     chapter_id: '',
     status: 'completed',
     payload: {

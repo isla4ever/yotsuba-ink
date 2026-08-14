@@ -24,6 +24,22 @@ describe('run stream terminal state', () => {
     expect(terminal).toBe('paused');
   });
 
+  it('replays resolved historical interrupts before stopping at the current one', async () => {
+    const onEvent = vi.fn();
+    const response = sseResponse([
+      event('decision.required', 1, { decision_id: 'brief-decision' }, 'brief'),
+      event('decision.resolved', 2, { decision_id: 'brief-decision' }, 'brief'),
+      event('artifact.committed', 3, null, 'brief'),
+      event('artifact.candidate_ready', 4, { promise: '追查失踪案' }, 'spine'),
+      event('decision.required', 5, { decision_id: 'spine-decision' }, 'spine'),
+    ]);
+
+    const terminal = await consumeRunEventStream({ onEvent, response });
+
+    expect(terminal).toBe('paused');
+    expect(onEvent.mock.calls.map(([received]) => received.sequence)).toEqual([1, 2, 3, 4, 5]);
+  });
+
   it('rejects legacy top-level event fields instead of normalizing them', async () => {
     await expect(consumeRunEventStream({
       onEvent: vi.fn(),
@@ -32,7 +48,12 @@ describe('run stream terminal state', () => {
   });
 });
 
-function event(type: string, sequence: number, payload: Record<string, unknown> | null = null) {
+function event(
+  type: string,
+  sequence: number,
+  payload: Record<string, unknown> | null = null,
+  stageId = 'detail',
+) {
   return {
     event_id: `event-${sequence}`,
     sequence,
@@ -40,8 +61,8 @@ function event(type: string, sequence: number, payload: Record<string, unknown> 
     run_id: 'run-1',
     thread_id: 'run-1',
     type,
-    stage_id: 'outline',
-    node_id: 'outline.validate_contract',
+    stage_id: stageId,
+    node_id: `${stageId}.validate_contract`,
     chapter_id: '',
     status: '',
     payload,

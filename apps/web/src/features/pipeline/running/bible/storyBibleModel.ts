@@ -1,13 +1,13 @@
 import type { CharacterGraph, RunEvent, WorkflowDefinition } from '../../contracts';
-import { parseDetailArtifact, parseOutlineArtifact, parseStoryBriefArtifact } from '../artifactsVnext';
+import { parseStoryBriefArtifact } from '../artifactsVnext';
 import { latestApprovedArtifact, latestResult } from '../stageRunUtils';
 import { runtimeArtifactProjection } from '../runtimeArtifactProjection';
 
 const sourceStageLabels: Record<string, string> = {
-  info: '创作立项',
-  characters: '人物编排',
-  summary: '全书梗概',
-  outline: '分卷大纲',
+  brief: '创作立项',
+  spine: '故事脊柱',
+  cast: '人物编排',
+  volumes: '分卷架构',
   detail: '章节施工图',
   text: '正文定稿',
 };
@@ -28,13 +28,13 @@ export function bibleCharacterGraph(
 ): { graph: CharacterGraph; source: BibleGraphSource } {
   void workflow;
   const graph = runtimeArtifactProjection({
-    activeStageType: 'characters',
-    characters: stageArtifactValue(events, 'characters'),
+    activeStageType: 'cast',
+    brief: stageArtifactValue(events, 'brief'),
+    cast: stageArtifactValue(events, 'cast'),
     detail: '',
     events,
-    info: stageArtifactValue(events, 'info'),
-    outline: '',
-    summary: '',
+    spine: '',
+    volumes: '',
   }).characterGraph;
   return graph
     ? { graph, source: 'committed' }
@@ -46,18 +46,9 @@ export type BibleWorldAnchor = { anchor: string; reveal: string; rule: string; s
 export type BibleWorldView = { rules: BibleWorldRule[]; anchors: BibleWorldAnchor[] };
 
 export function bibleWorldView(events: RunEvent[]): BibleWorldView {
-  const info = parseStoryBriefArtifact(stageArtifactValue(events, 'info')).artifact;
-  const detail = parseDetailArtifact(stageArtifactValue(events, 'detail')).artifact;
-  const rules = (info?.world_rules ?? []).map((text) => ({ source: '创作立项 Artifact', text }));
-  const anchors = (detail?.chapters ?? []).flatMap((chapter) => chapter.obligations
-    .filter((item) => item.kind === 'world_rule')
-    .map((item) => ({
-      anchor: item.ref_id,
-      reveal: item.action,
-      rule: item.ref_id,
-      source: `章节施工图 · ${chapter.id}`,
-    })));
-  return { anchors, rules };
+  const brief = parseStoryBriefArtifact(stageArtifactValue(events, 'brief')).artifact;
+  const rules = (brief?.world_rules ?? []).map((text) => ({ source: '创作立项 Artifact', text }));
+  return { anchors: [], rules };
 }
 
 export type ForeshadowStatus = '投放' | '推进' | '回收' | '延后';
@@ -73,31 +64,15 @@ export type BibleForeshadowRow = {
 };
 
 export function bibleForeshadowRows(events: RunEvent[]): BibleForeshadowRow[] {
-  const outline = parseOutlineArtifact(stageArtifactValue(events, 'outline')).artifact;
-  const detail = parseDetailArtifact(stageArtifactValue(events, 'detail')).artifact;
-  const planned = (outline?.volumes ?? []).flatMap((volume) => volume.thread_windows
-    .filter((item) => item.kind === 'foreshadow')
-    .map((item) => ({
-      chapterRange: item.chapter_window,
-      key: `outline-${volume.id}-${item.thread_id}`,
-      name: item.thread_id,
-      note: item.action,
-      open: true,
-      source: '分卷大纲',
-      status: '投放' as const,
-    })));
-  const chapterObligations = (detail?.chapters ?? []).flatMap((chapter) => chapter.obligations
-    .filter((item) => item.kind === 'thread')
-    .map((item) => ({
-      chapterRange: String(chapter.number),
-      key: `detail-${chapter.id}-${item.ref_id}`,
-      name: item.ref_id,
-      note: item.action,
-      open: true,
-      source: '章节施工图',
-      status: '推进' as const,
-    })));
-  return [...planned, ...chapterObligations];
+  return events.filter((event) => event.type === 'evidence.proposed' && event.payload?.kind === 'foreshadow').map((event, index) => ({
+    chapterRange: event.chapter_id,
+    key: event.event_id || `evidence-${index}`,
+    name: String(event.payload?.subject_ref ?? event.payload_ref),
+    note: String(event.payload?.claim ?? ''),
+    open: true,
+    source: 'Evidence proposal',
+    status: '推进',
+  }));
 }
 
 export type BibleCanonStatus = 'active' | 'superseded' | 'pending';

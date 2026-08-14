@@ -20,8 +20,8 @@ export const reviewCreationModeCardId = 'setup-review-creation-mode';
 
 const storyFieldKeys = new Set([
   'genre',
-  'book_scale_target_mode',
-  'book_scale_target_value',
+  'word_target_soft',
+  'chapter_target_soft',
   'audience',
   'core_concept',
   'keywords',
@@ -43,13 +43,13 @@ const issueLabels: Record<string, string> = {
 };
 
 export function buildSetupSteps(input: SetupDerivationInput): SetupStep[] {
-  const info = infoStageOf(input.workflow);
-  const storyIssues = storySetupIssues(info);
+  const brief = briefStageOf(input.workflow);
+  const storyIssues = storySetupIssues(brief);
   const serviceIssues = aiServiceSetupIssues(input.readiness);
   // References and creation mode live on the review page as default cards,
   // so their issues belong to the review step and anchor to the cards.
   const reviewOwnIssues = [
-    ...referenceSetupIssues(info, input.knowledgeDocuments),
+    ...referenceSetupIssues(brief, input.knowledgeDocuments),
     ...creationModeSetupIssues(input.workflow),
   ];
   const carriedBlocking = [...storyIssues, ...serviceIssues].filter((issue) => issue.severity === 'blocking');
@@ -57,7 +57,7 @@ export function buildSetupSteps(input: SetupDerivationInput): SetupStep[] {
   const reviewBlockingCount = reviewIssues.filter((issue) => issue.severity === 'blocking').length;
 
   return [
-    setupStep('story', '故事起点', storyIssues, storySummary(info)),
+    setupStep('story', '故事起点', storyIssues, storySummary(brief)),
     setupStep('ai-service', '连接 AI 服务', serviceIssues, providerReadinessSummary(input.readiness)),
     setupStep(
       'review',
@@ -65,7 +65,7 @@ export function buildSetupSteps(input: SetupDerivationInput): SetupStep[] {
       reviewIssues,
       reviewBlockingCount
         ? `${reviewBlockingCount} 项需要处理`
-        : `${referenceSummary(info, input.knowledgeDocuments)} · ${qualityModeLabel(input.workflow.quality_mode)}`,
+        : `${referenceSummary(brief, input.knowledgeDocuments)} · ${qualityModeLabel(input.workflow.quality_mode)}`,
     ),
   ];
 }
@@ -89,18 +89,18 @@ export function stageExceptionIds(workflow: WorkflowDefinition) {
 }
 
 export function buildSettingsSections(input: SetupDerivationInput): SettingsSectionSummary[] {
-  const info = infoStageOf(input.workflow);
+  const brief = briefStageOf(input.workflow);
   const exceptionIds = stageExceptionIds(input.workflow);
   const sections: SettingsSectionSummary[] = [
     {
-      id: 'story', title: '创作设定', status: statusFromIssues(storySetupIssues(info)),
-      summary: [storySummary(info), valueFor(info, 'audience') || '尚未填写目标读者'],
-      action: { label: '修改', target: 'info' },
+      id: 'story', title: '创作设定', status: statusFromIssues(storySetupIssues(brief)),
+      summary: [storySummary(brief), valueFor(brief, 'audience') || '尚未填写目标读者'],
+      action: { label: '修改', target: 'brief' },
     },
     {
-      id: 'references', title: '参考与资料', status: statusFromIssues(referenceSetupIssues(info, input.knowledgeDocuments)),
-      summary: [referenceSummary(info, input.knowledgeDocuments), referenceSourceSummary(info)],
-      action: { label: '管理', target: 'info' },
+      id: 'references', title: '参考与资料', status: statusFromIssues(referenceSetupIssues(brief, input.knowledgeDocuments)),
+      summary: [referenceSummary(brief, input.knowledgeDocuments), referenceSourceSummary(brief)],
+      action: { label: '管理', target: 'brief' },
     },
     {
       id: 'creation-mode', title: '创作模式', status: statusFromIssues(creationModeSetupIssues(input.workflow)),
@@ -121,30 +121,30 @@ export function buildSettingsSections(input: SetupDerivationInput): SettingsSect
   return sections;
 }
 
-function infoStageOf(workflow: WorkflowDefinition) {
-  return workflow.nodes.find((stage) => stage.type === 'info');
+function briefStageOf(workflow: WorkflowDefinition) {
+  return workflow.nodes.find((stage) => stage.type === 'brief');
 }
 
-function storySetupIssues(info?: WorkflowStage): SetupIssue[] {
-  if (!info) return [blockingIssue('story_stage_missing', '找不到故事起点配置', 'story')];
-  return info.input_schema
+function storySetupIssues(brief?: WorkflowStage): SetupIssue[] {
+  if (!brief) return [blockingIssue('story_stage_missing', '找不到故事起点配置', 'story')];
+  return brief.input_schema
     .filter((field) => field.required && storyFieldKeys.has(field.key) && !hasConfiguredValue(field))
     .map((field) => blockingIssue(`story_${field.key}_missing`, `请填写${field.label}`, 'story', `setup-story-${field.key}`));
 }
 
-function referenceSetupIssues(info: WorkflowStage | undefined, documents: SetupDerivationInput['knowledgeDocuments']): SetupIssue[] {
-  if (!info) return [blockingIssue('reference_stage_missing', '找不到参考方式配置', 'review', reviewReferenceCardId)];
-  const mode = valueFor(info, 'reference_mode');
+function referenceSetupIssues(brief: WorkflowStage | undefined, documents: SetupDerivationInput['knowledgeDocuments']): SetupIssue[] {
+  if (!brief) return [blockingIssue('reference_stage_missing', '找不到参考方式配置', 'review', reviewReferenceCardId)];
+  const mode = valueFor(brief, 'reference_mode');
   if (!['smart_search', 'url', 'knowledge_base'].includes(mode)) {
     return [blockingIssue('reference_mode_missing', '请选择参考方式', 'review', reviewReferenceCardId)];
   }
-  const selectedIds = arrayValueFor(info, 'knowledge_base_doc_ids');
+  const selectedIds = arrayValueFor(brief, 'knowledge_base_doc_ids');
   const knownIds = new Set(documents.filter((document) => document.status === 'ready').map((document) => document.doc_id));
   const unavailable = selectedIds.filter((id) => !knownIds.has(id));
   if (unavailable.length) {
     return [blockingIssue('knowledge_document_unavailable', `${unavailable.length} 份已选资料当前不可用`, 'review', reviewReferenceCardId)];
   }
-  if (mode === 'url' && !arrayValueFor(info, 'reference_urls').length) {
+  if (mode === 'url' && !arrayValueFor(brief, 'reference_urls').length) {
     return [warningIssue('reference_url_empty', '未添加网页链接，将仅依据故事设定创作', 'review', reviewReferenceCardId)];
   }
   if (mode === 'knowledge_base' && !selectedIds.length) {
@@ -194,27 +194,27 @@ function hasConfiguredValue(field: InputField) {
   return String(value ?? '').trim().length > 0;
 }
 
-function storySummary(info?: WorkflowStage) {
-  const genre = valueFor(info, 'genre') || '题材未定';
-  const mode = valueFor(info, 'book_scale_target_mode');
-  const value = Number(fieldFor(info, 'book_scale_target_value')?.default);
-  const scale = Number.isFinite(value) && value > 0
-    ? mode === 'total_chapters'
-      ? `${value.toLocaleString('zh-CN')} 章`
-      : `${value.toLocaleString('zh-CN')} 字`
-    : '体量未定';
+function storySummary(brief?: WorkflowStage) {
+  const genre = valueFor(brief, 'genre') || '题材未定';
+  const words = Number(fieldFor(brief, 'word_target_soft')?.default);
+  const chapters = Number(fieldFor(brief, 'chapter_target_soft')?.default);
+  const scale = Number.isFinite(words) && words > 0
+    ? `约 ${words.toLocaleString('zh-CN')} 字`
+    : Number.isFinite(chapters) && chapters > 0
+      ? `约 ${chapters.toLocaleString('zh-CN')} 章`
+      : '体量未定';
   return `${genre} · ${scale}`;
 }
 
-export function referenceSummary(info: WorkflowStage | undefined, documents: SetupDerivationInput['knowledgeDocuments']) {
-  const selected = new Set(arrayValueFor(info, 'knowledge_base_doc_ids'));
+export function referenceSummary(brief: WorkflowStage | undefined, documents: SetupDerivationInput['knowledgeDocuments']) {
+  const selected = new Set(arrayValueFor(brief, 'knowledge_base_doc_ids'));
   const ready = documents.filter((document) => selected.has(document.doc_id) && document.status === 'ready').length;
-  return `${referenceModeLabel(valueFor(info, 'reference_mode'))} · ${ready} 份资料可用`;
+  return `${referenceModeLabel(valueFor(brief, 'reference_mode'))} · ${ready} 份资料可用`;
 }
 
-function referenceSourceSummary(info?: WorkflowStage) {
-  const webEnabled = Boolean(fieldFor(info, 'enable_web_search')?.default);
-  const urlCount = arrayValueFor(info, 'reference_urls').length;
+function referenceSourceSummary(brief?: WorkflowStage) {
+  const webEnabled = Boolean(fieldFor(brief, 'enable_web_search')?.default);
+  const urlCount = arrayValueFor(brief, 'reference_urls').length;
   return `${webEnabled ? '联网参考已开启' : '仅使用本地内容'} · ${urlCount} 个指定链接`;
 }
 

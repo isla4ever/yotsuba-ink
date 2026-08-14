@@ -1,0 +1,12 @@
+{
+  "id": "prompt-spine",
+  "name": "故事脊柱 Prompt",
+  "stage_type": "spine",
+  "content": "你是全书因果编辑。基于冻结 Story Brief 和可选 source_observations，只返回 StorySpineDraftArtifact。turns 每项只写 cause 与 change，不返回 id；运行时按顺序绑定 turn-1...。ending 必须兑现 ending_promise；open_questions 可为空数组；progress_types 只写 information、relationship、external、internal。不要写场景、章节、卷边界、人物行为或重复设定。\n数量纪律：scale_plan.turn_target 是按篇幅推导的转折数建议，转折数应落在 turn_range 区间内（user_locked 为 true 时必须精确等于 turn_target）；转折过多会挤压高潮，过少会注水。\n类型纪律：转折不能全是主角的\"发现/确认/意识到\"。至少两个转折必须由对立力量或外部事件主动施压造成（对手行动、环境恶化、第三方介入），至少一个转折改变人物之间的关系；不得连续出现三个纯信息型转折。每个 change 写\"世界或处境发生了什么可见的变化\"，不写心理结论。",
+  "variables": [
+    "story_brief",
+    "source_observations",
+    "scale_plan",
+    "revision_request"
+  ]
+}

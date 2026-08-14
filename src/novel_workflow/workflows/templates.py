@@ -20,52 +20,31 @@ IMAGE_PROVIDER_ID = "openai-compatible-image"
 DEFAULT_MODEL = "gpt-4.1-mini"
 DEFAULT_IMAGE_MODEL = "gpt-image-2"
 STAGE_GENERATION_BUDGETS: dict[str, GenerationBudget] = {
-    "info": GenerationBudget(
-        target_chars=2200,
-        min_chars=1400,
-        max_chars=3200,
+    "brief": GenerationBudget(
         max_tokens=4600,
         description="创作立项 Story Brief 冻结题材承诺、世界规则、主题问题、结局承诺与叙事声音。",
     ),
-    "characters": GenerationBudget(
-        target_chars=1800,
-        min_chars=1000,
-        max_chars=3200,
-        max_tokens=4200,
+    "cast": GenerationBudget(
+        max_tokens=7500,
         description="人物圣经冻结职责、关系、人物弧和首次出现窗口；正文前不得随意添人。",
     ),
-    "summary": GenerationBudget(
-        target_chars=1200,
-        min_chars=1200,
-        max_chars=2800,
-        max_tokens=3600,
-        description="参考出版 synopsis 常用 500-1000 英文词范围，中文梗概需覆盖完整故事、人物变化与结局。",
+    "spine": GenerationBudget(
+        max_tokens=5000,
+        description="输出精简的因果 turns、结局和开放问题；不是散文梗概，也不提前分章或编排人物行为。",
     ),
-    "outline": GenerationBudget(
-        target_chars=1400,
-        min_chars=1400,
-        max_chars=3600,
-        max_tokens=4200,
-        description="按卷输出 beat board，小字段完整，不让后端再从长文拆节拍。",
+    "volumes": GenerationBudget(
+        max_tokens=6000,
+        description="按已校验的自然卷界输出完整故事卷合同；卷数和章数来自闭合与软篇幅投影，不按固定模板填充。",
     ),
     "detail": GenerationBudget(
-        target_chars=2400,
-        min_chars=1800,
-        max_chars=5600,
         max_tokens=6000,
-        description="三章细纲默认每章一个主场景，仅在紧密不可拆的转场中使用第二场，并把未完成动作交给下一章。",
+        description="按 Spine 因果边界和 Provider 输出容量拆成叙事段；每章只规划必要场景、变化与下一章交接。",
     ),
     "text": GenerationBudget(
-        target_chars=1700,
-        min_chars=1400,
-        max_chars=2200,
-        max_tokens=3600,
-        description="单章正文建议在 1700 字符附近自然收束，通常落在 1400-2200 字符，不为命中字数提前完成下一章。",
+        max_tokens=6000,
+        description="单章纯文本输出；篇幅目标由冻结 LengthEnvelope 和当前施工图给出，只作软目标并保留合理容错。",
     ),
     "cover": GenerationBudget(
-        target_chars=500,
-        min_chars=500,
-        max_chars=1400,
         max_tokens=2200,
         description="先由文本模型生成封面 brief、prompt 和候选计划，再由独立图片 Provider 生成并落盘真实资产。",
     ),
@@ -75,7 +54,7 @@ STAGE_GENERATION_BUDGETS: dict[str, GenerationBudget] = {
 def generation_budget_for_stage(stage_id: str) -> GenerationBudget:
     return STAGE_GENERATION_BUDGETS.get(
         stage_id,
-        GenerationBudget(target_chars=900, min_chars=500, max_chars=1600, max_tokens=2000, description="保持字段完整且克制。"),
+        GenerationBudget(max_tokens=2000, description="保持字段完整且克制。"),
     )
 
 def default_workflow() -> WorkflowDefinition:
@@ -83,54 +62,54 @@ def default_workflow() -> WorkflowDefinition:
     prompts = default_prompt_templates()
     nodes = [
         WorkflowNode(
-            id="info",
-            type="info",
+            id="brief",
+            type="brief",
             label="创作立项定稿",
-            input_schema=info_input_schema(),
-            prompt_template_id="prompt-info",
+            input_schema=brief_input_schema(),
+            prompt_template_id="prompt-brief",
             provider_profile_id=REAL_PROVIDER_ID,
-            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("info").max_tokens),
-            generation_budget=generation_budget_for_stage("info"),
+            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("brief").max_tokens),
+            generation_budget=generation_budget_for_stage("brief"),
         ),
         WorkflowNode(
-            id="characters",
-            type="characters",
-            label="人物圣经",
-            input_schema=[],
-            prompt_template_id="prompt-characters",
-            provider_profile_id=REAL_PROVIDER_ID,
-            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("characters").max_tokens),
-            generation_budget=generation_budget_for_stage("characters"),
-        ),
-        WorkflowNode(
-            id="summary",
-            type="summary",
-            label="全书梗概",
+            id="spine",
+            type="spine",
+            label="故事脊柱",
             input_schema=[
-                InputField(key="structure", label="结构偏好", type="select", default="起承转合", options=["起承转合", "三幕式", "悬疑递进", "群像交织"]),
+                InputField(key="structure", label="结构偏好", type="select", default="自适应因果链", options=["自适应因果链", "悬疑递进", "群像交织"]),
                 InputField(key="ending_direction", label="结局方向", default="真相公开但保留余味"),
             ],
-            prompt_template_id="prompt-summary",
+            prompt_template_id="prompt-spine",
             provider_profile_id=REAL_PROVIDER_ID,
-            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("summary").max_tokens),
-            generation_budget=generation_budget_for_stage("summary"),
+            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("spine").max_tokens),
+            generation_budget=generation_budget_for_stage("spine"),
         ),
         WorkflowNode(
-            id="outline",
-            type="outline",
-            label="分卷大纲",
+            id="cast",
+            type="cast",
+            label="人物圣经",
+            input_schema=[],
+            prompt_template_id="prompt-cast",
+            provider_profile_id=REAL_PROVIDER_ID,
+            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("cast").max_tokens),
+            generation_budget=generation_budget_for_stage("cast"),
+        ),
+        WorkflowNode(
+            id="volumes",
+            type="volumes",
+            label="分卷架构",
             input_schema=[
                 InputField(key="conflict_density", label="冲突密度", type="select", default="中高", options=["平缓", "中等", "中高", "高压"]),
             ],
-            prompt_template_id="prompt-outline",
+            prompt_template_id="prompt-volumes",
             provider_profile_id=REAL_PROVIDER_ID,
-            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("outline").max_tokens),
-            generation_budget=generation_budget_for_stage("outline"),
+            model_settings=ModelSettings(model=DEFAULT_MODEL, max_tokens=generation_budget_for_stage("volumes").max_tokens),
+            generation_budget=generation_budget_for_stage("volumes"),
         ),
         WorkflowNode(
             id="detail",
             type="detail",
-            label="章节细纲",
+            label="章节施工图",
             input_schema=[
                 InputField(key="must_include", label="每章必须包含", type="tags", default=["目标", "冲突", "伏笔", "章末钩子"]),
             ],
@@ -180,23 +159,27 @@ def default_workflow() -> WorkflowDefinition:
             ],
         ),
     ]
+    stage_order = ("brief", "spine", "cast", "volumes", "detail", "text", "cover", "export")
+    nodes = sorted(nodes, key=lambda node: stage_order.index(node.id))
     edges = [
-        WorkflowEdge(id="e-info-characters", source="info", target="characters"),
-        WorkflowEdge(id="e-characters-summary", source="characters", target="summary"),
-        WorkflowEdge(id="e-summary-outline", source="summary", target="outline"),
-        WorkflowEdge(id="e-outline-detail", source="outline", target="detail"),
+        WorkflowEdge(id="e-brief-spine", source="brief", target="spine"),
+        WorkflowEdge(id="e-spine-cast", source="spine", target="cast"),
+        WorkflowEdge(id="e-cast-volumes", source="cast", target="volumes"),
+        WorkflowEdge(id="e-volumes-detail", source="volumes", target="detail"),
         WorkflowEdge(id="e-detail-text", source="detail", target="text"),
         WorkflowEdge(id="e-detail-cover", source="detail", target="cover"),
         WorkflowEdge(id="e-text-export", source="text", target="export"),
         WorkflowEdge(id="e-cover-export", source="cover", target="export"),
     ]
     return WorkflowDefinition(
+        architecture_version="phase27-vnext",
         id="default-novel-workflow",
         name="长篇小说生产线工作流",
         # Reseeding compares version + content digest (bootstrap.seed_defaults),
         # so template edits reach existing installs even without a version bump.
         # The version string stays as a human-readable changelog marker.
-        version="26.1.0-langgraph-vnext",
+        version="27.1.0-langgraph-native",
+        is_template=False,
         global_inputs=[
             InputField(key="title", label="项目标题", required=True, default="雾港旧声"),
         ],
@@ -244,12 +227,15 @@ def default_provider_profiles() -> list[ProviderProfile]:
     ]
 
 
-def info_input_schema() -> list[InputField]:
+def brief_input_schema() -> list[InputField]:
     return [
         InputField(key="genre", label="题材", type="select", required=True, default="悬疑", options=["悬疑", "玄幻", "都市", "科幻", "言情", "历史", "现实", "轻小说"], hint="决定读者预期与后续阶段的类型惯例校验。"),
         InputField(key="narrative_profile", label="叙事角色", type="select", required=True, default="故事建筑师", options=["故事建筑师", "现场观察者", "心理戏剧家", "悬念导演", "群像编年者", "意象织造者"], hint="选择贯穿全书的观察与表达策略；角色 Prompt 只读，可在首次准备中查阅。"),
-        InputField(key="book_scale_target_mode", label="成书目标", type="select", required=True, default="total_chars", options=["total_chars", "total_chapters"], hint="按总字数或总章数二选一，系统自动规划另一项、卷数和单章范围。"),
-        InputField(key="book_scale_target_value", label="目标值", type="number", required=True, default=100000, hint="总字数按中文可见字符计算；切换为总章数后填写计划章节数。"),
+        InputField(key="word_target_soft", label="软字数目标", type="number", required=False, default=100000, hint="仅作为节奏建议，不会自动删改正文。"),
+        InputField(key="chapter_target_soft", label="软章数目标", type="number", required=False, default=None, hint="仅作为规划建议，卷界和章节数量由剧情闭合决定。"),
+        InputField(key="volume_target_override", label="自定义卷数", type="number", required=False, default=None, hint="仅精工模式生效；留空沿用系统建议区间。"),
+        InputField(key="turn_target_override", label="自定义脊柱转折数", type="number", required=False, default=None, hint="仅精工模式生效；留空沿用系统建议区间。"),
+        InputField(key="cast_demand_override", label="自定义人物数量", type="number", required=False, default=None, hint="仅精工模式生效；留空沿用系统建议区间。"),
         InputField(key="audience", label="目标读者", required=True, default="偏好强情节、悬念推进、人物关系清晰的网文读者", hint="写给谁看：平台、口味与期待的阅读体验。", placeholder="例如：偏好强冲突、快节奏反转的悬疑读者"),
         InputField(key="core_concept", label="核心创意/冲突", type="textarea", required=True, default="旧港多年前的记忆实验留下旧案回声，主角追查真相时发现自己最可信的记忆也被改写。", hint="立项只需要一个能撑起全书的核心冲突；世界规则在本阶段形成，人物职责与关系在下一阶段冻结。", placeholder="一句话说清冲突：谁+想要什么+被什么阻止"),
         InputField(key="keywords", label="关键词", type="tags", required=True, default=["旧港", "记忆实验", "群像", "旧案"], hint="3-6 个题材、氛围或元素词，同时用于参考检索。", placeholder="例如：孤岛、双时间线、身份互换"),
@@ -267,10 +253,10 @@ def info_input_schema() -> list[InputField]:
 def default_canvas_layout() -> CanvasLayout:
     return CanvasLayout(
         nodes={
-            "info": CanvasNodePosition(x=20, y=168),
-            "characters": CanvasNodePosition(x=214, y=168),
-            "summary": CanvasNodePosition(x=408, y=168),
-            "outline": CanvasNodePosition(x=602, y=168),
+            "brief": CanvasNodePosition(x=20, y=168),
+            "spine": CanvasNodePosition(x=214, y=168),
+            "cast": CanvasNodePosition(x=408, y=168),
+            "volumes": CanvasNodePosition(x=602, y=168),
             "detail": CanvasNodePosition(x=796, y=168),
             "text": CanvasNodePosition(x=990, y=168),
             "cover": CanvasNodePosition(x=1184, y=168),

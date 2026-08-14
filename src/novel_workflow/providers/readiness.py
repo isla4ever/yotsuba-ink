@@ -126,6 +126,52 @@ def _group_provider_models(usages: list[_ProviderUsage]) -> dict[tuple[str, Prov
     return {key: list(dict.fromkeys(values)) for key, values in grouped.items()}
 
 
+def provider_connection_ready(
+    profile: ProviderProfile | None,
+    *,
+    expected_kind: ProviderKind,
+    secret_resolver: Callable[[str], str | None] | None = None,
+) -> bool:
+    """True when the profile alone can reach the vendor, ignoring stage models.
+
+    Stage binding decisions need the connection verdict without the per-stage
+    model checks, which only make sense once a stage points at the provider.
+    """
+    issue_codes, _ = _connection_issue_codes(profile, expected_kind=expected_kind, secret_resolver=secret_resolver)
+    return not issue_codes
+
+
+def _connection_issue_codes(
+    profile: ProviderProfile | None,
+    *,
+    expected_kind: ProviderKind,
+    secret_resolver: Callable[[str], str | None] | None,
+) -> tuple[list[str], ProviderTemplate | None]:
+    if profile is None:
+        return ["provider_not_found"], None
+    issue_codes: list[str] = []
+    template: ProviderTemplate | None = None
+    if not profile.enabled:
+        issue_codes.append("provider_disabled")
+    if profile.kind != expected_kind:
+        issue_codes.append("provider_kind_mismatch")
+    try:
+        template = require_provider_template(profile.template_id, profile.kind)
+        if not template.execution_allowed:
+            issue_codes.append("provider_policy_blocked")
+        elif not template.workflow_execution_allowed:
+            issue_codes.append("provider_workflow_blocked")
+    except ValueError:
+        issue_codes.append("provider_template_invalid")
+    if not profile.base_url.strip():
+        issue_codes.append("base_url_missing")
+    if not profile.default_model.strip():
+        issue_codes.append("model_missing")
+    if not _has_secret(profile, secret_resolver=secret_resolver):
+        issue_codes.append("secret_missing")
+    return issue_codes, template
+
+
 def _provider_check(
     provider_id: str,
     profile: ProviderProfile | None,
@@ -136,34 +182,17 @@ def _provider_check(
     model: str,
     models: list[str],
 ) -> ProviderReadinessCheck:
-    issue_codes: list[str] = []
-    template: ProviderTemplate | None = None
-    if profile is None:
-        issue_codes.append("provider_not_found")
-    else:
-        if not profile.enabled:
-            issue_codes.append("provider_disabled")
-        if profile.kind != expected_kind:
-            issue_codes.append("provider_kind_mismatch")
-        try:
-            template = require_provider_template(profile.template_id, profile.kind)
-            if not template.execution_allowed:
-                issue_codes.append("provider_policy_blocked")
-            elif not template.workflow_execution_allowed:
-                issue_codes.append("provider_workflow_blocked")
-        except ValueError:
-            issue_codes.append("provider_template_invalid")
-        if not profile.base_url.strip():
-            issue_codes.append("base_url_missing")
-        if not profile.default_model.strip():
-            issue_codes.append("model_missing")
+    issue_codes, template = _connection_issue_codes(
+        profile,
+        expected_kind=expected_kind,
+        secret_resolver=secret_resolver,
+    )
+    if profile is not None:
         available_models = set(profile.model_options)
         if models and available_models and any(item not in available_models for item in models):
             issue_codes.append("model_not_discovered")
         if template is not None and _models_lack_required_parameters(profile, template, models):
             issue_codes.append("model_parameter_not_supported")
-        if not _has_secret(profile, secret_resolver=secret_resolver):
-            issue_codes.append("secret_missing")
     provider_name = profile.name if profile is not None else provider_id or "未指定 Provider"
     return ProviderReadinessCheck(
         provider_id=provider_id,

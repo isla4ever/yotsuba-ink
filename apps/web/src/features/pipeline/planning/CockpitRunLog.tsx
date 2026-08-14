@@ -82,7 +82,7 @@ export function CockpitRunLog({ activeStage, detailAvailable, elapsed, events, h
 function CockpitSettlementCard({ events }: { events: RunEvent[] }) {
   const settled = events.find((event) => (
     event.stage_id
-    && event.stage_id !== 'info'
+    && event.stage_id !== 'brief'
     && (event.type === 'checkpoint.saved' || event.type === 'artifact.committed')
   ));
   const [expandedKey, setExpandedKey] = useState('');

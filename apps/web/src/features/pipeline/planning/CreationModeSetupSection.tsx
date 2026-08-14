@@ -43,6 +43,11 @@ export function CreationModeSetupSection({ context = 'review', value, onChange }
               <span className="setup-mode-icon"><Icon size={18} /></span>
               <span><strong>{profile.title}</strong><small>{profile.intervention} · {profile.useCase}</small></span>
               <p>{profile.description}</p>
+              <dl className="setup-mode-facts">
+                <div><dt>适合谁</dt><dd>{profile.audience}</dd></div>
+                <div><dt>典型场景</dt><dd>{profile.scenario}</dd></div>
+                <div><dt>运行界面</dt><dd>{profile.layout}</dd></div>
+              </dl>
               {selected ? <Check className="setup-mode-check" size={16} /> : null}
             </button>
           );

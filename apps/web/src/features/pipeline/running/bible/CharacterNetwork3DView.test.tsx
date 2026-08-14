@@ -23,7 +23,7 @@ const graph: CharacterGraph = {
     { id: 'n1', name: '摊贩', role: '线人', faction: '', status: '', tier: 'npc', first_appearance_stage: 'text', first_appearance_chapter: '2' },
   ],
   edges: [
-    { source: 'p1', target: 'm1', relation: '搭档', strength: 0.8, kind: 'ally', polarity: 'positive', valid_from_stage: 'characters' },
+    { source: 'p1', target: 'm1', relation: '搭档', strength: 0.8, kind: 'ally', polarity: 'positive', valid_from_stage: 'cast' },
     { source: 'n1', target: 'p1', relation: '递情报', strength: 0.3, kind: 'trade', valid_from_stage: 'text', valid_from_chapter: '2' },
   ],
   updated_by: 'test',

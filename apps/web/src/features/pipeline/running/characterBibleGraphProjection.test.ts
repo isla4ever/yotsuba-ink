@@ -3,38 +3,12 @@ import type { CharacterBibleArtifact } from './characterBibleArtifact';
 import { projectCharacterBibleGraph } from './characterBibleGraphProjection';
 
 const artifact: CharacterBibleArtifact = {
-  characters: [
-    {
-      arc: { end: '共同承担', start: '拒绝协作', turning_point: '共享证据' },
-      external_goal: '找到原始母带',
-      first_appearance_window: 'chapter:2-4',
-      hard_boundaries: ['不销毁原始记录'],
-      id: 'character-lin',
-      inner_need: '承认记忆会失真',
-      name: '林岚',
-      narrative_function: '追查者',
-      tier: 'protagonist',
-    },
-    {
-      arc: { end: '交付档案', start: '隐藏线索', turning_point: '被迫表态' },
-      external_goal: '保住档案室',
-      first_appearance_window: 'chapter:3',
-      hard_boundaries: [],
-      id: 'character-zhou',
-      inner_need: '承认旁观也是选择',
-      name: '周屿',
-      narrative_function: '证据守门人',
-      tier: 'functional',
-    },
+  subjects: [
+    { id: 'subject-lin', name: '林岚', kind: 'protagonist', function: '追查者', drive: '找到原始母带', change: '承认记忆会失真', debut: 'chapter:2-4', limits: ['不销毁原始记录'], demand_refs: ['demand-investigator'] },
+    { id: 'subject-zhou', name: '周屿', kind: 'functional', function: '证据守门人', drive: '保住档案室', change: '承认旁观也是选择', debut: 'chapter:3', limits: [], demand_refs: ['demand-gatekeeper'] },
+    { id: 'subject-su-he', name: '前任档案员苏禾', kind: 'historical_record', function: '通过值班记录留下证据', drive: '保留原始记录', change: '由缺席证据改变当下判断', debut: 'chapter:4', limits: ['不得产生当下行动'], demand_refs: ['demand-record'] },
   ],
-  npc_slots: [],
-  relationships: [{
-    initial_state: '互相试探',
-    nature: '有条件的同盟',
-    pressure: '公开期限逼近',
-    source_id: 'character-lin',
-    target_id: 'character-zhou',
-  }],
+  relations: [{ a: 'subject-lin', b: 'subject-zhou', type: '有条件的同盟', pressure: '公开期限逼近' }],
 };
 
 describe('Character Bible graph projection', () => {
@@ -42,9 +16,10 @@ describe('Character Bible graph projection', () => {
     const graph = projectCharacterBibleGraph(artifact);
 
     expect(graph.updated_by).toBe('character-bible-artifact');
-    expect(graph.nodes[0]).toMatchObject({ first_appearance_chapter: '2', id: 'character-lin', tier: 'protagonist' });
-    expect(graph.nodes[1]).toMatchObject({ id: 'character-zhou', tier: 'supporting' });
-    expect(graph.edges[0]).toMatchObject({ relation: '有条件的同盟', source: 'character-lin', target: 'character-zhou' });
+    expect(graph.nodes[0]).toMatchObject({ first_appearance_chapter: '2', id: 'subject-lin', tier: 'protagonist' });
+    expect(graph.nodes[1]).toMatchObject({ id: 'subject-zhou', tier: 'supporting' });
+    expect(graph.nodes[2]).toMatchObject({ id: 'subject-su-he', name: '前任档案员苏禾', status: 'historical', tier: 'npc' });
+    expect(graph.edges[0]).toMatchObject({ relation: '有条件的同盟', source: 'subject-lin', target: 'subject-zhou' });
     expect(graph.nodes.some((node) => 'x' in node || 'y' in node || 'z' in node)).toBe(false);
   });
 });

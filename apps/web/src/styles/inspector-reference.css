@@ -154,7 +154,7 @@
   width: 100%;
 }
 
-.info-brief-editor {
+.brief-configuration-editor {
   display: grid;
   gap: 7px;
   min-width: 0;
@@ -271,7 +271,7 @@
   padding: 9px;
 }
 
-.info-reference-panel {
+.brief-reference-panel {
   margin-top: 0;
 }
 

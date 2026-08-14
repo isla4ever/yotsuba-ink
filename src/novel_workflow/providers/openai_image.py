@@ -22,6 +22,7 @@ from novel_workflow.providers.templates import (
     image_request_parameters,
     provider_template,
 )
+from novel_workflow.providers.frozen_contract import FrozenProviderTemplate
 
 MAX_IMAGE_BYTES = 25 * 1024 * 1024
 
@@ -37,10 +38,13 @@ class OpenAICompatibleImageProvider(ImageProvider):
         *,
         timeout_seconds: int = 180,
         template_id: str = "openai-compatible-image",
+        template: FrozenProviderTemplate | None = None,
         client: AsyncOpenAI | None = None,
     ) -> None:
         self.template_id = template_id
-        self.template = provider_template(template_id, "openai-compatible-image")
+        self.template = template or provider_template(template_id, "openai-compatible-image")
+        if self.template.id != template_id or self.template.kind != "openai-compatible-image":
+            raise ValueError("Image Provider template snapshot does not match its binding")
         self.base_url = normalize_image_base_url(
             base_url,
             endpoint_path=self.template.image_endpoint_path,
@@ -143,9 +147,9 @@ class OpenAICompatibleImageProvider(ImageProvider):
         source_url = str(item.get("url") or "").strip()
         if not source_url:
             raise ProviderResponseError("empty_image", "Image provider returned neither image bytes nor a URL")
-        _validate_remote_url(source_url)
+        _validate_remote_url(source_url, reference_host=urlparse(self.base_url).hostname)
         try:
-            return await asyncio.to_thread(_download_remote_image, source_url, timeout_seconds)
+            return await asyncio.to_thread(_download_remote_image, source_url, self.timeout_seconds)
         except requests.RequestException as exc:
             raise ProviderResponseError("asset_download_failed", "Unable to download generated image") from exc
 
@@ -166,18 +170,48 @@ def _bounded_content(content: bytes) -> bytes:
     return content
 
 
-def _validate_remote_url(value: str) -> None:
+# Fake-ip DNS proxies (Clash/Surge tun mode) answer every lookup from the IETF
+# benchmark block; on such machines local resolution can never prove publicness.
+_FAKE_IP_DNS_BLOCK = ipaddress.ip_network("198.18.0.0/15")
+
+
+def _validate_remote_url(value: str, *, reference_host: str | None = None) -> None:
     parsed = urlparse(value)
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
         raise ProviderResponseError("unsafe_asset_url", "Image asset URL must be a public HTTPS URL")
+    addresses = _resolve_host(parsed.hostname, parsed.port or 443)
+    if all(ipaddress.ip_address(item).is_global for item in addresses):
+        return
+    if _proxied_dns_in_effect(addresses, reference_host):
+        return
+    raise ProviderResponseError("unsafe_asset_url", "Image asset URL resolved to a non-public address")
+
+
+def _resolve_host(hostname: str, port: int) -> set[str]:
     try:
-        addresses = {item[4][0] for item in socket.getaddrinfo(parsed.hostname, parsed.port or 443)}
+        return {item[4][0] for item in socket.getaddrinfo(hostname, port)}
     except socket.gaierror as exc:
         raise ProviderResponseError("asset_dns_failed", "Image asset host could not be resolved") from exc
-    for address in addresses:
-        ip = ipaddress.ip_address(address)
-        if not ip.is_global:
-            raise ProviderResponseError("unsafe_asset_url", "Image asset URL resolved to a non-public address")
+
+
+def _proxied_dns_in_effect(asset_addresses: set[str], reference_host: str | None) -> bool:
+    """Allow the download only when machine-wide fake-ip DNS is provably active.
+
+    The asset host and the provider's own API host must both resolve into the
+    benchmark block, which means the successful API call already traveled the
+    same proxied resolution path as the asset download would.
+    """
+    if not reference_host:
+        return False
+    if not all(ipaddress.ip_address(item) in _FAKE_IP_DNS_BLOCK for item in asset_addresses):
+        return False
+    try:
+        reference_addresses = _resolve_host(reference_host, 443)
+    except ProviderResponseError:
+        return False
+    return bool(reference_addresses) and all(
+        ipaddress.ip_address(item) in _FAKE_IP_DNS_BLOCK for item in reference_addresses
+    )
 
 
 def _download_remote_image(source_url: str, timeout_seconds: int) -> tuple[bytes, str]:

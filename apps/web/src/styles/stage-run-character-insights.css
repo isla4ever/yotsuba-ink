@@ -1,10 +1,10 @@
-.stage-run-side.stage-summary,
-.stage-run-side.stage-outline {
+.stage-run-side.stage-spine,
+.stage-run-side.stage-volumes {
   grid-template-rows: minmax(420px, 1fr) auto;
   overflow: hidden;
 }
 
-.stage-run-side.stage-info.panels-2 {
+.stage-run-side.stage-brief.panels-2 {
   grid-template-rows: minmax(360px, 1.35fr) minmax(190px, 0.65fr);
 }
 
@@ -27,8 +27,8 @@
 }
 
 @media (max-width: 1180px) {
-  .stage-run-side.stage-summary,
-  .stage-run-side.stage-outline {
+  .stage-run-side.stage-spine,
+  .stage-run-side.stage-volumes {
     grid-template-rows: auto auto;
     overflow: visible;
   }

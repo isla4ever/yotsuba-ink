@@ -9,17 +9,17 @@ import {
 describe('stageProgressDots', () => {
   it('derives the eight-stage dot matrix from real completed/current facts', () => {
     const dots = stageProgressDots({
-      completed_stage_ids: ['info', 'summary'],
-      current_stage: { id: 'outline', label: '分卷大纲' },
+      completed_stage_ids: ['brief', 'spine'],
+      current_stage: { id: 'volumes', label: '分卷架构' },
     });
-    expect(dots.map((dot) => dot.id)).toEqual(['info', 'characters', 'summary', 'outline', 'detail', 'text', 'cover', 'export']);
+    expect(dots.map((dot) => dot.id)).toEqual(['brief', 'spine', 'cast', 'volumes', 'detail', 'text', 'cover', 'export']);
     expect(dots.map((dot) => dot.status)).toEqual([
-      'completed', 'pending', 'completed', 'current', 'pending', 'pending', 'pending', 'pending',
+      'completed', 'completed', 'pending', 'current', 'pending', 'pending', 'pending', 'pending',
     ]);
   });
 
   it('treats a completed current stage as completed and no summary as all pending', () => {
-    const dots = stageProgressDots({ completed_stage_ids: ['info'], current_stage: { id: 'info' } });
+    const dots = stageProgressDots({ completed_stage_ids: ['brief'], current_stage: { id: 'brief' } });
     expect(dots[0].status).toBe('completed');
     expect(stageProgressDots(null).every((dot) => dot.status === 'pending')).toBe(true);
   });

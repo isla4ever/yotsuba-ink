@@ -7,9 +7,10 @@ from novel_workflow.providers.template_contract import (
 
 
 _STRUCTURED_STAGE_THINKING = {
-    "info": {"thinking": {"type": "enabled"}},
-    "summary": {"thinking": {"type": "disabled"}},
-    "outline": {"thinking": {"type": "enabled"}},
+    "brief": {"thinking": {"type": "enabled"}},
+    "spine": {"thinking": {"type": "disabled"}},
+    "cast": {"thinking": {"type": "enabled"}},
+    "volumes": {"thinking": {"type": "enabled"}},
     "detail": {"thinking": {"type": "enabled"}},
     "text": {"thinking": {"type": "disabled"}},
     "text.evidence": {"thinking": {"type": "disabled"}},
@@ -40,8 +41,9 @@ def _tokenhub_glm_profile(
         for key, value in _STRUCTURED_STAGE_THINKING.items()
     }
     if supports_reasoning_effort:
-        stage_parameters["info"]["reasoning_effort"] = "high"
-        stage_parameters["outline"]["reasoning_effort"] = "high"
+        stage_parameters["brief"]["reasoning_effort"] = "high"
+        stage_parameters["cast"]["reasoning_effort"] = "high"
+        stage_parameters["volumes"]["reasoning_effort"] = "high"
         stage_parameters["detail"]["reasoning_effort"] = "max"
         stage_parameters["text.review"]["reasoning_effort"] = "max"
     return ModelCapabilityProfile(

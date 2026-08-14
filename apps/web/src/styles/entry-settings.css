@@ -1,3 +1,4 @@
-/* entry-settings: settings/provider surfaces, imported by SettingsDialog and by
- * ProviderManagerSheet (which guided setup also renders). */
+/* entry-settings: settings/provider surfaces, imported by SettingsPage,
+ * KnowledgeLibraryPage and ProviderManagerSheet (guided setup). */
 @import './settings-overview.css';
+@import './settings-workspace-pages.css';

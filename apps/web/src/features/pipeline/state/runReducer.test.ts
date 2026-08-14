@@ -25,7 +25,7 @@ describe('run reducer', () => {
   it('starts a run atomically when the server confirms it', () => {
     const state = runReducer(initialState(), {
       type: 'event_received',
-      event: event('run.started', 'info'),
+      event: event('run.started', 'brief'),
     });
 
     expect(state.activeRunId).toBe('reducer-test');
@@ -38,17 +38,17 @@ describe('run reducer', () => {
   it('selects the active stage for Graph node events', () => {
     const started = runReducer(initialState(), {
       type: 'event_received',
-      event: event('node.started', 'summary'),
+      event: event('node.started', 'spine'),
     });
     const finalizing = runReducer(started, {
       type: 'event_received',
-      event: event('node.completed', 'outline'),
+      event: event('node.completed', 'volumes'),
     });
 
-    expect(started.selectedId).toBe('summary');
+    expect(started.selectedId).toBe('spine');
     expect(started.workspacePhase).toBe('running');
-    expect(started.selectedInspectorTarget).toEqual({ kind: 'stage', id: 'summary' });
-    expect(finalizing.selectedId).toBe('summary');
+    expect(started.selectedInspectorTarget).toEqual({ kind: 'stage', id: 'spine' });
+    expect(finalizing.selectedId).toBe('spine');
   });
 
   it('keeps only the newest 40 memory events', () => {
@@ -86,10 +86,10 @@ describe('run reducer', () => {
   it('shows approval as waiting without inventing a completed run state', () => {
     const state = runReducer(initialState(), {
       type: 'event_received',
-      event: { ...event('decision.required', 'info'), payload: { decision_type: 'stage_artifact_decision' } },
+      event: { ...event('decision.required', 'brief'), payload: { decision_type: 'stage_artifact_decision' } },
     });
 
-    expect(state.selectedId).toBe('info');
+    expect(state.selectedId).toBe('brief');
     expect(state.latestResult).toContain('等待你的决定');
     expect(state.runControlState).toBe('paused');
   });
@@ -97,11 +97,11 @@ describe('run reducer', () => {
   it('keeps validation diagnostic until the terminal node failure arrives', () => {
     const invalid = runReducer(initialState(), {
       type: 'event_received',
-      event: { ...event('evidence.proposed', 'outline'), payload: { message: 'volumes 缺失' } },
+      event: { ...event('evidence.proposed', 'volumes'), payload: { message: 'volumes 缺失' } },
     });
     const failed = runReducer(invalid, {
       type: 'event_received',
-      event: { ...event('node.failed', 'outline'), payload: { message: '大纲生成失败' } },
+      event: { ...event('node.failed', 'volumes'), payload: { message: '大纲生成失败' } },
     });
 
     expect(invalid.runControlState).toBe('idle');
@@ -114,7 +114,7 @@ describe('run reducer', () => {
     const failed = runReducer(initialState({ activeRunId: 'recoverable-run', runControlState: 'running' }), {
       type: 'event_received',
       event: {
-        ...event('node.failed', 'outline'),
+        ...event('node.failed', 'volumes'),
         payload: { message: 'Provider timeout' },
       },
     });
@@ -152,7 +152,7 @@ describe('run reducer', () => {
       type: 'run_restored',
       hydrated: hydratedState(),
     });
-    const reset = runReducer(restored, { type: 'run_reset', stageId: 'info' });
+    const reset = runReducer(restored, { type: 'run_reset', stageId: 'brief' });
 
     expect(restored).toMatchObject({
       activeRunId: 'restored-run',
@@ -168,9 +168,40 @@ describe('run reducer', () => {
       paused: false,
       runControlState: 'idle',
       running: false,
-      selectedId: 'info',
+      selectedId: 'brief',
       workspacePhase: 'planning',
     });
+    expect(reset.stickyArtifacts).toEqual({ chapters: {}, stages: {} });
+  });
+
+  it('keeps stage and chapter artifacts sticky after the event window evicts them', () => {
+    let state = initialState({ runControlState: 'running' });
+    state = runReducer(state, {
+      type: 'event_received',
+      event: { ...event('artifact.committed', 'brief'), payload: { title: '雾港' } },
+    });
+    state = runReducer(state, {
+      type: 'event_received',
+      event: {
+        ...event('artifact.committed', 'text'),
+        chapter_id: 'chapter-1',
+        payload: { chapter_id: 'chapter-1', content: '正文', title: '第1章' },
+      },
+    });
+    // Flood the 500-event window so both artifact events fall out of `events`.
+    for (let index = 0; index < 520; index += 1) {
+      state = runReducer(state, {
+        type: 'event_received',
+        event: { ...event('node.completed', 'text'), payload: { message: String(index) } },
+      });
+    }
+
+    // Stage-closing commits are pinned past the window; chapter commits are
+    // not (text closes via finish_chapters) and rely on the sticky map.
+    expect(state.events.some((item) => item.type === 'artifact.committed' && item.stage_id === 'brief')).toBe(true);
+    expect(state.events.some((item) => item.chapter_id === 'chapter-1')).toBe(false);
+    expect(state.stickyArtifacts.stages.brief?.payload).toEqual({ title: '雾港' });
+    expect(state.stickyArtifacts.chapters['chapter-1']?.payload?.content).toBe('正文');
   });
 });
 
@@ -180,8 +211,8 @@ function initialState(overrides: Partial<Parameters<typeof createInitialRunState
     events: [],
     paused: false,
     runControlState: 'idle',
-    selectedId: 'info',
-    stageId: 'info',
+    selectedId: 'brief',
+    stageId: 'brief',
     workspacePhase: 'planning',
     ...overrides,
   });
@@ -199,7 +230,7 @@ function hydratedState(): HydratedRunState {
     checkpointContinueReady: false,
     checkpointStageId: '',
     events: [memory],
-    infoContinueReady: false,
+    briefContinueReady: false,
     paused: true,
     runControlState: 'paused',
     selectedId: 'cover',

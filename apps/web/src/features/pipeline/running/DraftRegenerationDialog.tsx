@@ -58,7 +58,7 @@ export function DraftRegenerationDialog({ mode, onClose, onConfirm, open, stage 
             <button aria-label="关闭换一稿弹窗" className="modal-close" onClick={onClose} title="关闭" type="button"><X size={22} /></button>
             <p className="eyebrow">调整方向</p>
             <h2>{stage?.label ? `${stage.label}换一稿` : '换一稿'}</h2>
-            <p>{stage?.label ? '选择一个阶段相关调整方向，系统会生成最多 3 个候选稿，用户手动选择当前稿。' : '选择新版推荐的调整方向，系统会更新书名、简介、世界观和人物关系。'}</p>
+            <p>{stage?.label ? '给出这一稿要改什么，系统会按这个方向重写本阶段稿件替换当前稿；已定稿的上游阶段不受影响。' : '选择新版推荐的调整方向，系统会更新书名、简介、世界观和人物关系。'}</p>
             <div aria-label="换一稿调整方向" className="recommendation-suggestion-list draft-direction-options" role="radiogroup">
               {suggestions.map((item, index) => (
                 <label className={selectedSuggestion === item ? 'active' : ''} key={item}>

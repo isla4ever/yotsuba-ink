@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type {
   InspectorTarget,
   KnowledgeDocument,
@@ -7,6 +8,7 @@ import type {
   WorkflowDefinition,
 } from '../contracts';
 import { getPreferredRunSource, type RunSource } from '../lib/runSource';
+import { monitorRoute, settingsRoute } from '../lib/stageRoutes';
 import { listKnowledgeDocuments } from '../services/knowledge';
 import { saveWorkflowDefinition } from '../services/workflowApi';
 import { buildRunInputs } from './runInputs';
@@ -18,6 +20,7 @@ import {
 import {
   indexedHasRecoverableRun,
   indexedRunningNodeExists,
+  trimRunEventWindow,
 } from './runEventIndex';
 import {
   selectStage,
@@ -50,6 +53,11 @@ export function useNovelWorkflowApp() {
   const projectSession = useProjectSession();
   const activeProject = projectSession.activeProject;
   const [storedRunControl] = useState(() => loadRunControlLocally());
+  // Reloading the console must land back on the console, including for a run
+  // that already finished; every other entry keeps dropping terminal sessions.
+  const [bootedOnConsole] = useState(() => (
+    typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === monitorRoute
+  ));
   const [workflow, setWorkflow] = useState<WorkflowDefinition>(() => (
     workflowWithActiveRunMode(workflowWithStoredPreferences(defaultWorkflow), storedRunControl)
   ));
@@ -64,18 +72,19 @@ export function useNovelWorkflowApp() {
     runControlState: storedRunControl.runControlState,
     selectedId: storedRunControl.selectedId,
     stageId: workflow.nodes[0].id,
+    stickyStageEvents: storedRunControl.stickyStageEvents,
     workspacePhase: storedRunControl.workspacePhase,
   }, createInitialRunState);
   const eventsRef = useRef<RunEvent[]>(storedEvents);
   const [runSource, setRunSource] = useState<RunSource>(
     storedRunControl.runSource ?? getPreferredRunSource(),
   );
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [knowledgeManagerOpen, setKnowledgeManagerOpen] = useState(false);
+  const navigate = useNavigate();
   const [knowledgeDocuments, setKnowledgeDocuments] = useState<KnowledgeDocument[]>([]);
   const [apiWarning, setApiWarning] = useState('');
   const [workflowHydrated, setWorkflowHydrated] = useState(false);
   const [runRecoveryHydrated, setRunRecoveryHydrated] = useState(() => !storedRunControl.activeRunId);
+  const decisionContinuationRef = useRef<(() => Promise<void>) | null>(null);
   const { theme, setTheme } = useThemeMode();
   const { saveStatus, suppressWorkflowSave } = useWorkflowAutosave(
     workflow,
@@ -119,6 +128,7 @@ export function useNovelWorkflowApp() {
   const stageDecision = useStageDecision({
     activeRunId: runState.activeRunId,
     eventsRef,
+    onDecisionSubmitted: () => decisionContinuationRef.current?.() ?? Promise.resolve(),
     onWarning: setApiWarning,
     workflow,
   });
@@ -127,7 +137,7 @@ export function useNovelWorkflowApp() {
     dispatchRun,
     eventsRef,
     history,
-    onSettingsRequired: () => setSettingsOpen(true),
+    onSettingsRequired: () => navigate(settingsRoute, { replace: false }),
     onWarning: setApiWarning,
     project: activeProject,
     runInputs,
@@ -138,6 +148,7 @@ export function useNovelWorkflowApp() {
     transitions,
     workflow,
   });
+  decisionContinuationRef.current = commands.continueAfterDecision;
   const runResetSafety = useRunResetSafety({
     automationCockpitReady: transitions.automationCockpitReady,
     decision: stageDecision.state,
@@ -160,6 +171,7 @@ export function useNovelWorkflowApp() {
   });
   const initialRecovery = useRunRecovery({
     enabled: workflowHydrated,
+    presentTerminalRuns: bootedOnConsole,
     stored: storedRunControl,
     onDiscard: commands.clearRunState,
     onRestore: commands.restoreRecoveredRun,
@@ -219,6 +231,7 @@ export function useNovelWorkflowApp() {
       runSource,
       runControlState: runState.runControlState,
       selectedId: runState.selectedId,
+      stickyStageEvents: Object.values(runState.stickyArtifacts.stages),
       workspacePhase: runState.workspacePhase,
     });
     if (isRunControlFlushPoint(runState.runControlState, runState.events[0]?.type)) {
@@ -232,6 +245,7 @@ export function useNovelWorkflowApp() {
     runState.paused,
     runState.runControlState,
     runState.selectedId,
+    runState.stickyArtifacts,
     runState.workspacePhase,
   ]);
   useEffect(() => {
@@ -252,7 +266,7 @@ export function useNovelWorkflowApp() {
   }
 
   function applyEvent(event: RunEvent) {
-    eventsRef.current = [event, ...eventsRef.current].slice(0, 500);
+    eventsRef.current = trimRunEventWindow([event, ...eventsRef.current]);
     dispatchRun({ type: 'event_received', event });
     stageDecision.applyEvent(event);
     const navigationStageId = stageIdForRunEventNavigation(event);
@@ -269,12 +283,11 @@ export function useNovelWorkflowApp() {
     automationCockpitReady: transitions.automationCockpitReady,
     checkpointContinueReady: stageDecision.state.checkpointContinueReady,
     checkpointStageId: stageDecision.state.checkpointStageId,
-    infoContinueReady: stageDecision.state.infoContinueReady,
+    briefContinueReady: stageDecision.state.briefContinueReady,
     continueSettlement: transitions.continueSettlement,
     settlementDwell: transitions.settlementDwell,
     settlementStageId: transitions.settlementStageId,
     knowledgeDocuments,
-    knowledgeManagerOpen,
     historyError: history.error,
     historyItems: history.items,
     historyLoading: history.loading,
@@ -306,17 +319,14 @@ export function useNovelWorkflowApp() {
     setApprovalDraft: stageDecision.setApprovalDraft,
     setApiWarning,
     setKnowledgeDocuments,
-    setKnowledgeManagerOpen,
     setKnowledgePromptOpen,
     setRunStageNavigator: transitions.setStageNavigator,
     setRunning,
     setSelectedId,
     setSelectedInspectorTarget,
-    setSettingsOpen,
     setTheme,
     setWorkflow,
     setWorkspacePhase,
-    settingsOpen,
     theme,
     undoRunReset: runResetSafety.undoRunReset,
     workflow,

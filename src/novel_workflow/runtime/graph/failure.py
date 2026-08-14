@@ -74,6 +74,7 @@ def guarded_node(
                 "code": type(exc).__name__,
                 "retryable": False,
                 "evidence_ref": evidence_ref,
+                "message": str(exc),
             }
             return {
                 "failure": failure,

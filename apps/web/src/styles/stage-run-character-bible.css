@@ -8,7 +8,7 @@
   align-items: center;
   border-block: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   min-height: 54px;
 }
 
@@ -240,14 +240,23 @@
 }
 
 :is(.character-dossier-editor, .character-relationship-row, .character-npc-row) :is(input, select, textarea) {
-  background: color-mix(in srgb, var(--surface) 74%, transparent);
-  border: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
-  border-radius: 4px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 3%, transparent), transparent 48%),
+    color-mix(in srgb, var(--surface) 92%, #030807 8%);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--text-soft) 44%);
+  border-radius: 5px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
   color: var(--text);
   font: inherit;
   min-width: 0;
   padding: 8px 9px;
   width: 100%;
+}
+
+:is(.character-dossier-editor, .character-relationship-row, .character-npc-row) :is(input, select, textarea):focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent), inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent);
+  outline: 0;
 }
 
 .character-dossier-editor textarea {
@@ -430,8 +439,8 @@
   border-top: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(210px, .8fr) minmax(180px, 1fr) 32px;
-  min-width: 640px;
+  grid-template-columns: minmax(140px, .8fr) minmax(120px, .6fr) minmax(180px, 1.1fr) minmax(210px, .8fr) minmax(180px, 1fr) 32px;
+  min-width: 920px;
   padding: 10px 0;
 }
 
@@ -463,8 +472,7 @@
 
 @media (max-width: 760px) {
   .character-bible-statusbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .character-bible-statusbar > div:nth-child(3) { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
-  .character-bible-statusbar > div:nth-child(4) { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+  .character-bible-statusbar > div:nth-child(3) { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); grid-column: 1 / -1; }
   .character-bible-layout { display: block; }
   .character-roster-rail,
   .character-dossier-editor,

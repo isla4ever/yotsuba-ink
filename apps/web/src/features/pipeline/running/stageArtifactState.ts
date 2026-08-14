@@ -19,24 +19,47 @@ const artifactEventTypes = new Set([
 
 export function stageArtifactState(stage: WorkflowStage, events: RunEvent[], draft = ''): StageArtifactState {
   const stageEvents = events.filter((event) => eventStageId(event) === stage.id || event.type === 'run.failed');
-  for (const event of stageEvents) {
-    if (event.type === 'run.failed') {
-      const message = payloadText(event, 'message') || payloadText(event, 'code') || '阶段执行失败，请返回工作台检查运行配置。';
-      return { status: 'error', message };
-    }
-    if (artifactEventTypes.has(event.type)) {
-      const value = event.payload;
-      return assessArtifact(stage.type, value, artifactSource(event));
-    }
-    if (event.type === 'node.started') {
-      return { status: 'streaming', sections: streamSections(stageEvents) };
-    }
+  const failure = stageEvents.find((event) => event.type === 'run.failed');
+  if (failure) {
+    const message = payloadText(failure, 'message') || payloadText(failure, 'code') || '阶段执行失败，请返回工作台检查运行配置。';
+    return { status: 'error', message };
   }
 
-  if (stage.type === 'info' && draft.trim()) {
+  const artifactIndex = stageEvents.findIndex((event) => artifactEventTypes.has(event.type));
+  if (artifactIndex >= 0) {
+    const artifactEvent = stageEvents[artifactIndex];
+    const newerEvents = stageEvents.slice(0, artifactIndex);
+    if (newCandidateCycleStarted(stage.type, artifactEvent, newerEvents)) {
+      return { status: 'streaming', sections: streamSections(stageEvents) };
+    }
+    return assessArtifact(stage.type, artifactEvent.payload, artifactSource(artifactEvent));
+  }
+
+  if (stage.type === 'brief' && draft.trim()) {
     return assessArtifact(stage.type, draft, 'live');
   }
+  if (stageEvents.some((event) => event.type === 'node.started')) {
+    return { status: 'streaming', sections: streamSections(stageEvents) };
+  }
   return { status: 'empty' };
+}
+
+function newCandidateCycleStarted(type: StageType, artifactEvent: RunEvent, newerEvents: RunEvent[]) {
+  const generationNode = type === 'text' ? 'generate_prose' : 'generate_candidate';
+  if (newerEvents.some((event) => event.type === 'node.started' && nodeName(event) === generationNode)) {
+    return true;
+  }
+  if (type !== 'text' || !artifactEvent.chapter_id) return false;
+  return newerEvents.some((event) => (
+    event.type === 'node.started'
+    && Boolean(event.chapter_id)
+    && event.chapter_id !== artifactEvent.chapter_id
+  ));
+}
+
+function nodeName(event: RunEvent) {
+  const parts = event.node_id.split('.');
+  return parts[parts.length - 1] ?? '';
 }
 
 export function currentStageArtifact(source: string, draft?: StageArtifactDraft) {
@@ -54,12 +77,27 @@ function assessArtifact(type: StageType, value: unknown, source: ArtifactSource)
 }
 
 function hasStageShape(type: StageType, record: Record<string, unknown>) {
-  if (type === 'info') return hasText(record.title) && hasText(record.premise) && hasItems(record.world_rules);
-  if (type === 'summary') return hasItems(record.beats) && hasText(record.climax) && hasText(record.resolution);
-  if (type === 'outline') return hasItems(record.volumes);
+  if (type === 'brief') return hasText(record.title) && hasText(record.premise) && hasItems(record.world_rules);
+  if (type === 'spine') {
+    return hasItems(record.turns)
+      && hasText(record.ending)
+      && Array.isArray(record.open_questions)
+      && hasItems(record.progress_types);
+  }
+  if (type === 'volumes') return hasItems(record.volumes);
   if (type === 'detail') return hasItems(record.chapters);
   if (type === 'text') return hasText(record.chapter_id) && hasText(record.content);
-  if (type === 'cover') return hasText(record.brief);
+  if (type === 'cover') {
+    const brief = objectRecord(record.brief);
+    return Boolean(
+      brief
+      && hasText(brief.concept)
+      && hasText(brief.image_prompt)
+      && hasItems(brief.palette)
+      && Array.isArray(brief.negative_constraints)
+      && typeof record.selected_asset_id === 'string',
+    );
+  }
   if (type === 'export') return hasItems(record.chapter_version_ids);
   return true;
 }
@@ -68,8 +106,7 @@ function streamSections(events: RunEvent[]) {
   return Array.from(new Set(events
     .filter((event) => event.type === 'node.started')
     .map((event) => {
-      const parts = event.node_id.split('.');
-      return parts[parts.length - 1]?.replace(/_/g, ' ') ?? '';
+      return nodeName(event).replace(/_/g, ' ');
     })
     .filter(Boolean))).slice(0, 4);
 }

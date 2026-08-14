@@ -24,7 +24,11 @@ export function CharacterProfilePanel({ graph, onSelect, selectedId, viewpoint }
       <aside aria-label="人物档案" className="bible-profile-panel">
         <p className="eyebrow">人物档案</p>
         {viewpoint ? <p className="bible-profile-viewpoint">{viewpoint}</p> : null}
-        <p className="bible-empty-note">点击图中节点或人物清单条目，在这里查看档案与关系明细。</p>
+        <div className="bible-card-empty" role="status">
+          <UserRound size={18} />
+          <p>尚未选择人物</p>
+          <small>点击图中节点或人物清单条目，在这里查看档案与关系明细。</small>
+        </div>
       </aside>
     );
   }

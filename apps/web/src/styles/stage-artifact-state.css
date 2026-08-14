@@ -74,11 +74,11 @@
   margin-bottom: 0;
 }
 
-.stage-run-main:not(.info-main):has(> .artifact-fixture-notice) {
+.stage-run-main:not(.brief-main):has(> .artifact-fixture-notice) {
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-.stage-run-main.info-main:has(> .artifact-fixture-notice) {
+.stage-run-main.brief-main:has(> .artifact-fixture-notice) {
   grid-template-rows: auto minmax(0, 1fr);
 }
 

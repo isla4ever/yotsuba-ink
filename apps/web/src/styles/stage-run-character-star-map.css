@@ -45,6 +45,9 @@
 }
 
 .character-star-map-stage {
+  background:
+    radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 42%),
+    #05090a;
   border-left: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -89,6 +92,14 @@
   position: relative;
 }
 
+.character-star-map-viewport::after {
+  background: linear-gradient(180deg, color-mix(in srgb, #05090a 8%, transparent), transparent 20%, transparent 78%, color-mix(in srgb, #05090a 78%, transparent));
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
 .character-star-map-viewport .bible-network-3d-canvas {
   border: 0;
   border-radius: 0;
@@ -110,6 +121,9 @@
   display: flex;
   gap: 12px;
   left: 14px;
+  background: color-mix(in srgb, #05090a 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
+  padding: 6px 8px;
   pointer-events: none;
   position: absolute;
 }
@@ -129,6 +143,11 @@
   width: 6px;
 }
 
+@container (max-width: 1100px) {
+  .character-bible-star-layout { grid-template-columns: minmax(170px, .42fr) minmax(460px, 1.4fr); }
+  .character-bible-star-layout > .character-dossier-editor { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent); grid-column: 1 / -1; max-height: none; }
+}
+
 @media (max-width: 1180px) {
   .character-bible-star-layout { grid-template-columns: minmax(170px, .46fr) minmax(480px, 1.4fr); }
   .character-bible-star-layout > .character-dossier-editor { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent); grid-column: 1 / -1; max-height: none; }
@@ -138,8 +157,8 @@
   .character-bible-viewbar { align-items: stretch; }
   .character-bible-view-toggle { width: 100%; }
   .character-bible-star-layout { display: block; }
-  .character-bible-star-layout > .character-roster-rail,
-  .character-bible-star-layout > .character-dossier-editor { display: none; }
+  .character-bible-star-layout > .character-roster-rail { display: none; }
+  .character-bible-star-layout > .character-dossier-editor { display: grid; max-height: none; }
   .character-star-map-stage { border-left: 0; min-height: min(72vh, 620px); }
   .character-star-map-toolbar { align-items: flex-start; }
   .character-star-map-viewport .bible-network-3d-canvas { min-height: min(64vh, 550px); }

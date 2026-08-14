@@ -548,15 +548,6 @@
     grid-template-rows: auto auto;
   }
 
-  .settings-dialog {
-    width: min(760px, calc(100vw - 28px));
-  }
-
-  .settings-dialog-inner {
-    max-height: calc(100vh - 28px);
-    min-height: 0;
-    padding: 14px;
-  }
 }
 
 @media (max-width: 640px) {

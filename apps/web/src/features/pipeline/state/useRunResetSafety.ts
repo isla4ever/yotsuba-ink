@@ -17,7 +17,7 @@ type Props = {
   onRestore: (hydrated: HydratedRunState, reconnect: boolean) => Promise<void>;
   runSource: RunSource;
   setRunSource: (source: RunSource) => void;
-  state: Pick<RunState, 'activeRunId' | 'paused' | 'runControlState' | 'selectedId'>;
+  state: Pick<RunState, 'activeRunId' | 'paused' | 'runControlState' | 'selectedId' | 'stickyArtifacts'>;
 };
 
 export function useRunResetSafety({

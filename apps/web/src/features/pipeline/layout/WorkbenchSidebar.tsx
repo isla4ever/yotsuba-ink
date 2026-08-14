@@ -1,17 +1,18 @@
-import { ArrowLeft, BookMarked, BookOpen, Clock3, Compass, Database, Globe2, Image, Layers, Lightbulb, Library, ListTree, Network, PackageCheck, PanelLeftClose, PanelLeftOpen, PenLine, ScrollText, Search, Settings, Sprout, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, BookMarked, BookOpen, Clock3, Compass, Database, Gauge, Globe2, Image, Layers, Lightbulb, Library, ListTree, Network, PackageCheck, PanelLeftClose, PanelLeftOpen, PenLine, ScrollText, Search, Settings, Sprout, type LucideIcon } from 'lucide-react';
 import { memo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { ControlTooltip } from './ControlTooltip';
 import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 import { paletteShortcutHint } from './commandPaletteModel';
 import { sidebarStageItems } from './workbenchSidebarModel';
-import { bibleSectionMeta, bibleSections, type BibleSection } from '../lib/stageRoutes';
+import { bibleSectionMeta, bibleSections, defaultBibleSection, type BibleSection } from '../lib/stageRoutes';
 import { nextSidebarFocusTarget } from '../lib/sidebarKeyboardNavigation';
 import { useRunStateContext, useUICommandContext, useWorkflowConfigContext } from '../state/pipelineShellContext';
 
 const stageIcons: Record<string, LucideIcon> = {
-  info: Lightbulb,
-  summary: ScrollText,
-  outline: Library,
+  brief: Lightbulb,
+  spine: ScrollText,
+  cast: Network,
+  volumes: Library,
   detail: ListTree,
   text: PenLine,
   cover: Image,
@@ -19,7 +20,7 @@ const stageIcons: Record<string, LucideIcon> = {
 };
 
 const bibleIcons: Record<BibleSection, LucideIcon> = {
-  characters: Network,
+  cast: Network,
   world: Globe2,
   foreshadow: Sprout,
   facts: Database,
@@ -27,6 +28,40 @@ const bibleIcons: Record<BibleSection, LucideIcon> = {
 
 function SidebarEntry({ collapsed, tooltip, children }: { collapsed: boolean; tooltip: string; children: ReactElement<{ 'aria-describedby'?: string }> }): ReactNode {
   return collapsed ? <ControlTooltip label={tooltip}>{children}</ControlTooltip> : children;
+}
+
+/**
+ * One console entry instead of a cockpit/monitor pair: before a run it opens
+ * the stage cockpit, once a run is attached it opens the live monitor.
+ */
+function creationConsoleEntry({ activeRunId, navigatePlanning, openMonitor, policy, routePhase }: {
+  activeRunId: string;
+  navigatePlanning: () => void;
+  openMonitor: () => void;
+  policy: { monitor: 'none' | 'available' | 'default'; planningSurface: 'cockpit' | 'planning' };
+  routePhase: string;
+}) {
+  const live = policy.monitor !== 'none' && activeRunId !== '';
+  if (live) {
+    return {
+      current: routePhase === 'monitor',
+      disabled: false,
+      hint: '运行中：卷章结构、内容与日志同屏',
+      live,
+      open: openMonitor,
+    };
+  }
+  if (policy.planningSurface === 'cockpit') {
+    return {
+      current: routePhase === 'planning',
+      disabled: false,
+      hint: '尚未运行：查看八阶段状态并启动创作',
+      live,
+      open: navigatePlanning,
+    };
+  }
+  if (policy.monitor === 'none') return null;
+  return { current: routePhase === 'monitor', disabled: true, hint: '启动创作后可进入控制台', live, open: openMonitor };
 }
 
 /**
@@ -53,6 +88,13 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
     stages: workflow.nodes,
   });
   const toggleLabel = expanded ? '收起侧栏' : '展开侧栏';
+  const creationConsole = creationConsoleEntry({
+    activeRunId: run.activeRunId,
+    navigatePlanning: ui.navigatePlanning,
+    openMonitor: ui.openMonitor,
+    policy: routePolicy,
+    routePhase: run.routePhase,
+  });
   const shortcutHint = paletteShortcutHint(typeof navigator === 'undefined' ? null : navigator);
   const knowledgeCount = knowledgeDocuments.length;
   const historyCount = run.historyItems.length;
@@ -74,11 +116,18 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
         <div className="sidebar-project-title">
           <span className="sidebar-item-label">{project ? project.title : '未归档创作'}</span>
         </div>
-        <SidebarEntry collapsed={collapsed} tooltip="返回工作室">
-          <button aria-label="返回工作室" className="sidebar-project-back" onClick={ui.navigateStudio} title="返回作品工作室（运行会话保留）" type="button">
-            <ArrowLeft size={14} />
-          </button>
-        </SidebarEntry>
+        <div className="sidebar-project-tools">
+          <SidebarEntry collapsed={collapsed} tooltip="返回工作室">
+            <button aria-label="返回工作室" className="sidebar-project-back" onClick={ui.navigateStudio} title="返回作品工作室（运行会话保留）" type="button">
+              <ArrowLeft size={14} />
+            </button>
+          </SidebarEntry>
+          <SidebarEntry collapsed={collapsed} tooltip={toggleLabel}>
+            <button aria-expanded={expanded} aria-label={toggleLabel} className="sidebar-project-back" onClick={ui.toggleSidebar} type="button">
+              {expanded ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+            </button>
+          </SidebarEntry>
+        </div>
       </div>
       {project && expanded ? (
         <button
@@ -100,12 +149,6 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
           </span>
         </button>
       ) : null}
-      <SidebarEntry collapsed={collapsed} tooltip={toggleLabel}>
-        <button aria-expanded={expanded} aria-label={toggleLabel} className="workbench-sidebar-toggle" onClick={ui.toggleSidebar} type="button">
-          {expanded ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
-          <span className="sidebar-item-label">收起侧栏</span>
-        </button>
-      </SidebarEntry>
       <SidebarEntry collapsed={collapsed} tooltip={`搜索 / 命令 · ${shortcutHint}`}>
         <button
           aria-haspopup="dialog"
@@ -122,17 +165,18 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
       </SidebarEntry>
       <p className="workbench-sidebar-heading" id="sidebar-stage-heading">创作流程</p>
       <div aria-labelledby="sidebar-stage-heading" className="workbench-sidebar-group" role="group">
-        {routePolicy.planningSurface === 'cockpit' ? (
-          <SidebarEntry collapsed={collapsed} tooltip="创作驾驶舱 · 查看八阶段实时状态">
+        {creationConsole ? (
+          <SidebarEntry collapsed={collapsed} tooltip={`创作控制台 · ${creationConsole.hint}`}>
             <button
-              aria-current={run.routePhase === 'planning' ? 'page' : undefined}
-              className={`workbench-sidebar-item${run.routePhase === 'planning' ? ' active' : ''}`}
-              onClick={ui.navigatePlanning}
-              title="在创作驾驶舱查看八阶段实时状态"
+              aria-current={creationConsole.current ? 'page' : undefined}
+              className={`workbench-sidebar-item${creationConsole.current ? ' active' : ''}`}
+              disabled={creationConsole.disabled}
+              onClick={creationConsole.open}
+              title={creationConsole.hint}
               type="button"
             >
-              <span aria-hidden="true" className="sidebar-item-icon"><Layers size={16} /></span>
-              <span className="sidebar-item-label">创作驾驶舱</span>
+              <span aria-hidden="true" className="sidebar-item-icon">{creationConsole.live ? <Gauge size={16} /> : <Layers size={16} />}</span>
+              <span className="sidebar-item-label">创作控制台</span>
               <span aria-hidden="true" className={`sidebar-status-dot ${run.running ? 'running' : run.runHasStarted ? 'done' : 'idle'}`} />
             </button>
           </SidebarEntry>
@@ -176,6 +220,24 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
           </SidebarEntry>
         </>
       ) : null}
+      {qualityMode === 'fast' ? null : qualityMode === 'balanced' ? (
+        <>
+          <span aria-hidden="true" className="workbench-sidebar-separator" />
+          <SidebarEntry collapsed={collapsed} tooltip="Story Bible · 人物、世界观、伏笔与正典事实">
+            <button
+              aria-current={run.routePhase === 'bible' ? 'page' : undefined}
+              className={`workbench-sidebar-item${run.routePhase === 'bible' ? ' active' : ''}`}
+              onClick={() => ui.navigateBible(run.routeBibleSection || defaultBibleSection)}
+              title="只读浏览设定：进入后在页内切换分区"
+              type="button"
+            >
+              <span aria-hidden="true" className="sidebar-item-icon"><BookMarked size={16} /></span>
+              <span className="sidebar-item-label">Story Bible</span>
+            </button>
+          </SidebarEntry>
+        </>
+      ) : (
+      <>
       <span aria-hidden="true" className="workbench-sidebar-separator" />
       <p className="workbench-sidebar-heading" id="sidebar-bible-heading">Story Bible</p>
       <div aria-labelledby="sidebar-bible-heading" className="workbench-sidebar-group" role="group">
@@ -199,10 +261,12 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
           );
         })}
       </div>
+      </>
+      )}
       <span aria-hidden="true" className="workbench-sidebar-separator" />
       <div aria-label="全局入口" className="workbench-sidebar-group" role="group">
         <SidebarEntry collapsed={collapsed} tooltip="知识资料">
-          <button aria-haspopup="dialog" className={`workbench-sidebar-item${ui.knowledgeOpen ? ' active' : ''}`} onClick={ui.openKnowledge} title="管理项目资料与检索依据" type="button">
+          <button aria-current={ui.knowledgeOpen ? 'page' : undefined} className={`workbench-sidebar-item${ui.knowledgeOpen ? ' active' : ''}`} onClick={ui.openKnowledge} title="管理项目资料与检索依据" type="button">
             <span aria-hidden="true" className="sidebar-item-icon"><BookOpen size={16} /></span>
             <span className="sidebar-item-label">知识资料</span>
             {knowledgeCount ? <span className="sidebar-item-badge">{knowledgeCount}</span> : null}
@@ -216,7 +280,7 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
           </button>
         </SidebarEntry>
         <SidebarEntry collapsed={collapsed} tooltip="模型与设置">
-          <button aria-haspopup="dialog" className={`workbench-sidebar-item${ui.settingsOpen ? ' active' : ''}`} onClick={ui.openSettings} title="编辑服务、模型和工作流偏好" type="button">
+          <button aria-current={ui.settingsOpen ? 'page' : undefined} className={`workbench-sidebar-item${ui.settingsOpen ? ' active' : ''}`} onClick={ui.openSettings} title="编辑服务、模型和工作流偏好" type="button">
             <span aria-hidden="true" className="sidebar-item-icon"><Settings size={16} /></span>
             <span className="sidebar-item-label">模型与设置</span>
           </button>

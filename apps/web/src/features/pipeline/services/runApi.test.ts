@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createRunStream,
+  getContextManifest,
   getChapterVersion,
   getRun,
   isRunNotFoundError,
@@ -41,7 +42,7 @@ describe('LangGraph run API', () => {
     });
   });
 
-  it('freezes the explicit image binding and export preferences in the Run request', async () => {
+  it('submits only the project workflow authority and user Run inputs', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('{}', {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -53,17 +54,15 @@ describe('LangGraph run API', () => {
 
     const createOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(String(createOptions.body));
-    expect(body.cover_asset_binding).toEqual({
-      provider_profile_id: 'openai-compatible-image',
-      model: 'gpt-image-2',
-      candidate_count: 3,
-      size: '1024x1536',
-      quality: 'medium',
-      timeout_seconds: 180,
-      failure_policy: 'fail_run',
-    });
+    expect(body.workflow_id).toBe('default-novel-workflow');
+    expect(body).not.toHaveProperty('provider_bindings');
+    expect(body).not.toHaveProperty('cover_asset_binding');
+    expect(body).not.toHaveProperty('workflow_revision');
+    expect(body).not.toHaveProperty('quality_mode');
+    expect(body).not.toHaveProperty('scale_profile');
     expect(body.export_preferences).toEqual({ format: 'zip', author: '', version_note: '' });
     expect(body.inputs).not.toHaveProperty('export_preferences');
+    expect(body.inputs.length_envelope).toEqual({ word_target_soft: 100000, chapter_target_soft: null });
   });
 
   it('submits an edited Artifact through the active graph decision', async () => {
@@ -126,6 +125,36 @@ describe('LangGraph run API', () => {
     expect(result.artifact.content).toBe('正文');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/runs/run-1/chapters/chapter-1/versions/chapter-1-v1',
+      { signal: undefined },
+    );
+  });
+
+  it('loads a frozen Context Manifest by its read-model reference', async () => {
+    const record = {
+      run_id: 'run-1',
+      manifest_id: `manifest-${'a'.repeat(64)}`,
+      chapter_id: 'chapter-1',
+      attempt: 1,
+      manifest: {
+        task: 'chapter-1',
+        required: ['detail.chapter'],
+        optional: [],
+        forbidden: ['full_canon'],
+        snippets: [],
+        budget: { input_chars: 10, output_tokens: 100 },
+        manifest_hash: 'b'.repeat(64),
+      },
+      created_at: '2026-08-12T00:00:00Z',
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(record), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getContextManifest('run-1', record.manifest_id)).resolves.toEqual(record);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/runs/run-1/context-manifests/${record.manifest_id}`,
       { signal: undefined },
     );
   });

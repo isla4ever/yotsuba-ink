@@ -125,7 +125,7 @@ describe('PipelineShellProvider run-events split (F5)', () => {
 
     act(() => {
       snapshot = snapshotWith(snapshot, runEvent('artifact.committed', {
-        run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {},
+        run_id: 'run-1', stage_id: 'brief', node_id: 'brief.commit_artifact', payload: {},
       }));
       store.publish(snapshot);
     });

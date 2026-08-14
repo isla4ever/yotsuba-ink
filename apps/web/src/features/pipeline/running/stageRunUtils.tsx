@@ -16,11 +16,11 @@ import { stageDeliveryStatus } from '../state/stageDeliveryStatus';
 
 export function stageConfig(type: StageType) {
   const iconMap: Record<StageType, { icon: ReactNode; steps: string[] }> = {
-    info: { icon: <Sparkles size={18} />, steps: ['读取立项', '装配前置资料', '生成创作契约', '等待冻结'] },
-    characters: { icon: <UsersRound size={18} />, steps: ['读取创作契约', '编排人物职责', '校验关系与窗口', '等待冻结'] },
-    summary: { icon: <FileText size={18} />, steps: ['读取人物圣经', '推演因果节拍', '核对人物结局', '等待冻结'] },
-    outline: { icon: <Layers3 size={18} />, steps: ['读取故事脊柱', '规划分卷转折', '分配人物与线索窗口', '等待冻结'] },
-    detail: { icon: <ListChecks size={18} />, steps: ['读取分卷方案', '拆分章节场景', '校验义务与交接', '等待冻结'] },
+    brief: { icon: <Sparkles size={18} />, steps: ['读取立项', '装配前置资料', '生成创作契约', '等待冻结'] },
+    spine: { icon: <FileText size={18} />, steps: ['读取创作契约', '推演因果转折', '核对承诺与结局', '等待冻结'] },
+    cast: { icon: <UsersRound size={18} />, steps: ['读取角色需求', '编排人物职责', '生成关系压力', '等待冻结'] },
+    volumes: { icon: <Layers3 size={18} />, steps: ['读取故事脊柱', '提出自然卷界', '校验完整闭合', '等待冻结'] },
+    detail: { icon: <ListChecks size={18} />, steps: ['读取当前卷合同', '拆分章节场景', '校验推进与交接', '等待冻结'] },
     text: { icon: <BookOpenText size={18} />, steps: ['装配章节上下文', '生成正文候选', '并发审稿', '等待定稿'] },
     cover: { icon: <Image size={18} />, steps: ['提炼封面简报', '生成资产候选', '记录生成回执', '等待选定'] },
     export: { icon: <Download size={18} />, steps: ['冻结版本选择', '确定性生成文件', '校验交付包', '记录导出'] },
@@ -177,6 +177,6 @@ function payloadText(event: RunEvent, key: string) {
   return typeof value === 'string' ? value : '';
 }
 
-function artifactText(value: unknown) {
+export function artifactText(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? JSON.stringify(value) : '';
 }

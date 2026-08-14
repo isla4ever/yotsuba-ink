@@ -3,8 +3,8 @@ import { regenerationSuggestionsForStage, resolveRegenerationDirection } from '.
 
 describe('draft regeneration directions', () => {
   it('keeps three stage-specific suggestions', () => {
-    expect(regenerationSuggestionsForStage({ type: 'summary' })).toHaveLength(3);
-    expect(regenerationSuggestionsForStage({ type: 'outline' })[0]).toContain('卷内节拍');
+    expect(regenerationSuggestionsForStage({ type: 'spine' })).toHaveLength(3);
+    expect(regenerationSuggestionsForStage({ type: 'volumes' })[0]).toContain('本卷闭合');
     expect(regenerationSuggestionsForStage({ type: 'text' })[2]).toContain('段尾追读');
   });
 

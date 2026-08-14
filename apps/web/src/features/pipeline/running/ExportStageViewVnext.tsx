@@ -1,4 +1,4 @@
-import { CheckCircle2, Download, FileArchive, FileJson2, FileText, Image, LoaderCircle, ShieldCheck, ShieldX } from 'lucide-react';
+import { CheckCircle2, Download, FileArchive, FileJson2, FileText, Image, ImageOff, LoaderCircle, ShieldCheck, ShieldX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { coverAssetUrl } from '../services/coverAssetApi';
 import { useExportDelivery } from '../state/useExportDelivery';
@@ -37,8 +37,14 @@ export function ExportStageViewVnext({ deliveryRevision, onArtifactChange, readO
           })}
         </div>
         <div className="vnext-export-cover-row">
-          <img alt="正式封面" src={coverAssetUrl(runId, artifact.cover_asset_id)} />
-          <div><Image size={15} /><span>正式封面</span><strong>{artifact.cover_asset_id}</strong></div>
+          {artifact.cover_asset_id
+            ? <img alt="正式封面" src={coverAssetUrl(runId, artifact.cover_asset_id)} />
+            : <span aria-hidden="true" className="vnext-export-cover-empty"><ImageOff size={16} /></span>}
+          <div>
+            <Image size={15} />
+            <span>正式封面</span>
+            <strong>{artifact.cover_asset_id || '未绑定封面资产'}</strong>
+          </div>
         </div>
         <div className="vnext-field-grid">
           <label className="vnext-field"><span>书名</span><input readOnly value={artifact.metadata.title} /></label>

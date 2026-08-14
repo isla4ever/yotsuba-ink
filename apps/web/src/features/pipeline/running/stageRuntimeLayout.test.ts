@@ -3,12 +3,12 @@ import { stageRuntimeLayout } from './stageRuntimeLayout';
 
 describe('stageRuntimeLayout', () => {
   it('keeps cross-stage systems compact on manuscript stages', () => {
-    expect(stageRuntimeLayout.characters).toEqual({ primary: [], compact: ['character'] });
-    expect(stageRuntimeLayout.summary).toEqual({
+    expect(stageRuntimeLayout.cast).toEqual({ primary: [], compact: [] });
+    expect(stageRuntimeLayout.spine).toEqual({
       primary: [],
-      compact: ['character', 'worldbuilding', 'quality'],
+      compact: ['worldbuilding', 'quality'],
     });
-    expect(stageRuntimeLayout.outline).toEqual({
+    expect(stageRuntimeLayout.volumes).toEqual({
       primary: [],
       compact: ['character', 'worldbuilding', 'quality'],
     });
@@ -16,7 +16,7 @@ describe('stageRuntimeLayout', () => {
       primary: [],
       compact: ['character', 'worldbuilding', 'quality'],
     });
-    expect(stageRuntimeLayout.text.compact).toContain('wiki');
+    expect(stageRuntimeLayout.text.compact).toEqual(['contextManifest', 'quality', 'wiki', 'character', 'worldbuilding']);
   });
 
   it('does not duplicate delivery summaries outside cover and export artifacts', () => {

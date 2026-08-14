@@ -17,6 +17,7 @@ describe('provider secret availability', () => {
   it('uses the server secret truth even when the workflow profile is stale', () => {
     const availability: ProviderAvailabilityState = {
       byProvider: { 'text-provider': { has_saved_secret: true, has_env_secret: false } },
+      profiles: [],
       templates: [],
       status: 'ready',
     };
@@ -25,7 +26,7 @@ describe('provider secret availability', () => {
   });
 
   it('does not report a missing secret while the server status is unknown', () => {
-    expect(providerSecretStatus(provider, { byProvider: {}, templates: [], status: 'loading' })).toBe('正在核验密钥状态');
-    expect(providerSecretStatus(provider, { byProvider: {}, templates: [], status: 'failed' })).toBe('密钥状态未确认');
+    expect(providerSecretStatus(provider, { byProvider: {}, profiles: [], templates: [], status: 'loading' })).toBe('正在核验密钥状态');
+    expect(providerSecretStatus(provider, { byProvider: {}, profiles: [], templates: [], status: 'failed' })).toBe('密钥状态未确认');
   });
 });

@@ -9,7 +9,7 @@ import { stageExists } from './runSelectors';
  *   user hits 「继续」 or the 4s auto-continue elapses (progress ring).
  * - `cockpit_auto`: fast/balanced cockpit auto-advance — never blocks; the
  *   cockpit shows an expandable settlement summary card instead.
- * - `balanced_cockpit`: the balanced info→cockpit hand-off (unchanged).
+ * - `balanced_cockpit`: the balanced brief-to-cockpit hand-off.
  */
 type SettlementTransition = {
   kind: 'balanced_cockpit' | 'cockpit_auto' | 'route';
@@ -90,7 +90,7 @@ export function useRunTransitions({
     if (kind === 'balanced_cockpit') {
       setAutomationCockpitReady(true);
       settlementNavigateTimer.current = window.setTimeout(() => {
-        dispatchRun({ type: 'stage_selected', stageId: nextStageId || 'summary' });
+        dispatchRun({ type: 'stage_selected', stageId: nextStageId || 'spine' });
       }, 900);
     } else if (nextStageId && stageExists(stages, nextStageId)) {
       settlementNavigateTimer.current = window.setTimeout(() => navigateToStage(nextStageId), 900);

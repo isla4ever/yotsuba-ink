@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, type CSSProperties } from 'react';
+import { Suspense, lazy, useEffect, type CSSProperties } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AppHeader } from './features/pipeline/layout/AppHeader';
 import { CommandPalette } from './features/pipeline/layout/CommandPalette';
@@ -6,10 +6,11 @@ import { LoadingOverlay } from './features/pipeline/layout/LoadingOverlay';
 import { WorkbenchRouteTransition } from './features/pipeline/layout/WorkbenchRouteTransition';
 import { WorkbenchSidebar } from './features/pipeline/layout/WorkbenchSidebar';
 import { CreationHistoryPage } from './features/pipeline/layout/CreationHistoryPage';
-import { defaultBibleSection, isBibleRoute, pipelineRouteFromPath, routeForBibleSection, studioRoute, type BibleSection } from './features/pipeline/lib/stageRoutes';
+import { defaultBibleSection, isBibleRoute, knowledgeRoute, pipelineRouteFromPath, routeForBibleSection, studioRoute, type BibleSection, type PipelinePhase } from './features/pipeline/lib/stageRoutes';
 import { KnowledgeRunBlockerDialog } from './features/pipeline/settings/KnowledgeRunBlockerDialog';
 import { ProviderReadinessProvider } from './features/pipeline/settings/ProviderReadinessContext';
 import { PipelineShellProvider, useUICommandContext, useWorkflowConfigContext } from './features/pipeline/state/pipelineShellContext';
+import { StudioKnowledgeOverview } from './features/pipeline/layout/studio/StudioKnowledgeOverview';
 import { StudioSidebar } from './features/pipeline/layout/studio/StudioSidebar';
 import { StudioWorkbench } from './features/pipeline/layout/studio/StudioWorkbench';
 import { useNovelWorkflowApp, type NovelWorkflowApp } from './features/pipeline/state/useNovelWorkflowApp';
@@ -35,27 +36,63 @@ const StoryBibleWorkbench = lazy(async () => {
   return { default: module.StoryBibleWorkbench };
 });
 
-const SettingsDialog = lazy(async () => {
-  const module = await import('./features/pipeline/settings/SettingsDialog');
-  return { default: module.SettingsDialog };
+const SettingsPage = lazy(async () => {
+  const module = await import('./features/pipeline/settings/SettingsPage');
+  return { default: module.SettingsPage };
 });
 
-const KnowledgeBaseManagerDialog = lazy(async () => {
-  const module = await import('./features/pipeline/settings/KnowledgeBaseManagerDialog');
-  return { default: module.KnowledgeBaseManagerDialog };
+const KnowledgeLibraryPage = lazy(async () => {
+  const module = await import('./features/pipeline/settings/KnowledgeLibraryPage');
+  return { default: module.KnowledgeLibraryPage };
 });
+
+const RunMonitorConsole = lazy(async () => {
+  const module = await import('./features/pipeline/running/console/RunMonitorConsole');
+  return { default: module.RunMonitorConsole };
+});
+
+const WorkflowTemplateEditorPage = lazy(async () => {
+  const module = await import('./features/pipeline/layout/studio/WorkflowTemplateEditorPage');
+  return { default: module.WorkflowTemplateEditorPage };
+});
+
+/**
+ * Idle-time prefetch of every lazy route chunk: route switches then always
+ * cross-fade directly instead of flashing a Suspense fallback mid-navigation.
+ */
+function useRouteChunkPrefetch() {
+  useEffect(() => {
+    const prefetch = () => {
+      void import('./features/pipeline/running/RunningWorkbench');
+      void import('./features/pipeline/planning/PlanningWorkbench');
+      void import('./features/pipeline/planning/ProductionCockpitWorkbench');
+      void import('./features/pipeline/running/bible/StoryBibleWorkbench');
+      void import('./features/pipeline/settings/SettingsPage');
+      void import('./features/pipeline/settings/KnowledgeLibraryPage');
+      void import('./features/pipeline/running/console/RunMonitorConsole');
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(prefetch, { timeout: 4000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(prefetch, 1600);
+    return () => window.clearTimeout(timer);
+  }, []);
+}
 
 type ShellRouteProps = {
   app: NovelWorkflowApp;
-  routePhase: 'studio' | 'history' | 'planning' | 'running' | 'bible';
+  routePhase: PipelinePhase;
   routeStageId: string;
   routeBibleSection: BibleSection | '';
+  routeWorkflowId: string;
 };
 
 export function App() {
   const app = useNovelWorkflowApp();
   const { pathname } = useLocation();
   const route = pipelineRouteFromPath(pathname);
+  useRouteChunkPrefetch();
 
   if (!route) {
     // /studio is the default landing page; an active project session keeps
@@ -71,18 +108,23 @@ export function App() {
     );
   }
   return (
-    <ProviderReadinessProvider enabled={route.phase !== 'studio' && route.phase !== 'history'} workflowId={app.workflow.id}>
+    <ProviderReadinessProvider
+      enabled={route.phase !== 'studio' && route.phase !== 'studio-knowledge' && route.phase !== 'history' && route.phase !== 'knowledge'}
+      saveStatus={app.saveStatus}
+      workflowId={app.workflow.id}
+    >
       <AppShellProviders
         app={app}
         routeBibleSection={route.phase === 'bible' ? route.bibleSection : ''}
         routeStageId={route.stageId}
         routePhase={route.phase}
+        routeWorkflowId={route.phase === 'studio-workflow' ? route.workflowId : ''}
       />
     </ProviderReadinessProvider>
   );
 }
 
-function AppShellProviders({ app, routePhase, routeStageId, routeBibleSection }: ShellRouteProps) {
+function AppShellProviders({ app, routePhase, routeStageId, routeBibleSection, routeWorkflowId }: ShellRouteProps) {
   const shell = usePipelineShellContexts({ app, routeBibleSection, routePhase, routeStageId });
   return (
     <PipelineShellProvider
@@ -91,22 +133,33 @@ function AppShellProviders({ app, routePhase, routeStageId, routeBibleSection }:
       uiCommands={shell.uiCommands}
       workflowConfig={shell.workflowConfig}
     >
-      <PipelineShell app={app} routeBibleSection={routeBibleSection} routeStageId={routeStageId} routePhase={routePhase} />
+      <PipelineShell
+        app={app}
+        routeBibleSection={routeBibleSection}
+        routePhase={routePhase}
+        routeStageId={routeStageId}
+        routeWorkflowId={routeWorkflowId}
+      />
     </PipelineShellProvider>
   );
 }
 
-function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: ShellRouteProps) {
+function PipelineShell({ app, routePhase, routeStageId, routeBibleSection, routeWorkflowId }: ShellRouteProps) {
   const navigate = useNavigate();
   const { project, qualityMode, routePolicy } = useWorkflowConfigContext();
   const ui = useUICommandContext();
   const isStudio = routePhase === 'studio';
-  const usesStudioChrome = isStudio || routePhase === 'history';
+  const usesStudioChrome = isStudio
+    || routePhase === 'history'
+    || routePhase === 'studio-knowledge'
+    || routePhase === 'studio-settings'
+    || routePhase === 'studio-workflow';
   const cockpitVisible = routePhase === 'planning' && routePolicy.planningSurface === 'cockpit';
   const cockpitMode = qualityMode === 'balanced' ? 'balanced' : 'fast';
   const runHasStarted = app.runHasStarted;
-  const settingsLoadedRef = useRef(false);
-  if (app.settingsOpen) settingsLoadedRef.current = true;
+  // The monitor console carries its own rail (book skeleton + global entries),
+  // so it takes over the shell sidebar slot instead of nesting a second column.
+  const monitorOwnsRail = routePhase === 'monitor';
   // Project accent immersion: one hue variable on the shell root; consumers
   // (sidebar accent mark, current-item indicator, project header) live in CSS.
   const accentStyle = project
@@ -115,20 +168,86 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: She
 
   return (
     <main
-      className={`product-shell mode-${qualityMode}${usesStudioChrome ? ' studio-shell' : ''}${routePhase === 'history' ? ' history-shell' : ''}${ui.sidebarVisible ? ' has-sidebar' : ''}${project ? ' has-project-accent' : ''}`}
+      className={`product-shell mode-${qualityMode}${usesStudioChrome ? ' studio-shell' : ''}${routePhase === 'history' ? ' history-shell' : ''}${ui.sidebarVisible && !monitorOwnsRail ? ' has-sidebar' : ''}${monitorOwnsRail ? ' monitor-shell' : ''}${project ? ' has-project-accent' : ''}`}
       style={accentStyle}
     >
-      {usesStudioChrome ? <StudioSidebar /> : <WorkbenchSidebar />}
+      {usesStudioChrome ? <StudioSidebar /> : monitorOwnsRail ? null : <WorkbenchSidebar />}
       <CommandPalette />
       {usesStudioChrome ? null : <AppHeader sidebarVisible={ui.sidebarVisible} />}
       <WorkbenchRouteTransition
-        label={isStudio ? '作品工作室' : routePhase === 'history' ? '创作历史' : routePhase === 'running' ? `${app.selectedStage.label}阶段工作台` : routePhase === 'bible' ? 'Story Bible 工作台' : '创作流程工作台'}
-        routeKey={isStudio ? 'studio' : routePhase === 'history' ? 'history' : routePhase === 'running' ? `running-${routeStageId}` : routePhase === 'bible' ? `bible-${routeBibleSection}` : cockpitVisible ? `cockpit-${cockpitMode}` : 'planning'}
+        label={routeTransitionLabel(routePhase, app.selectedStage.label)}
+        routeKey={routeTransitionKey({ cockpitMode, cockpitVisible, routeBibleSection, routePhase, routeStageId })}
       >
       {isStudio ? (
         <StudioWorkbench />
+      ) : routePhase === 'studio-knowledge' ? (
+        <StudioKnowledgeOverview
+          onManageProject={(target) => {
+            void ui.openProject(target).then((opened) => {
+              if (opened) navigate(knowledgeRoute, { replace: false });
+            });
+          }}
+        />
+      ) : routePhase === 'studio-settings' ? (
+        <Suspense fallback={<WorkbenchFallback label="正在载入全局模型与服务..." />}>
+          <SettingsPage
+            apiWarning={app.apiWarning}
+            knowledgeDocuments={app.knowledgeDocuments}
+            saveStatus={app.saveStatus}
+            scope="global"
+            workflow={app.workflow}
+            onOpenKnowledgeManager={() => navigate('/studio/knowledge', { replace: false })}
+            onQualityModeChange={app.handleQualityModeChange}
+            onSelectStage={() => undefined}
+            onWorkflowChange={app.setWorkflow}
+          />
+        </Suspense>
+      ) : routePhase === 'studio-workflow' ? (
+        <Suspense fallback={<WorkbenchFallback label="正在载入工作流模板..." />}>
+          <WorkflowTemplateEditorPage workflowId={routeWorkflowId} />
+        </Suspense>
       ) : routePhase === 'history' ? (
         <CreationHistoryPage />
+      ) : routePhase === 'knowledge' ? (
+        <Suspense fallback={<WorkbenchFallback label="正在载入知识资料库..." />}>
+          <KnowledgeLibraryPage
+            documents={app.knowledgeDocuments}
+            projectId={app.activeProject?.id ?? ''}
+            qualityMode={app.workflow.quality_mode}
+            onDeleted={app.handleKnowledgeDocumentDeleted}
+            onDocumentsChange={app.setKnowledgeDocuments}
+          />
+        </Suspense>
+      ) : routePhase === 'settings' ? (
+        <Suspense fallback={<WorkbenchFallback label="正在载入模型与设置..." />}>
+          <SettingsPage
+            apiWarning={app.apiWarning}
+            knowledgeDocuments={app.knowledgeDocuments}
+            saveStatus={app.saveStatus}
+            workflow={app.workflow}
+            onOpenKnowledgeManager={ui.openKnowledge}
+            onQualityModeChange={app.handleQualityModeChange}
+            onSelectStage={(stageId) => {
+              app.setSelectedId(stageId);
+              app.setSelectedInspectorTarget({ kind: 'stage', id: stageId });
+              app.setWorkspacePhase('planning');
+              navigate('/planning', { replace: false });
+            }}
+            onWorkflowChange={app.setWorkflow}
+          />
+        </Suspense>
+      ) : routePhase === 'monitor' ? (
+        <Suspense fallback={<WorkbenchFallback label="正在载入创作控制台..." />}>
+          <RunMonitorConsole
+            activeRunId={app.activeRunId}
+            events={app.events}
+            qualityMode={app.workflow.quality_mode}
+            runControlState={app.runControlState}
+            stickyArtifacts={app.stickyArtifacts}
+            workflow={app.workflow}
+            onOpenStageWorkbench={routePolicy.stageRoutes === 'all' ? ui.navigateStage : undefined}
+          />
+        </Suspense>
       ) : routePhase === 'bible' ? (
         <Suspense fallback={<WorkbenchFallback label="正在载入 Story Bible..." />}>
           <StoryBibleWorkbench section={routeBibleSection || defaultBibleSection} />
@@ -169,7 +288,6 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: She
             runHasStarted={runHasStarted}
             onCanvasSelect={app.handleCanvasSelect}
             onAddModelOption={app.handleAddModelOption}
-            onLayoutChange={app.handleLayoutChange}
             onOpenKnowledgeManager={ui.openKnowledge}
             onStageChange={app.handleStageChange}
           />
@@ -197,44 +315,12 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: She
         </Suspense>
       )}
       </WorkbenchRouteTransition>
-      <Suspense fallback={null}>
-        {settingsLoadedRef.current ? (
-          <SettingsDialog
-            apiWarning={app.apiWarning}
-            knowledgeDocuments={app.knowledgeDocuments}
-            open={app.settingsOpen}
-            saveStatus={app.saveStatus}
-            workflow={app.workflow}
-            onOpenChange={app.setSettingsOpen}
-            onOpenKnowledgeManager={ui.openKnowledge}
-            onQualityModeChange={app.handleQualityModeChange}
-            onSelectStage={(stageId) => {
-              app.setSelectedId(stageId);
-              app.setSelectedInspectorTarget({ kind: 'stage', id: stageId });
-              app.setWorkspacePhase('planning');
-              navigate('/planning', { replace: false });
-            }}
-            onWorkflowChange={app.setWorkflow}
-          />
-        ) : null}
-      </Suspense>
-      <Suspense fallback={null}>
-        <KnowledgeBaseManagerDialog
-          documents={app.knowledgeDocuments}
-          projectId={app.activeProject?.id ?? ''}
-          qualityMode={app.workflow.quality_mode}
-          onDeleted={app.handleKnowledgeDocumentDeleted}
-          onDocumentsChange={app.setKnowledgeDocuments}
-          onOpenChange={app.setKnowledgeManagerOpen}
-          open={app.knowledgeManagerOpen}
-        />
-      </Suspense>
       <KnowledgeRunBlockerDialog
         message={app.knowledgePrompt}
         onClose={() => app.setKnowledgePromptOpen(false)}
         onOpenKnowledge={() => {
           app.setKnowledgePromptOpen(false);
-          app.setSelectedId('info');
+          app.setSelectedId('brief');
           app.setWorkspacePhase('planning');
           app.setRunning(false);
           ui.openKnowledge();
@@ -243,6 +329,35 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection }: She
       />
     </main>
   );
+}
+
+function routeTransitionLabel(routePhase: PipelinePhase, stageLabel: string) {
+  switch (routePhase) {
+    case 'studio': return '作品工作室';
+    case 'studio-knowledge': return '知识资料总览';
+    case 'studio-settings': return '全局模型与服务';
+    case 'studio-workflow': return '工作流模板配置';
+    case 'history': return '创作历史';
+    case 'knowledge': return '知识资料库';
+    case 'settings': return '模型与设置';
+    case 'monitor': return '创作控制台';
+    case 'running': return `${stageLabel}阶段工作台`;
+    case 'bible': return 'Story Bible 工作台';
+    default: return '创作流程工作台';
+  }
+}
+
+function routeTransitionKey({ cockpitMode, cockpitVisible, routeBibleSection, routePhase, routeStageId }: {
+  cockpitMode: string;
+  cockpitVisible: boolean;
+  routeBibleSection: BibleSection | '';
+  routePhase: PipelinePhase;
+  routeStageId: string;
+}) {
+  if (routePhase === 'running') return `running-${routeStageId}`;
+  if (routePhase === 'bible') return `bible-${routeBibleSection}`;
+  if (routePhase === 'planning') return cockpitVisible ? `cockpit-${cockpitMode}` : 'planning';
+  return routePhase;
 }
 
 function WorkbenchFallback({ label }: { label: string }) {

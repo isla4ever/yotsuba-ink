@@ -1,27 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { characterBibleReadiness, nextCharacterId, parseCharacterBibleArtifact, type CharacterBibleArtifact } from './characterBibleArtifact';
+import { characterBibleReadiness, nextSubjectId, parseCharacterBibleArtifact, type CharacterBibleArtifact } from './characterBibleArtifact';
 
 const artifact: CharacterBibleArtifact = {
-  characters: [{
-    id: 'character-1',
+  subjects: [{
+    id: 'subject-lin',
     name: '林默',
-    tier: 'protagonist',
-    narrative_function: '承担真相调查',
-    external_goal: '找到失踪母带',
-    inner_need: '承认自己害怕被遗忘',
-    arc: { start: '拒绝合作', turning_point: '主动共享证据', end: '接受共同记忆' },
-    first_appearance_window: 'chapter:1',
-    hard_boundaries: ['不得无证据背叛同伴'],
+    kind: 'protagonist',
+    function: '承担真相调查',
+    drive: '找到失踪母带',
+    change: '接受共同记忆',
+    debut: 'chapter:1',
+    limits: ['不得无证据背叛同伴'],
+    demand_refs: ['demand-investigator'],
   }],
-  relationships: [],
-  npc_slots: [],
+  relations: [],
 };
 
-describe('CharacterBibleArtifact vNext', () => {
-  it('accepts the exact vNext contract', () => {
+describe('CharacterBibleArtifact Phase 27', () => {
+  it('accepts the exact Character Bible contract', () => {
     const parsed = parseCharacterBibleArtifact(JSON.stringify(artifact));
     expect(parsed.errors).toEqual([]);
-    expect(parsed.artifact?.characters[0].id).toBe('character-1');
+    expect(parsed.artifact?.subjects[0].id).toBe('subject-lin');
     expect(characterBibleReadiness(parsed.artifact).ready).toBe(true);
   });
 
@@ -31,32 +30,26 @@ describe('CharacterBibleArtifact vNext', () => {
     expect(parsed.errors[0]).toContain('未支持字段');
   });
 
-  it('rejects relationships outside the frozen registry', () => {
+  it('rejects relations outside the frozen registry', () => {
     const parsed = parseCharacterBibleArtifact(JSON.stringify({
       ...artifact,
-      relationships: [{
-        source_id: 'character-1',
-        target_id: 'missing',
-        nature: '盟友',
-        initial_state: '陌生',
-        pressure: '互不信任',
-      }],
+      relations: [{ a: 'subject-lin', b: 'subject-missing', type: '盟友', pressure: '互不信任' }],
     }));
     expect(parsed.artifact).toBeNull();
-    expect(parsed.errors).toContain('关系 1 引用了未登记人物');
+    expect(parsed.errors).toContain('关系 1 引用了未登记主体');
   });
 
   it('rejects an unstructured or reversed first-appearance window', () => {
     const unstructured = structuredClone(artifact);
-    unstructured.characters[0].first_appearance_window = '第一卷中段';
+    unstructured.subjects[0].debut = '第一卷中段';
     expect(parseCharacterBibleArtifact(JSON.stringify(unstructured)).artifact).toBeNull();
 
     const reversed = structuredClone(artifact);
-    reversed.characters[0].first_appearance_window = 'chapter:8-3';
+    reversed.subjects[0].debut = 'chapter:8-3';
     expect(parseCharacterBibleArtifact(JSON.stringify(reversed)).artifact).toBeNull();
   });
 
   it('allocates a stable local id without reusing registry ids', () => {
-    expect(nextCharacterId(artifact)).toBe('character-2');
+    expect(nextSubjectId(artifact)).toBe('subject-1');
   });
 });

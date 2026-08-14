@@ -1,4 +1,4 @@
-import { CheckCircle2, FilePenLine } from 'lucide-react';
+import { CheckCircle2, CircleDashed, FilePenLine, GitBranch } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { parseChapterArtifact, type ChapterArtifactVnext } from './artifactsVnext';
 import { VnextArtifactError } from './VnextArtifactError';
@@ -15,10 +15,12 @@ export function ChapterStageViewVnext({ onArtifactChange, readOnly, result }: Pr
   return (
     <div className="vnext-artifact-workbench chapter-vnext">
       <div className="vnext-chapter-statusbar">
-        <span>{artifact.chapter_id}</span><strong>{artifact.version_id}</strong><span>{characterCount} 字符</span>
-        <span className={`author-status ${artifact.author_status}`}><CheckCircle2 size={14} />{authorStatusLabel(artifact.author_status)}</span>
+        <span>{artifact.chapter_id}</span><strong>{artifact.version_id}</strong><span>{characterCount.toLocaleString()} 字符</span>
+        <span className={`author-status ${artifact.author_status}`}><AuthorStatusIcon status={artifact.author_status} />{authorStatusLabel(artifact.author_status)}</span>
       </div>
-      {parsed.errors.length ? <div className="vnext-contract-warning">{parsed.errors[0]}</div> : null}
+      {/* While the next chapter streams, the incoming payload is prose rather
+          than a committed artifact; the chapter on screen is still valid, so a
+          parse complaint about the stream would only alarm the author. */}
       <section className="vnext-artifact-section vnext-prose-editor">
         <header><div><span>章节定稿</span><strong><FilePenLine size={15} />正文</strong></div></header>
         <label className="vnext-field"><span>章名</span><input onChange={(event) => update({ ...artifact, title: event.target.value, author_status: 'edited' })} readOnly={readOnly} value={artifact.title} /></label>
@@ -26,6 +28,13 @@ export function ChapterStageViewVnext({ onArtifactChange, readOnly, result }: Pr
       </section>
     </div>
   );
+}
+
+function AuthorStatusIcon({ status }: { status: ChapterArtifactVnext['author_status'] }) {
+  if (status === 'accepted') return <CheckCircle2 size={14} />;
+  if (status === 'edited') return <FilePenLine size={14} />;
+  if (status === 'branched') return <GitBranch size={14} />;
+  return <CircleDashed size={14} />;
 }
 
 function authorStatusLabel(status: ChapterArtifactVnext['author_status']) {

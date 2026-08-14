@@ -76,9 +76,10 @@ export const toastMotionVariants: Variants = {
   exit: { opacity: 0, y: 4, transition: motionTransition.exit },
 };
 
+/** Direction-neutral (browser history has no direction); enter reads slower than exit. */
 export const routeMotionVariants: Variants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: motionTransition.fast },
+  animate: { opacity: 1, transition: motionTransition.standard },
   exit: { opacity: 0, transition: motionTransition.exit },
 };
 

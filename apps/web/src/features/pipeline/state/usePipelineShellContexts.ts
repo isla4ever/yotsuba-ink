@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { productNavigationIcons, type ProductNavigationItem, type ProductNavigationItemId } from '../layout/ProductNavigationRail';
 import { useSidebarPreference } from '../layout/useSidebarPreference';
-import { historyRoute, routeForBibleSection, routeForStage, studioRoute, type BibleSection } from '../lib/stageRoutes';
+import { historyRoute, knowledgeRoute, monitorRoute, routeForBibleSection, routeForStage, settingsRoute, studioKnowledgeRoute, studioRoute, studioSettingsRoute, type BibleSection, type PipelinePhase } from '../lib/stageRoutes';
 import type { RunStateSlice, UICommandSlice, WorkflowConfigSlice } from './pipelineShellContext';
 import { createRunEventsStore } from './runEventsStore';
 import { canNavigateToStage, modeRoutePolicy } from './runPresentationState';
@@ -13,7 +13,7 @@ import { useStageRuntimes } from './useStageRuntimes';
 
 type Params = {
   app: NovelWorkflowApp;
-  routePhase: 'studio' | 'history' | 'planning' | 'running' | 'bible';
+  routePhase: PipelinePhase;
   routeStageId: string;
   routeBibleSection: BibleSection | '';
 };
@@ -43,9 +43,8 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     historyError,
     historyItems,
     historyLoading,
-    infoContinueReady,
+    briefContinueReady,
     knowledgeDocuments,
-    knowledgeManagerOpen,
     openHistoryRun,
     openProject,
     refreshHistory,
@@ -63,13 +62,10 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     selectedId,
     selectedStage,
     setApiWarning,
-    setKnowledgeManagerOpen,
     setRunStageNavigator,
     setSelectedId,
     setSelectedInspectorTarget,
-    setSettingsOpen,
     setTheme,
-    settingsOpen,
     settlementStageId,
     setWorkspacePhase,
     theme,
@@ -116,6 +112,10 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     routePhase,
     routePolicy,
     routeStageId,
+    // The monitor must keep presenting terminal runs (failed/completed), so it
+    // gates on attachment rather than the recoverable-run flag that drops the
+    // moment a run.failed / run.completed event lands.
+    runAttached: activeRunId !== '' && (hasRunEvents || runControlActive),
     runHasStarted,
     selectedId,
     setRunStageNavigator,
@@ -141,11 +141,11 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     { id: 'settings', label: '模型与设置', description: '编辑服务、模型和工作流偏好', icon: productNavigationIcons.settings },
   ], [historyItems.length, knowledgeDocuments.length, selectedStage.label, runHasStarted]);
 
-  const activeNavigationItem: ProductNavigationItemId = settingsOpen
+  const activeNavigationItem: ProductNavigationItemId = routePhase === 'settings'
     ? 'settings'
     : routePhase === 'history'
       ? 'history'
-      : knowledgeManagerOpen
+      : routePhase === 'knowledge'
         ? 'knowledge'
         : controlPhase === 'running'
           ? 'running'
@@ -159,7 +159,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     historyError,
     historyItems,
     historyLoading,
-    infoContinueReady,
+    briefContinueReady,
     resetUndoAvailable: runResetUndoAvailable,
     routeBibleSection,
     routePhase,
@@ -173,7 +173,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     workspacePhase: controlPhase,
   }), [
     activeRunId, approvalPending, checkpointContinueReady, controlPhase, hasRunEvents,
-    headerStage, historyError, historyItems, historyLoading, infoContinueReady,
+    headerStage, historyError, historyItems, historyLoading, briefContinueReady,
     routeBibleSection, routePhase, routeStageId, runControlState, runHasStarted, runIsActiveFromEvents,
     running, runResetUndoAvailable, settlementStageId, stageRuntimes,
   ]);
@@ -188,16 +188,17 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
   }), [activeProject, knowledgeDocuments, routePolicy, saveStatus, workflow]);
 
   const uiCommands = useMemo<UICommandSlice>(() => {
-    const openKnowledge = () => setKnowledgeManagerOpen(true);
+    const openKnowledge = () => navigate(knowledgeRoute, { replace: false });
     const openHistory = () => {
       navigate(historyRoute, { replace: false });
       void refreshHistory();
     };
     const openSettings = () => {
       setApiWarning('');
-      setSettingsOpen(true);
+      navigate(settingsRoute, { replace: false });
     };
     const navigatePlanning = () => navigate('/planning', { replace: false });
+    const openMonitor = () => navigate(monitorRoute, { replace: false });
     const navigateStage = (stageId: string) => {
       if (canNavigateToStage(routePolicy, stageId)) navigate(routeForStage(stageId), { replace: false });
     };
@@ -212,14 +213,23 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
       dismissResetUndo: dismissRunResetUndo,
       downloadHistoryExport,
       historyOpen: routePhase === 'history',
-      knowledgeOpen: knowledgeManagerOpen,
+      knowledgeOpen: routePhase === 'knowledge',
+      monitorOpen: routePhase === 'monitor',
       navigateBible,
       navigatePlanning,
       navigateStudio,
       openProject: async (project, latestRun) => {
         const result = await openProject(project, latestRun ?? null);
         if (!result.ok) return false;
-        navigate(result.stageId ? routeForStage(result.stageId) : '/planning', { replace: false });
+        if (!result.stageId) {
+          navigate('/planning', { replace: false });
+        } else if (routePolicy.monitor === 'default' || !canNavigateToStage(routePolicy, result.stageId)) {
+          // Fast mode (and any mode without per-stage routes) lands restored
+          // sessions on the monitor console instead of a stage route.
+          navigate(monitorRoute, { replace: false });
+        } else {
+          navigate(routeForStage(result.stageId), { replace: false });
+        }
         return true;
       },
       requestNewProject: () => navigate(`${studioRoute}?new=1`, { replace: false }),
@@ -229,7 +239,8 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
         if (item.disabled) return;
         if (item.id === 'planning') return navigatePlanning();
         if (item.id === 'running') {
-          if (routePolicy.stageRoutes === 'all') navigate(routeForStage(selectedStage.id), { replace: false });
+          if (routePolicy.monitor === 'default') openMonitor();
+          else if (routePolicy.stageRoutes === 'all') navigate(routeForStage(selectedStage.id), { replace: false });
           else navigate('/planning', { replace: false });
           return;
         }
@@ -248,6 +259,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
         return stageId;
       },
       openKnowledge,
+      openMonitor,
       openSettings,
       refreshHistory,
       resetRun: () => {
@@ -269,7 +281,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
         void runWorkflow();
       },
       setNavigationOpen,
-      settingsOpen,
+      settingsOpen: routePhase === 'settings',
       sidebarExpanded: sidebarPreference.expanded,
       sidebarVisible: sidebarViewport.desktop,
       theme,
@@ -282,10 +294,10 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     };
   }, [
     activeNavigationItem, checkpointContinueReady, commandPaletteOpen, dismissRunResetUndo,
-    downloadHistoryExport, handleQualityModeChange, headerStage, knowledgeManagerOpen,
+    downloadHistoryExport, handleQualityModeChange, headerStage,
     navigate, navigationItems, navigationOpen, openHistoryRun, openProject, refreshHistory, resetRunControl,
     branchHistoryRun, returnExportToPlanning, routePolicy, runWorkflow, saveWorkflowAsTemplate, selectedStage.id,
-    setApiWarning, setKnowledgeManagerOpen, setSettingsOpen, setTheme, settingsOpen,
+    setApiWarning, setTheme,
     routePhase,
     sidebarPreference.expanded, sidebarPreference.toggle, sidebarViewport.desktop, theme, undoRunReset,
   ]);

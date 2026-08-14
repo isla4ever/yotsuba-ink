@@ -18,7 +18,7 @@ type Props = {
   onStepRequest: (stepId: SetupStepId, fieldId?: string) => void;
 };
 
-/** 参考摘要编辑回写：确认页 textarea 直接写回 info 阶段的 reference_summary 输入。 */
+/** 参考摘要编辑回写：确认页 textarea 直接写回 brief 阶段的 reference_summary 输入。 */
 export function withReferenceSummary(stage: WorkflowStage, value: string): WorkflowStage {
   return updateStageInputDefault(stage, 'reference_summary', value);
 }

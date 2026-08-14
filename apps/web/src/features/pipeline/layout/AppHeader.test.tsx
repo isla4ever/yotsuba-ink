@@ -21,7 +21,7 @@ function renderHeader(runState: Parameters<typeof PipelineShellTestProviders>[0]
 describe('AppHeader route semantics', () => {
   it('presents Story Bible as a read-only browse surface instead of the selected run stage', () => {
     const html = renderHeader({
-      routeBibleSection: 'characters',
+      routeBibleSection: 'cast',
       routePhase: 'bible',
       runHasStarted: true,
       selectedStage: defaultWorkflow.nodes.find((stage) => stage.id === 'export') ?? defaultWorkflow.nodes[0],
@@ -34,7 +34,7 @@ describe('AppHeader route semantics', () => {
   });
 
   it('uses the Yotsuba Ink product identity and keeps a real run stage visible', () => {
-    const summary = defaultWorkflow.nodes.find((stage) => stage.id === 'summary') ?? defaultWorkflow.nodes[0];
+    const summary = defaultWorkflow.nodes.find((stage) => stage.id === 'spine') ?? defaultWorkflow.nodes[0];
     const html = renderHeader({
       routePhase: 'running',
       routeStageId: summary.id,
@@ -50,7 +50,7 @@ describe('AppHeader route semantics', () => {
   });
 
   it('shows a human interrupt as 待决策 instead of 运行中', () => {
-    const characters = defaultWorkflow.nodes.find((stage) => stage.id === 'characters') ?? defaultWorkflow.nodes[0];
+    const characters = defaultWorkflow.nodes.find((stage) => stage.id === 'cast') ?? defaultWorkflow.nodes[0];
     const html = renderHeader({
       routePhase: 'running',
       routeStageId: characters.id,

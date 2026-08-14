@@ -5,15 +5,22 @@ import './styles/entry-core.css';
 import { App } from './App';
 import { MotionPreferenceProvider } from './features/pipeline/layout/MotionPreferenceProvider';
 
-const router = createBrowserRouter(
-  [{ path: '*', element: <App /> }],
-  { future: { v7_relativeSplatPath: true } },
-);
+const root = document.getElementById('root')!;
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <MotionPreferenceProvider>
-      <RouterProvider future={{ v7_startTransition: true }} router={router} />
-    </MotionPreferenceProvider>
-  </React.StrictMode>,
-);
+if (import.meta.env.DEV && window.location.pathname.startsWith('/__preview')) {
+  // Offline stage design preview; excluded from production bundles.
+  void import('./dev/previewMain').then(({ mountStagePreview }) => mountStagePreview(root));
+} else {
+  const router = createBrowserRouter(
+    [{ path: '*', element: <App /> }],
+    { future: { v7_relativeSplatPath: true } },
+  );
+
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
+      <MotionPreferenceProvider>
+        <RouterProvider future={{ v7_startTransition: true }} router={router} />
+      </MotionPreferenceProvider>
+    </React.StrictMode>,
+  );
+}

@@ -36,6 +36,13 @@ export type ProjectSessionDeps = {
 export type OpenProjectResult = { ok: boolean; stageId: string };
 
 /**
+ * Opening a book restores its latest run session — live runs reconnect, and
+ * terminal runs (completed/failed/cancelled) present read-only so the book
+ * never opens onto a blank workbench.
+ */
+const RESTORABLE_RUN_STATUSES = ['running', 'awaiting_decision', 'completed', 'failed', 'cancelled'];
+
+/**
  * Phase 11.2 active-project session: owns the storage scope (mine 1), the
  * per-project workflow load (mine 2), the Studio entry path, and the
  * save-as-template action. Call the hook FIRST inside useNovelWorkflowApp so
@@ -86,13 +93,21 @@ export function useProjectSession() {
       return { ok: false, stageId: '' };
     }
     if (current?.id === project.id) {
-      // Re-entering the live session: no reloads, the shell state is already this project's.
+      if (
+        latestRun
+        && latestRun.run_id !== facts.activeRunId
+        && RESTORABLE_RUN_STATUSES.includes(latestRun.status)
+      ) {
+        const stageId = await deps.restoreProjectRun(latestRun);
+        if (stageId) return { ok: true, stageId };
+      }
+      // Re-entering the same latest live session does not need a second hydration.
       return { ok: true, stageId: facts.workspacePhase === 'running' ? facts.selectedId : '' };
     }
     deps.cancelInitialRecovery();
     applyActiveProject(project);
     deps.clearRunState();
-    if (latestRun && ['running', 'awaiting_decision'].includes(latestRun.status)) {
+    if (latestRun && RESTORABLE_RUN_STATUSES.includes(latestRun.status)) {
       const stageId = await deps.restoreProjectRun(latestRun);
       if (stageId) return { ok: true, stageId };
     }

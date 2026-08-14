@@ -16,15 +16,15 @@ import type { RunEvent } from '../contracts';
 import { runEvent } from '../contracts/runEventTestFactory';
 
 const stages = [
-  { id: 'info', label: '创作立项定稿', type: 'info' as const },
-  { id: 'summary', label: '梗概定稿', type: 'summary' as const },
+  { id: 'brief', label: '创作立项定稿', type: 'brief' as const },
+  { id: 'spine', label: '故事脊柱', type: 'spine' as const },
   { id: 'text', label: '正文生成', type: 'text' as const },
 ];
 
 function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
   return {
     stageRuntimes: stageRuntimeSummaryMap(
-      buildRunEventIndex([runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {} })]),
+      buildRunEventIndex([runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'brief', node_id: 'brief.commit_artifact', payload: {} })]),
       stages,
     ),
     policy: modeRoutePolicy('deep', false),
@@ -40,12 +40,12 @@ function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
 describe('buildPaletteCommands', () => {
   it('derives stage commands with real status and keeps all balanced workbenches reachable', () => {
     const commands = buildPaletteCommands(context({ policy: modeRoutePolicy('balanced', false), qualityMode: 'balanced' }));
-    const info = commands.find((command) => command.id === 'stage:info');
-    const summary = commands.find((command) => command.id === 'stage:summary');
-    expect(info?.disabled).toBe(false);
-    expect(info?.detail).toBe('已完成');
-    expect(summary?.disabled).toBe(false);
-    expect(summary?.disabledReason).toBe('');
+    const brief = commands.find((command) => command.id === 'stage:brief');
+    const spine = commands.find((command) => command.id === 'stage:spine');
+    expect(brief?.disabled).toBe(false);
+    expect(brief?.detail).toBe('已完成');
+    expect(spine?.disabled).toBe(false);
+    expect(spine?.disabledReason).toBe('');
   });
 
   it('exposes the Studio Shell commands 返回工作室 and 新建作品 (Phase 11.2)', () => {
@@ -94,7 +94,7 @@ describe('filterPaletteCommands', () => {
   it('exposes the four Story Bible navigation commands and matches bible queries', () => {
     const commands = buildPaletteCommands(context());
     const bibleIds = commands.filter((command) => command.id.startsWith('bible:')).map((command) => command.id);
-    expect(bibleIds).toEqual(['bible:characters', 'bible:world', 'bible:foreshadow', 'bible:facts']);
+    expect(bibleIds).toEqual(['bible:cast', 'bible:world', 'bible:foreshadow', 'bible:facts']);
     expect(filterPaletteCommands(commands, 'bible').map((command) => command.id)).toEqual(bibleIds);
     expect(filterPaletteCommands(commands, '伏笔').some((command) => command.id === 'bible:foreshadow')).toBe(true);
     for (const command of commands.filter((item) => item.id.startsWith('bible:'))) {
@@ -111,7 +111,7 @@ describe('movePaletteHighlight', () => {
     expect(movePaletteHighlight(commands, enabledIds[0], 1)).toBe(enabledIds[1]);
     expect(movePaletteHighlight(commands, enabledIds[0], -1)).toBe(enabledIds[enabledIds.length - 1]);
     expect(movePaletteHighlight(commands, enabledIds[enabledIds.length - 1], 1)).toBe(enabledIds[0]);
-    expect(enabledIds).toContain('stage:summary');
+    expect(enabledIds).toContain('stage:spine');
   });
 });
 

@@ -5,6 +5,7 @@ import { NewProjectWizard } from './NewProjectWizard';
 
 function workflow(overrides: Partial<WorkflowDefinition>): WorkflowDefinition {
   return {
+    architecture_version: 'phase27-vnext',
     id: 'wf-x',
     name: '模板',
     version: '1',

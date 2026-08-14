@@ -1,0 +1,62 @@
+/* Shared entrance motion: surfaces rise into place instead of snapping in. */
+
+.nw-reveal {
+  animation: nw-reveal-rise var(--duration-slow) var(--ease-decelerate) both;
+}
+
+/* Direct children enter in sequence; capped so long lists never feel slow. */
+.nw-reveal-stagger > * {
+  animation: nw-reveal-rise var(--duration-slow) var(--ease-decelerate) both;
+}
+
+.nw-reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.nw-reveal-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.nw-reveal-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.nw-reveal-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.nw-reveal-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.nw-reveal-stagger > *:nth-child(n + 6) { animation-delay: 200ms; }
+
+@keyframes nw-reveal-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Scroll entry: items below the fold fade up as they come into view. Driven by
+   the view timeline so no observer runs per item; browsers without scroll-driven
+   animation simply render the item in place. */
+@supports (animation-timeline: view()) {
+  .nw-reveal-scroll > * {
+    animation: nw-reveal-rise linear both;
+    animation-range: entry 0% entry 34%;
+    animation-timeline: view();
+  }
+}
+
+/* RevealText: the split glyph layer paints, the source string stays for
+   selection and assistive tech. */
+.nw-reveal-text {
+  position: relative;
+}
+
+.nw-reveal-text-glyphs > span {
+  display: inline-block;
+  white-space: pre;
+  will-change: transform;
+}
+
+.nw-reveal-text-source {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nw-reveal,
+  .nw-reveal-scroll > *,
+  .nw-reveal-stagger > * {
+    animation: none;
+  }
+}

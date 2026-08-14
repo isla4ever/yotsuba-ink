@@ -18,6 +18,7 @@ const panelTitles: Record<RuntimePanelKey, string> = {
   quality: TERM.qualityCheck,
   wiki: 'Wiki 事实层',
   knowledge: '知识库',
+  contextManifest: '本章 Context Manifest',
   coverQuality: '封面质量',
   exportSummary: '导出摘要',
 };
@@ -55,7 +56,7 @@ export function RuntimeSideDetailSheet({ panel, onClose, ...context }: Props) {
           <button aria-label="关闭详情" className="modal-close" onClick={onClose} type="button"><X size={20} /></button>
         </header>
         <div className="runtime-side-detail-body">
-          <RuntimeInsightPanel {...context} panel={panel} />
+          <RuntimeInsightPanel {...context} detail panel={panel} />
         </div>
       </motion.aside>
     </motion.div>,

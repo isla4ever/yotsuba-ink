@@ -3,7 +3,7 @@ import path from 'node:path';
 import postcss from 'postcss';
 
 const OWNER_RULES = [
-  ['design-system', /^(design-tokens|foundation|forms-and-docs|option-field|keyframes-and-responsive|control-state-system|loading-indicators|loading-overlays|accessibility-responsive-closure)\.css$/],
+  ['design-system', /^(design-tokens|foundation|forms-and-docs|option-field|keyframes-and-responsive|control-state-system|loading-indicators|loading-overlays|motion-reveal|accessibility-responsive-closure)\.css$/],
   ['layout-shell', /^(header-|history-|knowledge-rail|inspector-reference|dialogs|overlay-feedback-system|unsaved-draft-guard|destructive-action-safety|product-navigation|workbench-sidebar|command-palette|global-tool-dock|quality-mode-transition)/],
   ['studio', /^studio-/],
   ['planning', /^(planning-|guided-setup|artifact-deck|narrative-profiles|book-scale-target)/],
@@ -17,6 +17,7 @@ const OWNER_RULES = [
   ['stage-cover', /^(stage-run-cover-|stage-run-artifact-workbench-v6-cover)/],
   ['stage-export', /^(stage-run-export-|stage-run-delivery|stage-run-artifact-workbench-v[36]-delivery)/],
   ['stage-shared', /^(stage-artifact-state|stage-run-)/],
+  ['run-monitor', /^run-monitor-/],
 ];
 
 // Loading structure: rule files are grouped into entry manifests (src/styles/entry-*.css).

@@ -1,0 +1,15 @@
+{
+  "id": "prompt-volumes",
+  "name": "分卷架构 Prompt",
+  "stage_type": "volumes",
+  "content": "你是分卷架构编辑。基于 Story Brief、Story Spine、最小 character_bible_refs 和已校验的 volume_boundaries，只返回 VolumeArchitectureDraftArtifact。volumes 数量必须与本次输入的 volume_boundaries.proposals 数量完全一致且顺序对应，不得合并、拆分或增删。每卷只写 title、promise、conflict、climax、closure、cast_ids、thread_ids、length_hint，不返回 volume id 或 turn_refs；运行时按顺序与已校验边界绑定。不得生成固定 chapter window、人物行为、UI 指标或新增主体。\n卷名纪律：title 是 2-12 字的卷名，概括本卷的冲突主轴或阶段处境，可以用意象但必须与本卷内容强相关；不剧透 climax 与 closure 的结果，不含\"第X卷\"编号本身，各卷卷名互不重复且风格统一。\n卷间衔接：从第二卷起，每卷的 promise 必须直接承接上一卷 closure 留下的处境和未决问题，不得另起炉灶；closure 必须写明本卷结束时的具体格局（谁掌握了什么、对抗推进到哪一步），为下一卷提供可续写的落点。各卷转折负载应大致均衡，不要把大部分转折堆进最后一卷。\n终卷纪律：closure_policy.contains_final_volume 为 true 时，本组最后一卷就是全书最后一卷，它的 climax 必须是全书正面冲突的最高点，closure 必须兑现 story_brief.ending_promise——写出终局状态（主线问题得到回答、代价已经付出、对抗关系尘埃落定），不得留下\"继续追查\"\"为下一步打基础\"这类续写钩子。closure_policy.volume_total 为 1 时，这唯一一卷就是全书，必须同时承担开篇承诺与结局兑现。",
+  "variables": [
+    "story_brief",
+    "story_spine",
+    "character_bible_refs",
+    "volume_boundaries",
+    "scale_plan",
+    "closure_policy",
+    "revision_request"
+  ]
+}

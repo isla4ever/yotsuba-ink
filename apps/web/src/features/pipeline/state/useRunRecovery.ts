@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getRun, isRunNotFoundError } from '../services/runApi';
 import type { StoredRunControlState } from './storage';
 import {
+  resolveServerRunPresentation,
   resolveServerRunRecovery,
   type HydratedRunState,
   type RunRecoveryDiscardReason,
@@ -20,6 +21,11 @@ type RunRecoveryHandlers = {
 type UseRunRecoveryOptions = RunRecoveryHandlers & {
   enabled?: boolean;
   loadRun?: RunLoader;
+  /**
+   * Booting straight onto a read-only run surface (the console): a finished run
+   * must still be presented there, instead of being dropped as a stale session.
+   */
+  presentTerminalRuns?: boolean;
   stored: StoredRunControlState;
 };
 
@@ -35,6 +41,7 @@ type ActiveRunRecovery = {
 export function useRunRecovery({
   enabled = true,
   loadRun = getRun,
+  presentTerminalRuns = false,
   stored,
   ...handlers
 }: UseRunRecoveryOptions) {
@@ -65,10 +72,8 @@ export function useRunRecovery({
       try {
         const snapshot = await loadRun(stored.activeRunId, controller.signal);
         if (!recovery.active) return;
-        dispatchRecovery(
-          resolveServerRunRecovery(snapshot, stored.activeRunId),
-          handlersRef.current,
-        );
+        const resolve = presentTerminalRuns ? resolveServerRunPresentation : resolveServerRunRecovery;
+        dispatchRecovery(resolve(snapshot, stored.activeRunId), handlersRef.current);
       } catch (error) {
         if (!recovery.active || isAbortError(error)) return;
         if (isRunNotFoundError(error)) {
@@ -89,7 +94,7 @@ export function useRunRecovery({
       recovery.active = false;
       controller.abort();
     };
-  }, [enabled, loadRun, stored]);
+  }, [enabled, loadRun, presentTerminalRuns, stored]);
 
   return control;
 }

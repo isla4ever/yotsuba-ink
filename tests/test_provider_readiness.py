@@ -198,6 +198,29 @@ def test_provider_templates_disable_unmetered_sdk_retries() -> None:
     assert all(template.max_retries == 0 for template in list_provider_templates())
 
 
+def test_provider_stage_parameters_only_use_phase27_authorities() -> None:
+    from novel_workflow.providers.templates import list_provider_templates
+
+    legacy = {"info", "summary", "characters", "outline"}
+    planning = {"brief", "spine", "volumes"}
+    for template in list_provider_templates():
+        parameter_maps = [
+            template.stage_request_parameters,
+            template.stage_extra_body_parameters,
+        ]
+        for capability in template.model_capabilities:
+            parameter_maps.extend(
+                [
+                    capability.stage_request_parameters,
+                    capability.stage_extra_body_parameters,
+                ]
+            )
+        for stage_parameters in parameter_maps:
+            assert legacy.isdisjoint(stage_parameters), template.id
+            if planning.intersection(stage_parameters):
+                assert "cast" in stage_parameters, template.id
+
+
 @pytest.mark.parametrize(
     ("parameters", "expected_ready"),
     [
@@ -423,14 +446,14 @@ def test_materialization_preserves_the_explicit_provider_and_model() -> None:
             enabled=True,
         )
     )
-    info = next(node for node in workflow.nodes if node.id == "info")
-    info.provider_profile_id = "xiaomi-mimo-api-text"
-    info.model_settings.model = "mimo-v2.5-pro"
+    brief = next(node for node in workflow.nodes if node.id == "brief")
+    brief.provider_profile_id = "xiaomi-mimo-api-text"
+    brief.model_settings.model = "mimo-v2.5-pro"
     live = materialize_workflow_for_execution(workflow)
 
-    live_info = next(node for node in live.nodes if node.id == "info")
-    assert live_info.provider_profile_id == "xiaomi-mimo-api-text"
-    assert live_info.model_settings.model == "mimo-v2.5-pro"
+    live_brief = next(node for node in live.nodes if node.id == "brief")
+    assert live_brief.provider_profile_id == "xiaomi-mimo-api-text"
+    assert live_brief.model_settings.model == "mimo-v2.5-pro"
 
     report = live_provider_readiness_report(live, secret_resolver=lambda _: "configured")
 

@@ -176,7 +176,7 @@ async def test_strict_structured_output_rejects_explanatory_wrapper() -> None:
     with pytest.raises(ProviderResponseError, match="exactly one complete JSON object"):
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="info",
+            task_name="brief",
             context={"idempotency_key": "strict-wrapper"},
             schema={"type": "object", "required": ["ok"]},
         )
@@ -229,7 +229,7 @@ async def test_structured_parse_failure_exposes_only_shape_diagnostics() -> None
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="info",
+            task_name="brief",
             context={},
             schema={"type": "object", "required": ["selected_title"]},
         )
@@ -272,7 +272,7 @@ async def test_vendor_templates_build_documented_structured_requests(
 
     await provider.generate_strict_structured(
         "return data",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={
             "type": "object",
@@ -314,7 +314,7 @@ async def test_compatibility_vendor_structured_output_is_model_aware(
 
     await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
@@ -330,7 +330,7 @@ async def test_openrouter_requires_an_upstream_that_supports_all_parameters() ->
     provider, client = _provider("openrouter-text", model="openai/gpt-4.1-mini")
     await provider.generate_strict_structured(
         "return JSON",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
@@ -347,7 +347,7 @@ async def test_dashscope_structured_request_omits_max_tokens_per_official_contra
 
     await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object"},
     )
@@ -437,7 +437,7 @@ async def test_deepseek_stage_policy_reserves_budget_for_structured_artifacts() 
     outline_provider, outline_client = _provider("deepseek-text", model="deepseek-v4-pro")
     await outline_provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="outline",
+        task_name="volumes",
         context={},
         schema={"type": "object"},
     )
@@ -559,7 +559,7 @@ async def test_deepseek_reasoning_effort_is_matched_to_the_selected_model() -> N
     flash_provider, flash_client = _provider("deepseek-text", model="deepseek-v4-flash")
     await flash_provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="info",
+        task_name="brief",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
@@ -607,7 +607,7 @@ async def test_deepseek_summary_reserves_budget_but_prose_remains_non_thinking()
     summary_provider, summary_client = _provider("deepseek-text", model="deepseek-v4-pro")
     await summary_provider.generate_strict_structured(
         'return JSON data like {"ok":true}',
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object"},
     )
@@ -790,7 +790,7 @@ async def test_groq_qwen_disables_reasoning_for_summary_and_prose() -> None:
     summary, summary_client = _provider("groq-text", model="qwen/qwen3.6-27b")
     await summary.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object"},
     )
@@ -812,14 +812,14 @@ async def test_gemini_flash_lite_uses_minimal_effort_only_on_its_template() -> N
     lite, lite_client = _provider("gemini-text", model="gemini-3.5-flash-lite")
     await lite.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object"},
     )
     flash, flash_client = _provider("gemini-text", model="gemini-3.6-flash")
     await flash.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object"},
     )
@@ -836,13 +836,13 @@ async def test_supported_prompt_cache_templates_send_a_stable_hashed_key(
     provider, client = _provider(template_id)
     await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
-        context={"_prompt_cache_key": "run-42:summary"},
+        task_name="spine",
+        context={"_prompt_cache_key": "run-42:spine"},
         schema={"type": "object"},
     )
 
     assert client.calls[0]["prompt_cache_key"] == hashlib.sha256(
-        b"run-42:summary"
+        b"run-42:spine"
     ).hexdigest()
     assert "x-grok-conv-id" not in client.calls[0]["extra_headers"]
 
@@ -852,14 +852,14 @@ async def test_xai_chat_cache_key_uses_documented_header_not_request_body() -> N
     provider, client = _provider("xai-text", model="grok-4.5")
     await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
-        context={"_prompt_cache_key": "run-42:summary"},
+        task_name="spine",
+        context={"_prompt_cache_key": "run-42:spine"},
         schema={"type": "object"},
     )
 
     request = client.calls[0]
     assert request["extra_headers"]["x-grok-conv-id"] == hashlib.sha256(
-        b"run-42:summary"
+        b"run-42:spine"
     ).hexdigest()
     assert "prompt_cache_key" not in request
 
@@ -869,8 +869,8 @@ async def test_deepseek_does_not_receive_prompt_cache_key_without_documented_sup
     provider, client = _provider("deepseek-text")
     await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
-        context={"_prompt_cache_key": "run-42:summary"},
+        task_name="spine",
+        context={"_prompt_cache_key": "run-42:spine"},
         schema={"type": "object"},
     )
 
@@ -881,8 +881,8 @@ async def test_deepseek_does_not_receive_prompt_cache_key_without_documented_sup
 @pytest.mark.parametrize(
     ("task_name", "expected_effort"),
     [
-        ("summary", "low"),
-        ("outline", "medium"),
+        ("spine", "low"),
+        ("volumes", "medium"),
         ("detail", "high"),
         ("text", "low"),
         ("text.review", "high"),
@@ -912,7 +912,7 @@ async def test_anthropic_compatibility_does_not_claim_response_format() -> None:
     provider, client = _provider("anthropic-openai-text", model="claude-sonnet-5")
     await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object"},
     )
@@ -938,7 +938,7 @@ async def test_unknown_upstream_templates_use_prompt_only_json_contract(
 
     await provider.generate_strict_structured(
         "return the stage artifact",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
@@ -953,7 +953,7 @@ async def test_openai_schema_is_normalized_before_strict_structured_request() ->
     provider, client = _provider("openai-chat", model="gpt-5.6-terra")
     await provider.generate_strict_structured(
         "return data",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={
             "type": "object",
@@ -970,12 +970,34 @@ async def test_openai_schema_is_normalized_before_strict_structured_request() ->
 
 
 @pytest.mark.asyncio
+async def test_schema_property_named_type_does_not_break_depth_validation() -> None:
+    provider, client = _provider("openrouter-text", model="openai/gpt-4.1-mini")
+
+    await provider.generate_strict_structured(
+        "return JSON",
+        task_name="cast_relation.proposal",
+        context={},
+        schema={
+            "type": "object",
+            "properties": {
+                "relation": {
+                    "type": "object",
+                    "properties": {"type": {"type": "string"}},
+                },
+            },
+        },
+    )
+
+    assert client.calls[0]["response_format"]["type"] == "json_schema"
+
+
+@pytest.mark.asyncio
 async def test_incompatible_schema_is_rejected_before_any_provider_request() -> None:
     provider, client = _provider("openai-chat", model="gpt-5.6-terra")
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="summary",
+            task_name="spine",
             context={},
             schema={"type": "array", "items": {"type": "string"}},
         )
@@ -1002,7 +1024,7 @@ async def test_rejected_schema_shapes_fail_before_request(
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="summary",
+            task_name="spine",
             context={},
             schema=unsupported_schema,
         )
@@ -1024,7 +1046,7 @@ async def test_schema_definition_is_repeated_in_prompt_when_vendor_requires_it(
 
     await provider.generate_strict_structured(
         "return the stage artifact",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema=schema,
     )
@@ -1047,7 +1069,7 @@ async def test_required_schema_is_not_skipped_by_an_existing_json_example(
 
     await provider.generate_strict_structured(
         '## 输出结构\n只返回 JSON，例如 {"ok":true}',
-        task_name="summary",
+        task_name="spine",
         context={},
         schema=schema,
     )
@@ -1063,7 +1085,7 @@ async def test_kimi_k3_uses_documented_stage_reasoning_and_schema_contract() -> 
 
     await provider.generate_strict_structured(
         "提取当前阶段产物",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
@@ -1083,7 +1105,7 @@ async def test_siliconflow_json_object_prompt_uses_example_without_full_schema()
 
     await provider.generate_strict_structured(
         "return the stage artifact",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
@@ -1107,7 +1129,7 @@ async def test_cerebras_oversized_schema_is_rejected_before_request() -> None:
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="summary",
+            task_name="spine",
             context={},
             schema={"type": "object", "properties": properties},
         )
@@ -1123,7 +1145,7 @@ async def test_cerebras_excessive_enum_values_are_rejected_before_request() -> N
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="summary",
+            task_name="spine",
             context={},
             schema={
                 "type": "object",
@@ -1144,7 +1166,7 @@ async def test_deepseek_documented_structured_empty_content_is_visible_without_h
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON data like {\"ok\":true}",
-            task_name="summary",
+            task_name="spine",
             context={},
             schema={"type": "object"},
         )
@@ -1246,7 +1268,7 @@ async def test_kimi_partial_mode_cannot_mix_with_structured_output() -> None:
     with pytest.raises(ProviderResponseError) as raised:
         await provider.generate_strict_structured(
             "return JSON",
-            task_name="summary",
+            task_name="spine",
             context={"_assistant_prefill": "{"},
             schema={"type": "object"},
         )
@@ -1335,7 +1357,7 @@ async def test_tokenhub_model_families_avoid_unsupported_structured_thinking_com
 
     await provider.generate_strict_structured(
         "return JSON",
-        task_name="summary",
+        task_name="spine",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )

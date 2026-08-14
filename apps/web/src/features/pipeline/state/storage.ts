@@ -18,6 +18,14 @@ export type StoredRunControlState = {
   runSource?: RunSource;
   runControlState: RunControlState;
   selectedId: string;
+  /**
+   * Latest committed/candidate artifact event per stage, kept alongside the
+   * capped event window so long runs (40 chapters ≈ 1800 events vs the 500-event
+   * cap) still recover the early-stage artifacts after a reload. Chapter bodies
+   * are deliberately not persisted: they dominate payload size and remain
+   * recoverable from run history / export.
+   */
+  stickyStageEvents?: RunEvent[];
   workspacePhase: 'planning' | 'running';
 };
 
@@ -106,7 +114,8 @@ export function loadRunControlLocally(): StoredRunControlState {
       paused: state === 'paused' || Boolean(parsed.paused),
       runSource: 'backend',
       runControlState: state,
-      selectedId: typeof parsed.selectedId === 'string' && parsed.selectedId.trim() ? parsed.selectedId : 'info',
+      selectedId: typeof parsed.selectedId === 'string' && parsed.selectedId.trim() ? parsed.selectedId : 'brief',
+      stickyStageEvents: Array.isArray(parsed.stickyStageEvents) ? parsed.stickyStageEvents : undefined,
       workspacePhase: parsed.workspacePhase,
     };
   } catch {
@@ -144,7 +153,7 @@ function defaultRunControlState(): StoredRunControlState {
     paused: false,
     runSource: 'backend',
     runControlState: 'idle',
-    selectedId: 'info',
+    selectedId: 'brief',
     workspacePhase: 'planning',
   };
 }

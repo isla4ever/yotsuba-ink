@@ -35,8 +35,8 @@ export function CharacterForceGraphPanel({ artifactStatus, events, onEdit, quali
   const [graphSize, setGraphSize] = useState({ width: 300, height: 240 });
   const graph = graphOverride ?? { nodes: [], edges: [], updated_by: '' };
   const graphKey = useMemo(() => characterGraphSignature(graph), [graph]);
-  const generating = events.some((event) => event.stage_id === 'characters' && event.type === 'node.started')
-    && !events.some((event) => event.stage_id === 'characters' && event.type === 'artifact.committed');
+  const generating = events.some((event) => event.stage_id === 'cast' && event.type === 'node.started')
+    && !events.some((event) => event.stage_id === 'cast' && event.type === 'artifact.committed');
 
   const graphData = useMemo<{ nodes: GraphNode[]; links: GraphLink[] }>(() => {
     const positions = tierRingLayout(graph.nodes);

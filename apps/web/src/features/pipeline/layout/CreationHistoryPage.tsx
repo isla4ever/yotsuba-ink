@@ -55,7 +55,7 @@ export function CreationHistoryPage() {
 
       {run.historyError ? <p className="history-inline-error" role="alert">{presentHistoryError(run.historyError)}</p> : null}
       <div className="history-page-layout">
-        <nav aria-label="运行记录" className="history-page-index">
+        <nav aria-label="运行记录" className="history-page-index nw-reveal-scroll">
           <div className="history-page-index-head">
             <strong>运行记录</strong>
             <span>{run.historyLoading ? '正在同步' : `${run.historyItems.length} 条`}</span>
@@ -125,9 +125,14 @@ export function CreationHistoryPage() {
 
             <footer className="history-record-actions">
               {selected.status === 'awaiting_decision' && selected.can_branch ? (
-                <LoadingButton className="mode-primary-action" disabled={Boolean(pendingAction) || !selected.checkpoint_id} loading={pendingAction.startsWith('branch:')} loadingLabel="正在创建" onClick={() => void runAction(`branch:${selected.run_id}`, () => ui.branchHistoryRun(selected))}>
-                  <RotateCcw size={14} />从检查点新建分支
-                </LoadingButton>
+                <>
+                  <LoadingButton className="ghost" disabled={Boolean(pendingAction) || !selected.checkpoint_id} loading={pendingAction.startsWith('branch:')} loadingLabel="正在创建" onClick={() => void runAction(`branch:${selected.run_id}`, () => ui.branchHistoryRun(selected))}>
+                    <RotateCcw size={14} />从检查点新建分支
+                  </LoadingButton>
+                  <LoadingButton className="mode-primary-action" disabled={Boolean(pendingAction)} loading={pendingAction.startsWith('open:')} loadingLabel="正在恢复" onClick={() => void runAction(`open:${selected.run_id}`, () => ui.openHistoryRun(selected))}>
+                    <Play size={14} />{run.activeRunId === selected.run_id ? '返回当前运行' : '继续当前运行'}
+                  </LoadingButton>
+                </>
               ) : selected.status === 'completed' ? null : (
                 <LoadingButton className="mode-primary-action" disabled={Boolean(pendingAction) || (selected.status === 'running' && run.activeRunId !== selected.run_id)} loading={pendingAction.startsWith('open:')} loadingLabel="正在打开" onClick={() => void runAction(`open:${selected.run_id}`, () => ui.openHistoryRun(selected))}>
                   <Play size={14} />{run.activeRunId === selected.run_id ? '返回当前运行' : '打开运行'}
@@ -170,8 +175,8 @@ function HistoryEmpty() {
 }
 
 const stageSteps = [
-  { id: 'info', label: '创作立项' }, { id: 'characters', label: '人物编排' }, { id: 'summary', label: '全书梗概' },
-  { id: 'outline', label: '分卷大纲' }, { id: 'detail', label: '章节施工图' }, { id: 'text', label: '正文' },
+  { id: 'brief', label: '创作立项' }, { id: 'spine', label: '故事脊柱' }, { id: 'cast', label: '人物编排' },
+  { id: 'volumes', label: '分卷架构' }, { id: 'detail', label: '章节施工图' }, { id: 'text', label: '正文' },
   { id: 'cover', label: '封面' }, { id: 'export', label: '导出' },
 ];
 

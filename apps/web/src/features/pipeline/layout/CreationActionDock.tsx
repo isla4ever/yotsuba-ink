@@ -26,7 +26,7 @@ export function CreationActionDock({ disabled, onQualityModeChange }: Props) {
   const action = runActionPresentation({
     approvalPending: run.approvalPending,
     checkpointContinueReady: run.checkpointContinueReady,
-    infoContinueReady: run.infoContinueReady,
+    briefContinueReady: run.briefContinueReady,
     qualityMode,
     runControlState: run.runControlState,
     running: run.running,

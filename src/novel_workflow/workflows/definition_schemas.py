@@ -6,10 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 NodeType = Literal[
-    "info",
-    "characters",
-    "summary",
-    "outline",
+    "brief",
+    "cast",
+    "spine",
+    "volumes",
     "detail",
     "text",
     "cover",
@@ -58,9 +58,8 @@ class ProviderProfile(BaseModel):
     enabled: bool = True
 
 class GenerationBudget(BaseModel):
-    target_chars: int
-    min_chars: int
-    max_chars: int
+    model_config = ConfigDict(extra="forbid")
+
     max_tokens: int
     description: str = ""
 
@@ -113,10 +112,11 @@ class CanvasLayout(BaseModel):
 class WorkflowDefinition(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    architecture_version: Literal["phase27-vnext"]
     id: str
     name: str
-    version: str = "0.1.0"
-    is_template: bool = False
+    version: str
+    is_template: bool
     global_inputs: list[InputField] = Field(default_factory=list)
     provider_profiles: list[ProviderProfile] = Field(default_factory=list)
     prompt_templates: list[PromptTemplate] = Field(default_factory=list)

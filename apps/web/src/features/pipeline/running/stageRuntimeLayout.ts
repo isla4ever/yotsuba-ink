@@ -1,6 +1,6 @@
 import type { StageType } from '../contracts';
 
-export type RuntimePanelKey = 'character' | 'knowledge' | 'worldbuilding' | 'wiki' | 'quality' | 'coverQuality' | 'exportSummary';
+export type RuntimePanelKey = 'character' | 'knowledge' | 'worldbuilding' | 'wiki' | 'quality' | 'contextManifest' | 'coverQuality' | 'exportSummary';
 
 export type StageRuntimeLayout = Readonly<{
   primary: readonly RuntimePanelKey[];
@@ -8,19 +8,19 @@ export type StageRuntimeLayout = Readonly<{
 }>;
 
 export const stageRuntimeLayout = {
-  info: {
+  brief: {
     primary: [],
     compact: [],
   },
-  characters: {
+  spine: {
     primary: [],
-    compact: ['character'],
+    compact: ['worldbuilding', 'quality'],
   },
-  summary: {
+  cast: {
     primary: [],
-    compact: ['character', 'worldbuilding', 'quality'],
+    compact: [],
   },
-  outline: {
+  volumes: {
     primary: [],
     compact: ['character', 'worldbuilding', 'quality'],
   },
@@ -30,7 +30,7 @@ export const stageRuntimeLayout = {
   },
   text: {
     primary: [],
-    compact: ['quality', 'wiki', 'character', 'worldbuilding'],
+    compact: ['contextManifest', 'quality', 'wiki', 'character', 'worldbuilding'],
   },
   cover: {
     primary: [],

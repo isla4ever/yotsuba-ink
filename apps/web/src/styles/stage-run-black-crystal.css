@@ -1,9 +1,20 @@
 /* Wave 3C: shared manuscript/editor material. Stage-specific layouts remain authoritative. */
 .stage-run-workbench {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
-    #070908;
-  background-size: 72px 100%;
+  background-color: #07100f;
+  background-image:
+    linear-gradient(90deg, rgba(4, 12, 11, 0.94), rgba(4, 12, 11, 0.82) 48%, rgba(4, 12, 11, 0.94)),
+    url('/assets/ui/cockpit-atmosphere.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  isolation: isolate;
+}
+
+.stage-run-main {
+  background: color-mix(in srgb, var(--panel) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 18px 38px rgba(0, 0, 0, 0.12);
 }
 
 .stage-run-head,

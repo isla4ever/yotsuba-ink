@@ -6,6 +6,7 @@
  * (npm run audit:css). */
 @import './design-tokens.css';
 @import './foundation.css';
+@import './motion-reveal.css';
 @import './loading-indicators.css';
 @import './loading-overlays.css';
 @import './header-shell.css';
@@ -18,17 +19,10 @@
 @import './stage-run-layout.css';
 @import './stage-run-shell.css';
 @import './stage-run-artifacts.css';
-@import './stage-run-info-editor-shell.css';
-@import './stage-run-info-recommendation-card.css';
-@import './stage-run-info-recommendation-fields.css';
 @import './stage-run-runtime-side.css';
 @import './stage-run-transition-loader.css';
 @import './stage-run-runtime-detail-dialogs.css';
-@import './stage-run-outline-workbench-v3.css';
-@import './stage-run-outline-dependency-shell.css';
-@import './stage-run-outline-dependency-editor.css';
-@import './stage-run-outline-beat-editor.css';
-@import './stage-run-outline-responsive.css';
+@import './stage-run-insight-enrichment.css';
 @import './dialogs.css';
 @import './overlay-feedback-system.css';
 @import './unsaved-draft-guard.css';

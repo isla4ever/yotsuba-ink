@@ -19,10 +19,12 @@ export type HydratedRunState = {
   checkpointContinueReady: boolean;
   checkpointStageId: string;
   events: RunEvent[];
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
   paused: boolean;
   runControlState: RunControlState;
   selectedId: string;
+  /** Stage artifact events persisted past the capped event window (long runs). */
+  stickyStageEvents?: RunEvent[];
 };
 
 export type RunRecoveryDiscardReason = 'completed' | 'failed' | 'invalid' | 'not_found';
@@ -51,6 +53,27 @@ export function resolveServerRunRecovery(
   };
 }
 
+/**
+ * Presentation restore: unlike boot-time recovery (which discards terminal
+ * runs so a reload never re-enters an old session), explicitly opening a book
+ * or a history run must present terminal runs too — the SSE replay closes
+ * itself after the terminal event, leaving a read-only completed/failed view.
+ */
+export function resolveServerRunPresentation(
+  envelope: GraphRunEnvelope,
+  fallbackRunId: string,
+): RunRecoveryResolution {
+  if (!isGraphRunEnvelope(envelope, fallbackRunId)) {
+    return { kind: 'discard', reason: 'invalid' };
+  }
+  return {
+    kind: 'restore',
+    hydrated: hydrateGraphRun(envelope),
+    reconnect: true,
+    source: 'server',
+  };
+}
+
 export function hydrateGraphRun(envelope: GraphRunEnvelope): HydratedRunState {
   const projection = envelope.read_model;
   const pending = projection.pending_decisions[0];
@@ -62,12 +85,12 @@ export function hydrateGraphRun(envelope: GraphRunEnvelope): HydratedRunState {
     approvalDraft: '',
     approvalPending: awaitingDecision && Boolean(pending),
     approvalSource: '',
-    automationCockpitReady: projection.active_stage_id !== 'info'
+    automationCockpitReady: projection.active_stage_id !== 'brief'
       || Object.values(projection.stage_status).some((status) => status === 'completed'),
     checkpointContinueReady: false,
     checkpointStageId: awaitingDecision ? pendingStage || projection.active_stage_id : '',
     events: [],
-    infoContinueReady: false,
+    briefContinueReady: false,
     paused: awaitingDecision,
     runControlState: controlStateFromProjection(projection),
     selectedId: pendingStage || projection.active_stage_id,
@@ -81,6 +104,7 @@ export function hydrateLocalRunControl(params: {
   paused: boolean;
   runControlState: RunControlState;
   selectedId: string;
+  stickyStageEvents?: RunEvent[];
 }): HydratedRunState {
   const events = [...params.events].sort(compareNewestFirst);
   const latestDecision = events.find((event) => (
@@ -98,14 +122,15 @@ export function hydrateLocalRunControl(params: {
     approvalDraft: draft,
     approvalPending: Boolean(pending),
     approvalSource: draft,
-    automationCockpitReady: events.some((event) => event.stage_id && event.stage_id !== 'info'),
+    automationCockpitReady: events.some((event) => event.stage_id && event.stage_id !== 'brief'),
     checkpointContinueReady: false,
     checkpointStageId: stageId,
     events,
-    infoContinueReady: false,
+    briefContinueReady: false,
     paused: params.paused,
     runControlState: params.runControlState,
-    selectedId: stageId || params.selectedId || 'info',
+    selectedId: stageId || params.selectedId || 'brief',
+    stickyStageEvents: params.stickyStageEvents,
   };
 }
 
@@ -115,7 +140,7 @@ function isGraphRunEnvelope(value: unknown, expectedRunId: string): value is Gra
   return Boolean(
     envelope.definition
     && envelope.read_model
-    && envelope.definition.architecture_version === 'phase26-vnext'
+    && envelope.definition.architecture_version === 'phase27-vnext'
     && envelope.definition.run_id === expectedRunId
     && envelope.read_model.run_id === expectedRunId
     && envelope.read_model.thread_id === expectedRunId,

@@ -1,8 +1,8 @@
 export type StageType =
-  | 'info'
-  | 'characters'
-  | 'summary'
-  | 'outline'
+  | 'brief'
+  | 'cast'
+  | 'spine'
+  | 'volumes'
   | 'detail'
   | 'text'
   | 'cover'
@@ -159,9 +159,6 @@ export type WorkflowStage = {
   prompt_template_id: string;
   input_schema: InputField[];
   generation_budget?: {
-    target_chars: number;
-    min_chars: number;
-    max_chars: number;
     max_tokens: number;
     description?: string;
   } | null;
@@ -175,6 +172,7 @@ export type CanvasLayout = {
 };
 
 export type WorkflowDefinition = {
+  architecture_version: 'phase27-vnext';
   id: string;
   name: string;
   version: string;
@@ -199,7 +197,7 @@ export type WorkspaceKey =
   | 'providers'
   | 'prompts'
   | 'wiki'
-  | 'characters'
+  | 'cast'
   | 'quality'
   | 'chapters'
   | 'history';

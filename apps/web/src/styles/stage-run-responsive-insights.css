@@ -1,26 +1,3 @@
-@media (max-height: 930px) {
-  .stage-run-main.info-main .recommendation-command-card {
-    gap: 10px;
-    grid-template-rows: auto auto auto minmax(108px, 0.46fr) minmax(164px, 0.9fr) auto;
-    padding: 12px;
-  }
-
-  .stage-run-main.info-main .compact-synopsis textarea {
-    min-height: 108px;
-  }
-
-  .stage-run-main.info-main .info-worldbuilding-digest {
-    min-height: 164px;
-    padding: 10px;
-  }
-
-  .stage-run-main.info-main .info-worldbuilding-tile,
-  .stage-run-main.info-main .info-worldbuilding-grid article {
-    min-height: 72px;
-    padding: 8px;
-  }
-}
-
 .stage-run-side.panels-2 .runtime-knowledge-card {
   min-height: auto;
   padding-bottom: 10px;

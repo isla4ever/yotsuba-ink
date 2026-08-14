@@ -6,11 +6,13 @@ type SecretAvailability = Pick<ProviderProfile, 'has_env_secret' | 'has_saved_se
 
 export type ProviderAvailabilityState = {
   byProvider: Record<string, SecretAvailability>;
+  /** Live profiles, the only place secret flags are authoritative. */
+  profiles: ProviderProfile[];
   templates: ProviderTemplate[];
   status: 'idle' | 'loading' | 'ready' | 'failed';
 };
 
-const initialState: ProviderAvailabilityState = { byProvider: {}, templates: [], status: 'idle' };
+const initialState: ProviderAvailabilityState = { byProvider: {}, profiles: [], templates: [], status: 'idle' };
 
 export function useProviderAvailability(open: boolean) {
   const [state, setState] = useState<ProviderAvailabilityState>(initialState);
@@ -27,6 +29,7 @@ export function useProviderAvailability(open: boolean) {
             has_env_secret: provider.has_env_secret,
             has_saved_secret: provider.has_saved_secret,
           }])),
+          profiles,
           templates,
           status: 'ready',
         });

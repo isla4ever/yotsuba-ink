@@ -120,7 +120,7 @@ function clearNarrativeSeeds(workflow: WorkflowDefinition): WorkflowDefinition {
   return {
     ...workflow,
     global_inputs: workflow.global_inputs.map((field) => field.key === 'title' ? blank(field) : field),
-    nodes: workflow.nodes.map((stage) => stage.id === 'info' ? {
+    nodes: workflow.nodes.map((stage) => stage.id === 'brief' ? {
       ...stage,
       input_schema: stage.input_schema.map((field) => seedKeys.includes(field.key) ? blank(field) : field),
     } : stage),
@@ -130,7 +130,7 @@ function clearNarrativeSeeds(workflow: WorkflowDefinition): WorkflowDefinition {
 function updateInfoField(workflow: WorkflowDefinition, key: string, value: unknown): WorkflowDefinition {
   return {
     ...workflow,
-    nodes: workflow.nodes.map((stage) => stage.id === 'info' ? {
+    nodes: workflow.nodes.map((stage) => stage.id === 'brief' ? {
       ...stage,
       input_schema: stage.input_schema.map((field) => field.key === key ? { ...field, default: value } : field),
     } : stage),

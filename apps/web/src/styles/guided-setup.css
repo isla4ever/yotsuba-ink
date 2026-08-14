@@ -283,6 +283,36 @@
   text-align: left;
 }
 
+/* 适合谁 / 典型场景 / 运行界面：三档差异一目了然。 */
+.setup-mode-facts {
+  border-top: 1px dashed color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  display: grid;
+  gap: 4px 14px;
+  grid-column: 2 / 4;
+  margin: 8px 0 0;
+  padding-top: 8px;
+}
+
+.setup-mode-facts > div {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.setup-mode-facts dt {
+  color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.setup-mode-facts dd {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .setup-mode-options > button:last-child {
   border-bottom: 0;
 }
@@ -318,6 +348,8 @@
 
 .setup-mode-check {
   color: var(--color-status-success);
+  grid-column: 4;
+  grid-row: 1;
 }
 
 .ai-service-readiness {

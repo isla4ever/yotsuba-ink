@@ -73,6 +73,27 @@ class ChapterStore:
         ]
         return sorted(records, key=lambda item: (item.chapter_id, item.created_at))
 
+    def latest_word_total(self, run_id: str) -> int:
+        """Character count across the latest version of every chapter in a run.
+
+        Reads raw JSON instead of validating full ChapterRecords: this backs the
+        run-history word column, which lists many runs at once.
+        """
+        require_safe_id(run_id, label="run_id")
+        run_dir = self.root / run_id
+        if not run_dir.exists():
+            return 0
+        total = 0
+        for pointer_path in run_dir.glob("*/latest.json"):
+            try:
+                pointer = read_json(pointer_path)
+                record = read_json(pointer_path.parent / f"{pointer['version_id']}.json")
+                content = record.get("artifact", {}).get("content", "")
+            except (OSError, ValueError, KeyError):
+                continue
+            total += len(str(content))
+        return total
+
     def _path(self, run_id: str, chapter_id: str, version_id: str) -> Path:
         require_safe_id(run_id, label="run_id")
         require_safe_id(chapter_id, label="chapter_id")

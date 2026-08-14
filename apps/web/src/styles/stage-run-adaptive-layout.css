@@ -1,205 +1,7 @@
-/* Wave 3B: respond to the real workbench width after the product rail is deducted. */
-.stage-run-main.summary-main {
-  container-name: summary-stage;
-  container-type: inline-size;
-  grid-template-rows: auto minmax(0, 1fr) !important;
-}
-
-.stage-run-main.decision-capable:has(> .stage-decision-slot.collapsed) {
-  padding-bottom: 0;
-}
-
 .stage-run-main > .stage-decision-slot.collapsed,
 .stage-run-main > .stage-decision-slot.collapsed .stage-finalize-tray-inner {
   height: 0;
   min-height: 0;
-}
-
-.stage-run-main.summary-main > .stage-contract-board.summary-board {
-  align-self: stretch;
-  grid-template-columns: minmax(320px, 1.08fr) minmax(280px, 0.92fr) !important;
-  grid-template-rows: auto minmax(0, 1fr) !important;
-  height: 100%;
-  min-height: 0;
-  width: 100%;
-}
-
-.stage-run-main.summary-main .summary-context-bar {
-  grid-column: 1 / -1 !important;
-  grid-row: 1 !important;
-  min-width: 0;
-  width: 100%;
-}
-
-.stage-run-main.summary-main .summary-manuscript-pane,
-.stage-run-main.summary-main .summary-side-workbench {
-  grid-row: 2 !important;
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-}
-
-.stage-run-main.summary-main .summary-manuscript-pane {
-  grid-column: 1 !important;
-}
-
-.stage-run-main.summary-main .summary-side-workbench {
-  grid-column: 2 !important;
-}
-
-.summary-support-tabs {
-  display: none;
-}
-
-.stage-run-side.stage-summary {
-  background: rgba(8, 11, 10, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 8px;
-  gap: 8px;
-  padding: 8px;
-}
-
-.stage-run-side.stage-summary > .character-card {
-  border-radius: 6px;
-}
-
-.stage-run-side.stage-summary .runtime-compact-tile {
-  border-radius: 5px;
-}
-
-@media (min-width: 1181px) and (max-width: 1450px) {
-  .product-shell .stage-run-workbench:has(> .stage-run-main.summary-main) {
-    grid-template-columns: minmax(0, 1fr) clamp(300px, 23vw, 320px);
-  }
-}
-
-@container summary-stage (max-width: 1250px) {
-  .stage-contract-board.summary-board > .summary-side-workbench {
-    grid-template-rows: minmax(0, 1fr) minmax(210px, 0.44fr) !important;
-  }
-
-  .summary-side-workbench > .summary-side-top {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: auto minmax(0, 1fr) !important;
-  }
-
-  .summary-support-tabs {
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    display: grid;
-    gap: 3px;
-    grid-column: 1;
-    grid-row: 1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 3px;
-  }
-
-  .summary-support-tabs button {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-radius: 4px;
-    color: var(--muted);
-    display: inline-flex;
-    font-size: 10px;
-    gap: 6px;
-    justify-content: center;
-    min-height: 30px;
-  }
-
-  .summary-support-tabs button[aria-pressed='true'] {
-    background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 11%, rgba(255, 255, 255, 0.035));
-    color: var(--text);
-  }
-
-  .summary-support-tabs span {
-    color: var(--mode-aura, var(--accent-2));
-    font-variant-numeric: tabular-nums;
-  }
-
-  .summary-side-top > .summary-structure-pane,
-  .summary-side-top > .summary-turning-pane {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    height: 100%;
-    min-height: 0;
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-    transition:
-      opacity 150ms ease,
-      transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      visibility 0s linear;
-    visibility: visible;
-  }
-
-  .summary-side-top[data-active-track='beats'] > .summary-turning-pane,
-  .summary-side-top[data-active-track='turns'] > .summary-structure-pane {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate3d(0, 3px, 0);
-    transition:
-      opacity 120ms ease,
-      transform 150ms ease,
-      visibility 0s linear 150ms;
-    visibility: hidden;
-  }
-
-  .summary-side-workbench .summary-structure-pane,
-  .summary-side-workbench .summary-turning-pane {
-    padding: 9px;
-  }
-
-  .summary-side-workbench .summary-beat-card,
-  .summary-side-workbench .summary-turn-card {
-    gap: 7px;
-    min-height: 72px;
-    overflow: hidden;
-    padding: 8px;
-  }
-
-  .summary-side-workbench .summary-beat-timeline,
-  .summary-side-workbench .summary-turn-ladder {
-    min-height: 0;
-    overflow: auto;
-  }
-
-  .summary-side-workbench .summary-beat-content strong,
-  .summary-side-workbench .summary-turn-card strong {
-    font-size: 11px;
-  }
-
-  .summary-side-workbench .summary-beat-content p,
-  .summary-side-workbench .summary-turn-card p {
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    display: -webkit-box;
-    font-size: 9px;
-    overflow: hidden;
-  }
-
-  .summary-side-workbench .summary-relationship-sync {
-    padding: 9px 10px;
-  }
-
-  .summary-side-workbench .arc-swimlanes {
-    --arc-name-w: 66px;
-    gap: 5px;
-  }
-
-  .summary-side-workbench .arc-swimlane-name b,
-  .summary-side-workbench .arc-swimlane-name small,
-  .summary-side-workbench .arc-swimlane-acts > span,
-  .summary-side-workbench .arc-swimlane-legend {
-    font-size: 9px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .summary-side-top > .summary-structure-pane,
-  .summary-side-top > .summary-turning-pane {
-    transition: none !important;
-  }
 }
 
 .stage-run-main.export-main {
@@ -226,120 +28,121 @@
   }
 }
 
-@media (max-width: 1180px) {
-  .stage-run-main.summary-main > .stage-contract-board.summary-board {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: auto minmax(520px, 1fr) minmax(560px, auto) !important;
-    height: auto;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-  }
-
-  .stage-run-main.summary-main .summary-context-bar,
-  .stage-run-main.summary-main .summary-manuscript-pane,
-  .stage-run-main.summary-main .summary-side-workbench {
-    grid-column: 1 !important;
-    height: auto;
-  }
-
-  .stage-run-main.summary-main .summary-context-bar { grid-row: 1 !important; }
-  .stage-run-main.summary-main .summary-manuscript-pane { grid-row: 2 !important; }
-  .stage-run-main.summary-main .summary-side-workbench { grid-row: 3 !important; }
-}
-
-/* Wave 5: keep cross-stage systems available without sacrificing artifact width. */
-.product-shell .stage-run-workbench.context-rail-layout:has(> .stage-run-side.context-rail) {
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
 .product-shell .stage-run-workbench.no-side-panels:has(> .stage-run-main.export-main) {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.stage-run-workbench.context-rail-layout > .stage-run-main {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.stage-run-workbench.context-rail-layout > .stage-run-side.context-rail {
-  grid-column: 1;
-  grid-row: 1;
-}
-
 .stage-run-side.context-rail {
-  align-self: start;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
+  align-self: stretch;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 7px;
   display: block;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  overflow: hidden;
-  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px;
 }
 
 .runtime-context-rail {
   align-items: stretch;
-  background: color-mix(in srgb, var(--panel) 90%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-  border-radius: 7px;
+  background: transparent;
+  border: 0;
   display: grid;
-  gap: 6px;
-  grid-template-columns: minmax(118px, 0.18fr) minmax(0, 1fr);
-  min-height: 48px;
-  padding: 5px;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  padding: 2px;
 }
 
 .runtime-context-rail-label {
   align-content: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
-  padding: 0 8px;
+  padding: 4px 4px 10px;
 }
 
 .runtime-context-rail-label span {
   color: var(--text-soft);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 860;
 }
 
 .runtime-context-rail-label small {
   color: var(--muted);
-  font-size: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 .stage-run-side.context-rail .runtime-compact-tile-grid {
   display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(var(--context-count, 4), minmax(0, 1fr));
+  gap: 7px;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
 
-.stage-run-side.context-rail.stage-summary,
-.stage-run-side.context-rail.stage-outline {
-  --context-count: 3;
-}
-
 .stage-run-side.context-rail .runtime-compact-tile {
-  background: color-mix(in srgb, var(--panel-muted) 44%, transparent);
+  background: color-mix(in srgb, var(--panel-muted) 58%, transparent);
   border-radius: 5px;
-  gap: 7px;
-  min-height: 36px;
-  padding: 5px 8px;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 9px;
 }
 
 .stage-run-side.context-rail .runtime-compact-tile strong {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .stage-run-side.context-rail .runtime-compact-tile small {
-  font-size: 8px;
+  font-size: 9px;
+}
+
+@media (max-width: 1180px) {
+  .stage-run-side.context-rail {
+    background: transparent;
+    border: 0;
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .runtime-context-rail {
+    background: color-mix(in srgb, var(--panel) 90%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    border-radius: 7px;
+    grid-template-columns: minmax(118px, 0.18fr) minmax(0, 1fr);
+    min-height: 48px;
+    padding: 5px;
+  }
+
+  .runtime-context-rail-label {
+    border-bottom: 0;
+    padding: 0 8px;
+  }
+
+  .runtime-context-rail-label small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stage-run-side.context-rail .runtime-compact-tile-grid {
+    grid-template-columns: repeat(var(--context-count, 4), minmax(0, 1fr));
+  }
+
+  .stage-run-side.context-rail.stage-spine,
+  .stage-run-side.context-rail.stage-volumes,
+  .stage-run-side.context-rail.stage-detail {
+    --context-count: 3;
+  }
+
+  .stage-run-side.context-rail .runtime-compact-tile {
+    min-height: 38px;
+    padding: 5px 8px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -364,5 +167,14 @@
 
   .stage-run-side.context-rail .runtime-compact-tile {
     flex: 0 0 min(184px, 58vw);
+  }
+
+  /* This file is last in the running bundle. Keep the single-page mobile
+     scroll contract authoritative over historical Text workbench overrides. */
+  .product-shell .stage-run-workbench:has(> .stage-run-main.text-main),
+  .product-shell .stage-run-workbench > .stage-run-main.text-main > [data-scroll-region="artifact"] {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
   }
 }

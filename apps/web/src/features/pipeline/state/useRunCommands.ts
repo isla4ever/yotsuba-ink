@@ -74,7 +74,7 @@ export function useRunCommands(options: RunCommandOptions) {
     commandEpochRef.current += 1;
     clearRunControlLocally();
     eventsRef.current = [];
-    dispatchRun({ type: 'run_reset', stageId: 'info' });
+    dispatchRun({ type: 'run_reset', stageId: 'brief' });
     stageDecision.reset();
     transitions.reset();
   }
@@ -108,6 +108,7 @@ export function useRunCommands(options: RunCommandOptions) {
       workflow,
     });
     if (terminal) settleRunControl(terminal);
+    return terminal;
   }
 
   async function restoreRecoveredRun(hydrated: HydratedRunState, reconnect: boolean) {
@@ -138,7 +139,7 @@ export function useRunCommands(options: RunCommandOptions) {
       ...state,
       checkpointContinueReady: stageDecision.state.checkpointContinueReady,
       checkpointStageId: stageDecision.state.checkpointStageId,
-      infoContinueReady: stageDecision.state.infoContinueReady,
+      briefContinueReady: stageDecision.state.briefContinueReady,
       qualityMode: workflow.quality_mode,
       selectedStageType: selectedStage.type,
     });
@@ -175,6 +176,22 @@ export function useRunCommands(options: RunCommandOptions) {
     }
   }
 
+  // A decision interrupt closes its SSE response by design. Re-open the same
+  // run from the last sequence so the next graph node and interrupt become the
+  // single source of truth for the UI.
+  async function continueAfterDecision() {
+    if (!state.activeRunId || stream.isInFlight()) return;
+    setRunControl(false, 'running', true);
+    try {
+      const terminal = await consumeExistingRun(runInputs, state.activeRunId);
+      if (!terminal) setRunControl(false, 'running', true);
+    } catch (error) {
+      if (isRunAbortError(error)) return;
+      setRunControl(false, 'failed', false);
+      onWarning(`定稿后续运行失败：${errorMessage(error)}`);
+    }
+  }
+
   async function startNewRun() {
     const commandEpoch = commandEpochRef.current;
     const source = getPreferredRunSource();
@@ -197,10 +214,10 @@ export function useRunCommands(options: RunCommandOptions) {
     onWarning('');
     const runId = `backend-run-${Date.now()}`;
     eventsRef.current = [];
-    dispatchRun({ type: 'run_started_locally', runId, stageId: 'info' });
+    dispatchRun({ type: 'run_started_locally', runId, stageId: 'brief' });
     transitions.reset();
     if (workflow.quality_mode !== 'fast') {
-      transitions.navigateToStage('info');
+      transitions.navigateToStage('brief');
     }
     stageDecision.reset();
     try {
@@ -229,7 +246,7 @@ export function useRunCommands(options: RunCommandOptions) {
     }
     const nextStageId = selectNextStageId(workflow.nodes, resolvedStageId);
     transitions.startSettlement({
-      kind: workflow.quality_mode === 'balanced' && resolvedStageId === 'info'
+      kind: workflow.quality_mode === 'balanced' && resolvedStageId === 'brief'
         ? 'balanced_cockpit'
         : 'route',
       nextStageId,
@@ -259,12 +276,13 @@ export function useRunCommands(options: RunCommandOptions) {
   function returnExportToPlanning() {
     markExportCompletedAndStay();
     stageDecision.clearCheckpoint();
-    dispatchRun({ type: 'run_returned_to_planning', stageId: 'info' });
+    dispatchRun({ type: 'run_returned_to_planning', stageId: 'brief' });
     transitions.setAutomationCockpitReady(workflow.quality_mode !== 'deep');
   }
 
   return {
     clearRunState,
+    continueAfterDecision,
     resetRunControl,
     restoreRecoveredRun,
     returnExportToPlanning,

@@ -43,7 +43,7 @@ export function selectStageToResume(
     (event) => event.type === 'artifact.committed' && event.stage_id !== 'text',
   );
   const completedStageId = completedStage ? stageIdForEvent(completedStage) : '';
-  return selectNextStageId(stages, completedStageId) || selectedStageId || 'info';
+  return selectNextStageId(stages, completedStageId) || selectedStageId || 'brief';
 }
 
 export function selectCheckpointStageId(
@@ -62,7 +62,7 @@ export function selectCheckpointStageId(
   const latestCheckpoint = selectLatestCheckpointEvent(events, stages);
   if (latestCheckpoint) return stageIdForEvent(latestCheckpoint);
   if (selectedStageId && stageExists(stages, selectedStageId)) return selectedStageId;
-  return 'info';
+  return 'brief';
 }
 
 export function selectLatestStageArtifact(events: RunEvent[], stageId: string) {
@@ -110,7 +110,7 @@ export function hasRunningNodeFromEvents(events: RunEvent[]) {
 export function canSwitchModeFromFacts(params: {
   approvalPending: boolean;
   checkpointContinueReady: boolean;
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
   paused: boolean;
   /** hasRecoverableRun over the active run (the shell's `runHasStarted`). */
   recoverable: boolean;
@@ -122,7 +122,7 @@ export function canSwitchModeFromFacts(params: {
     params.running
     || params.paused
     || params.approvalPending
-    || params.infoContinueReady
+    || params.briefContinueReady
     || params.checkpointContinueReady
   ) return false;
   if (['starting', 'running', 'stop_requested', 'paused'].includes(params.runControlState)) return false;
@@ -134,7 +134,7 @@ export function canSwitchMode(params: {
   approvalPending: boolean;
   checkpointContinueReady: boolean;
   events: RunEvent[];
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
   paused: boolean;
   runControlState: RunControlState;
   running: boolean;
@@ -142,7 +142,7 @@ export function canSwitchMode(params: {
   return canSwitchModeFromFacts({
     approvalPending: params.approvalPending,
     checkpointContinueReady: params.checkpointContinueReady,
-    infoContinueReady: params.infoContinueReady,
+    briefContinueReady: params.briefContinueReady,
     paused: params.paused,
     recoverable: hasRecoverableRun(params.activeRunId, params.events, params.runControlState),
     runControlState: params.runControlState,

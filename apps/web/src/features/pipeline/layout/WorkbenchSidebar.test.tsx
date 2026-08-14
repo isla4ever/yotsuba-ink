@@ -14,11 +14,11 @@ function renderSidebar(overrides: {
 } = {}) {
   return renderToStaticMarkup(
     <PipelineShellTestProviders
-      events={[runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {} })]}
+      events={[runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'brief', node_id: 'brief.commit_artifact', payload: {} })]}
       runState={{
         runHasStarted: true,
         routePhase: 'running',
-        routeStageId: 'summary',
+        routeStageId: 'spine',
         ...overrides.runState,
       }}
       workflowConfig={{
@@ -48,17 +48,41 @@ describe('WorkbenchSidebar', () => {
     expect(html).toContain('搜索 / 命令');
   });
 
-  it('shows the balanced cockpit together with every stage workbench', () => {
+  it('merges cockpit and monitor into one console entry alongside every stage workbench', () => {
     const html = renderSidebar({
       runState: { routePhase: 'planning', routeStageId: '' },
       workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', true) },
     });
-    expect(html).toContain('创作驾驶舱');
+    expect(html).toContain('创作控制台');
+    expect(html).not.toContain('创作驾驶舱');
+    expect(html).not.toContain('全局监控台');
     expect(html).not.toContain('创作规划');
-    expect(html).not.toContain('disabled=""');
+    // No attached run: the console opens the cockpit, so nothing is disabled.
+    expect(html.match(/disabled=""/g) ?? []).toHaveLength(0);
     expect(html).toContain('人物圣经');
     expect(html).toContain('章节施工图');
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+  });
+
+  it('condenses Story Bible to one entry in balanced mode and keeps the four sections in deep mode', () => {
+    const balanced = renderSidebar({
+      runState: { routePhase: 'planning', routeStageId: '' },
+      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', true) },
+    });
+    expect(balanced).toContain('Story Bible');
+    expect(balanced).not.toContain('伏笔账本');
+    expect(renderSidebar()).toContain('伏笔账本');
+  });
+
+  it('marks the console entry current on the monitor route once a run is attached', () => {
+    const html = renderSidebar({
+      runState: { activeRunId: 'run-1', routePhase: 'monitor', routeStageId: '' },
+      workflowConfig: { qualityMode: 'fast', routePolicy: modeRoutePolicy('fast', true) },
+    });
+    expect(html).toContain('创作控制台');
+    expect(html).toContain('运行中：卷章结构、内容与日志同屏');
+    const currentChunk = html.split('<button').find((chunk) => chunk.includes('aria-current="page"'));
+    expect(currentChunk).toContain('创作控制台');
   });
 
   it('shows planning and all stages before a balanced run starts', () => {

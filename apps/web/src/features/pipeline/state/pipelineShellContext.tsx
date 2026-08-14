@@ -1,6 +1,6 @@
 import { createContext, useContext, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import type { ProductNavigationItem, ProductNavigationItemId } from '../layout/ProductNavigationRail';
-import type { BibleSection } from '../lib/stageRoutes';
+import type { BibleSection, PipelinePhase } from '../lib/stageRoutes';
 import type { StageRunStatus } from './runEventIndex';
 import type { RunEventsSnapshot, RunEventsStore } from './runEventsStore';
 import type { ModeRoutePolicy } from './runPresentationState';
@@ -40,14 +40,14 @@ export type RunStateSlice = {
   /** Per-stage runtime status + checkpoint readiness (value-stable). */
   stageRuntimes: StageRuntimeSummaryMap;
   approvalPending: boolean;
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
   checkpointContinueReady: boolean;
   /** True while a stage settlement transition is in flight. */
   transitioning: boolean;
   resetUndoAvailable: boolean;
   /** Control-surface phase the header/docks present (cockpit-aware). */
   workspacePhase: 'planning' | 'running';
-  routePhase: 'studio' | 'history' | 'planning' | 'running' | 'bible';
+  routePhase: PipelinePhase;
   routeStageId: string;
   /** Active Story Bible section when routePhase is 'bible', otherwise ''. */
   routeBibleSection: BibleSection | '';
@@ -81,6 +81,7 @@ export type UICommandSlice = {
   knowledgeOpen: boolean;
   historyOpen: boolean;
   settingsOpen: boolean;
+  monitorOpen: boolean;
   toggleTheme: () => void;
   toggleSidebar: () => void;
   openCommandPalette: () => void;
@@ -91,6 +92,7 @@ export type UICommandSlice = {
   navigateStage: (stageId: string) => void;
   navigateBible: (section: BibleSection) => void;
   openKnowledge: () => void;
+  openMonitor: () => void;
   openHistory: () => void;
   openSettings: () => void;
   closeHistory: () => void;

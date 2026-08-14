@@ -25,20 +25,20 @@ describe('pipeline canvas interaction contract', () => {
 
 describe('cockpit runtime layer availability', () => {
   it('exposes planning stages as named keyboard actions', () => {
-    const nodes = buildNodes(defaultWorkflow, 'info', [], false, 'planning', false);
-    const info = nodes.find((node) => node.id === 'info');
-    const summary = nodes.find((node) => node.id === 'summary');
+    const nodes = buildNodes(defaultWorkflow, 'brief', [], false, 'planning', false);
+    const info = nodes.find((node) => node.id === 'brief');
+    const spine = nodes.find((node) => node.id === 'spine');
 
     expect(info).toMatchObject({ ariaRole: 'button', focusable: true, selectable: true, selected: true });
     expect(info?.ariaLabel).toContain('第 1 阶段，创作立项定稿');
     expect(info?.ariaLabel).toContain('当前选中');
-    expect(summary?.ariaLabel).toContain('第 3 阶段，全书梗概');
+    expect(spine?.ariaLabel).toContain('第 2 阶段，故事脊柱');
   });
 
   it('marks Wiki and quality nodes unavailable before a run starts', () => {
-    const nodes = buildNodes(defaultWorkflow, 'info', [], true, 'cockpit-vertical', false);
+    const nodes = buildNodes(defaultWorkflow, 'brief', [], true, 'cockpit-vertical', false);
     const runtimeNodes = nodes.filter((node) => node.id === 'wiki-layer' || node.id === 'quality-layer');
-    const info = nodes.find((node) => node.id === 'info');
+    const info = nodes.find((node) => node.id === 'brief');
 
     expect(info?.ariaLabel).toContain('打开阶段设置');
     expect(runtimeNodes).toHaveLength(2);
@@ -47,7 +47,7 @@ describe('cockpit runtime layer availability', () => {
       expect(node.ariaLabel).toContain('启动创作后可用');
       expect(node.data).toMatchObject({ disabled: true, selected: false, subtitle: '启动后可用' });
     });
-    expect(buildEdges(defaultWorkflow, [], 'info', true, 'cockpit-vertical', false)
+    expect(buildEdges(defaultWorkflow, [], 'brief', true, 'cockpit-vertical', false)
       .filter((edge) => edge.id.startsWith('wiki-') || edge.id.startsWith('quality-'))
       .every((edge) => edge.className?.includes('disabled'))).toBe(true);
   });
@@ -55,7 +55,7 @@ describe('cockpit runtime layer availability', () => {
   it('restores runtime layer interaction after the run starts', () => {
     const nodes = buildNodes(defaultWorkflow, 'wiki-layer', [], true, 'cockpit-vertical', true);
     const wiki = nodes.find((node) => node.id === 'wiki-layer');
-    const info = nodes.find((node) => node.id === 'info');
+    const info = nodes.find((node) => node.id === 'brief');
 
     expect(info?.ariaLabel).toContain('打开只读阶段快照');
     expect(wiki).toMatchObject({ ariaRole: 'button', draggable: true, focusable: true, selectable: true });

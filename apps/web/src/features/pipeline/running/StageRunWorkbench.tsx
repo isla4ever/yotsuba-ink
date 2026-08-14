@@ -1,8 +1,8 @@
 import { AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import type { KnowledgeDocument, RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
-import { InfoStageLoadingOverlay } from './InfoStageLoadingOverlay';
-import { infoStageLoadingVisible } from './infoStageLoadingState';
+import { BriefStageLoadingOverlay } from './BriefStageLoadingOverlay';
+import { briefStageLoadingVisible } from './briefStageLoadingState';
 import { RuntimeInsights } from './RuntimeInsights';
 import type { RuntimeInsightContext } from './RuntimeInsightPanel';
 import { RuntimeSideDetailSheet } from './RuntimeSideDetailSheet';
@@ -13,6 +13,7 @@ import { stageRuntimeLayout, type RuntimePanelKey } from './stageRuntimeLayout';
 import { latestApprovedArtifact, latestResult } from './stageRunUtils';
 import { runtimeArtifactProjection } from './runtimeArtifactProjection';
 import { useActiveRunDefinition } from '../state/useActiveRunDefinition';
+import { useChapterContextManifest } from '../state/useChapterContextManifest';
 
 type Props = {
   activeRunId: string;
@@ -59,48 +60,54 @@ export function StageRunWorkbench({
   const [stageArtifactDrafts, setStageArtifactDrafts] = useState<Record<string, StageArtifactDraft>>({});
   const [sideDetailPanel, setSideDetailPanel] = useState<RuntimePanelKey | null>(null);
   const runDefinition = useActiveRunDefinition(activeRunId);
+  const contextManifest = useChapterContextManifest(
+    activeRunId,
+    events.reduce((max, event) => Math.max(max, Number(event.sequence) || 0), 0),
+    activeStage.type === 'text',
+  );
   const runtimeLayout = stageRuntimeLayout[activeStage.type];
   const hasSidePanels = runtimeLayout.primary.length > 0 || runtimeLayout.compact.length > 0;
   const hasContextRail = hasSidePanels && runtimeLayout.primary.length === 0 && runtimeLayout.compact.length > 0;
-  const infoArtifact = latestApprovedArtifact(events, 'info') || latestResult(events, 'info') || approvalDraft;
-  const characterArtifact = latestApprovedArtifact(events, 'characters') || latestResult(events, 'characters');
-  const summaryBaselineArtifact = latestApprovedArtifact(events, 'summary') || latestResult(events, 'summary');
-  const summarySource = activeStage.type === 'summary' ? latestResult(events, activeStage.id) : summaryBaselineArtifact;
-  const summaryDraft = stageArtifactDrafts[activeStage.id];
-  const summaryValue = summaryDraft?.source === summarySource ? summaryDraft.value : summarySource;
-  const outlineBaselineArtifact = latestApprovedArtifact(events, 'outline') || latestResult(events, 'outline');
-  const outlineSource = activeStage.type === 'outline' ? latestResult(events, activeStage.id) : outlineBaselineArtifact;
-  const outlineDraft = stageArtifactDrafts[activeStage.id];
-  const outlineValue = outlineDraft?.source === outlineSource ? outlineDraft.value : outlineSource;
+  const briefArtifact = latestApprovedArtifact(events, 'brief') || latestResult(events, 'brief') || approvalDraft;
+  const castArtifact = latestApprovedArtifact(events, 'cast') || latestResult(events, 'cast');
+  const spineBaselineArtifact = latestApprovedArtifact(events, 'spine') || latestResult(events, 'spine');
+  const spineSource = activeStage.type === 'spine' ? latestResult(events, activeStage.id) : spineBaselineArtifact;
+  const spineDraft = stageArtifactDrafts[activeStage.id];
+  const spineValue = spineDraft?.source === spineSource ? spineDraft.value : spineSource;
+  const volumesBaselineArtifact = latestApprovedArtifact(events, 'volumes') || latestResult(events, 'volumes');
+  const volumesSource = activeStage.type === 'volumes' ? latestResult(events, activeStage.id) : volumesBaselineArtifact;
+  const volumesDraft = stageArtifactDrafts[activeStage.id];
+  const volumesValue = volumesDraft?.source === volumesSource ? volumesDraft.value : volumesSource;
   const detailBaselineArtifact = latestApprovedArtifact(events, 'detail') || latestResult(events, 'detail');
   const detailSource = activeStage.type === 'detail' ? latestResult(events, activeStage.id) : detailBaselineArtifact;
   const detailDraft = stageArtifactDrafts[activeStage.id];
   const detailValue = detailDraft?.source === detailSource ? detailDraft.value : detailSource;
   const projection = runtimeArtifactProjection({
     activeStageType: activeStage.type,
-    characters: characterArtifact,
+    brief: briefArtifact,
+    cast: castArtifact,
     detail: detailValue,
     events,
-    info: infoArtifact,
-    outline: outlineValue,
-    summary: summaryValue,
+    spine: spineValue,
+    volumes: volumesValue,
   });
 
   const insightContext: RuntimeInsightContext = {
     artifactProjection: projection.stage,
     events,
     characterGraphOverride: projection.characterGraph,
-    infoWorldbuilding: projection.worldbuilding,
+    briefWorldbuilding: projection.worldbuilding,
     knowledgeDocuments,
     memoryEvents,
     onOpenKnowledgeManager,
     writebackStatus: projection.writeback,
+    contextManifest,
     workflow,
   };
 
   return (
     <section className={`stage-run-workbench${hasSidePanels ? '' : ' no-side-panels'}${hasContextRail ? ' context-rail-layout' : ''}`}>
-      <InfoStageLoadingOverlay events={events} visible={activeStage.type === 'info' && infoStageLoadingVisible(activeRunId, events)} />
+      <BriefStageLoadingOverlay events={events} visible={activeStage.type === 'brief' && briefStageLoadingVisible(activeRunId, events)} />
       <StageSettlementOverlay
         dwell={settlementDwell}
         events={events}

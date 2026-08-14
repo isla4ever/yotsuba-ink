@@ -149,7 +149,13 @@ function releaseOverlay(entry: OverlayEntry) {
 }
 
 function syncBackgroundInert() {
-  const topOverlayRoot = overlayStack[overlayStack.length - 1]?.dialog.parentElement;
+  // The exempt root must be the <body>-level ancestor that CONTAINS the top
+  // dialog. Portaled dialogs resolve to their portal container; dialogs
+  // rendered inline inside #root resolve to #root itself (the focus trap and
+  // backdrop still isolate them). Using dialog.parentElement here used to
+  // inert the entire app whenever a dialog was not portaled to <body>.
+  const topDialog = overlayStack[overlayStack.length - 1]?.dialog;
+  const topOverlayRoot = topDialog ? bodyChildContaining(topDialog) : null;
   const bodyChildren = Array.from(document.body.children).filter(
     (element): element is HTMLElement => element instanceof HTMLElement && !['SCRIPT', 'STYLE'].includes(element.tagName),
   );
@@ -176,6 +182,12 @@ function syncBackgroundInert() {
   for (const element of Array.from(backgroundStates.keys())) {
     if (!element.isConnected || !bodyChildren.includes(element)) backgroundStates.delete(element);
   }
+}
+
+function bodyChildContaining(node: HTMLElement): HTMLElement | null {
+  let current: HTMLElement | null = node;
+  while (current && current.parentElement !== document.body) current = current.parentElement;
+  return current;
 }
 
 function restoreBackgroundState(element: HTMLElement) {

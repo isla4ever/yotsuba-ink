@@ -1,32 +1,37 @@
-import { BarChart3, DatabaseZap, Globe2, Network } from 'lucide-react';
+import { BarChart3, DatabaseZap, FileText, Globe2, Network } from 'lucide-react';
 import type { CharacterGraph, KnowledgeDocument, RunEvent, WorkflowDefinition } from '../contracts';
 import type { WorldbuildingView } from '../lib/stageConfig';
 import { chapterCapacitySummary, latestChapterCapacity } from '../lib/qualityGateProjection';
 import { WorldbuildingPanel } from '../planning/insights/WorldbuildingPanel';
+import { ChapterReviewPanel } from './insights/ChapterReviewPanel';
 import { CharacterForceGraphPanel } from './insights/CharacterForceGraphPanel';
 import { RuntimeKnowledgePanel } from './insights/RuntimeKnowledgePanel';
 import type { RuntimePanelKey } from './stageRuntimeLayout';
 import type { RuntimeStageProjection, RuntimeWritebackStatus } from './runtimeArtifactProjection';
 import { parseCoverArtifact, parseExportArtifact } from './artifactsVnext';
+import { ChapterContextManifestPanel } from './ChapterContextManifestPanel';
+import type { ChapterContextManifestState } from '../state/useChapterContextManifest';
 
-export type InfoArtifactDisplayStatus = 'draft' | 'confirmed';
+export type BriefArtifactDisplayStatus = 'draft' | 'confirmed';
 
 export type RuntimeInsightContext = {
   events: RunEvent[];
   knowledgeDocuments: KnowledgeDocument[];
   memoryEvents: RunEvent[];
-  infoArtifactStatus?: InfoArtifactDisplayStatus;
+  briefArtifactStatus?: BriefArtifactDisplayStatus;
   workflow: WorkflowDefinition;
   characterGraphOverride?: CharacterGraph;
-  infoWorldbuilding?: WorldbuildingView;
+  briefWorldbuilding?: WorldbuildingView;
   artifactProjection: RuntimeStageProjection;
   writebackStatus: RuntimeWritebackStatus;
   onOpenKnowledgeManager: () => void;
+  contextManifest: ChapterContextManifestState;
 };
 
 type RuntimeInsightPanelProps = RuntimeInsightContext & {
   panel: RuntimePanelKey;
-  onEditInfo?: (target: 'worldbuilding' | 'character') => void;
+  detail?: boolean;
+  onEditBrief?: (target: 'worldbuilding' | 'character') => void;
 };
 
 export function RuntimeInsightPanel({
@@ -34,26 +39,31 @@ export function RuntimeInsightPanel({
   knowledgeDocuments,
   memoryEvents,
   panel,
-  infoArtifactStatus,
+  detail = false,
+  briefArtifactStatus,
   workflow,
   characterGraphOverride,
-  infoWorldbuilding,
+  briefWorldbuilding,
   artifactProjection,
   writebackStatus,
-  onEditInfo,
+  onEditBrief,
   onOpenKnowledgeManager,
+  contextManifest,
 }: RuntimeInsightPanelProps) {
+  if (panel === 'contextManifest') {
+    return <ChapterContextManifestPanel {...contextManifest} detail={detail} />;
+  }
   if (panel === 'character') {
     return (
       <CharacterForceGraphPanel
         events={events}
         graphOverride={characterGraphOverride}
-        onEdit={onEditInfo ? () => onEditInfo('character') : undefined}
+        onEdit={onEditBrief ? () => onEditBrief('character') : undefined}
         qualityMode={workflow.quality_mode}
         stageEnrichment={artifactProjection.character
           ? { label: '当前 Artifact 人物引用', detail: artifactProjection.character }
           : undefined}
-        artifactStatus={infoArtifactStatus}
+        artifactStatus={briefArtifactStatus}
       />
     );
   }
@@ -61,12 +71,12 @@ export function RuntimeInsightPanel({
     return (
       <WorldbuildingPanel
         events={events}
-        onEdit={onEditInfo ? () => onEditInfo('worldbuilding') : undefined}
+        onEdit={onEditBrief ? () => onEditBrief('worldbuilding') : undefined}
         stageEnrichment={artifactProjection.worldbuilding
           ? { label: '当前 Artifact 世界规则引用', detail: artifactProjection.worldbuilding }
           : undefined}
-        artifactStatus={infoArtifactStatus}
-        worldbuilding={infoWorldbuilding}
+        artifactStatus={briefArtifactStatus}
+        worldbuilding={briefWorldbuilding}
       />
     );
   }
@@ -101,14 +111,11 @@ export function RuntimeInsightPanel({
       metrics={artifact ? [`${artifact.chapter_version_ids.length} 个章节版本`, artifact.cover_asset_id ? '包含封面资产' : '无封面资产'] : ['尚未生成清单']}
     />;
   }
-  const reviews = events.filter((event) => event.type.startsWith('review.') || event.type === 'decision.required');
   const capacity = latestChapterCapacity(events);
-  return <EventStatusPanel
-    title="审稿与人工质量门"
-    description={capacity
-      ? chapterCapacitySummary(capacity)
-      : '只展示 Graph 已发出的审稿结果和 interrupt。'}
-    events={reviews}
+  return <ChapterReviewPanel
+    chapterId={contextManifest.record?.chapter_id ?? ''}
+    events={events}
+    summary={capacity ? chapterCapacitySummary(capacity) : undefined}
   />;
 }
 
@@ -121,9 +128,11 @@ export function RuntimeCompactTile({
   writebackStatus,
   workflow,
   onOpen,
-}: Pick<RuntimeInsightContext, 'events' | 'memoryEvents' | 'characterGraphOverride' | 'artifactProjection' | 'writebackStatus' | 'workflow'> & {
+  contextManifest,
+}: Pick<RuntimeInsightContext, 'events' | 'memoryEvents' | 'characterGraphOverride' | 'artifactProjection' | 'writebackStatus' | 'workflow' | 'contextManifest'> & {
   panel: RuntimePanelKey;
   onOpen: () => void;
+  contextManifest: ChapterContextManifestState;
 }) {
   const qualityCount = events.filter((event) => event.type === 'review.completed' || event.type === 'review.unavailable').length;
   const wikiCount = [...events, ...memoryEvents].filter((event) => event.type === 'evidence.proposed' || event.type === 'writeback.committed').length;
@@ -140,6 +149,7 @@ export function RuntimeCompactTile({
     quality: { icon: BarChart3, title: '质量检查', metric: qualityCount ? `${qualityCount} 项检查` : '暂无检查' },
     wiki: { icon: DatabaseZap, title: 'Wiki 事实层', metric: writebackStatus.status === 'not_proposed' ? `${wikiCount} 事件` : writebackStatus.label },
     knowledge: { icon: DatabaseZap, title: '知识库', metric: '参考入口' },
+    contextManifest: { icon: FileText, title: '本章上下文', metric: contextManifest.record ? `${contextManifest.record.manifest.snippets.length} 个片段` : contextManifest.status === 'loading' ? '读取中' : '不可用' },
     coverQuality: { icon: BarChart3, title: '封面质量', metric: '已合并主区' },
     exportSummary: { icon: DatabaseZap, title: '导出摘要', metric: '已合并主区' },
   }[panel];
@@ -157,7 +167,7 @@ export function RuntimeCompactTile({
 
 function EventStatusPanel({ title, description, events }: { title: string; description: string; events: RunEvent[] }) {
   return (
-    <section className="config-section runtime-insight-card stage-summary-insight">
+    <section className="config-section runtime-insight-card stage-status-insight">
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="chip-grid">
@@ -172,7 +182,7 @@ function EventStatusPanel({ title, description, events }: { title: string; descr
 
 function StageSummaryPanel({ title, description, metrics }: { title: string; description: string; metrics: string[] }) {
   return (
-    <section className="config-section runtime-insight-card stage-summary-insight">
+    <section className="config-section runtime-insight-card stage-status-insight">
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="chip-grid">

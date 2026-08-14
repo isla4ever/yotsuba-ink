@@ -57,10 +57,6 @@
   pointer-events: none;
 }
 
-.settings-dialog {
-  z-index: var(--z-dialog);
-}
-
 .app-dialog-surface,
 .app-sheet-surface {
   max-height: calc(100dvh - (var(--overlay-gutter) * 2));
@@ -105,7 +101,19 @@
 }
 
 .workspace-route-focus-region {
+  /* The surface is keyed by route, so this replays on every navigation and
+     pairs with the parent cross-fade: content settles instead of snapping. */
+  animation: nw-route-settle var(--duration-slow) var(--ease-decelerate) both;
   outline: none;
+}
+
+@keyframes nw-route-settle {
+  from { transform: translateY(7px); }
+  to { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-route-focus-region { animation: none; }
 }
 
 .app-dialog-surface:focus-visible,

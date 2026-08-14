@@ -6,7 +6,7 @@ import { completedDeliveryStageIds, stageDeliveryStatus } from './stageDeliveryS
 
 const coverStage = { id: 'cover', type: 'cover' } as const;
 const exportStage = { id: 'export', type: 'export' } as const;
-const ordinaryStage = { id: 'summary', type: 'summary' } as const;
+const ordinaryStage = { id: 'spine', type: 'spine' } as const;
 
 describe('stageDeliveryStatus', () => {
   it('keeps a committed Cover in attention until an asset is selected', () => {
@@ -43,10 +43,10 @@ describe('stageDeliveryStatus', () => {
     const index = buildRunEventIndex([
       event('artifact.committed', 'export', { payload: exportResult(true) }),
       event('artifact.committed', 'cover', { payload: coverResult('') }),
-      event('artifact.committed', 'summary', { payload: {} }),
+      event('artifact.committed', 'spine', { payload: {} }),
     ]);
     expect(stageDeliveryStatus(index, ordinaryStage)).toBe('done');
-    expect(completedDeliveryStageIds(index, stages)).toEqual(['summary', 'export']);
+    expect(completedDeliveryStageIds(index, stages)).toEqual(['spine', 'export']);
   });
 });
 

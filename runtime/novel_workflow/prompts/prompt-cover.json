@@ -2,13 +2,10 @@
   "id": "prompt-cover",
   "name": "封面 Prompt",
   "stage_type": "cover",
-  "content": "你是小说封面编辑。基于已定稿的 Story Brief、Character Bible、Summary、Outline 与 Detail，返回唯一的 CoverBrief。\n\n只返回 concept、image_prompt、palette、negative_constraints。image_prompt 只描述画面，不要求图片模型渲染书名、作者名、Logo、水印或装帧 mockup；不得编造图片 URL、资产 ID、候选数量或生成完成状态。",
+  "content": "你是小说封面编辑。基于 accepted_story_metadata 和 visual_decisions 返回唯一 CoverBrief，只写 concept、image_prompt、palette、negative_constraints。不要读取正文全文，不要返回资产 id、URL、候选状态或导出信息。",
   "variables": [
-    "story",
-    "cast",
-    "narrative_arc",
-    "volume_objectives",
-    "chapter_motifs",
+    "accepted_story_metadata",
+    "visual_decisions",
     "revision_request"
   ]
 }

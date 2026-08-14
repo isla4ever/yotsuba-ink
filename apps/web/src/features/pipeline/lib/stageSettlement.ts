@@ -28,10 +28,10 @@ export function stageSettlementSummary(events: RunEvent[], stage: Pick<WorkflowS
 
 export function settlementNextStageLabel(next: string): string {
   const labels: Record<string, string> = {
-    info: '创作立项',
-    characters: '人物编排',
-    summary: '全书梗概',
-    outline: '分卷大纲',
+    brief: '创作立项',
+    spine: '故事脊柱',
+    cast: '人物编排',
+    volumes: '分卷架构',
     detail: '章节施工图',
     text: '正文生成',
     cover: 'AI 封面',

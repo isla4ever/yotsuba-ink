@@ -9,7 +9,7 @@ describe('buildArtifactDeckItems', () => {
     const items = buildArtifactDeckItems(defaultWorkflow, [], 'detail');
     expect(items).toHaveLength(8);
     expect(items[0]).toMatchObject({
-      artifact: '前提 · 世界规则 · 叙事声音',
+      artifact: '前提 · 读者承诺 · 世界规则 · 长度包络',
       decision: '冻结创作契约',
       writeback: 'Story Brief Artifact',
     });
@@ -25,12 +25,12 @@ describe('buildArtifactDeckItems', () => {
   it('derives confirmed, running and attention states from real lifecycle events', () => {
     const events = [
       runEvent('node.failed', { run_id: 'run-1', stage_id: 'detail', node_id: 'detail.generate_candidate' }),
-      runEvent('node.started', { run_id: 'run-1', stage_id: 'summary', node_id: 'summary.generate_candidate' }),
-      runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'info', node_id: 'info.commit_artifact', payload: {} }),
+      runEvent('node.started', { run_id: 'run-1', stage_id: 'spine', node_id: 'spine.generate_candidate' }),
+      runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'brief', node_id: 'brief.commit_artifact', payload: {} }),
     ];
     const items = buildArtifactDeckItems(defaultWorkflow, events, 'detail');
-    expect(items.find((item) => item.id === 'info')?.status).toBe('confirmed');
-    expect(items.find((item) => item.id === 'summary')?.status).toBe('running');
+    expect(items.find((item) => item.id === 'brief')?.status).toBe('confirmed');
+    expect(items.find((item) => item.id === 'spine')?.status).toBe('running');
     expect(items.find((item) => item.id === 'detail')?.status).toBe('attention');
   });
 
@@ -54,9 +54,9 @@ describe('buildArtifactDeckItems', () => {
 
   it('keeps awaiting decisions separate from generation and delivery attention', () => {
     const events = [
-      runEvent('decision.required', { run_id: 'run-1', stage_id: 'characters', node_id: 'characters.human_decision' }),
+      runEvent('decision.required', { run_id: 'run-1', stage_id: 'cast', node_id: 'cast.human_decision' }),
     ];
-    expect(buildArtifactDeckItems(defaultWorkflow, events, 'characters').find((item) => item.id === 'characters'))
+    expect(buildArtifactDeckItems(defaultWorkflow, events, 'cast').find((item) => item.id === 'cast'))
       .toMatchObject({ status: 'awaiting', statusLabel: '待决策' });
   });
 });

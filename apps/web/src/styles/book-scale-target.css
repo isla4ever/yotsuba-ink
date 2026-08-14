@@ -157,7 +157,88 @@
   white-space: nowrap;
 }
 
+.book-scale-suggestion {
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: 14px;
+}
+
+.book-scale-suggestion-item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.book-scale-suggestion-item span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.book-scale-suggestion-item strong {
+  color: var(--accent-2);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.book-scale-overrides {
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.book-scale-overrides-hint {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  margin: 0;
+}
+
+.book-scale-overrides-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.book-scale-overrides-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.book-scale-overrides-grid label > span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 11.5px;
+  gap: 6px;
+}
+
+.book-scale-overrides-grid input {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  min-height: 38px;
+  padding: 0 12px;
+  width: 100%;
+}
+
 @media (max-width: 760px) {
+  .book-scale-suggestion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .book-scale-overrides-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .book-scale-target-head,
   .book-scale-target-control {
     align-items: stretch;

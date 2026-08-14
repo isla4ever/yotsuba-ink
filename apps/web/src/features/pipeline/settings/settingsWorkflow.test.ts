@@ -70,6 +70,7 @@ describe('provider templates', () => {
   it('updates assigned stage defaults without overwriting explicit stage models', () => {
     const next = applyProviderTemplate(provider, template);
     const workflow = {
+      architecture_version: 'phase27-vnext' as const,
       id: 'workflow', name: 'Workflow', version: '1', global_inputs: [], provider_profiles: [provider],
       prompt_templates: [], stage_configs: {}, batch_policy: { enabled: false, count: 1, parallelism: 1 },
       quality_mode: 'balanced' as const, edges: [],
@@ -91,6 +92,7 @@ describe('provider templates', () => {
   it('blocks deletion for defaults and stage assignments, but removes unused profiles', () => {
     const unused = { ...provider, id: 'unused-provider', is_global_default: false };
     const workflow = {
+      architecture_version: 'phase27-vnext' as const,
       id: 'workflow', name: 'Workflow', version: '1', global_inputs: [], provider_profiles: [provider, unused],
       prompt_templates: [], stage_configs: {}, batch_policy: { enabled: false, count: 1, parallelism: 1 },
       quality_mode: 'balanced' as const, edges: [],
@@ -110,6 +112,7 @@ describe('provider templates', () => {
   it('restores stage service exceptions without changing stage policies', () => {
     const text = { ...provider, id: 'text-default', kind: 'openai-compatible' as const, is_global_default: true, default_model: 'text-model' };
     const workflow = {
+      architecture_version: 'phase27-vnext' as const,
       id: 'workflow', name: 'Workflow', version: '1', global_inputs: [], provider_profiles: [text, { ...provider, is_global_default: true }],
       prompt_templates: [], stage_configs: {}, batch_policy: { enabled: false, count: 1, parallelism: 1 },
       quality_mode: 'balanced' as const, edges: [],

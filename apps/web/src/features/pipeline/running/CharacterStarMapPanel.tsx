@@ -1,7 +1,7 @@
 import { Focus, ZoomIn, ZoomOut } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState } from 'react';
 import type { CharacterNode } from '../contracts';
-import type { CharacterBibleArtifact, CharacterTier } from './characterBibleArtifact';
+import type { CharacterBibleArtifact, CharacterKind } from './characterBibleArtifact';
 import { projectCharacterBibleGraph } from './characterBibleGraphProjection';
 
 const CharacterNetwork3DView = lazy(() =>
@@ -16,16 +16,25 @@ type Props = {
   selectedId: string;
 };
 
-const tierColors: Record<CharacterTier, string> = {
+const tierColors: Record<CharacterKind, string> = {
   functional: '#9babb2',
+  historical_record: '#c88955',
   major: '#edbd68',
+  npc: '#c88955',
   protagonist: '#4edbe7',
 };
+
+const subjectLegend = [
+  { color: tierColors.protagonist, label: '主角' },
+  { color: tierColors.major, label: '重要配角' },
+  { color: tierColors.functional, label: '功能角色' },
+  { color: '#c88955', label: 'NPC / 历史主体' },
+];
 
 const graphTierColors: Record<CharacterNode['tier'], string> = {
   major: tierColors.major,
   minor: tierColors.functional,
-  npc: tierColors.functional,
+  npc: '#c88955',
   protagonist: tierColors.protagonist,
   supporting: tierColors.functional,
 };
@@ -64,8 +73,8 @@ export function CharacterStarMapPanel({ artifact, onSelect, selectedId }: Props)
           />
         </Suspense>
         <div aria-label="人物层级图例" className="character-star-map-legend">
-          {(Object.entries(tierColors) as Array<[CharacterTier, string]>).map(([tier, color]) => (
-            <span key={tier}><i style={{ backgroundColor: color }} />{tier === 'protagonist' ? '主角' : tier === 'major' ? '重要配角' : '功能角色'}</span>
+          {subjectLegend.map(({ color, label }) => (
+            <span key={label}><i style={{ backgroundColor: color }} />{label}</span>
           ))}
         </div>
       </div>

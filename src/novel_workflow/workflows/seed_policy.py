@@ -6,8 +6,8 @@ import copy
 from typing import Any
 
 # Stage input_schema keys whose template defaults are concrete story content.
-# info stage: audience / core_concept / keywords / taboos plus the demo-flavored
-# reference intent; summary stage: ending_direction presumes the demo mystery plot.
+# Brief intake owns audience / core_concept / keywords / taboos and reference
+# intent; ending_direction is a legacy template field retained only for seed cleanup.
 NARRATIVE_SEED_FIELD_KEYS: frozenset[str] = frozenset(
     {
         "audience",

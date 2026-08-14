@@ -1,0 +1,37 @@
+.insight-stage-enrichment {
+  background: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 10%, rgba(255, 255, 255, 0.02));
+  border: 1px solid color-mix(in srgb, var(--mode-aura, var(--accent-2)) 28%, var(--border));
+  border-radius: 8px;
+  color: var(--text-soft);
+  display: grid;
+  gap: 5px;
+  line-height: 1.45;
+  padding: 9px 10px;
+}
+
+.force-graph-wrap .insight-stage-enrichment {
+  left: 12px;
+  max-width: min(280px, calc(100% - 24px));
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 4;
+}
+
+.worldbuilding-panel .insight-stage-enrichment {
+  margin-bottom: 10px;
+}
+
+.insight-stage-enrichment strong {
+  color: color-mix(in srgb, var(--mode-aura, var(--accent-2)) 76%, var(--text));
+  font-size: 11px;
+  font-weight: 860;
+}
+
+.insight-stage-enrichment span {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  font-size: 11px;
+  overflow: hidden;
+}

@@ -180,6 +180,45 @@ async def test_openai_image_provider_rejects_unsafe_asset_url() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_image_provider_allows_url_asset_under_fake_ip_dns(monkeypatch: pytest.MonkeyPatch) -> None:
+    from novel_workflow.providers import openai_image as module
+
+    client = sdk_client(
+        lambda request: httpx.Response(200, json={"data": [{"url": "https://assets.example/cover.png"}]})
+    )
+    provider = OpenAICompatibleImageProvider("https://images.example/v1", "secret", "gpt-image-1", client=client)
+    monkeypatch.setattr(module, "_resolve_host", lambda hostname, port: {"198.18.0.42"})
+    monkeypatch.setattr(module, "_download_remote_image", lambda url, timeout: (b"png-bytes", "image/png"))
+
+    try:
+        image = await provider.generate_cover("mist harbor", context={})
+    finally:
+        await client.close()
+    assert image.content == b"png-bytes"
+
+
+@pytest.mark.asyncio
+async def test_openai_image_provider_rejects_private_url_without_fake_ip_dns(monkeypatch: pytest.MonkeyPatch) -> None:
+    from novel_workflow.providers import openai_image as module
+
+    client = sdk_client(
+        lambda request: httpx.Response(200, json={"data": [{"url": "https://assets.example/cover.png"}]})
+    )
+    provider = OpenAICompatibleImageProvider("https://images.example/v1", "secret", "gpt-image-1", client=client)
+    monkeypatch.setattr(
+        module,
+        "_resolve_host",
+        lambda hostname, port: {"10.0.0.9"} if hostname == "assets.example" else {"93.184.216.34"},
+    )
+
+    try:
+        with pytest.raises(ProviderResponseError, match="non-public"):
+            await provider.generate_cover("mist harbor", context={})
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
 async def test_siliconflow_template_uses_custom_fields_and_response_collection() -> None:
     calls: list[dict[str, Any]] = []
 

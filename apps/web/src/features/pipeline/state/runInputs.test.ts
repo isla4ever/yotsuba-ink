@@ -19,15 +19,15 @@ describe('buildRunInputs (mine 4)', () => {
     expect(inputs.run_intent).not.toHaveProperty('mode_policy');
   });
 
-  it('falls back to the title global input and derives theme from the Info brief', () => {
+  it('falls back to the title global input and freezes the Brief length envelope', () => {
     const inputs = buildRunInputs(defaultWorkflow, 'backend', null);
     const titleDefault = String(defaultWorkflow.global_inputs.find((item) => item.key === 'title')?.default ?? '');
     expect(inputs.title).toBe(titleDefault);
     expect(inputs.theme).toBe('旧港、记忆实验、群像、旧案');
     expect(inputs.project_id).toBe('');
-    expect(inputs.book_scale_target).toEqual({
-      target_mode: 'total_chars',
-      target_value: 100000,
+    expect(inputs.length_envelope).toEqual({
+      word_target_soft: 100000,
+      chapter_target_soft: null,
     });
     expect(inputs).not.toHaveProperty('book_scale_plan');
     expect(inputs).not.toHaveProperty('stage_configs');
@@ -35,10 +35,10 @@ describe('buildRunInputs (mine 4)', () => {
     expect(inputs.run_intent).not.toHaveProperty('variant_strategy');
   });
 
-  it('derives theme from the configured Info-stage keywords', () => {
+  it('derives theme from the configured Brief-stage keywords', () => {
     const themed = {
       ...defaultWorkflow,
-      nodes: defaultWorkflow.nodes.map((stage) => stage.id === 'info' ? {
+      nodes: defaultWorkflow.nodes.map((stage) => stage.id === 'brief' ? {
         ...stage,
         input_schema: stage.input_schema.map((field) => field.key === 'keywords'
           ? { ...field, default: ['蒸汽朋克', '家族史诗'] }

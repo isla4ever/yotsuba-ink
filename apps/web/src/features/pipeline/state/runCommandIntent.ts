@@ -12,7 +12,7 @@ export function resolveRunCommandIntent(params: {
   activeRunId: string;
   checkpointContinueReady: boolean;
   checkpointStageId: string;
-  infoContinueReady: boolean;
+  briefContinueReady: boolean;
   paused: boolean;
   qualityMode: QualityMode;
   runControlState: RunControlState;
@@ -30,8 +30,8 @@ export function resolveRunCommandIntent(params: {
   );
   if (fastRunBusy) return { type: 'none' };
 
-  if (runningWorkspace && params.infoContinueReady && activeRun) {
-    return { type: 'continue', stageId: 'info' };
+  if (runningWorkspace && params.briefContinueReady && activeRun) {
+    return { type: 'continue', stageId: 'brief' };
   }
 
   if (runningWorkspace && params.checkpointContinueReady && activeRun) {

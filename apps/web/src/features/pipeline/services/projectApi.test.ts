@@ -36,8 +36,8 @@ describe('Project API current contract', () => {
       latest_run: { run_id: 'run-1' },
       title: '星图之书',
       status: 'running',
-      current_stage: { id: 'characters', label: '人物编排', type: 'characters' },
-      completed_stage_ids: ['info'],
+      current_stage: { id: 'cast', label: '人物编排', type: 'cast' },
+      completed_stage_ids: ['brief', 'spine'],
       words: 0,
       updated_at: '2026-08-11T00:00:00Z',
     }), {

@@ -4,7 +4,11 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GraphRunDefinition } from '../contracts';
-import { buildBookScalePlan } from '../lib/bookScalePlan';
+import {
+  frozenCoverAssetBindingFixture,
+  frozenProviderBindingsFixture,
+} from '../contracts/runTestFixtures';
+import { scaleProfileFromLengthEnvelope } from '../lib/narrativeScale';
 import { useActiveRunDefinition } from './useActiveRunDefinition';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -44,7 +48,7 @@ describe('useActiveRunDefinition', () => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })));
-    expect(observed?.definition?.book_scale_plan.total_chapters).toBe(3);
+    expect(observed?.definition?.scale_profile.chapter_target_soft).toBe(3);
     expect(observed?.loading).toBe(false);
   });
 
@@ -59,23 +63,20 @@ describe('useActiveRunDefinition', () => {
 
 function definition(): GraphRunDefinition {
   return {
-    architecture_version: 'phase26-vnext',
+    architecture_version: 'phase27-vnext',
     run_id: 'run-1',
     project_id: 'project-1',
-    workflow_revision: 'phase26-vnext',
+    workflow_id: 'workflow-phase27',
+    workflow_revision: 'phase27-vnext',
+    workflow_digest: 'a'.repeat(64),
     quality_mode: 'balanced',
     inputs: {},
-    book_scale_plan: buildBookScalePlan('total_chapters', 3),
-    provider_bindings: {},
-    cover_asset_binding: {
-      provider_profile_id: 'image',
-      model: 'gpt-image-2',
-      candidate_count: 1,
-      size: '1024x1536',
-      quality: 'medium',
-      timeout_seconds: 180,
-      failure_policy: 'fail_run',
-    },
+    scale_profile: scaleProfileFromLengthEnvelope({
+      word_target_soft: 100_000,
+      chapter_target_soft: 3,
+    }),
+    provider_bindings: frozenProviderBindingsFixture(),
+    cover_asset_binding: frozenCoverAssetBindingFixture(),
     export_preferences: { format: 'zip', author: '', version_note: '' },
     created_at: '2026-08-11T00:00:00Z',
   };

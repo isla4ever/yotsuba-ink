@@ -4,10 +4,10 @@ import { canonicalStageOrder } from '../../lib/stageRoutes';
 /** Pure derivations for the Studio Shell (Phase 11.2). */
 
 export const studioStageLabels: Record<string, string> = {
-  info: '立项',
-  characters: '人物',
-  summary: '梗概',
-  outline: '大纲',
+  brief: '立项',
+  spine: '故事脊柱',
+  cast: '人物编排',
+  volumes: '分卷架构',
   detail: '细纲',
   text: '正文',
   cover: '封面',
@@ -62,7 +62,7 @@ export function formatWordCount(words: number): string {
   return `${Math.round(words)} 字`;
 }
 
-/** Ordered map with bounded concurrency (summary fan-out; keeps the API un-hammered). */
+/** Ordered map with bounded concurrency for project read-model fan-out. */
 export async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,

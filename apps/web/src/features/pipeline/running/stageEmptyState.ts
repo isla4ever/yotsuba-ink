@@ -6,10 +6,10 @@ import type { StageType } from '../contracts';
  * the CTA label depends on whether a run has started yet.
  */
 const stageEmptyStateHints: Record<StageType, string> = {
-  info: '创作契约会在启动创作后生成，先回到创作规划完善故事起点。',
-  characters: '人物圣经会在创作契约冻结后生成。',
-  summary: '故事脊柱会在人物圣经冻结后生成。',
-  outline: '分卷方案会在故事脊柱冻结后生成。',
+  brief: '创作契约会在启动创作后生成，先回到创作规划完善故事起点。',
+  spine: '故事脊柱会在创作契约冻结后生成。',
+  cast: '人物圣经会在故事脊柱和角色需求冻结后生成。',
+  volumes: '分卷架构会在人物圣经冻结后生成。',
   detail: '章节施工图会在分卷方案冻结后生成。',
   text: '章节正文会在章节施工图冻结后按顺序开始创作。',
   cover: '封面方案会在章节正文定稿后生成。',

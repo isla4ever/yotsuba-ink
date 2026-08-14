@@ -5,6 +5,7 @@ type Props = {
   onToggle: () => void;
 };
 
+/** The button itself is the track — no wrapper frame around the pill. */
 export function ThemeModeSwitch({ theme, onToggle }: Props) {
   const light = theme === 'light';
   const label = light ? '切换夜间模式' : '切换日间模式';
@@ -17,9 +18,9 @@ export function ThemeModeSwitch({ theme, onToggle }: Props) {
       role="switch"
       type="button"
     >
-      <span aria-hidden="true" className="theme-mode-switch-track">
-        <span className="theme-mode-switch-thumb">{light ? <Sun size={13} /> : <Moon size={13} />}</span>
-      </span>
+      <span aria-hidden="true" className="theme-mode-switch-glyph is-moon"><Moon size={12} /></span>
+      <span aria-hidden="true" className="theme-mode-switch-glyph is-sun"><Sun size={12} /></span>
+      <span aria-hidden="true" className="theme-mode-switch-thumb" />
     </button>
   );
 }

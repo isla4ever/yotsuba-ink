@@ -7,6 +7,11 @@ from fastapi import APIRouter, HTTPException, Request
 from novel_workflow.api.bootstrap import list_provider_profiles
 from novel_workflow.workflows.schemas import WorkflowDefinition, WorkflowDuplicateRequest
 from novel_workflow.workflows.templates import default_workflow, materialize_workflow_for_execution
+from novel_workflow.workflows.executable_contract import (
+    WorkflowContractError,
+    executable_workflows,
+    require_executable_workflow,
+)
 
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
@@ -14,12 +19,17 @@ router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
 @router.get("")
 async def list_workflows(request: Request) -> list[WorkflowDefinition]:
-    return [_with_live_profiles(request, item) for item in request.app.state.workflow_store.list()]
+    return [
+        _with_live_profiles(request, item)
+        for item in executable_workflows(request.app.state.workflow_store.list())
+    ]
 
 
 @router.post("")
 async def save_workflow(request: Request, workflow: WorkflowDefinition) -> WorkflowDefinition:
-    canonical = workflow.model_copy(update={"provider_profiles": list_provider_profiles(request.app)})
+    canonical = require_executable_workflow(
+        workflow.model_copy(update={"provider_profiles": list_provider_profiles(request.app)})
+    )
     request.app.state.workflow_store.write(canonical.id, canonical.model_dump())
     return canonical
 
@@ -37,6 +47,13 @@ async def get_workflow(request: Request, workflow_id: str) -> WorkflowDefinition
 @router.post("/{workflow_id}/duplicate")
 async def duplicate_workflow(request: Request, workflow_id: str, payload: WorkflowDuplicateRequest) -> WorkflowDefinition:
     source = _read_or_404(request, workflow_id)
+    try:
+        source_workflow = require_executable_workflow(source)
+    except WorkflowContractError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
     new_id = payload.new_id or f"wf-copy-{uuid4().hex[:10]}"
     try:
         request.app.state.workflow_store.read(new_id)
@@ -44,7 +61,7 @@ async def duplicate_workflow(request: Request, workflow_id: str, payload: Workfl
         pass
     else:
         raise HTTPException(status_code=409, detail=f"Workflow already exists: {new_id}")
-    copied = WorkflowDefinition.model_validate({**source, "id": new_id})
+    copied = source_workflow.model_copy(update={"id": new_id})
     if payload.name:
         copied.name = payload.name
     if payload.is_template is not None:
@@ -74,6 +91,12 @@ def _read_or_404(request: Request, workflow_id: str) -> dict:
 
 
 def _with_live_profiles(request: Request, raw: dict) -> WorkflowDefinition:
-    workflow = WorkflowDefinition.model_validate(raw)
+    try:
+        workflow = require_executable_workflow(raw)
+    except WorkflowContractError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
     workflow.provider_profiles = list_provider_profiles(request.app)
     return materialize_workflow_for_execution(workflow)

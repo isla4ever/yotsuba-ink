@@ -166,3 +166,141 @@
   min-height: 226px;
   height: 100%;
 }
+
+/* Chapter review verdicts render the same in the side rail and in the detail
+   drawer, so the rules are not scoped to .stage-run-side. */
+.chapter-review-panel {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+
+.chapter-review-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.chapter-review-head h3 {
+  margin: 0;
+}
+
+.chapter-review-verdict {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 5px;
+  padding: 4px 9px;
+}
+
+.chapter-review-verdict.clear {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent);
+}
+
+.chapter-review-verdict.blocking {
+  border-color: color-mix(in srgb, var(--danger, #e5484d) 46%, var(--border));
+  color: var(--danger, #e5484d);
+}
+
+.chapter-review-lanes {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chapter-review-lanes > li {
+  align-content: start;
+  background: color-mix(in srgb, var(--panel-muted) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.chapter-review-lane-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.chapter-review-lane-head strong {
+  font-size: 12px;
+}
+
+.chapter-review-lane-head em {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-style: normal;
+  gap: 3px;
+}
+
+.chapter-review-lane-head span {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.chapter-review-findings {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chapter-review-findings > li {
+  border-left: 2px solid color-mix(in srgb, var(--border) 82%, transparent);
+  display: grid;
+  gap: 5px;
+  padding-left: 10px;
+}
+
+.chapter-review-findings > li.blocking {
+  border-left-color: color-mix(in srgb, var(--danger, #e5484d) 62%, transparent);
+}
+
+.chapter-review-severity {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.chapter-review-findings > li.blocking .chapter-review-severity {
+  color: var(--danger, #e5484d);
+}
+
+.chapter-review-findings p {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.chapter-review-findings blockquote {
+  border-left: 2px solid color-mix(in srgb, var(--border) 70%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 0;
+  padding-left: 8px;
+}
+
+.chapter-review-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}

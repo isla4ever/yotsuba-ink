@@ -1,8 +1,10 @@
-import { Copy, FilePlus2, PencilLine, Trash2 } from 'lucide-react';
+import { Copy, FilePlus2, PencilLine, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { WorkflowDefinition } from '../../contracts';
+import { studioWorkflowRoute } from '../../lib/stageRoutes';
 import { LoadingButton } from '../LoadingButton';
-import { defaultTemplateId, templateSummaryLine } from './newProjectWizardModel';
+import { defaultTemplateId, templateStageDigest, templateSummaryLine } from './newProjectWizardModel';
 
 type Props = {
   templates: WorkflowDefinition[];
@@ -18,6 +20,7 @@ type Props = {
  * separate sidebar surface, so template copy → new-project flows stay on one page).
  */
 export function TemplateManagerSection({ templates, error, onDuplicate, onRename, onDelete, onUse }: Props) {
+  const navigate = useNavigate();
   const [renamingId, setRenamingId] = useState('');
   const [renameValue, setRenameValue] = useState('');
   const [pendingAction, setPendingAction] = useState('');
@@ -32,17 +35,18 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
   };
 
   return (
-    <section aria-labelledby="studio-templates-heading" className="studio-templates" id="studio-templates">
+    <section aria-labelledby="studio-templates-heading" className="studio-templates nw-reveal" id="studio-templates">
       <div className="studio-section-head">
         <h2 id="studio-templates-heading">工作流模板</h2>
         <p>新建作品时从模板复制专属工作流；默认工作流始终可用。</p>
       </div>
       {error ? <p className="studio-inline-error" role="alert">{error}</p> : null}
-      <div className="studio-template-list">
+      <div className="studio-template-list nw-reveal-scroll">
         {templates.map((template) => {
           const isDefault = template.id === defaultTemplateId;
           const renaming = renamingId === template.id;
           const busy = pendingAction.endsWith(`:${template.id}`);
+          const stages = templateStageDigest(template);
           return (
             <article className="studio-template-card" key={template.id}>
               <div className="studio-template-info">
@@ -68,8 +72,16 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
                 <span>{templateSummaryLine(template)}{isDefault ? ' · 默认模板' : ''}</span>
               </div>
               <div className="studio-template-actions">
+                <button
+                  className="ghost"
+                  onClick={() => navigate(studioWorkflowRoute(template.id))}
+                  title="打开工作流配置页：阶段参数与模型绑定"
+                  type="button"
+                >
+                  <SlidersHorizontal aria-hidden="true" size={14} />查看 / 编辑
+                </button>
                 <button className="ghost" disabled={busy} onClick={() => onUse(template.id)} title="使用此模板新建作品" type="button">
-                  <FilePlus2 aria-hidden="true" size={14} />使用
+                  <FilePlus2 aria-hidden="true" size={14} />用它建书
                 </button>
                 <LoadingButton
                   className="ghost"
@@ -114,6 +126,14 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
                   </>
                 )}
               </div>
+              <ol className="studio-template-chain">
+                {stages.map((stage) => (
+                  <li key={stage.id}>
+                    <strong>{stage.label}</strong>
+                    <small>{stage.model}</small>
+                  </li>
+                ))}
+              </ol>
             </article>
           );
         })}

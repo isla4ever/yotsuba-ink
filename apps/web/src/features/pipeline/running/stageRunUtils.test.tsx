@@ -14,19 +14,19 @@ describe('stage Graph projections', () => {
 
   it('labels the human decision interrupt directly from the event projection', () => {
     const events = [runEvent('decision.required', {
-      stage_id: 'characters',
-      node_id: 'characters.human_decision',
+      stage_id: 'cast',
+      node_id: 'cast.human_decision',
     })];
-    expect(statusText({ id: 'characters', type: 'characters' }, events)).toBe('待决策');
+    expect(statusText({ id: 'cast', type: 'cast' }, events)).toBe('待决策');
   });
 
   it('reads the current vNext Artifact from payload', () => {
     const artifact = { beats: [{ id: 'beat-1', phase: 'setup', event: '发现线索', consequence: '开始调查' }], climax: '公开真相', resolution: '调查结束', character_outcomes: [] };
     const events = [runEvent('artifact.candidate_ready', {
-      stage_id: 'summary',
-      node_id: 'summary.generate_candidate',
+      stage_id: 'spine',
+      node_id: 'spine.generate_candidate',
       payload: artifact,
     })];
-    expect(latestResult(events, 'summary')).toBe(JSON.stringify(artifact));
+    expect(latestResult(events, 'spine')).toBe(JSON.stringify(artifact));
   });
 });
