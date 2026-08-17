@@ -12,7 +12,6 @@ import {
 } from './runEventIndex';
 import { createInitialRunState, runReducer } from './runReducer';
 import { hasRecoverableRun, hasRunningNodeFromEvents } from './runSelectors';
-import { latestNodeStatus } from '../planning/cockpitRuntime';
 import type { RunControlState, RunEvent } from '../contracts';
 import { runEvent as makeRunEvent } from '../contracts/runEventTestFactory';
 
@@ -71,10 +70,17 @@ describe('runEventIndex (F6)', () => {
         expect(indexedHasRecoverableRun('run-1', index, control))
           .toBe(hasRecoverableRun('run-1', newestFirst, control));
       }
-      for (const stageId of stageIds) {
-        expect(indexedStageStatus(index, stageId)).toBe(latestNodeStatus(newestFirst, stageId).status);
-      }
     }
+  });
+
+  it('projects the stable lifecycle statuses used by runtime workbenches', () => {
+    expect(indexedStageStatus(buildRunEventIndex([]), 'spine')).toBe('idle');
+    expect(indexedStageStatus(buildRunEventIndex([event('node.started', 'spine')]), 'spine')).toBe('running');
+    expect(indexedStageStatus(buildRunEventIndex([event('decision.required', 'spine')]), 'spine')).toBe('awaiting');
+    expect(indexedStageStatus(buildRunEventIndex([
+      event('artifact.committed', 'spine', { node_id: 'spine.commit_artifact', payload: {} }),
+    ]), 'spine')).toBe('done');
+    expect(indexedStageStatus(buildRunEventIndex([event('node.failed', 'spine')]), 'spine')).toBe('failed');
   });
 
   it('derives completed stage ids from committed Artifacts', () => {

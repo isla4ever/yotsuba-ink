@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any
 
 from novel_workflow.memory.canon_store import CanonFact
@@ -12,6 +10,7 @@ from novel_workflow.runtime.graph.provider_gateway import (
     ChapterEvidenceRequest,
     ChapterEvidenceResult,
     ProviderOperationError,
+    compile_provider_input,
 )
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.state import NarrativeRunState
@@ -31,21 +30,23 @@ async def extract_evidence(
     if binding is None:
         raise ProviderOperationError("No frozen Provider binding for evidence extraction")
     budget = executor.output_budget_planner(state).for_evidence(binding)
+    attempt = int((state.get("chapter_attempts") or {}).get(chapter_id) or 1)
     request = ChapterEvidenceRequest(
         operation_key=operation_key,
         run_id=run_id,
         chapter_id=chapter_id,
         chapter_version_id=version_id,
+        attempt=attempt,
         content=chapter.content,
         binding=budget.bind(binding),
     )
-    receipt = executor.operations.begin(
+    receipt = executor.operations.begin_provider(
         run_id=run_id,
         operation_key=operation_key,
         kind="chapter_evidence",
-        request_signature=_signature(request.model_dump(mode="json")),
         provider_profile_id=binding.provider_profile_id,
         model=binding.model,
+        provider_input=compile_provider_input(request),
     )
     if receipt.status == "succeeded":
         result = ChapterEvidenceResult.model_validate(receipt.result)
@@ -152,7 +153,7 @@ def await_commit_receipt(
         payload={"transaction_id": operation.transaction_id},
         payload_ref=operation_id,
     )
-    return {}
+    return {"pending_evidence_refs": [], "pending_writeback_ref": ""}
 
 
 def _emit_evidence_proposed(
@@ -204,11 +205,6 @@ def _bind_evidence_spans(
             )
         bound.append(spans)
     return bound
-
-
-def _signature(value: Any) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 __all__ = ["await_commit_receipt", "enqueue_domain_commit", "extract_evidence"]

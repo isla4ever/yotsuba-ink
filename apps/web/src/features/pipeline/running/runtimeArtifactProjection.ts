@@ -34,8 +34,7 @@ function stageProjection(sources: ProjectionSources): RuntimeStageProjection {
     const artifact = parseVolumesArtifact(sources.volumes).artifact;
     if (!artifact) return {};
     const castRefs = artifact.volumes.reduce((total, volume) => total + volume.cast_ids.length, 0);
-    const threadRefs = artifact.volumes.reduce((total, volume) => total + volume.thread_ids.length, 0);
-    return { character: `${castRefs} 个人物引用分配到完整故事卷`, foreshadow: `${threadRefs} 条线程引用等待细纲写出具体行为` };
+    return { character: `${castRefs} 个人物引用分配到完整故事卷` };
   }
   if (sources.activeStageType === 'detail') {
     const artifact = parseDetailArtifact(sources.detail).artifact;

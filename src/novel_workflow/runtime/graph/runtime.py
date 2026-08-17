@@ -10,7 +10,7 @@ from typing import AsyncIterator, Any
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 
-from novel_workflow.output_contracts.artifacts_vnext import DetailArtifact
+from novel_workflow.output_contracts.artifacts_vnext import DetailArtifact, StageId
 from novel_workflow.runtime.graph.narrative_graph import build_narrative_graph
 from novel_workflow.runtime.graph.provider_gateway import NarrativeProviderGateway
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
@@ -30,16 +30,23 @@ from novel_workflow.storage.narrative_run_repository import (
     RunReadModel,
 )
 from novel_workflow.storage.operation_store import OperationStore
+from novel_workflow.storage.stage_artifact_draft_store import StageArtifactDraftStore
 
 
 class DecisionReplayConflict(ValueError):
     """A decision command conflicts with the graph's persisted authority."""
 
 
+def has_active_graph_interrupt(snapshot: Any) -> bool:
+    """Ignore stale parent interrupts when a nested graph can still resume."""
+    return bool(_active_interrupts(snapshot))
+
+
 @dataclass(frozen=True, slots=True)
 class NarrativeRuntimeStores:
     runs: NarrativeRunRepository
     artifacts: ArtifactStore
+    stage_drafts: StageArtifactDraftStore
     chapters: ChapterStore
     evidence: EvidenceStore
     exports: ExportStore
@@ -118,16 +125,17 @@ class NarrativeRuntime:
             return self.stores.runs.read(run_id)
 
         snapshot = await self.graph.aget_state(self._config(run_id), subgraphs=True)
-        pending = [item.value for item in snapshot.interrupts]
-        active = next(
+        interrupts = _active_interrupts(snapshot)
+        active_interrupt = next(
             (
                 item
-                for item in pending
-                if isinstance(item, dict) and item.get("decision_id") == decision_id
+                for item in interrupts
+                if isinstance(item.value, dict)
+                and item.value.get("decision_id") == decision_id
             ),
             None,
         )
-        if active is None:
+        if active_interrupt is None:
             if receipt.status == "pending":
                 self.stores.operations.succeed(
                     run_id,
@@ -137,6 +145,7 @@ class NarrativeRuntime:
                 await self._project(run_id)
                 return self.stores.runs.read(run_id)
             raise DecisionReplayConflict("Decision is not pending on this Run")
+        active = active_interrupt.value
         if int(command.get("domain_revision", -1)) != int(
             active.get("domain_revision", -2)
         ):
@@ -144,7 +153,10 @@ class NarrativeRuntime:
         if action not in (active.get("allowed_actions") or []):
             raise DecisionReplayConflict("Decision action is not allowed")
 
-        await self._execute(run_id, Command(resume=command))
+        await self._execute(
+            run_id,
+            Command(resume={active_interrupt.id: command}),
+        )
         next_snapshot = await self.graph.aget_state(self._config(run_id), subgraphs=True)
         if _decision_is_pending(next_snapshot, decision_id):
             raise DecisionReplayConflict("Decision did not reach a resolved graph state")
@@ -157,11 +169,74 @@ class NarrativeRuntime:
 
     async def recover(self, run_id: str) -> RunReadModel:
         """Continue the latest failed super-step from its durable checkpoint."""
-        snapshot = await self.graph.aget_state(self._config(run_id))
-        if snapshot.interrupts:
+        snapshot = await self.graph.aget_state(
+            self._config(run_id),
+            subgraphs=True,
+        )
+        if has_active_graph_interrupt(snapshot):
             await self._project(run_id)
             return self.stores.runs.read(run_id)
         await self._execute(run_id, None)
+        return self.stores.runs.read(run_id)
+
+    async def replay_from_checkpoint(
+        self,
+        run_id: str,
+        checkpoint_id: str,
+        *,
+        stage_id: StageId,
+        attempt: int,
+        direction: str = "",
+    ) -> RunReadModel:
+        """Replay an explicit pre-failure checkpoint with fresh operation keys.
+
+        A terminal graph failure can leave no active interrupt to resume. An
+        explicit checkpoint replay is the only safe recovery path in that
+        case: it preserves the Run/thread and committed artifacts while
+        discarding the failed stage frontier and issuing a new attempt.
+        """
+        if attempt < 1:
+            raise ValueError("Checkpoint replay attempt must be positive")
+        config = {
+            "configurable": {
+                "thread_id": run_id,
+                "checkpoint_ns": "",
+                "checkpoint_id": checkpoint_id,
+            }
+        }
+        snapshot = await self.graph.aget_state(config, subgraphs=True)
+        if not snapshot.next:
+            raise ValueError("Checkpoint replay requires a resumable graph frontier")
+        values = dict(snapshot.values or {})
+        attempts = dict(values.get("stage_attempts") or {})
+        attempts[stage_id] = attempt
+        directions = dict(values.get("stage_revision_directions") or {})
+        if direction.strip():
+            directions[stage_id] = direction.strip()
+        candidates = dict(values.get("candidate_artifact_refs") or {})
+        candidates.pop(stage_id, None)
+        decisions = dict(values.get("decision_actions") or {})
+        decisions.pop(stage_id, None)
+        decision_ids = dict(values.get("decision_ids") or {})
+        decision_ids.pop(stage_id, None)
+        statuses = dict(values.get("stage_status") or {})
+        statuses[stage_id] = "running"
+        replay_config = await self.graph.aupdate_state(
+            config,
+            {
+                "active_stage_id": stage_id,
+                "active_chapter_number": 0,
+                "status": "running",
+                "failure": None,
+                "candidate_artifact_refs": candidates,
+                "decision_actions": decisions,
+                "decision_ids": decision_ids,
+                "stage_attempts": attempts,
+                "stage_revision_directions": directions,
+                "stage_status": statuses,
+            },
+        )
+        await self._execute(run_id, None, config=replay_config)
         return self.stores.runs.read(run_id)
 
     async def state(self, run_id: str) -> NarrativeRunState:
@@ -175,11 +250,17 @@ class NarrativeRuntime:
         await self._project(run_id)
         return self.stores.runs.read(run_id)
 
-    async def _execute(self, run_id: str, input_value: Any) -> None:
+    async def _execute(
+        self,
+        run_id: str,
+        input_value: Any,
+        *,
+        config: dict[str, Any] | None = None,
+    ) -> None:
         try:
             async for mode, chunk in self.graph.astream(
                 input_value,
-                config=self._config(run_id),
+                config=config or self._config(run_id),
                 stream_mode=["updates", "checkpoints"],
             ):
                 if mode == "checkpoints":
@@ -271,7 +352,7 @@ class NarrativeRuntime:
         )
         values = _projection_values(snapshot)
         stage_status = dict(values.get("stage_status") or {})
-        pending = [item.value for item in snapshot.interrupts]
+        pending = [item.value for item in _active_interrupts(snapshot)]
         active_stage = str(values.get("active_stage_id") or "brief")
         active_chapter_number = int(values.get("active_chapter_number") or 0)
         status = str(values.get("status") or "running")
@@ -341,6 +422,7 @@ def filesystem_stores(root: Path) -> NarrativeRuntimeStores:
     return NarrativeRuntimeStores(
         runs=NarrativeRunRepository(root / "runs"),
         artifacts=ArtifactStore(root / "artifacts"),
+        stage_drafts=StageArtifactDraftStore(root / "stage_drafts"),
         chapters=ChapterStore(root / "chapters"),
         evidence=EvidenceStore(root / "evidence"),
         exports=ExportStore(root / "exports"),
@@ -380,6 +462,23 @@ def _interrupted_frontiers(snapshot: Any) -> list[Any]:
     return frontiers
 
 
+def _active_interrupts(snapshot: Any) -> tuple[Any, ...]:
+    """Return the deepest durable interrupt set, excluding stale parents."""
+
+    nested_interrupts: list[Any] = []
+    for task in getattr(snapshot, "tasks", ()):
+        child = getattr(task, "state", None)
+        if child is not None and hasattr(child, "values"):
+            active = _active_interrupts(child)
+            if active:
+                nested_interrupts.extend(active)
+                continue
+        nested_interrupts.extend(getattr(task, "interrupts", ()) or ())
+    if nested_interrupts:
+        return tuple(nested_interrupts)
+    return tuple(getattr(snapshot, "interrupts", ()) or ())
+
+
 @asynccontextmanager
 async def open_sqlite_runtime(
     root: Path,
@@ -415,5 +514,5 @@ def decision_signature(value: Any) -> str:
 def _decision_is_pending(snapshot: Any, decision_id: str) -> bool:
     return any(
         isinstance(item.value, dict) and item.value.get("decision_id") == decision_id
-        for item in snapshot.interrupts
+        for item in _active_interrupts(snapshot)
     )

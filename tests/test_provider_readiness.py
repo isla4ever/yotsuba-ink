@@ -58,7 +58,7 @@ def test_readiness_report_keeps_text_and_image_blockers_visible() -> None:
     assert len(report.checks) == 2
     assert all("secret_missing" in check.issue_codes for check in report.checks)
     assert "Provider 配置不完整" in report.message
-    assert "文本接口" in report.message
+    assert "DeepSeek 官方文本" in report.message
     assert "图片接口" in report.message
 
     with pytest.raises(ProviderReadinessError) as raised:
@@ -95,7 +95,10 @@ def test_readiness_api_is_configuration_only_and_does_not_create_a_run(tmp_path:
     client.post("/api/providers", json=text_provider)
     client.post(f"/api/providers/{text_provider['id']}/secret", json={"api_key": "unit-test-secret"})
 
-    response = client.post("/api/providers/readiness", json={"workflow_id": "default-novel-workflow"})
+    response = client.post(
+        "/api/providers/readiness",
+        json={"workflow_id": default_workflow().id},
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -202,7 +205,18 @@ def test_provider_stage_parameters_only_use_phase27_authorities() -> None:
     from novel_workflow.providers.templates import list_provider_templates
 
     legacy = {"info", "summary", "characters", "outline"}
-    planning = {"brief", "spine", "volumes"}
+    phase27 = {
+        "brief",
+        "spine",
+        "cast",
+        "volumes",
+        "detail",
+        "text",
+        "text.evidence",
+        "text.review",
+        "cover",
+        "export",
+    }
     for template in list_provider_templates():
         parameter_maps = [
             template.stage_request_parameters,
@@ -217,8 +231,7 @@ def test_provider_stage_parameters_only_use_phase27_authorities() -> None:
             )
         for stage_parameters in parameter_maps:
             assert legacy.isdisjoint(stage_parameters), template.id
-            if planning.intersection(stage_parameters):
-                assert "cast" in stage_parameters, template.id
+            assert set(stage_parameters).issubset(phase27), template.id
 
 
 @pytest.mark.parametrize(
@@ -429,6 +442,31 @@ def test_tokenhub_template_uses_pay_as_you_go_catalog_contract() -> None:
     assert template.requires_json_example is True
 
 
+def test_deepseek_pro_reserves_structured_output_capacity() -> None:
+    from novel_workflow.providers.templates import provider_template
+
+    template = provider_template("deepseek-text", "openai-compatible")
+    capability = next(
+        item
+        for item in template.model_capabilities
+        if item.model_pattern == "deepseek-v4-pro*"
+    )
+
+    assert capability.stage_request_parameters == {}
+    assert capability.stage_extra_body_parameters["brief"] == {
+        "thinking": {"type": "disabled"}
+    }
+    assert capability.stage_extra_body_parameters["spine"] == {
+        "thinking": {"type": "disabled"}
+    }
+    assert all(
+        capability.stage_extra_body_parameters[stage] == {
+            "thinking": {"type": "disabled"}
+        }
+        for stage in ("cast", "volumes", "detail", "text", "text.evidence", "text.review")
+    )
+
+
 def test_materialization_preserves_the_explicit_provider_and_model() -> None:
     from novel_workflow.workflows.schemas import ProviderProfile
     from novel_workflow.workflows.templates import materialize_workflow_for_execution
@@ -532,7 +570,13 @@ def test_workflow_reads_live_provider_profiles_and_keeps_new_vendor_instances(tm
 
     monkeypatch.chdir(tmp_path)
     client = TestClient(create_app())
-    workflow = client.get("/api/workflows/default").json()
+    official = client.get("/api/workflows/default").json()
+    duplicated = client.post(
+        f"/api/workflows/{official['id']}/duplicate",
+        json={"new_id": "wf-provider-live-copy", "name": "Provider live copy"},
+    )
+    assert duplicated.status_code == 200
+    workflow = duplicated.json()
     workflow["provider_profiles"][0]["name"] = "stale workflow copy"
     workflow["provider_profiles"][0]["base_url"] = "https://stale.invalid/v1"
     created = {
@@ -549,7 +593,7 @@ def test_workflow_reads_live_provider_profiles_and_keeps_new_vendor_instances(tm
 
     assert client.post("/api/providers", json=created).status_code == 200
     saved = client.post("/api/workflows", json=workflow).json()
-    refreshed = client.get("/api/workflows/default").json()
+    refreshed = client.get(f"/api/workflows/{workflow['id']}").json()
 
     assert all(item["name"] != "stale workflow copy" for item in saved["provider_profiles"])
     assert any(item["id"] == created["id"] for item in saved["provider_profiles"])

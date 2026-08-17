@@ -33,7 +33,6 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     activeRunId,
     activeProject,
     approvalPending,
-    automationCockpitReady,
     checkpointContinueReady,
     dismissRunResetUndo,
     downloadHistoryExport,
@@ -50,7 +49,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     refreshHistory,
     resetRunControl,
     branchHistoryRun,
-    returnExportToPlanning,
+    completeExportAndStay,
     runControlState,
     runHasStarted,
     runIsActiveFromEvents,
@@ -84,18 +83,14 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
   const stageRuntimes = useStageRuntimes(eventIndex, workflow.nodes);
   const hasRunEvents = eventIndex.size > 0;
 
-  const routePolicy = useMemo(
-    () => modeRoutePolicy(workflow.quality_mode, automationCockpitReady),
-    [automationCockpitReady, workflow.quality_mode],
-  );
-  const cockpitVisible = routePhase === 'planning' && routePolicy.planningSurface === 'cockpit';
+  const routePolicy = useMemo(() => modeRoutePolicy(workflow.quality_mode), [workflow.quality_mode]);
   const runControlActive = ['starting', 'running', 'stop_requested'].includes(runControlState) || running || runIsActiveFromEvents;
+  const runAttached = activeRunId !== '' && (hasRunEvents || runControlActive);
   /** Browse routes keep presenting the underlying workspace phase in shared controls. */
   const presentedPhase: 'planning' | 'running' = routePhase === 'planning' || routePhase === 'running'
     ? routePhase
     : workspacePhase;
-  const shellPhase = cockpitVisible && (runHasStarted || runControlActive) ? 'running' : presentedPhase;
-  const controlPhase = cockpitVisible && !(runHasStarted || runControlActive) ? 'planning' : shellPhase;
+  const controlPhase = presentedPhase;
   const headerStage = useMemo(
     () => (routePhase === 'running' && routeStageId
       ? workflow.nodes.find((stage) => stage.id === routeStageId) ?? selectedStage
@@ -108,15 +103,13 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
   }, [routePhase, routeStageId]);
 
   usePipelineShellRouting({
-    cockpitVisible,
     routePhase,
     routePolicy,
     routeStageId,
     // The monitor must keep presenting terminal runs (failed/completed), so it
     // gates on attachment rather than the recoverable-run flag that drops the
     // moment a run.failed / run.completed event lands.
-    runAttached: activeRunId !== '' && (hasRunEvents || runControlActive),
-    runHasStarted,
+    runAttached,
     selectedId,
     setRunStageNavigator,
     setSelectedId,
@@ -126,20 +119,22 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
   });
 
   const navigationItems = useMemo<ProductNavigationItem[]>(() => [
-    { id: 'planning', label: '创作流程', description: '配置工作流与启动创作', icon: productNavigationIcons.planning },
-    {
+    ...(runAttached ? [{
       id: 'running',
       label: '当前运行',
-      description: runHasStarted ? '打开当前运行工作台' : '启动创作后可查看阶段工作台',
+      description: '打开当前运行工作台',
       icon: productNavigationIcons.running,
-      disabled: !runHasStarted,
-      disabledReason: '尚未启动运行',
-      badge: runHasStarted ? selectedStage.label : undefined,
-    },
+      badge: selectedStage.label,
+    } satisfies ProductNavigationItem] : [{
+      id: 'planning',
+      label: '创作准备',
+      description: '完善故事起点、资料与创作模式',
+      icon: productNavigationIcons.planning,
+    } satisfies ProductNavigationItem]),
     { id: 'knowledge', label: '知识资料', description: '管理项目资料与检索依据', icon: productNavigationIcons.knowledge, badge: knowledgeDocuments.length ? String(knowledgeDocuments.length) : undefined },
     { id: 'history', label: '创作历史', description: '查看运行、快照与导出版本', icon: productNavigationIcons.history, badge: historyItems.length ? String(historyItems.length) : undefined },
     { id: 'settings', label: '模型与设置', description: '编辑服务、模型和工作流偏好', icon: productNavigationIcons.settings },
-  ], [historyItems.length, knowledgeDocuments.length, selectedStage.label, runHasStarted]);
+  ], [historyItems.length, knowledgeDocuments.length, runAttached, selectedStage.label]);
 
   const activeNavigationItem: ProductNavigationItemId = routePhase === 'settings'
     ? 'settings'
@@ -197,7 +192,11 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
       setApiWarning('');
       navigate(settingsRoute, { replace: false });
     };
-    const navigatePlanning = () => navigate('/planning', { replace: false });
+    const workspaceRoute = () => {
+      if (!runAttached) return '/planning';
+      return routePolicy.monitor === 'default' ? monitorRoute : routeForStage(selectedStage.id);
+    };
+    const navigatePlanning = () => navigate(workspaceRoute(), { replace: false });
     const openMonitor = () => navigate(monitorRoute, { replace: false });
     const navigateStage = (stageId: string) => {
       if (canNavigateToStage(routePolicy, stageId)) navigate(routeForStage(stageId), { replace: false });
@@ -208,7 +207,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
       activeNavigationItem,
       changeQualityMode: handleQualityModeChange,
       closeCommandPalette: () => setCommandPaletteOpen(false),
-      closeHistory: () => navigate('/planning', { replace: false }),
+      closeHistory: () => navigate(workspaceRoute(), { replace: false }),
       commandPaletteOpen,
       dismissResetUndo: dismissRunResetUndo,
       downloadHistoryExport,
@@ -241,7 +240,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
         if (item.id === 'running') {
           if (routePolicy.monitor === 'default') openMonitor();
           else if (routePolicy.stageRoutes === 'all') navigate(routeForStage(selectedStage.id), { replace: false });
-          else navigate('/planning', { replace: false });
+          else navigate(workspaceRoute(), { replace: false });
           return;
         }
         if (item.id === 'knowledge') return openKnowledge();
@@ -274,8 +273,8 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
       },
       runPrimaryAction: () => {
         if (checkpointContinueReady && headerStage.type === 'export') {
-          returnExportToPlanning();
-          navigate('/planning', { replace: true });
+          completeExportAndStay();
+          navigate(routePolicy.monitor === 'default' ? monitorRoute : routeForStage('export'), { replace: true });
           return;
         }
         void runWorkflow();
@@ -296,7 +295,7 @@ export function usePipelineShellContexts({ app, routePhase, routeStageId, routeB
     activeNavigationItem, checkpointContinueReady, commandPaletteOpen, dismissRunResetUndo,
     downloadHistoryExport, handleQualityModeChange, headerStage,
     navigate, navigationItems, navigationOpen, openHistoryRun, openProject, refreshHistory, resetRunControl,
-    branchHistoryRun, returnExportToPlanning, routePolicy, runWorkflow, saveWorkflowAsTemplate, selectedStage.id,
+    branchHistoryRun, completeExportAndStay, routePolicy, runAttached, runWorkflow, saveWorkflowAsTemplate, selectedStage.id,
     setApiWarning, setTheme,
     routePhase,
     sidebarPreference.expanded, sidebarPreference.toggle, sidebarViewport.desktop, theme, undoRunReset,

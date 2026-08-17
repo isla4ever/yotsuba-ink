@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { WorkflowDefinition, WorkflowStage } from '../../contracts';
 import {
   initialWizardState,
   selectableTemplates,
@@ -6,11 +7,26 @@ import {
   wizardBack,
   wizardCanSubmit,
   wizardContinue,
-  wizardNeedsTemplateStep,
   wizardSelectTemplate,
-  wizardWithBasics,
+  wizardWithIdea,
 } from './newProjectWizardModel';
-import type { WorkflowDefinition } from '../../contracts';
+import {
+  defaultWorkflowId,
+  officialDeepWorkflowId,
+  officialFastWorkflowId,
+} from '../../lib/officialWorkflows';
+
+function stage(model = 'deepseek-v4-flash'): WorkflowStage {
+  return {
+    id: 'brief',
+    type: 'brief',
+    label: '创作立项',
+    input_schema: [],
+    prompt_template_id: 'prompt-brief',
+    provider_profile_id: 'provider-deepseek-text',
+    model_settings: { model, temperature: 0.7, max_tokens: 1000, top_p: 1, timeout_seconds: 60 },
+  };
+}
 
 function workflow(overrides: Partial<WorkflowDefinition>): WorkflowDefinition {
   return {
@@ -18,75 +34,75 @@ function workflow(overrides: Partial<WorkflowDefinition>): WorkflowDefinition {
     id: 'wf-x',
     name: '模板',
     version: '1',
+    is_template: true,
     global_inputs: [],
     provider_profiles: [],
     prompt_templates: [],
     quality_mode: 'balanced',
-    nodes: [],
+    nodes: [stage()],
     edges: [],
     ...overrides,
   };
 }
 
 describe('new-project wizard flow', () => {
-  it('blocks step 1 → 2 without a title and proceeds once it is filled', () => {
+  it('starts with the recommended pipeline and always advances to the idea step', () => {
     let state = initialWizardState();
-    state = wizardContinue(state);
-    expect(state.step).toBe('basics');
-    expect(state.error).toBe('请先填写书名。');
+    expect(state.step).toBe('workflow');
+    expect(state.templateId).toBe(defaultWorkflowId);
 
-    state = wizardWithBasics(state, { title: '雾城异闻' });
-    expect(state.error).toBe('');
     state = wizardContinue(state);
-    expect(state.step).toBe('template');
+    expect(state.step).toBe('idea');
+    expect(wizardCanSubmit(state)).toBe(false);
   });
 
-  it('starts on the default template, supports reselect/back, and gates submission', () => {
-    let state = wizardWithBasics(initialWizardState(), { title: '雾城异闻', summary: '一句概要' });
-    expect(wizardCanSubmit(state)).toBe(false); // still on step 1
+  it('requires a story idea, supports pipeline reselection, and preserves it when going back', () => {
+    let state = wizardSelectTemplate(initialWizardState(), 'wf-template-a');
     state = wizardContinue(state);
-    expect(state.templateId).toBe('default-novel-workflow');
+    state = wizardWithIdea(state, '一名修表匠发现整座城市每天都会丢失一分钟。');
     expect(wizardCanSubmit(state)).toBe(true);
-
-    state = wizardSelectTemplate(state, 'wf-template-a');
-    expect(state.templateId).toBe('wf-template-a');
     expect(wizardCanSubmit({ ...state, submitting: true })).toBe(false);
 
     state = wizardBack(state);
-    expect(state.step).toBe('basics');
-    expect(state.title).toBe('雾城异闻');
+    expect(state.step).toBe('workflow');
+    expect(state.templateId).toBe('wf-template-a');
+    expect(state.idea).toContain('修表匠');
   });
 
-  it('skips the template step when there is no real template choice (B4)', () => {
-    const onlyDefault = [workflow({ id: 'default-novel-workflow', name: '默认工作流' })];
-    expect(wizardNeedsTemplateStep(onlyDefault)).toBe(false);
-    expect(wizardNeedsTemplateStep([])).toBe(false); // list still loading → default applies
-    expect(wizardNeedsTemplateStep([...onlyDefault, workflow({ id: 'wf-a', is_template: true })])).toBe(true);
-
-    // Single-template continue lands submit-ready with that template selected.
-    let state = wizardWithBasics(initialWizardState(), { title: '雾城异闻' });
-    state = wizardContinue(state, [workflow({ id: 'wf-only', name: '唯一模板', is_template: true })]);
-    expect(state.templateId).toBe('wf-only');
-    expect(wizardCanSubmit(state)).toBe(true);
-
-    // The empty-title guard still runs before any skip.
-    expect(wizardContinue(initialWizardState(), onlyDefault).error).toBe('请先填写书名。');
-
-    // Multi-template lists keep the selection step with the default preselected.
-    let multi = wizardWithBasics(initialWizardState(), { title: '雾城异闻' });
-    multi = wizardContinue(multi, [...onlyDefault, workflow({ id: 'wf-a', is_template: true })]);
-    expect(multi.step).toBe('template');
-    expect(multi.templateId).toBe('default-novel-workflow');
+  it('refuses to advance until a pipeline is selected', () => {
+    const state = wizardContinue({ ...initialWizardState(), templateId: '' });
+    expect(state.step).toBe('workflow');
+    expect(state.error).toBe('请先选择一套创作流水线。');
   });
 
-  it('offers is_template workflows plus the always-present default, default first', () => {
+  it('orders all three official pipelines before custom templates and hides one-time drafts', () => {
     const list = selectableTemplates([
-      workflow({ id: 'wf-proj-1', name: '作品专属', is_template: false }),
-      workflow({ id: 'wf-b', name: 'B 模板', is_template: true }),
-      workflow({ id: 'default-novel-workflow', name: '默认工作流' }),
-      workflow({ id: 'wf-a', name: 'A 模板', is_template: true }),
+      workflow({ id: 'wf-b', name: 'B 模板' }),
+      workflow({ id: officialDeepWorkflowId, name: '精细' }),
+      workflow({ id: 'wf-once-draft', name: '本书配置', is_template: false }),
+      workflow({ id: defaultWorkflowId, name: '平衡' }),
+      workflow({ id: officialFastWorkflowId, name: '极速' }),
+      workflow({ id: 'wf-a', name: 'A 模板' }),
     ]);
-    expect(list.map((item) => item.id)).toEqual(['default-novel-workflow', 'wf-a', 'wf-b']);
-    expect(templateSummaryLine(workflow({ nodes: [{ id: 'brief' } as WorkflowDefinition['nodes'][number]] }))).toBe('平衡档 · 1 个阶段');
+    expect(list.map((item) => item.id)).toEqual([
+      officialFastWorkflowId,
+      defaultWorkflowId,
+      officialDeepWorkflowId,
+      'wf-a',
+      'wf-b',
+    ]);
+    expect(templateSummaryLine(workflow({ quality_mode: 'fast' }))).toBe('极速模式 · V4 Flash 全阶段 · 1 个阶段');
+    expect(templateSummaryLine(workflow({
+      id: defaultWorkflowId,
+      quality_mode: 'balanced',
+      nodes: [
+        stage('deepseek-v4-pro'),
+        {
+          ...stage('deepseek-v4-flash'),
+          id: 'cover',
+          type: 'cover',
+        },
+      ],
+    }))).toBe('平衡模式 · V4 Pro 核心创作 · Flash 封面简报 · 2 个阶段');
   });
 });

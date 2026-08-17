@@ -37,6 +37,7 @@ describe('RunMonitorConsole', () => {
     expect(html).toContain('运行日志');
     expect(html).not.toContain('monitor-view-tab');
     expect(html).toContain('收起运行日志');
+    expect(html).toContain('冻结配置');
   });
 
   it('carries the shell rail entries so the console can own the sidebar slot', () => {

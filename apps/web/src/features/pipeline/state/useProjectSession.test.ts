@@ -11,11 +11,13 @@ describe('project session Run authority', () => {
     expect(source).toContain('restoreProjectRun: (item: RunHistoryItem) => Promise<string>');
     // Opening a book restores live AND terminal runs (read-only presentation).
     expect(source).toContain("['running', 'awaiting_decision', 'completed', 'failed', 'cancelled']");
-    expect(source).toContain('RESTORABLE_RUN_STATUSES.includes(latestRun.status)');
-    expect(source).toContain('latestRun.run_id !== facts.activeRunId');
-    expect(source).toContain('deps.restoreProjectRun(latestRun)');
+    expect(source).toContain('RESTORABLE_RUN_STATUSES.includes(canonicalLatestRun.status)');
+    expect(source).toContain('project.latest_run_id');
+    expect(source).toContain('canonicalLatestRun.run_id !== facts.activeRunId');
+    expect(source).toContain('|| !runActive');
+    expect(source).toContain('deps.restoreProjectRun(canonicalLatestRun)');
     expect(source).not.toContain('deps.openRun(latestRun)');
-    expect(actions).toContain('void options.onRestore(resolution.hydrated, resolution.reconnect)');
+    expect(actions).toContain('await options.onRestore(resolution.hydrated, resolution.reconnect)');
     expect(commands).toContain("const source: RunSource = 'backend'");
     expect(commands).not.toContain('storedRunSource');
   });

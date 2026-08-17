@@ -11,11 +11,11 @@ const brief = JSON.stringify({
   theme: '公开真相是否值得失去私人记忆？',
   ending_promise: '母带来源会在终章公开。',
   voice: '第三人称有限视角，过去时，以听觉细节为主。',
-  length_envelope: { word_target_soft: 80000, chapter_target_soft: 24 },
+  length_envelope: { word_target_soft: 80000 },
 });
 
 const cast = JSON.stringify({
-  subjects: [{ id: 'subject-lin', name: '林默', kind: 'protagonist', function: '承担真相调查', drive: '找到母带', change: '接受共同记忆', debut: 'chapter:1', limits: [], demand_refs: ['demand-investigator'] }],
+  subjects: [{ id: 'subject-lin', name: '林默', kind: 'protagonist', function: '承担真相调查', background: '旧港公共档案修复师，曾参与事故母带的初次修复。', conflict_history: '她亲眼见过事故母带被替换，却因证据不足保持沉默。', present_stakes: '若证据失效，她会失去职业资格和追查母亲去向的最后机会。', temperament: '受压时先核对记录，再逼迫对方作出明确选择。', speech_style: '短句，少下判断，习惯复述记录原文。', drive: '找到母带', change: '接受共同记忆', debut: 'chapter:1', limits: ['不得伪造证据'], demand_refs: ['demand-investigator'] }],
   relations: [],
 });
 
@@ -25,6 +25,7 @@ const detail = JSON.stringify({
     volume_ref: 'volume-1',
     title: '旧港回声',
     target_characters: 3000,
+    turn_refs: ['turn-1'],
     purpose: '取得第一份证据',
     pov: 'subject-lin',
     cast_ids: ['subject-lin'],

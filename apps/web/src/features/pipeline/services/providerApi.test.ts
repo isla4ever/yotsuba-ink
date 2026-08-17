@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProviderProfile } from '../contracts';
 import { deleteProviderProfile, discoverProviderModels, getProviderReadiness, setDefaultProviderProfile, testProviderConnection } from './providerApi';
+import { defaultWorkflowId } from '../lib/officialWorkflows';
 
 const provider: ProviderProfile = {
   id: 'text-provider',
@@ -56,13 +57,13 @@ describe('provider API', () => {
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await getProviderReadiness('default-novel-workflow');
+    const result = await getProviderReadiness(defaultWorkflowId);
 
     expect(result.scope).toBe('configuration_only');
     expect(result.checks[0].issue_codes).toEqual(['base_url_missing', 'secret_missing']);
     expect(fetchMock).toHaveBeenCalledWith('/api/providers/readiness', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ workflow_id: 'default-novel-workflow' }),
+      body: JSON.stringify({ workflow_id: defaultWorkflowId }),
     }));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/runs'), expect.anything());
   });

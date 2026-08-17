@@ -6,10 +6,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from novel_workflow.providers.usage import ProviderUsageSummary, normalize_provider_usage
 from novel_workflow.storage.atomic_json import atomic_write_json, read_json, require_safe_id
+from novel_workflow.storage.provider_input_store import (
+    ProviderInputPayload,
+    ProviderInputStore,
+)
 
 
 class OperationReceipt(BaseModel):
@@ -22,6 +26,7 @@ class OperationReceipt(BaseModel):
     provider_profile_id: str = ""
     model: str = ""
     request_signature: str = Field(min_length=64, max_length=64)
+    provider_input_ref: str = ""
     result: Any = None
     error: dict[str, Any] | None = None
     usage: dict[str, int] = Field(default_factory=dict)
@@ -29,12 +34,53 @@ class OperationReceipt(BaseModel):
     created_at: str
     updated_at: str
 
+    @model_validator(mode="after")
+    def require_provider_input_reference(self) -> "OperationReceipt":
+        if bool(self.provider_profile_id) != bool(self.provider_input_ref):
+            raise ValueError(
+                "Provider receipts require an input reference; non-Provider receipts cannot have one"
+            )
+        return self
+
 
 class OperationStore:
-    def __init__(self, root: Path) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        provider_inputs: ProviderInputStore | None = None,
+    ) -> None:
         self.root = root
         self.root.mkdir(parents=True, exist_ok=True)
+        self.provider_inputs = provider_inputs or ProviderInputStore(
+            root.parent / "provider_inputs"
+        )
         self._lock = threading.RLock()
+
+    def begin_provider(
+        self,
+        *,
+        run_id: str,
+        operation_key: str,
+        kind: str,
+        provider_profile_id: str,
+        model: str,
+        provider_input: ProviderInputPayload,
+    ) -> OperationReceipt:
+        request_signature = self.provider_inputs.signature(
+            run_id=run_id,
+            operation_key=operation_key,
+            input=provider_input,
+        )
+        return self.begin(
+            run_id=run_id,
+            operation_key=operation_key,
+            kind=kind,
+            request_signature=request_signature,
+            provider_profile_id=provider_profile_id,
+            model=model,
+            provider_input=provider_input,
+        )
 
     def begin(
         self,
@@ -45,8 +91,21 @@ class OperationStore:
         request_signature: str,
         provider_profile_id: str = "",
         model: str = "",
+        provider_input: ProviderInputPayload | None = None,
     ) -> OperationReceipt:
         require_safe_id(run_id, label="run_id")
+        if provider_profile_id and provider_input is None:
+            raise ValueError("Provider operations require an immutable input snapshot")
+        if not provider_profile_id and provider_input is not None:
+            raise ValueError("Non-Provider operations cannot attach a Provider input snapshot")
+        if provider_input is not None:
+            input_signature = self.provider_inputs.signature(
+                run_id=run_id,
+                operation_key=operation_key,
+                input=provider_input,
+            )
+            if input_signature != request_signature:
+                raise ValueError("Provider request signature does not match its input snapshot")
         path = self._path(run_id, operation_key)
         with self._lock:
             if path.exists():
@@ -54,6 +113,15 @@ class OperationStore:
                 if existing.request_signature != request_signature:
                     raise ValueError("Operation key was reused with a different request")
                 return existing
+            snapshot = (
+                self.provider_inputs.write(
+                    run_id=run_id,
+                    operation_key=operation_key,
+                    input=provider_input,
+                )
+                if provider_input is not None
+                else None
+            )
             now = _now()
             receipt = OperationReceipt(
                 operation_key=operation_key,
@@ -63,6 +131,7 @@ class OperationStore:
                 provider_profile_id=provider_profile_id,
                 model=model,
                 request_signature=request_signature,
+                provider_input_ref=snapshot.snapshot_ref if snapshot else "",
                 created_at=now,
                 updated_at=now,
             )
@@ -160,9 +229,25 @@ class OperationStore:
         target_operation_key: str,
     ) -> OperationReceipt:
         source = self.read(source_run_id, source_operation_key)
-        target = source.model_copy(
-            update={"run_id": target_run_id, "operation_key": target_operation_key}
-        )
+        snapshot = None
+        if source.provider_input_ref:
+            source_snapshot = self.provider_inputs.read(
+                source_run_id,
+                source.provider_input_ref,
+            )
+            snapshot = self.provider_inputs.write(
+                run_id=target_run_id,
+                operation_key=target_operation_key,
+                input=source_snapshot.input,
+            )
+        target = source.model_copy(update={
+            "run_id": target_run_id,
+            "operation_key": target_operation_key,
+            "request_signature": (
+                snapshot.request_signature if snapshot else source.request_signature
+            ),
+            "provider_input_ref": snapshot.snapshot_ref if snapshot else "",
+        })
         path = self._path(target_run_id, target_operation_key)
         with self._lock:
             if path.exists():

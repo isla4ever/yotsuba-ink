@@ -5,7 +5,6 @@ import { captureRunResetSnapshot } from './runResetState';
 
 const lengthEnvelope = {
   word_target_soft: 100_000,
-  chapter_target_soft: 3,
 };
 
 describe('captureRunResetSnapshot', () => {
@@ -16,11 +15,8 @@ describe('captureRunResetSnapshot', () => {
     ];
 
     const snapshot = captureRunResetSnapshot({
-      automationCockpitReady: true,
       decision: {
-        approvalDraft: '当前人工稿',
         approvalPending: true,
-        approvalSource: '服务端来源稿',
         checkpointContinueReady: false,
         checkpointStageId: 'detail',
         briefContinueReady: false,
@@ -28,8 +24,6 @@ describe('captureRunResetSnapshot', () => {
       events,
       inputs: {
         project_id: 'project-reset-safe',
-        title: '撤销恢复测试',
-        theme: '旧港',
         quality_mode: 'balanced',
         length_envelope: lengthEnvelope,
         run_intent: {
@@ -52,9 +46,7 @@ describe('captureRunResetSnapshot', () => {
     expect(snapshot?.runSource).toBe('backend');
     expect(snapshot?.hydrated).toMatchObject({
       activeRunId: 'run-reset-safe',
-      approvalDraft: '当前人工稿',
       approvalPending: true,
-      automationCockpitReady: true,
       checkpointStageId: 'detail',
       paused: true,
       runControlState: 'paused',
@@ -66,11 +58,8 @@ describe('captureRunResetSnapshot', () => {
 
   it('does not offer undo without a persisted event context', () => {
     const snapshot = captureRunResetSnapshot({
-      automationCockpitReady: false,
       decision: {
-        approvalDraft: '',
         approvalPending: false,
-        approvalSource: '',
         checkpointContinueReady: false,
         checkpointStageId: '',
         briefContinueReady: false,

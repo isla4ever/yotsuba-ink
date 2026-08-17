@@ -5,7 +5,7 @@ import { stageArtifactLabel, stageConfigurationReadiness } from './planningReadi
 describe('planning readiness', () => {
   it('marks the seeded Story Brief ready', () => {
     const stage = defaultWorkflow.nodes.find((item) => item.id === 'brief');
-    expect(stageConfigurationReadiness(stage!)).toMatchObject({ completed: 7, ready: true, total: 7 });
+    expect(stageConfigurationReadiness(stage!)).toMatchObject({ completed: 3, ready: true, total: 3 });
   });
 
   it('reports missing required fields without counting optional reference fields', () => {
@@ -15,10 +15,10 @@ describe('planning readiness', () => {
       input_schema: stage.input_schema.map((field) => (field.key === 'core_concept' ? { ...field, default: ' ' } : field)),
     };
     expect(stageConfigurationReadiness(incomplete)).toEqual({
-      completed: 6,
+      completed: 2,
       missingLabels: ['核心创意/冲突'],
       ready: false,
-      total: 7,
+      total: 3,
     });
   });
 

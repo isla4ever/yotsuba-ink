@@ -12,11 +12,16 @@ const emptyUsage: ProviderUsageSummary = {
 };
 
 export function latestProviderUsage(events: RunEvent[]): ProviderUsageSummary {
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const usage = events[index]?.payload?.provider_usage;
-    if (isProviderUsage(usage)) return usage;
+  let latestSequence = -1;
+  let latestUsage: ProviderUsageSummary | undefined;
+  for (const event of events) {
+    const usage = event.payload?.provider_usage;
+    if (event.sequence > latestSequence && isProviderUsage(usage)) {
+      latestSequence = event.sequence;
+      latestUsage = usage;
+    }
   }
-  return emptyUsage;
+  return latestUsage ?? emptyUsage;
 }
 
 function isProviderUsage(value: unknown): value is ProviderUsageSummary {

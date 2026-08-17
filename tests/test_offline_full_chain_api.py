@@ -68,7 +68,7 @@ def test_offline_full_chain_completes_through_the_api(tmp_path, monkeypatch) -> 
 
     with TestClient(app) as client:
         configure_phase27_providers(client)
-        project = client.post("/api/projects", json={"title": "离线链路验证"}).json()
+        project = client.post("/api/projects", json={"idea": "离线链路验证：旧港记忆实验留下未结案件。"}).json()
         created = client.post(
             "/api/runs",
             json={
@@ -77,7 +77,7 @@ def test_offline_full_chain_completes_through_the_api(tmp_path, monkeypatch) -> 
                 "workflow_id": project["workflow_id"],
                 "inputs": {
                     "project_brief": {"genre": "悬疑"},
-                    "length_envelope": {"word_target_soft": 12_000, "chapter_target_soft": 2},
+                    "length_envelope": {"word_target_soft": 4_000},
                 },
                 "export_preferences": {"format": "zip"},
             },
@@ -121,8 +121,23 @@ def test_offline_full_chain_completes_through_the_api(tmp_path, monkeypatch) -> 
         assert [request.stage_id for request in provider.stage_requests] == [
             "brief", "spine", "cast", "volumes", "detail", "cover",
         ]
-        assert [request.chapter_id for request in provider.chapter_requests] == [
-            "chapter-1", "chapter-2",
+        assert [request.proposal_type for request in provider.proposal_requests] == [
+            "spine_review",
+            "role_demand",
+            "role_demand_review",
+            "cast_review",
+            "cast_relation",
+            "volume_boundary",
+            "detail_layout",
+        ]
+        assert [
+            (request.chapter_id, request.scene_index)
+            for request in provider.chapter_requests
+        ] == [
+            ("chapter-1", 1),
+            ("chapter-1", 2),
+            ("chapter-2", 1),
+            ("chapter-2", 2),
         ]
 
         # Chapter prose is owned by the ChapterStore, not the ArtifactStore.

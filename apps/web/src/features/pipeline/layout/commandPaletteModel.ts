@@ -55,7 +55,7 @@ function command(
 }
 
 export function buildPaletteCommands(context: PaletteContext): PaletteCommand[] {
-  const stageCommands = sidebarStageItems({
+  const stageCommands = context.runHasStarted ? sidebarStageItems({
     policy: context.policy,
     qualityMode: context.qualityMode,
     runHasStarted: context.runHasStarted,
@@ -70,8 +70,8 @@ export function buildPaletteCommands(context: PaletteContext): PaletteCommand[] 
     id: `${paletteStageCommandPrefix}${item.id}`,
     keywords: [item.label, item.id, '阶段', '跳转', 'stage'],
     title: `跳转到${item.label}`,
-  }));
-  const bibleCommands = bibleSections.map((section) => {
+  })) : [];
+  const bibleCommands = context.runHasStarted ? bibleSections.map((section) => {
     const meta = bibleSectionMeta[section];
     return command(
       `${paletteBibleCommandPrefix}${section}`,
@@ -81,14 +81,21 @@ export function buildPaletteCommands(context: PaletteContext): PaletteCommand[] 
       [meta.label, section, 'story bible', 'bible', '设定集'],
       true,
     );
-  });
+  }) : [];
   const darkTheme = context.theme === 'dark';
   return [
     ...stageCommands,
-    command('nav:planning', 'navigation', '打开创作规划', '配置工作流与启动创作', ['规划', '工作流', '配置', 'planning'], true),
+    command(
+      'nav:planning',
+      'navigation',
+      context.runHasStarted ? '打开当前工作台' : '打开创作准备',
+      context.runHasStarted ? '返回当前阶段或创作控制台' : '完善故事起点、资料与创作模式',
+      ['准备', '工作台', '创作', 'planning'],
+      true,
+    ),
     command('nav:studio', 'navigation', '返回工作室', '浏览全部作品与工作流模板', ['工作室', '作品库', '返回', 'studio', 'library'], true),
     ...bibleCommands,
-    command('studio:new-project', 'global', '新建作品', '打开新建作品向导（书名 + 模板）', ['新建', '作品', '小说', 'new', 'project'], true),
+    command('studio:new-project', 'global', '新建作品', '选择流水线并提交一段创作想法', ['新建', '作品', '小说', 'new', 'project'], true),
     command('open:knowledge', 'global', '打开知识资料', '管理项目资料与检索依据', ['知识', '资料', '知识库', '文档', '检索', 'knowledge'], true),
     command('open:history', 'global', '打开创作历史', '查看运行、快照与导出版本', ['历史', '运行', '快照', '导出', 'history'], true),
     command('open:settings', 'global', '打开模型与设置', '编辑服务、模型和工作流偏好', ['设置', 'provider', '模型', '服务', '偏好', 'settings'], true),

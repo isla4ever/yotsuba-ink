@@ -93,17 +93,18 @@ export function useRunCommands(options: RunCommandOptions) {
     const exportCompleted = eventsRef.current.some(
       (event) => event.type === 'artifact.committed' && event.stage_id === 'export',
     );
-    if (terminal === 'completed' && workflow.quality_mode === 'deep' && exportCompleted) {
-      markExportCompletedAndStay();
+    if (terminal === 'completed' && exportCompleted) {
+      completeExportAndStay();
       return;
     }
     setRunControl(false, terminal === 'failed' ? 'failed' : 'completed', false);
   }
 
-  async function consumeExistingRun(inputs: RunInputs, runId: string) {
+  async function consumeExistingRun(inputs: RunInputs, runId: string, replayFromStart = false) {
     const terminal = await stream.consume({
       inputs,
       kind: 'existing',
+      replayFromStart,
       runId,
       workflow,
     });
@@ -115,21 +116,20 @@ export function useRunCommands(options: RunCommandOptions) {
     eventsRef.current = hydrated.events;
     dispatchRun({ type: 'run_restored', hydrated });
     stageDecision.restore(hydrated);
-    transitions.setAutomationCockpitReady(hydrated.automationCockpitReady);
     if (!reconnect) return;
     setRunControl(false, 'running', true);
     const source: RunSource = 'backend';
     setRunSource('backend');
-    try {
-      await consumeExistingRun(
+    void consumeExistingRun(
         hydrated.inputs ?? buildRunInputs(workflow, source, project),
         hydrated.activeRunId,
-      );
-    } catch (error) {
-      if (isRunAbortError(error)) return;
-      setRunControl(false, 'failed', false);
-      onWarning(`真实链路恢复失败：${errorMessage(error)}`);
-    }
+        true,
+      )
+      .catch((error) => {
+        if (isRunAbortError(error)) return;
+        setRunControl(false, 'failed', false);
+        onWarning(`真实链路恢复失败：${errorMessage(error)}`);
+      });
   }
 
   async function runWorkflow() {
@@ -144,8 +144,8 @@ export function useRunCommands(options: RunCommandOptions) {
       selectedStageType: selectedStage.type,
     });
     if (intent.type === 'none') return;
-    if (intent.type === 'return_export') {
-      returnExportToPlanning();
+    if (intent.type === 'complete_export') {
+      completeExportAndStay();
       return;
     }
     if (intent.type === 'continue') {
@@ -241,14 +241,11 @@ export function useRunCommands(options: RunCommandOptions) {
     const commandEpoch = commandEpochRef.current;
     const resolvedStageId = stageDecision.beginContinuation(stageId, state.selectedId);
     if (resolvedStageId === 'export') {
-      returnExportToPlanning();
+      completeExportAndStay();
       return;
     }
     const nextStageId = selectNextStageId(workflow.nodes, resolvedStageId);
     transitions.startSettlement({
-      kind: workflow.quality_mode === 'balanced' && resolvedStageId === 'brief'
-        ? 'balanced_cockpit'
-        : 'route',
       nextStageId,
       stageId: resolvedStageId,
     });
@@ -265,19 +262,12 @@ export function useRunCommands(options: RunCommandOptions) {
     }
   }
 
-  function markExportCompletedAndStay() {
+  function completeExportAndStay() {
     transitions.clearSettlement();
-    stageDecision.markExportReady();
+    stageDecision.clearCheckpoint();
     stream.invalidate();
     if (state.activeRunId) history.record(eventsRef.current, workflow);
-    dispatchRun({ type: 'run_export_stayed' });
-  }
-
-  function returnExportToPlanning() {
-    markExportCompletedAndStay();
-    stageDecision.clearCheckpoint();
-    dispatchRun({ type: 'run_returned_to_planning', stageId: 'brief' });
-    transitions.setAutomationCockpitReady(workflow.quality_mode !== 'deep');
+    dispatchRun({ type: 'run_export_completed' });
   }
 
   return {
@@ -285,7 +275,7 @@ export function useRunCommands(options: RunCommandOptions) {
     continueAfterDecision,
     resetRunControl,
     restoreRecoveredRun,
-    returnExportToPlanning,
+    completeExportAndStay,
     runWorkflow,
   };
 }

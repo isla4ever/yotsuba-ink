@@ -19,8 +19,11 @@ from novel_workflow.storage.provider_profile_store import ProviderProfileStore
 from novel_workflow.storage.provider_secret_store import ProviderSecretStore
 from novel_workflow.storage.run_history_projection import RunHistoryProjection
 from novel_workflow.workflows.schemas import PromptTemplate, ProviderProfile
-from novel_workflow.workflows.templates import default_prompt_templates, default_provider_profiles, default_workflow
-
+from novel_workflow.workflows.templates import (
+    default_prompt_templates,
+    default_provider_profiles,
+    official_workflows,
+)
 
 def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
     root = data_dir or Path("runtime/novel_workflow")
@@ -49,13 +52,12 @@ def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
         app.state.narrative_stores.runs,
         app.state.narrative_stores.exports,
         app.state.narrative_stores.chapters,
+        app.state.narrative_stores.artifacts,
     )
     app.state.project_store = ProjectStore(
         root / "projects",
         workflow_store=app.state.workflow_store,
         run_history=app.state.run_history,
-        provider_profiles=lambda: list_provider_profiles(app),
-        secret_resolver=app.state.provider_secret_store.get_api_key,
     )
     # Historical runs are an offline, read-only surface and never share the
     # production Run repository or graph checkpoint directory.
@@ -63,35 +65,22 @@ def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
 
 
 def seed_defaults(app: FastAPI) -> None:
-    # Seeding is scoped to the single default workflow id. User templates and
-    # per-project workflows in the same store must never be touched here.
-    #
-    # Phase 12 Wave 3A: the comparison is "version + content digest", not the
-    # version string alone. A stale process once wrote "new version + old
-    # content" to disk and the version-only check skipped the repair, so brief
-    # hints never reached the install. Any divergence between the on-disk
-    # default and the code template (the digest covers the version field too)
-    # now restores the canonical template.
-    workflow = default_workflow()
-    expected = workflow.model_dump()
-    try:
-        existing = app.state.workflow_store.read(workflow.id)
-        if _workflow_digest(existing) != _workflow_digest(expected):
+    # Official templates are code-owned. User templates and project workflows
+    # in the same store remain untouched.
+    for workflow in official_workflows():
+        expected = workflow.model_dump()
+        try:
+            existing = app.state.workflow_store.read(workflow.id)
+            if _workflow_digest(existing) != _workflow_digest(expected):
+                app.state.workflow_store.write(workflow.id, expected)
+        except FileNotFoundError:
             app.state.workflow_store.write(workflow.id, expected)
-    except FileNotFoundError:
-        app.state.workflow_store.write(workflow.id, expected)
 
     for provider in default_provider_profiles():
         try:
             app.state.provider_store.read(provider.id)
         except FileNotFoundError:
             app.state.provider_store.write(provider.id, provider.model_dump())
-    for retired_provider_id in ("mock-text", "mock-image"):
-        try:
-            app.state.provider_store.delete(retired_provider_id)
-        except Exception:
-            pass
-
     for prompt in default_prompt_templates():
         try:
             existing = app.state.prompt_store.read(prompt.id)

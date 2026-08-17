@@ -11,8 +11,8 @@ import type {
 import { stageHasProviderException } from './stageProviderException';
 import { creationModeTitle } from './terminology';
 
-/** Phase 12 A4: three-step guided setup — 故事起点 / 连接 AI 服务 / 确认启动. */
-export const setupStepOrder: SetupStepId[] = ['story', 'ai-service', 'review'];
+/** Book preparation stays focused on creative input; pipeline setup lives elsewhere. */
+export const setupStepOrder: SetupStepId[] = ['story', 'review'];
 
 /** Review-page card anchors: reference/mode issues focus these elements. */
 export const reviewReferenceCardId = 'setup-review-references';
@@ -21,44 +21,27 @@ export const reviewCreationModeCardId = 'setup-review-creation-mode';
 const storyFieldKeys = new Set([
   'genre',
   'word_target_soft',
-  'chapter_target_soft',
   'audience',
   'core_concept',
   'keywords',
   'taboos',
 ]);
 
-const issueLabels: Record<string, string> = {
-  provider_not_found: 'AI 服务不存在',
-  provider_disabled: 'AI 服务尚未启用',
-  provider_kind_mismatch: 'AI 服务类型不匹配',
-  provider_template_invalid: '服务厂商模板无效',
-  base_url_missing: '缺少服务地址',
-  model_missing: '缺少默认模型',
-  secret_missing: '缺少 API Key',
-  model_not_discovered: '阶段模型不在已同步目录中',
-  model_parameter_not_supported: '模型缺少所需的结构化能力',
-  provider_policy_blocked: '当前服务不允许用于应用后端',
-  provider_workflow_blocked: '当前服务仅用于评估，不能运行生产工作流',
-};
-
 export function buildSetupSteps(input: SetupDerivationInput): SetupStep[] {
   const brief = briefStageOf(input.workflow);
   const storyIssues = storySetupIssues(brief);
-  const serviceIssues = aiServiceSetupIssues(input.readiness);
   // References and creation mode live on the review page as default cards,
   // so their issues belong to the review step and anchor to the cards.
   const reviewOwnIssues = [
     ...referenceSetupIssues(brief, input.knowledgeDocuments),
     ...creationModeSetupIssues(input.workflow),
   ];
-  const carriedBlocking = [...storyIssues, ...serviceIssues].filter((issue) => issue.severity === 'blocking');
+  const carriedBlocking = storyIssues.filter((issue) => issue.severity === 'blocking');
   const reviewIssues = [...reviewOwnIssues, ...carriedBlocking];
   const reviewBlockingCount = reviewIssues.filter((issue) => issue.severity === 'blocking').length;
 
   return [
     setupStep('story', '故事起点', storyIssues, storySummary(brief)),
-    setupStep('ai-service', '连接 AI 服务', serviceIssues, providerReadinessSummary(input.readiness)),
     setupStep(
       'review',
       '确认启动',
@@ -76,10 +59,6 @@ export function firstBlockingSetupTarget(steps: SetupStep[]) {
     if (issue) return issue.target;
   }
   return null;
-}
-
-export function shouldShowGuidedSetup(steps: SetupStep[]) {
-  return firstBlockingSetupTarget(steps) !== null;
 }
 
 export function stageExceptionIds(workflow: WorkflowDefinition) {
@@ -153,18 +132,11 @@ function referenceSetupIssues(brief: WorkflowStage | undefined, documents: Setup
   return [];
 }
 
-function aiServiceSetupIssues(readiness: SetupDerivationInput['readiness']): SetupIssue[] {
-  if (!readiness) {
-    return [blockingIssue('provider_readiness_pending', '尚未确认 AI 服务是否可用', 'ai-service', 'setup-ai-service-manager')];
-  }
+function aiServiceSetupIssues(readiness: SetupDerivationInput['readiness']): Array<Pick<SetupIssue, 'severity'>> {
+  if (!readiness) return [{ severity: 'blocking' }];
   return readiness.checks
     .filter((check) => !check.ready)
-    .flatMap((check) => check.issue_codes.length ? check.issue_codes.map((code) => blockingIssue(
-      `provider_${check.provider_id}_${code}`,
-      `${check.provider_name}：${issueLabels[code] ?? check.message}`,
-      'ai-service',
-      'setup-ai-service-manager',
-    )) : [blockingIssue(`provider_${check.provider_id}_not_ready`, check.message, 'ai-service', 'setup-ai-service-manager')]);
+    .map(() => ({ severity: 'blocking' as const }));
 }
 
 function creationModeSetupIssues(workflow: WorkflowDefinition): SetupIssue[] {
@@ -197,12 +169,9 @@ function hasConfiguredValue(field: InputField) {
 function storySummary(brief?: WorkflowStage) {
   const genre = valueFor(brief, 'genre') || '题材未定';
   const words = Number(fieldFor(brief, 'word_target_soft')?.default);
-  const chapters = Number(fieldFor(brief, 'chapter_target_soft')?.default);
   const scale = Number.isFinite(words) && words > 0
     ? `约 ${words.toLocaleString('zh-CN')} 字`
-    : Number.isFinite(chapters) && chapters > 0
-      ? `约 ${chapters.toLocaleString('zh-CN')} 章`
-      : '体量未定';
+    : '体量未定';
   return `${genre} · ${scale}`;
 }
 
@@ -251,7 +220,7 @@ export function referenceModeLabel(mode: string) {
   return '智能参考';
 }
 
-function statusFromIssues(issues: SetupIssue[]): SettingsSectionSummary['status'] {
+function statusFromIssues(issues: Array<Pick<SetupIssue, 'severity'>>): SettingsSectionSummary['status'] {
   if (issues.some((issue) => issue.severity === 'blocking')) return 'blocked';
   if (issues.length) return 'warning';
   return 'ready';

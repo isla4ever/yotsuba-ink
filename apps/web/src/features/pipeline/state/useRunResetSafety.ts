@@ -9,7 +9,6 @@ import type { StageDecisionState } from './stageDecisionState';
 const undoWindowMs = 15_000;
 
 type Props = {
-  automationCockpitReady: boolean;
   decision: StageDecisionState;
   eventsRef: MutableRefObject<RunEvent[]>;
   runInputs: RunInputs;
@@ -21,7 +20,6 @@ type Props = {
 };
 
 export function useRunResetSafety({
-  automationCockpitReady,
   decision,
   eventsRef,
   runInputs,
@@ -52,7 +50,6 @@ export function useRunResetSafety({
   function resetRunControl() {
     if (!state.activeRunId) return false;
     const snapshot = captureRunResetSnapshot({
-      automationCockpitReady,
       decision,
       events: eventsRef.current,
       inputs: runInputs,

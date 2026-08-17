@@ -87,39 +87,28 @@ OFFICIAL_CN_TEXT_PROVIDER_TEMPLATES = (
             ModelCapabilityProfile(
                 model_pattern="deepseek-v4-pro*",
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
-                stage_request_parameters={
-                    "brief": {"reasoning_effort": "high"},
-                    "cast": {"reasoning_effort": "high"},
-                },
                 stage_extra_body_parameters={
-                    "brief": {"thinking": {"type": "enabled"}},
-                    # Spine is a compact causal-structure node. Keeping
-                    # its output budget for JSON avoids reasoning consuming the
-                    # response envelope before the artifact is complete.
+                    # DeepSeek V4 maps low and medium reasoning effort to high.
+                    # Every bounded structured stage therefore reserves its
+                    # complete response envelope for the visible JSON Artifact.
+                    "brief": {"thinking": {"type": "disabled"}},
                     "spine": {"thinking": {"type": "disabled"}},
                     "cast": {"thinking": {"type": "disabled"}},
-                    # Volumes and Detail are bounded structured artifacts. Their
-                    # response budget must remain available for the JSON object.
                     "volumes": {"thinking": {"type": "disabled"}},
                     "detail": {"thinking": {"type": "disabled"}},
                     "text": {"thinking": {"type": "disabled"}},
                     "text.evidence": {"thinking": {"type": "disabled"}},
-                    # Review lanes return a compact strict JSON decision. A live
-                    # DeepSeek call consumed its entire response budget in
-                    # reasoning and returned no JSON, so reserve this envelope
-                    # for the review artifact itself.
                     "text.review": {"thinking": {"type": "disabled"}},
                 },
             ),
             ModelCapabilityProfile(
                 model_pattern="deepseek-v4-flash*",
                 capability_docs=["https://api-docs.deepseek.com/zh-cn/guides/thinking_mode"],
-                stage_request_parameters={
-                    "brief": {"reasoning_effort": "high"},
-                    "cast": {"reasoning_effort": "high"},
-                },
                 stage_extra_body_parameters={
-                    "brief": {"thinking": {"type": "enabled"}},
+                    # Flash is the bounded structured-output path. Reserve the
+                    # response envelope for the editable artifact; Pro keeps the
+                    # deeper Brief policy used by the deep workflow.
+                    "brief": {"thinking": {"type": "disabled"}},
                     "spine": {"thinking": {"type": "disabled"}},
                     "cast": {"thinking": {"type": "disabled"}},
                     "volumes": {"thinking": {"type": "disabled"}},

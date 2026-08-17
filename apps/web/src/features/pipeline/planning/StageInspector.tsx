@@ -15,6 +15,7 @@ import { StageModelSection } from './StageVariantCompareSection';
 
 type Props = {
   inputIdPrefix?: string;
+  readOnly?: boolean;
   stage: WorkflowStage;
   qualityMode: QualityMode;
   providers: ProviderProfile[];
@@ -26,6 +27,7 @@ type Props = {
 
 export function StageInspector({
   inputIdPrefix = 'stage-inspector',
+  readOnly = false,
   stage,
   qualityMode,
   providers,
@@ -96,7 +98,9 @@ export function StageInspector({
         <div><ShieldCheck size={14} /><span><strong>质量方式由创作模式管理</strong><small>{derivedQualitySummary(stage, qualityMode)}</small></span></div>
         <div><FileOutput size={14} /><span><strong>设定读写由阶段合同管理</strong><small>{memoryPolicySummary(stage)}</small></span></div>
       </section>
-      <p className="auto-save-hint">配置会自动保存，无需手动保存。</p>
+      <p className="auto-save-hint">
+        {readOnly ? '官方配置只读；复制为本书配置后可调整。' : '配置会自动保存，无需手动保存。'}
+      </p>
     </aside>
   );
 }

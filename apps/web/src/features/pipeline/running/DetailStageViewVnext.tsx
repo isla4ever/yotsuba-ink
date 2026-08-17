@@ -5,13 +5,16 @@ import { parseDetailArtifact, type DetailArtifactVnext } from './artifactsVnext'
 import { VnextArtifactError } from './VnextArtifactError';
 
 type Props = {
-  characters: Array<{ id: string; name: string }>;
+  characters: Array<{ id: string; kind: string; name: string }>;
   onArtifactChange: (artifact: DetailArtifactVnext) => void;
   readOnly: boolean;
   result: string;
+  sceneRange?: readonly [number, number];
 };
 
-export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, result }: Props) {
+const STRUCTURAL_SCENE_MAX = 12;
+
+export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, result, sceneRange }: Props) {
   const parsed = useMemo(() => parseDetailArtifact(result), [result]);
   const [artifact, setArtifact] = useState<DetailArtifactVnext | null>(parsed.artifact);
   const [selectedRef, setSelectedRef] = useState(parsed.artifact?.chapters[0]?.ref ?? '');
@@ -24,7 +27,18 @@ export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, r
   const selectedIndex = Math.max(0, artifact.chapters.findIndex((chapter) => chapter.ref === selectedRef));
   const chapter = artifact.chapters[selectedIndex];
   if (!chapter) return <VnextArtifactError errors={['chapters 至少包含一章']} label="Detail Plan" />;
+  const sceneMinimum = Math.max(1, Math.min(STRUCTURAL_SCENE_MAX, sceneRange?.[0] ?? 1));
+  const sceneMaximum = Math.max(sceneMinimum, Math.min(STRUCTURAL_SCENE_MAX, sceneRange?.[1] ?? STRUCTURAL_SCENE_MAX));
+  const sceneRangeLabel = sceneRange ? '动态区间' : '结构区间';
   const update = (next: DetailArtifactVnext) => { setArtifact(next); onArtifactChange(next); };
+  const characterOptions = characters.map((character) => ({
+    disabled: character.kind === 'historical_record',
+    hint: character.kind === 'historical_record'
+      ? '历史主体仅可通过记录被提及，不能作为 POV 或现场出场人物'
+      : character.name,
+    id: character.id,
+    label: character.name,
+  }));
   const updateChapter = (patch: Partial<typeof chapter>) => update({
     ...artifact,
     chapters: artifact.chapters.map((item, index) => index === selectedIndex ? { ...item, ...patch } : item),
@@ -36,14 +50,19 @@ export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, r
           <button className={item.ref === chapter.ref ? 'active' : ''} key={item.ref} onClick={() => setSelectedRef(item.ref)} type="button">
             <span>{String(index + 1).padStart(2, '0')}</span>
             <strong>{item.title}</strong>
-            <em>{item.volume_ref} · {item.scenes.length} 场景{item.target_characters ? ` · ${item.target_characters.toLocaleString()} 字` : ''}</em>
+            <em>{item.volume_ref} · {item.scenes.length} 场景 · {item.turn_refs.length} 个剧情转折{item.target_characters ? ` · 正文预算 ${item.target_characters.toLocaleString()} 字` : ''}</em>
           </button>
         ))}
       </nav>
       <div className="vnext-detail-main">
         <section className="vnext-artifact-section">
-          <header><div><span>章节施工图</span><strong>{chapter.volume_ref} · {chapter.ref}{chapter.target_characters ? ` · ${chapter.target_characters.toLocaleString()} 字` : ''}</strong></div></header>
+          <header><div><span>章节施工图</span><strong>{chapter.volume_ref} · {chapter.ref}</strong></div></header>
           <label className="vnext-field vnext-title-field"><span>章名</span><input maxLength={12} minLength={2} onChange={(event) => updateChapter({ title: event.target.value })} readOnly={readOnly} value={chapter.title} /></label>
+          <div className="vnext-readonly-field">
+            <span>正文合同</span>
+            <strong>{chapter.target_characters ? `正文预算 ${chapter.target_characters.toLocaleString()} 字` : '正文预算待细纲定稿'} · {chapter.turn_refs.length} 个已冻结转折</strong>
+            <small>预算只用于成稿长度控制，不代表细纲字数；本章只能执行这些转折，正文不得提前消费后续剧情。</small>
+          </div>
           <label className="vnext-field vnext-wide"><span>章节目的</span><textarea onChange={(event) => updateChapter({ purpose: event.target.value })} readOnly={readOnly} rows={3} value={chapter.purpose} /></label>
           <div className="vnext-ref-field">
             <span>POV 视角（本章唯一）</span>
@@ -53,7 +72,7 @@ export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, r
                 const pov = ids.find((id) => id !== chapter.pov) ?? chapter.pov;
                 updateChapter({ pov, cast_ids: includeRef(chapter.cast_ids, pov) });
               }}
-              options={characters.map((character) => ({ id: character.id, label: character.name }))}
+              options={characterOptions}
               readOnly={readOnly}
               selected={[chapter.pov]}
             />
@@ -64,18 +83,18 @@ export function DetailStageViewVnext({ characters, onArtifactChange, readOnly, r
               ariaLabel="本章出场人物"
               lockedIds={[chapter.pov]}
               onChange={(cast_ids) => updateChapter({ cast_ids })}
-              options={characters.map((character) => ({ id: character.id, label: character.name }))}
+              options={characterOptions}
               readOnly={readOnly}
               selected={chapter.cast_ids}
             />
           </div>
         </section>
         <section className="vnext-artifact-section">
-          <header><div><span>场景序列</span><strong>{chapter.scenes.length} / 4</strong></div>{!readOnly && chapter.scenes.length < 4 ? <button className="vnext-add-command" onClick={() => updateChapter({ scenes: [...chapter.scenes, emptyScene()] })} type="button"><Plus size={15} />新增场景</button> : null}</header>
+          <header><div><span>场景序列</span><strong>{chapter.scenes.length} 场 · {sceneRangeLabel} {sceneMinimum}-{sceneMaximum}</strong></div>{!readOnly && chapter.scenes.length < sceneMaximum ? <button className="vnext-add-command" onClick={() => updateChapter({ scenes: [...chapter.scenes, emptyScene()] })} type="button"><Plus size={15} />新增场景</button> : null}</header>
           <div className="vnext-scene-list">
             {chapter.scenes.map((scene, index) => (
               <article className="vnext-scene-row" key={`${chapter.ref}-scene-${index + 1}`}>
-                <div className="vnext-scene-heading"><span>场景 {index + 1}</span><input aria-label="场景地点" onChange={(event) => updateChapter({ scenes: updateItem(chapter.scenes, index, { place: event.target.value }) })} readOnly={readOnly} value={scene.place} />{!readOnly && chapter.scenes.length > 2 ? <button aria-label="删除场景" onClick={() => updateChapter({ scenes: chapter.scenes.filter((_, itemIndex) => itemIndex !== index) })} title="删除场景" type="button"><Trash2 size={15} /></button> : null}</div>
+                <div className="vnext-scene-heading"><span>场景 {index + 1}</span><input aria-label="场景地点" onChange={(event) => updateChapter({ scenes: updateItem(chapter.scenes, index, { place: event.target.value }) })} readOnly={readOnly} value={scene.place} />{!readOnly && chapter.scenes.length > sceneMinimum ? <button aria-label="删除场景" onClick={() => updateChapter({ scenes: chapter.scenes.filter((_, itemIndex) => itemIndex !== index) })} title="删除场景" type="button"><Trash2 size={15} /></button> : null}</div>
                 <div className="vnext-scene-fields">
                   <SceneField label="目标" onChange={(objective) => updateChapter({ scenes: updateItem(chapter.scenes, index, { objective }) })} readOnly={readOnly} value={scene.objective} />
                   <SceneField label="冲突" onChange={(conflict) => updateChapter({ scenes: updateItem(chapter.scenes, index, { conflict }) })} readOnly={readOnly} value={scene.conflict} />

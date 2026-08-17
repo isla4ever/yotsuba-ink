@@ -10,7 +10,6 @@ const briefStage = defaultWorkflow.nodes.find((stage) => stage.type === 'brief')
 function completeSteps(): SetupStep[] {
   return [
     { id: 'story', label: '故事起点', status: 'complete', summary: '悬疑 · 80-120 万字', issues: [] },
-    { id: 'ai-service', label: '连接 AI 服务', status: 'complete', summary: '2 项服务检查通过', issues: [] },
     { id: 'review', label: '确认启动', status: 'complete', summary: '智能参考 · 平衡', issues: [] },
   ];
 }
@@ -42,7 +41,7 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
     expect(html).toContain('逐阶段与逐章确认');
     // Ledger lists the real steps with edit affordances.
     expect(html).toContain('修改故事起点');
-    expect(html).toContain('修改连接 AI 服务');
+    expect(html).not.toContain('连接 AI 服务');
     expect(html).toContain('可以开始创作');
     // Cards start collapsed when nothing needs fixing.
     expect(html).not.toContain('setup-review-reference-summary');
@@ -50,8 +49,8 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
 
   it('auto-expands the reference card for its own issue and shows the editable summary with its destination note', () => {
     const steps = completeSteps();
-    steps[2] = {
-      ...steps[2],
+    steps[1] = {
+      ...steps[1],
       status: 'blocked',
       issues: [{
         code: 'knowledge_document_unavailable',
@@ -72,8 +71,8 @@ describe('SetupReviewSection (Phase 12 A4 确认启动页)', () => {
 
   it('falls back to the balanced profile copy when the stored mode is out of contract', () => {
     const steps = completeSteps();
-    steps[2] = {
-      ...steps[2],
+    steps[1] = {
+      ...steps[1],
       status: 'blocked',
       issues: [{
         code: 'quality_mode_missing',

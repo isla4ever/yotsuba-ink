@@ -49,13 +49,13 @@ export function CharacterStageView({ onArtifactChange, readOnly, result, sourceR
       </div>
       {selected ? view === 'star-map' ? (
         <div className="character-bible-star-layout">
-          <CharacterRosterSection artifact={artifact} onChange={updateArtifact} onSelect={setSelectedId} readOnly={readOnly} selectedId={selected.id} />
+          <CharacterRosterSection artifact={artifact} onSelect={setSelectedId} selectedId={selected.id} />
           <CharacterStarMapPanel artifact={artifact} onSelect={setSelectedId} selectedId={selected.id} />
           <CharacterDossierEditor artifact={artifact} onChange={updateArtifact} readOnly={readOnly} subject={selected} totalChapters={totalChapters} />
         </div>
       ) : (
         <div className="character-bible-layout">
-          <CharacterRosterSection artifact={artifact} onChange={updateArtifact} onSelect={setSelectedId} readOnly={readOnly} selectedId={selected.id} />
+          <CharacterRosterSection artifact={artifact} onSelect={setSelectedId} selectedId={selected.id} />
           <CharacterDossierEditor artifact={artifact} onChange={updateArtifact} readOnly={readOnly} subject={selected} totalChapters={totalChapters} />
           <CharacterOrchestrationPanel artifact={artifact} onSelect={setSelectedId} subject={selected} />
         </div>

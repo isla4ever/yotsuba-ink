@@ -199,26 +199,6 @@
   border-radius: var(--radius-panel);
 }
 
-.cockpit-detail-empty {
-  display: grid;
-  gap: 5px;
-  margin: 0;
-  padding: var(--space-4);
-  text-align: left;
-}
-
-.cockpit-detail-empty strong {
-  color: var(--color-text-primary);
-  font-size: 13px;
-}
-
-.cockpit-detail-empty span,
-.cockpit-detail-empty:not(div) {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
 .history-empty-state {
   align-content: center;
   align-items: center;

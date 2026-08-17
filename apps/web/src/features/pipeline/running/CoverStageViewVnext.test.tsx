@@ -78,6 +78,24 @@ describe('CoverStageViewVnext', () => {
     expect(Array.from(container.querySelectorAll('textarea')).every((field) => field.readOnly)).toBe(true);
     expect(onArtifactChange).not.toHaveBeenCalled();
   });
+
+  it('shows metadata-only delivery when cover image generation is skipped', async () => {
+    const onArtifactChange = vi.fn();
+    await act(async () => {
+      root.render(<CoverStageViewVnext
+        coverAssetRequired={false}
+        onArtifactChange={onArtifactChange}
+        readOnly
+        result={JSON.stringify(artifact)}
+        runId="run-1"
+        sourceResult={JSON.stringify(artifact)}
+      />);
+    });
+
+    expect(container.textContent).toContain('封面生图已跳过');
+    expect(container.textContent).toContain('仅保留元数据');
+    expect(container.querySelector('.vnext-cover-candidate-rail')).toBeNull();
+  });
 });
 
 function coverAsset(assetId: string, candidateIndex: number): CoverAssetRecord {

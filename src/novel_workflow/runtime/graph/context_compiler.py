@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,26 +11,33 @@ from novel_workflow.output_contracts.artifacts_vnext import (
     ContextManifest,
     ContextSnippet,
     DetailArtifact,
+    DetailLayoutChapterProposal,
+    DetailLayoutProposalBatch,
     StoryBriefArtifact,
     StorySpineArtifact,
     StageId,
     VolumeArchitectureArtifact,
+    VolumeBoundaryProposalBatch,
 )
 from novel_workflow.memory.canon_store import CanonStore
 from novel_workflow.output_contracts.prompt_materials import validate_prompt_material
+from novel_workflow.runtime.graph.detail_planning import DetailLayoutVolumeWindow
 from novel_workflow.runtime.graph.state import NarrativeRunState
 from novel_workflow.runtime.graph.output_budget import OutputBudgetPlanner
 from novel_workflow.storage.artifact_store import ArtifactStore
 from novel_workflow.storage.chapter_store import ChapterStore
 from novel_workflow.storage.narrative_run_repository import NarrativeRunRepository
 from novel_workflow.workflows.narrative_scale import (
+    DetailChapterBeatSlot,
     DetailScaleProjection,
     NarrativeScalePlan,
     NarrativeScaleProfile,
-    chapter_character_targets,
     chapter_length_contract,
+    chapter_target_band,
+    count_prose_characters,
+    detail_scene_count_range,
     plan_narrative_scale,
-    project_volume_scales,
+    spine_milestone_positions,
 )
 
 
@@ -95,15 +102,20 @@ class NarrativeContextCompiler:
                 "scale_plan": _cast_scale_plan(plan),
             }
         elif stage_id == "volumes":
+            volume_candidate_cap = OutputBudgetPlanner(
+                definition.scale_profile
+            ).item_cap("volume_boundaries")
             material = {
                 "story_brief": payloads["brief"],
                 "story_spine": payloads["spine"],
                 "character_bible_refs": _volume_character_refs(payloads["cast"]),
                 "volume_boundaries": state.get("volume_boundary_proposal") or {"proposals": []},
-                "scale_plan": _volume_scale_plan(plan),
+                "scale_plan": _volume_scale_plan(plan, volume_candidate_cap),
             }
         elif stage_id == "detail":
-            return self._detail_contexts(state)[0][1]
+            raise ValueError(
+                "Detail planning context is volume-scoped; use detail_layout_volume"
+            )
         elif stage_id == "cover":
             material = {
                 "accepted_story_metadata": _accepted_story_metadata(
@@ -113,23 +125,106 @@ class NarrativeContextCompiler:
             }
         else:
             raise ValueError(f"Stage {stage_id} does not have a planning context")
-        return self._with_revision(state, stage_id, material, source_refs)
+        return self._with_revision(
+            state,
+            stage_id,
+            material,
+            source_refs,
+            validate_material=stage_id != "volumes",
+        )
 
     def stage_units(
         self,
         state: NarrativeRunState,
         stage_id: StageId,
+        *,
+        detail_layout: DetailLayoutProposalBatch | None = None,
     ) -> list[tuple[str, dict[str, Any]]]:
         if stage_id == "detail":
-            return self._detail_contexts(state)
+            if detail_layout is None:
+                raise ValueError("Detail stage units require a frozen chapter layout proposal")
+            return self._detail_contexts(state, detail_layout)
         base = self.stage(state, stage_id)
-        definition = self.runs.definition(state["run_id"])
-        planner = OutputBudgetPlanner(definition.scale_profile)
         if stage_id == "cast":
+            definition = self.runs.definition(state["run_id"])
+            planner = OutputBudgetPlanner(definition.scale_profile)
             return _group_cast_context(base, planner.item_cap("cast_dossiers"))
         if stage_id == "volumes":
-            return _group_volume_context(base, planner.item_cap("volume_contracts"))
+            return _volume_contexts(base)
         return [("", base)]
+
+    def detail_layout_volume(
+        self,
+        state: NarrativeRunState,
+        window: DetailLayoutVolumeWindow,
+    ) -> dict[str, Any]:
+        """Compile one volume and its dynamically remaining book capacity."""
+
+        payloads, refs = self._planning_material(state, PLANNING_INPUTS["detail"])
+        cast = CharacterBibleArtifact.model_validate(payloads["cast"])
+        architecture = VolumeArchitectureArtifact.model_validate(payloads["volumes"])
+        spine = StorySpineArtifact.model_validate(payloads["spine"])
+        try:
+            volume = architecture.volumes[window.volume_index]
+        except IndexError as exc:
+            raise ValueError("Detail layout window references an unknown volume") from exc
+        if volume.id != window.volume_ref:
+            raise ValueError("Detail layout window does not match the committed volume order")
+
+        turn_ids = set(volume.turn_refs)
+        volume_turns = [
+            turn.model_dump(mode="json")
+            for turn in spine.turns
+            if turn.id in turn_ids
+        ]
+        if [turn["id"] for turn in volume_turns] != list(volume.turn_refs):
+            raise ValueError("Detail layout volume turns are not a complete Spine slice")
+        selected_subjects = set(volume.cast_ids)
+        material = {
+            "story_spine": {"turns": volume_turns},
+            "volume_contracts": [volume.model_dump(mode="json")],
+            "selected_dossiers": [
+                _detail_dossier_projection(subject)
+                for subject in cast.subjects
+                if subject.id in selected_subjects
+            ],
+            "chapter_slots": [
+                {"slot_index": index}
+                for index in range(1, window.chapter_target + 1)
+            ],
+            "scale_plan": {
+                "book_chapter_target": window.book_chapter_target,
+                "book_chapter_range": [
+                    window.book_chapter_min,
+                    window.book_chapter_max,
+                ],
+                "allocated_chapters": window.allocated_chapters,
+                "remaining_volume_range": [
+                    window.remaining_volume_min,
+                    window.remaining_volume_max,
+                ],
+                "remaining_volume_target": window.remaining_volume_target,
+                "chapter_target": window.chapter_target,
+                "chapter_range": [window.chapter_min, window.chapter_max],
+                "volume_index": window.volume_index + 1,
+                "volume_count": window.volume_count,
+                "turn_count": len(volume.turn_refs),
+                "minimum_chapter_surplus_over_turns": max(
+                    0, window.chapter_min - len(volume.turn_refs)
+                ),
+                "target_chapter_surplus_over_turns": max(
+                    0, window.chapter_target - len(volume.turn_refs)
+                ),
+                "counting_rule": "non_whitespace_characters",
+            },
+        }
+        return self._with_revision(
+            state,
+            "detail",
+            material,
+            refs,
+            validate_material=False,
+        )
 
     def chapter(
         self,
@@ -140,6 +235,7 @@ class NarrativeContextCompiler:
         payloads, refs = self._planning_material(state, PLANNING_INPUTS["text"])
         chapter_number = int(state["active_chapter_number"])
         detail = DetailArtifact.model_validate(payloads["detail"])
+        brief = StoryBriefArtifact.model_validate(payloads["brief"])
         chapter = detail.chapters[chapter_number - 1]
         previous = self._previous_chapter(state)
         snippets = [
@@ -150,13 +246,18 @@ class NarrativeContextCompiler:
             ),
             _context_snippet(
                 "cast.subjects",
-                "pov_and_scene_subjects",
+                "pov_scene_and_referenced_subjects",
                 _chapter_subjects(payloads["cast"], chapter),
             ),
             _context_snippet(
                 "volume.contract",
                 "local_promise_and_closure",
                 _volume_by_ref(payloads["volumes"], chapter.volume_ref),
+            ),
+            _context_snippet(
+                "brief.world_rules",
+                "frozen_world_and_professional_rules",
+                brief.world_rules,
             ),
         ]
         optional: list[str] = []
@@ -181,7 +282,7 @@ class NarrativeContextCompiler:
         # The narrative voice is a book-level contract (person, distance,
         # tone). Prose generation must see it every chapter or the person
         # silently drifts from what the brief promised.
-        voice = str((payloads.get("brief") or {}).get("voice") or "").strip()
+        voice = brief.voice.strip()
         if voice:
             optional.append("brief.voice")
             snippets.append(
@@ -251,6 +352,34 @@ class NarrativeContextCompiler:
                 raise ValueError(
                     "A repeated chapter generation requires an explicit revision direction"
                 )
+            source_version_id = str(
+                (state.get("chapter_version_refs") or {}).get(chapter.ref) or ""
+            )
+            if not source_version_id:
+                raise ValueError(
+                    "A repeated chapter generation requires its immutable source draft"
+                )
+            source = self.chapters.read(
+                state["run_id"], chapter.ref, source_version_id
+            ).artifact
+            if source.author_status not in {"candidate", "edited"}:
+                raise ValueError(
+                    "A repeated chapter generation may only replace an unaccepted draft"
+                )
+            optional.append("revision.source_draft")
+            snippets.append(
+                _context_snippet(
+                    "revision.source_draft",
+                    "unaccepted_draft_to_replace",
+                    {
+                        "scope": "chapter",
+                        "measured_non_whitespace_characters": count_prose_characters(
+                            source.content
+                        ),
+                        "content": source.content,
+                    },
+                )
+            )
             optional.append("revision.request")
             snippets.append(
                 _context_snippet(
@@ -261,7 +390,12 @@ class NarrativeContextCompiler:
             )
         manifest_body = {
             "task": chapter.ref,
-            "required": ["detail.chapter", "cast.subjects", "volume.contract"],
+            "required": [
+                "detail.chapter",
+                "cast.subjects",
+                "volume.contract",
+                "brief.world_rules",
+            ],
             "optional": optional,
             "forbidden": ["full_canon", "full_wiki", "unrelated_subjects", "full_previous_chapter"],
             "snippets": snippets,
@@ -285,19 +419,13 @@ class NarrativeContextCompiler:
     def _detail_contexts(
         self,
         state: NarrativeRunState,
+        layout: DetailLayoutProposalBatch,
     ) -> list[tuple[str, dict[str, Any]]]:
         payloads, refs = self._planning_material(state, PLANNING_INPUTS["detail"])
         cast = CharacterBibleArtifact.model_validate(payloads["cast"])
         architecture = VolumeArchitectureArtifact.model_validate(payloads["volumes"])
         spine = StorySpineArtifact.model_validate(payloads["spine"])
         definition = self.runs.definition(state["run_id"])
-        projections = {
-            item.volume_ref: item
-            for item in project_volume_scales(
-                architecture,
-                definition.scale_profile,
-            )
-        }
         detail_binding = definition.provider_bindings.get("detail")
         if detail_binding is None:
             raise ValueError("Detail requires a frozen Provider binding")
@@ -306,34 +434,37 @@ class NarrativeContextCompiler:
         ).detail_chapter_capacity(detail_binding)
         turn_by_id = {turn.id: turn for turn in spine.turns}
         dossiers = {subject.id: subject for subject in cast.subjects}
-        plan = plan_narrative_scale(definition.scale_profile, definition.quality_mode)
-        book_character_targets = chapter_character_targets(definition.scale_profile)
+        chapter_count = sum(
+            len(volume_layout.chapters) for volume_layout in layout.volumes
+        )
+        target_band = chapter_target_band(definition.scale_profile, chapter_count)
+        scene_minimum, scene_maximum = detail_scene_count_range(
+            definition.scale_profile,
+            chapter_count,
+        )
         final_volume_ref = architecture.volumes[-1].id if architecture.volumes else ""
         chapter_number_start = 1
         units: list[tuple[str, dict[str, Any]]] = []
+        layouts = {item.volume_ref: item for item in layout.volumes}
         for volume in architecture.volumes:
-            projection = projections[volume.id]
-            segment_count = math.ceil(
-                projection.chapter_target / chapter_capacity
+            volume_layout = layouts.get(volume.id)
+            if volume_layout is None:
+                raise ValueError(f"Detail layout is missing {volume.id}")
+            slot_groups = _partition_detail_layout_slots(
+                volume_layout.chapters,
+                chapter_capacity,
             )
-            turn_groups = _partition_contiguous(volume.turn_refs, segment_count)
-            targets = _partition_positive(
-                projection.chapter_target,
-                segment_count,
-            )
+            segment_count = len(slot_groups)
             selected = [
-                dossiers[subject_id].model_dump(mode="json")
+                _detail_dossier_projection(dossiers[subject_id])
                 for subject_id in volume.cast_ids
                 if subject_id in dossiers
             ]
-            for index, turn_group in enumerate(turn_groups, start=1):
-                target = targets[index - 1]
-                unit_character_targets = (
-                    book_character_targets[
-                        chapter_number_start - 1 : chapter_number_start - 1 + target
-                    ]
-                    if book_character_targets
-                    else []
+            for index, layout_group in enumerate(slot_groups, start=1):
+                turn_group = _ordered_unique(
+                    turn_ref
+                    for slot in layout_group
+                    for turn_ref in slot.turn_refs
                 )
                 segment_ref = f"{volume.id}.segment-{index}"
                 scale_projection = DetailScaleProjection(
@@ -341,26 +472,40 @@ class NarrativeContextCompiler:
                     segment_ref=segment_ref,
                     segment_index=index,
                     segment_count=segment_count,
-                    chapter_target=target,
-                    chapter_character_targets=unit_character_targets,
-                    scenes_per_chapter_min=plan.scenes_per_chapter_min,
-                    scenes_per_chapter_max=plan.scenes_per_chapter_max,
+                    chapter_target=len(layout_group),
+                    chapter_beats=[
+                        DetailChapterBeatSlot(
+                            chapter_offset=offset,
+                            turn_refs=list(slot.turn_refs),
+                            dramatic_job=slot.dramatic_job,
+                            length_hint=slot.length_hint,
+                        )
+                        for offset, slot in enumerate(layout_group, start=1)
+                    ],
+                    chapter_target_band=target_band,
+                    scenes_per_chapter_min=scene_minimum,
+                    scenes_per_chapter_max=scene_maximum,
                     is_final_volume=volume.id == final_volume_ref,
                     chapter_number_start=chapter_number_start,
                 )
-                chapter_number_start += target
+                chapter_number_start += len(layout_group)
+                volume_context: dict[str, Any] = {
+                    "id": volume.id,
+                    "title": volume.title,
+                }
+                if index == segment_count:
+                    volume_context["closing_state"] = volume.closure
                 material: dict[str, Any] = {
-                    "volume_contract": volume.model_dump(mode="json"),
+                    "volume_contract": volume_context,
                     "volume_spine_turns": [
                         turn_by_id[turn_ref].model_dump(mode="json")
                         for turn_ref in turn_group
                     ],
                     "scale_projection": scale_projection.model_dump(mode="json"),
                     "selected_dossiers": selected,
-                    "active_thread_refs": list(volume.thread_ids),
                 }
                 packet = self._with_revision(state, "detail", material, refs)
-                packet["budget_basis"] = {"expected_chapters": target}
+                packet["budget_basis"] = {"expected_chapters": len(layout_group)}
                 units.append((segment_ref, packet))
         if not units:
             raise ValueError("Detail requires at least one committed volume contract")
@@ -380,12 +525,13 @@ class NarrativeContextCompiler:
         material: dict[str, Any] = {
             "chapter": {"chapter_id": chapter.chapter_id, "version_id": chapter.version_id, "content": chapter.content},
             "review_role": role,
-            "spine": _spine_excerpt(payloads["spine"]),
         }
+        brief = StoryBriefArtifact.model_validate(payloads["brief"])
+        cast = CharacterBibleArtifact.model_validate(payloads["cast"])
+        detail = DetailArtifact.model_validate(payloads["detail"])
+        chapter_detail = next(item for item in detail.chapters if item.ref == chapter_id)
         if role == "character":
-            cast = CharacterBibleArtifact.model_validate(payloads["cast"])
-            detail = DetailArtifact.model_validate(payloads["detail"])
-            chapter_detail = next(item for item in detail.chapters if item.ref == chapter_id)
+            material["spine"] = _spine_excerpt(payloads["spine"])
             chapter_number = int(state.get("active_chapter_number") or 0)
             eligible = {
                 subject.id
@@ -415,6 +561,11 @@ class NarrativeContextCompiler:
                 "chapter_number": chapter_number,
             }
         elif role == "continuity":
+            material["current_detail_chapter"] = chapter_detail.model_dump(mode="json")
+            material["world_rules"] = list(brief.world_rules)
+            material["character_bible"] = _chapter_subjects(
+                payloads["cast"], chapter_detail
+            )
             previous = self._previous_chapter(state)
             if previous is None:
                 # A null slot invites the reviewer to invent a predecessor and
@@ -422,18 +573,11 @@ class NarrativeContextCompiler:
                 material["opening_chapter"] = True
             else:
                 material["previous_accepted_chapter"] = previous
-            chapter_detail = next(
-                item for item in DetailArtifact.model_validate(payloads["detail"]).chapters
-                if item.ref == chapter_id
-            )
-            material["volume_contract"] = _volume_by_ref(
-                payloads["volumes"], chapter_detail.volume_ref
-            )
             claims = self._canon_claims(state["run_id"])
             if claims:
                 material["canon_facts"] = claims
         elif role == "prose":
-            material["voice"] = StoryBriefArtifact.model_validate(payloads["brief"]).voice
+            material["voice"] = brief.voice
         return {"target": "text.review", "sources": refs, "material": material}
 
     def _planning_material(
@@ -489,14 +633,20 @@ class NarrativeContextCompiler:
         stage_id: StageId,
         material: dict[str, Any],
         refs: dict[str, dict[str, str]],
+        *,
+        validate_material: bool = True,
     ) -> dict[str, Any]:
         attempt = int((state.get("stage_attempts") or {}).get(stage_id) or 1)
         if attempt > 1:
             direction = str((state.get("stage_revision_directions") or {}).get(stage_id) or "").strip()
-            if not direction:
-                raise ValueError("A repeated stage generation requires an explicit revision direction")
-            material["revision_request"] = {"direction": direction}
-        validate_prompt_material(stage_id, material)
+            # A failed Provider/contract attempt retries the same frozen input.
+            # Only a human redraft decision carries editorial direction; the API
+            # and stage-decision validator require that direction before this
+            # compiler is reached.
+            if direction:
+                material["revision_request"] = {"direction": direction}
+        if validate_material:
+            validate_prompt_material(stage_id, material)
         return {"target": stage_id, "sources": refs, "material": material}
 
 
@@ -538,30 +688,42 @@ def _group_cast_context(
     return units
 
 
-def _group_volume_context(
+def _volume_contexts(
     context: dict[str, Any],
-    group_size: int,
 ) -> list[tuple[str, dict[str, Any]]]:
     material = context["material"]
-    boundaries = material["volume_boundaries"]
-    proposals = list(boundaries["proposals"])
+    spine = StorySpineArtifact.model_validate(material["story_spine"])
+    boundaries = VolumeBoundaryProposalBatch.model_validate(
+        material["volume_boundaries"]
+    )
+    turns = {turn.id: turn.model_dump(mode="json") for turn in spine.turns}
+    proposals = boundaries.proposals
     units: list[tuple[str, dict[str, Any]]] = []
-    for offset in range(0, len(proposals), group_size):
-        group = proposals[offset : offset + group_size]
+    for index, proposal in enumerate(proposals, start=1):
+        unknown = [turn_ref for turn_ref in proposal.turn_refs if turn_ref not in turns]
+        if unknown:
+            raise ValueError(
+                f"Volume boundary references unknown Spine turns: {sorted(unknown)}"
+            )
         group_material = {
-            **material,
-            # Grouped volume writing hides the book's shape from each call, so
-            # the closure policy has to say which volume ends the story; the
-            # last volume owes the brief's ending, not a hook for a next one.
+            "story_brief": material["story_brief"],
+            "volume_spine_turns": [turns[turn_ref] for turn_ref in proposal.turn_refs],
+            "character_bible_refs": material["character_bible_refs"],
+            "volume_boundary": proposal.model_dump(mode="json"),
+            "scale_plan": material["scale_plan"],
             "closure_policy": {
-                "contains_final_volume": offset + len(group) >= len(proposals),
+                "volume_index": index,
                 "volume_total": len(proposals),
+                "is_first_volume": index == 1,
+                "contains_final_volume": index == len(proposals),
             },
-            "volume_boundaries": {"proposals": group},
         }
+        if "revision_request" in material:
+            group_material["revision_request"] = material["revision_request"]
+        validate_prompt_material("volumes", group_material)
         units.append(
             (
-                f"contract-group-{len(units) + 1}",
+                f"volume-{index}",
                 {**context, "material": group_material},
             )
         )
@@ -570,37 +732,27 @@ def _group_volume_context(
     return units
 
 
-def _partition_positive(total: int, count: int) -> list[int]:
-    if count < 1 or total < count:
-        raise ValueError("A positive partition requires at least one item per group")
-    base, remainder = divmod(total, count)
-    return [base + (1 if index < remainder else 0) for index in range(count)]
+def _partition_detail_layout_slots(
+    slots: list[DetailLayoutChapterProposal],
+    capacity: int,
+) -> list[list[DetailLayoutChapterProposal]]:
+    if capacity < 1:
+        raise ValueError("Detail Provider capacity must be positive")
+    if not slots:
+        raise ValueError("Detail layout must contain at least one chapter slot")
+    return [slots[index : index + capacity] for index in range(0, len(slots), capacity)]
 
 
-def _partition_contiguous(values: list[str], count: int) -> list[list[str]]:
-    if count <= len(values):
-        sizes = _partition_positive(len(values), count)
-        groups: list[list[str]] = []
-        offset = 0
-        for size in sizes:
-            groups.append(values[offset : offset + size])
-            offset += size
-        return groups
-    # More segments than turns: the provider output ceiling dictates segment
-    # count, and a long causal turn legitimately spans several segments, so
-    # adjacent segments share their anchor turn instead of failing the run.
-    # Even resampling keeps anchors ordered and covers every turn at least once.
-    return [
-        [values[min(len(values) - 1, index * len(values) // count)]]
-        for index in range(count)
-    ]
+def _ordered_unique(values: Iterable[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if value not in result:
+            result.append(value)
+    return result
 
 
 def _length_envelope(plan: NarrativeScaleProfile) -> dict[str, Any]:
-    return {
-        "word_target_soft": plan.word_target_soft,
-        "chapter_target_soft": plan.chapter_target_soft,
-    }
+    return {"word_target_soft": plan.word_target_soft}
 
 
 def _source_pack(inputs: dict[str, Any]) -> dict[str, Any]:
@@ -638,6 +790,26 @@ def _volume_character_refs(payload: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _detail_dossier_projection(subject: Any) -> dict[str, Any]:
+    """Expose only the frozen character facts needed to stage current scenes.
+
+    The full Character Bible contains each subject's book-long `change`. That
+    field is authoritative for the cast stage, but it is a future-arc spoiler
+    when a Detail segment is still planning an earlier turn. Detail receives
+    role identity, motivation, limits, and debut window; the full arc remains
+    available to later text context through the committed Cast artifact.
+    """
+    return {
+        "id": subject.id,
+        "name": subject.name,
+        "kind": subject.kind,
+        "function": subject.function,
+        "drive": subject.drive,
+        "debut": subject.debut,
+        "limits": list(subject.limits),
+    }
+
+
 def _scheduled_subject_ids(
     detail: DetailArtifact,
     cast: CharacterBibleArtifact,
@@ -658,11 +830,7 @@ def _scheduled_subject_ids(
         if index > max(chapter_number, 0):
             break
         scheduled.update(chapter.cast_ids)
-        scenes = " ".join(
-            f"{scene.place} {scene.objective} {scene.conflict} {scene.turn} {scene.result}"
-            for scene in chapter.scenes
-        )
-        text = f"{chapter.purpose} {scenes} {chapter.handoff}"
+        text = _chapter_planning_text(chapter)
         scheduled.update(subject.id for subject in cast.subjects if subject.name in text)
     return scheduled
 
@@ -674,13 +842,25 @@ def _spine_excerpt(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _chapter_subjects(payload: dict[str, Any], chapter: Any) -> list[dict[str, Any]]:
     cast = CharacterBibleArtifact.model_validate(payload)
-    refs = set(chapter.cast_ids)
+    refs = set(chapter.cast_ids) | {
+        subject.id
+        for subject in cast.subjects
+        if subject.name in _chapter_planning_text(chapter)
+    }
     subjects = [
         subject.model_dump(mode="json") for subject in cast.subjects if subject.id in refs
     ]
     if {subject["id"] for subject in subjects} != refs:
         raise ValueError("Chapter context references an unknown frozen subject")
     return subjects
+
+
+def _chapter_planning_text(chapter: Any) -> str:
+    scenes = " ".join(
+        f"{scene.place} {scene.objective} {scene.conflict} {scene.turn} {scene.result}"
+        for scene in chapter.scenes
+    )
+    return f"{chapter.purpose} {scenes} {chapter.handoff}"
 
 
 def _volume_by_ref(payload: dict[str, Any], volume_ref: str) -> dict[str, Any]:
@@ -730,28 +910,40 @@ def _staged_beats(detail: DetailArtifact, chapter_number: int) -> list[str]:
 def _spine_scale_plan(plan: NarrativeScalePlan) -> dict[str, Any]:
     return {
         "turn_target": plan.turn_target,
-        "turn_range": [plan.turn_min, plan.turn_max],
+        "turn_capacity_range": [plan.turn_min, plan.turn_max],
+        "milestone_positions": spine_milestone_positions(plan.turn_target),
         "chapter_target": plan.chapter_target,
-        "user_locked": "turn_target" in plan.user_locked,
+        "chapter_range": [plan.chapter_min, plan.chapter_max],
+        "volume_target": plan.volume_target,
+        "volume_range": [plan.volume_min, plan.volume_max],
+        "turn_target_source": (
+            "user_override" if "turn_target" in plan.user_locked else "editorial_policy"
+        ),
     }
 
 
 def _cast_scale_plan(plan: NarrativeScalePlan) -> dict[str, Any]:
     return {
-        "role_demand_target": plan.cast_demand_target,
-        "role_demand_range": [plan.cast_demand_min, plan.cast_demand_max],
         "chapter_target": plan.chapter_target,
-        "user_locked": "cast_demand_target" in plan.user_locked,
+        "chapter_range": [plan.chapter_min, plan.chapter_max],
+        "cast_recommended_range": [
+            plan.cast_recommended_min,
+            plan.cast_recommended_max,
+        ],
+        "cast_hard_max": plan.cast_hard_max,
     }
 
 
-def _volume_scale_plan(plan: NarrativeScalePlan) -> dict[str, Any]:
+def _volume_scale_plan(
+    plan: NarrativeScalePlan,
+    volume_candidate_cap: int,
+) -> dict[str, Any]:
     return {
+        "chapter_target": plan.chapter_target,
+        "chapter_range": [plan.chapter_min, plan.chapter_max],
         "volume_target": plan.volume_target,
         "volume_range": [plan.volume_min, plan.volume_max],
-        "chapter_target": plan.chapter_target,
-        "characters_per_chapter": plan.characters_per_chapter,
-        "user_locked": "volume_target" in plan.user_locked,
+        "volume_candidate_cap": volume_candidate_cap,
     }
 
 

@@ -12,6 +12,8 @@ describe('run history action contract', () => {
     const history = source('../layout/CreationHistoryPage.tsx');
 
     expect(actions).toContain('return restoreProjectRun(item);');
+    expect(actions).not.toContain('item.run_id === options.activeRunId');
+    expect(actions).toContain('getRunPresentationSnapshot(item.run_id)');
     expect(actions).toContain('await createRunBranch(item.run_id, source.read_model.checkpoint_id, targetRunId);');
     expect(history).toContain('继续当前运行');
     expect(history).toContain('从检查点新建分支');

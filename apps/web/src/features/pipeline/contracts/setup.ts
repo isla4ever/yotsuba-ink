@@ -2,12 +2,10 @@ import type { KnowledgeDocument } from './knowledge';
 import type { ProviderProfile, WorkflowDefinition } from './workflow';
 
 /**
- * Phase 12 A4: the five-step guided setup collapsed into three steps.
- * References and creation mode are no longer steps — they surface on the
- * review step as "已用默认，可点开修改" cards, so their issues target
- * `review` with a card anchor fieldId.
+ * Project preparation is a two-step launch gate. Provider and stage bindings
+ * belong to the separate workflow editor, not to the book planning surface.
  */
-export type SetupStepId = 'story' | 'ai-service' | 'review';
+export type SetupStepId = 'story' | 'review';
 
 export type SetupIssue = {
   code: string;

@@ -50,6 +50,9 @@ describe('ProjectBookshelf', () => {
     expect(html.match(/studio-book-spine/g)?.length).toBe(3);
     expect(html).toContain('new-book');
     expect(html).toContain('studio-book-desk');
+    expect(html).toContain('studio-shelf-control prev');
+    expect(html).toContain('studio-shelf-control next');
+    expect(html).toContain('project-shelf-rail');
     expect(html).toContain('4.2 万字');
     expect(html).toContain('--project-accent-hue:262');
   });

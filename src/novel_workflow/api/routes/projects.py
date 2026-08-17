@@ -18,9 +18,9 @@ async def list_projects(request: Request) -> list[ProjectRecord]:
 async def create_project(request: Request, payload: ProjectCreateRequest) -> ProjectRecord:
     try:
         return request.app.state.project_store.create(
-            title=payload.title,
-            summary=payload.summary,
+            idea=payload.idea,
             template_workflow_id=payload.template_workflow_id,
+            consume_workflow_draft=payload.consume_workflow_draft,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Unknown workflow template: {payload.template_workflow_id}") from exc
@@ -29,6 +29,8 @@ async def create_project(request: Request, payload: ProjectCreateRequest) -> Pro
             status_code=422,
             detail={"code": exc.code, "message": str(exc)},
         ) from exc
+    except ProjectStoreError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get("/{project_id}")

@@ -20,6 +20,7 @@ from novel_workflow.runtime.graph.state import (
 
 
 DecisionAction = Literal["accept", "regenerate", "cancel"]
+MAX_STAGE_REGENERATIONS = 1
 
 
 def build_stage_graph(stage_id: StageId, executor: StageExecutor):
@@ -52,10 +53,19 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
     def decision_policy(state: NarrativeRunState) -> dict[str, Any]:
         quality_mode = state.get("quality_mode", "balanced")
         replacement_ref = ""
+        regeneration_count = _stage_regeneration_count(executor, state, stage_id)
         allowed_actions = (
             ["accept", "cancel"]
             if stage_id == "export"
-            else ["accept", "regenerate", "cancel"]
+            else [
+                "accept",
+                *(
+                    ["regenerate"]
+                    if regeneration_count < MAX_STAGE_REGENERATIONS
+                    else []
+                ),
+                "cancel",
+            ]
         )
         if quality_mode == "fast":
             action: DecisionAction = "accept"
@@ -79,6 +89,8 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
                     "artifact_ref": candidate_ref,
                     "domain_revision": state.get("domain_revision", 0),
                     "allowed_actions": allowed_actions,
+                    "regeneration_limit": MAX_STAGE_REGENERATIONS,
+                    "regeneration_used": regeneration_count,
                 },
             )
             value = interrupt(
@@ -90,6 +102,8 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
                     "artifact_ref": candidate_ref,
                     "domain_revision": state.get("domain_revision", 0),
                     "allowed_actions": allowed_actions,
+                    "regeneration_limit": MAX_STAGE_REGENERATIONS,
+                    "regeneration_used": regeneration_count,
                 }
             )
             action, replacement_ref, direction = _validate_decision(
@@ -146,13 +160,115 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
             "status": "running",
         }
 
-    def prepare_regeneration(state: NarrativeRunState) -> dict[str, Any]:
+    async def prepare_regeneration(state: NarrativeRunState) -> dict[str, Any]:
         attempts = dict(state.get("stage_attempts") or {})
         attempts[stage_id] = int(attempts.get(stage_id) or 1) + 1
-        return {"stage_attempts": attempts}
+        update: dict[str, Any] = {"stage_attempts": attempts}
+        if stage_id == "cast":
+            regeneration_state: NarrativeRunState = {
+                **state,
+                "stage_attempts": attempts,
+            }
+            update.update(
+                await executor.generate_role_demand_proposal(regeneration_state)
+            )
+        elif stage_id == "volumes":
+            regeneration_state = {
+                **state,
+                "stage_attempts": attempts,
+            }
+            update.update(
+                await executor.generate_volume_boundary_proposal(regeneration_state)
+            )
+        return update
 
     def fail_stage(state: NarrativeRunState) -> dict[str, Any]:
-        return emit_terminal_failure(executor, state, stage_id)
+        failure = state.get("failure")
+        if failure is None:
+            raise ValueError("Failure node requires a GraphFailure")
+        if not failure.get("retryable"):
+            return emit_terminal_failure(executor, state, stage_id)
+
+        attempt = int((state.get("stage_attempts") or {}).get(stage_id) or 1)
+        decision_id = f"{state['run_id']}:{stage_id}:failure-attempt-{attempt}"
+        candidate_ref = str(
+            (state.get("candidate_artifact_refs") or {}).get(stage_id) or ""
+        )
+        decision = {
+            "type": "stage_failure_decision",
+            "decision_id": decision_id,
+            "thread_id": state["run_id"],
+            "node_id": f"{stage_id}.failure_decision",
+            "artifact_ref": candidate_ref,
+            "domain_revision": state.get("domain_revision", 0),
+            "allowed_actions": ["regenerate", "cancel"],
+            "failure": dict(failure),
+        }
+        failure_payload = {
+            **dict(failure),
+            "provider_usage": executor.operations.usage_summary(
+                state["run_id"]
+            ).model_dump(mode="json"),
+        }
+        executor.events.append(
+            state["run_id"],
+            event_id=f"{decision_id}:node-failed",
+            type="node.failed",
+            stage_id=stage_id,
+            node_id=str(failure["node_id"]),
+            status="failed",
+            payload=failure_payload,
+            payload_ref=str(failure.get("evidence_ref") or ""),
+        )
+        executor.events.append(
+            state["run_id"],
+            event_id=f"{decision_id}:required",
+            type="decision.required",
+            stage_id=stage_id,
+            node_id=f"{stage_id}.failure_decision",
+            status="awaiting_decision",
+            payload=decision,
+        )
+        value = interrupt(decision)
+        action, direction = _validate_failure_decision(
+            value,
+            decision_id,
+            int(state.get("domain_revision") or 0),
+        )
+        _emit_decision_resolved(
+            executor,
+            state,
+            stage_id,
+            decision_id,
+            action,
+            node_id=f"{stage_id}.failure_decision",
+        )
+        if action == "cancel":
+            return {
+                "failure": None,
+                "status": "cancelled",
+            }
+
+        attempts = dict(state.get("stage_attempts") or {})
+        attempts[stage_id] = attempt + 1
+        return {
+            "decision_actions": copy_stage_mapping(
+                state, "decision_actions", stage_id, action
+            ),
+            "decision_ids": copy_stage_mapping(
+                state, "decision_ids", stage_id, decision_id
+            ),
+            "failure": None,
+            "stage_attempts": attempts,
+            "stage_revision_directions": copy_stage_mapping(
+                state,
+                "stage_revision_directions",
+                stage_id,
+                direction,
+            ),
+            "stage_status": copy_stage_status(state, stage_id, "running"),
+            "status": "running",
+        }
 
     builder.add_node("load_context", guarded_node(executor, f"{stage_id}.load_context", stage_id, load_context))
     builder.add_node("generate_candidate", guarded_node(executor, f"{stage_id}.generate_candidate", stage_id, generate_candidate))
@@ -183,13 +299,35 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
     builder.add_conditional_edges("prepare_regeneration", lambda state: failure_route(state, "generate_candidate"), {"failure": "fail_stage", "generate_candidate": "generate_candidate"})
     builder.add_conditional_edges("commit_artifact", lambda state: failure_route(state, "checkpoint_stage"), {"failure": "fail_stage", "checkpoint_stage": "checkpoint_stage"})
     builder.add_conditional_edges("checkpoint_stage", lambda state: failure_route(state, "done"), {"failure": "fail_stage", "done": END})
-    builder.add_edge("fail_stage", END)
+    builder.add_conditional_edges(
+        "fail_stage",
+        lambda state: (
+            "regenerate"
+            if state.get("failure") is None and state.get("status") == "running"
+            else "done"
+        ),
+        {"regenerate": "generate_candidate", "done": END},
+    )
     return builder.compile(name=f"yotsuba_{stage_id}_stage")
 
 
 def _decision_id(state: NarrativeRunState, stage_id: StageId) -> str:
     candidate = (state.get("candidate_artifact_refs") or {}).get(stage_id, "missing")
     return f"{state['run_id']}:{stage_id}:{candidate}"
+
+
+def _stage_regeneration_count(
+    executor: StageExecutor,
+    state: NarrativeRunState,
+    stage_id: StageId,
+) -> int:
+    return sum(
+        1
+        for event in executor.events.read(state["run_id"])
+        if event.type == "decision.resolved"
+        and event.node_id == f"{stage_id}.human_decision"
+        and (event.payload or {}).get("action") == "regenerate"
+    )
 
 
 def _validate_decision(
@@ -218,12 +356,34 @@ def _validate_decision(
     return action, replacement_ref, direction
 
 
+def _validate_failure_decision(
+    value: Any,
+    decision_id: str,
+    domain_revision: int,
+) -> tuple[Literal["regenerate", "cancel"], str]:
+    if not isinstance(value, dict):
+        raise ValueError("Failure decision resume value must be an object")
+    if value.get("decision_id") != decision_id:
+        raise ValueError("Failure decision id does not match the active interrupt")
+    if int(value.get("domain_revision", -1)) != domain_revision:
+        raise ValueError("Failure decision domain revision is stale")
+    action = value.get("action")
+    if action not in {"regenerate", "cancel"}:
+        raise ValueError("Unsupported failure decision action")
+    direction = str(value.get("direction") or "").strip()
+    if direction:
+        raise ValueError("A failed stage retry cannot carry a revision direction")
+    return action, ""
+
+
 def _emit_decision_resolved(
     executor: StageExecutor,
     state: NarrativeRunState,
     stage_id: StageId,
     decision_id: str,
     action: DecisionAction,
+    *,
+    node_id: str | None = None,
 ) -> None:
     """Record policy and human decisions through the same stable event contract."""
     executor.events.append(
@@ -231,7 +391,7 @@ def _emit_decision_resolved(
         event_id=f"{decision_id}:{action}:resolved",
         type="decision.resolved",
         stage_id=stage_id,
-        node_id=f"{stage_id}.human_decision",
+        node_id=node_id or f"{stage_id}.human_decision",
         status=action,
         payload={"decision_id": decision_id, "action": action},
     )

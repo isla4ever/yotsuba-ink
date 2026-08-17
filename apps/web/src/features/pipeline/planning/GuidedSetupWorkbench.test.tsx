@@ -12,7 +12,6 @@ function steps(blockStory = false): SetupStep[] {
         ? [{ code: 'story_core_concept_missing', label: '请填写核心创意/冲突', severity: 'blocking', target: { stepId: 'story', fieldId: 'setup-story-core_concept' } }]
         : [],
     },
-    { id: 'ai-service', label: '连接 AI 服务', status: 'complete', summary: '2 项服务检查通过', issues: [] },
     { id: 'review', label: '确认启动', status: 'complete', summary: '智能参考 · 平衡', issues: [] },
   ];
 }
@@ -21,22 +20,19 @@ function render(stepList: SetupStep[]) {
   return renderToStaticMarkup(
     <GuidedSetupWorkbench
       knowledgeDocuments={[]}
-      readiness={{ error: '', status: 'ready' }}
       saveStatus="saved"
       steps={stepList}
       workflow={defaultWorkflow}
       onOpenKnowledgeManager={() => undefined}
       onQualityModeChange={() => undefined}
-      onReadinessRefresh={() => undefined}
       onSaveAndExit={() => undefined}
       onStageChange={() => undefined}
       onStart={() => Promise.resolve()}
-      onWorkflowChange={() => undefined}
     />,
   );
 }
 
-describe('GuidedSetupWorkbench (Phase 12 A4/E8/A11)', () => {
+describe('GuidedSetupWorkbench', () => {
   it('wraps the step panel in a form so Enter advances, with footer actions submitting it', () => {
     const html = render(steps());
 
@@ -48,13 +44,13 @@ describe('GuidedSetupWorkbench (Phase 12 A4/E8/A11)', () => {
     expect(html).not.toContain('暂时离开');
   });
 
-  it('renders the three-step navigation without the retired standalone steps', () => {
+  it('renders creative preparation without embedding pipeline service configuration', () => {
     const html = render(steps());
 
     expect(html).toContain('故事起点');
-    expect(html).toContain('连接 AI 服务');
+    expect(html).not.toContain('连接 AI 服务');
     expect(html).toContain('确认启动');
-    expect(html).toContain('1/3');
+    expect(html).toContain('1/2');
     expect(html).not.toContain('创作依据');
     expect(html).not.toContain('质量方式');
   });

@@ -99,7 +99,7 @@ def build_narrative_graph(
 
     builder.add_node(
         "derive_cast_demand",
-        guarded_node(executor, "spine.derive_cast_demand", "cast", derive_role_demands),
+        guarded_node(executor, "cast.derive_role_demand", "cast", derive_role_demands),
     )
     builder.add_node(
         "derive_volume_boundary",

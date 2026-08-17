@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import errno
+import socket
 import ssl
 from typing import Any
 
@@ -64,6 +65,7 @@ def translate_openai_error(error: Exception, *, timeout_seconds: int) -> Provide
 def _connection_diagnostic_code(error: Exception, *, fallback: str = "connection_error") -> str:
     current: BaseException | None = error
     visited: set[int] = set()
+    diagnostic = fallback
     while current is not None and id(current) not in visited:
         visited.add(id(current))
         if isinstance(current, httpx.ConnectTimeout):
@@ -79,7 +81,7 @@ def _connection_diagnostic_code(error: Exception, *, fallback: str = "connection
         if isinstance(current, ssl.SSLError):
             return "tls_error"
         if isinstance(current, OSError):
-            if current.errno in {errno.EAI_AGAIN, errno.EAI_FAIL, errno.EAI_NONAME}:
+            if current.errno in {socket.EAI_AGAIN, socket.EAI_FAIL, socket.EAI_NONAME}:
                 return "dns_error"
             if current.errno in {errno.ECONNREFUSED}:
                 return "connection_refused"
@@ -88,10 +90,11 @@ def _connection_diagnostic_code(error: Exception, *, fallback: str = "connection
             if current.errno in {errno.ETIMEDOUT}:
                 return "connect_timeout"
         if isinstance(current, httpx.ConnectError):
-            return "connect_error"
+            if diagnostic == "connection_error":
+                diagnostic = "connect_error"
         next_error = current.__cause__ or current.__context__
         current = next_error if isinstance(next_error, BaseException) else None
-    return fallback
+    return diagnostic
 
 
 def response_payload(response: Any) -> dict[str, Any]:

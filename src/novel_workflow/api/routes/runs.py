@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from novel_workflow.api.sse import observe_run_events
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
+from novel_workflow.orchestration.stage_artifact_editing import (
+    StageArtifactDraftConflict,
+    load_stage_artifact_draft,
+    save_edited_stage_candidate,
+    save_stage_artifact_draft,
+)
 from novel_workflow.orchestration.run_preflight import RunPreflightError
 from novel_workflow.runtime.graph.execution_service import RunExecutionConflict
 from novel_workflow.runtime.graph.runtime import (
@@ -18,23 +24,17 @@ from novel_workflow.runtime.graph.chapter_decision import save_edited_chapter_ca
 from novel_workflow.runtime.graph.branch_service import BranchConflictError
 from novel_workflow.runtime.graph.checkpoint_branch import CheckpointBranchError
 from novel_workflow.runtime.graph.state import NarrativeRunState
-from novel_workflow.storage.narrative_run_repository import ExportPreferences
+from novel_workflow.storage.narrative_run_repository import (
+    BranchBindingOverride,
+    ExportPreferences,
+)
 from novel_workflow.workflows.narrative_scale import scale_profile_from_inputs
 from novel_workflow.workflows.executable_contract import (
     WorkflowContractError,
     require_executable_workflow,
     workflow_execution_digest,
 )
-from novel_workflow.output_contracts.artifacts_vnext import (
-    CharacterBibleArtifact,
-    CoverArtifact,
-    DetailArtifact,
-    ExportArtifact,
-    VolumeArchitectureArtifact,
-    StoryBriefArtifact,
-    StorySpineArtifact,
-    validate_detail_writeback_identity,
-)
+from novel_workflow.output_contracts.artifacts_vnext import StoryBriefArtifact
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -60,11 +60,17 @@ class DecisionRequest(BaseModel):
     def validate_action_payload(self) -> "DecisionRequest":
         if self.artifact is not None and self.action != "accept":
             raise ValueError("Only an accept decision may carry an edited Artifact")
-        if self.action == "regenerate" and not self.direction.strip():
-            raise ValueError("A regeneration decision requires an explicit direction")
         if self.direction.strip() and self.action != "regenerate":
             raise ValueError("A revision direction is only valid for regeneration")
         return self
+
+
+class StageArtifactDraftRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    domain_revision: int = Field(ge=0)
+    source_artifact_id: str = Field(min_length=1, max_length=240)
+    artifact: dict[str, Any]
 
 
 class CreateBranchRequest(BaseModel):
@@ -74,6 +80,15 @@ class CreateBranchRequest(BaseModel):
         default_factory=lambda: f"run-{uuid4().hex[:16]}", min_length=1, max_length=240
     )
     checkpoint_id: str = Field(min_length=1, max_length=240)
+    frontier_mode: Literal["active_decision", "stage_boundary"] = "active_decision"
+    binding_override_stages: list[StageId] = Field(default_factory=list, max_length=7)
+
+    @field_validator("binding_override_stages")
+    @classmethod
+    def require_unique_override_stages(cls, value: list[StageId]) -> list[StageId]:
+        if len(value) != len(set(value)):
+            raise ValueError("Binding override stages must be unique")
+        return value
 
 
 def _stores(request: Request):
@@ -141,6 +156,14 @@ async def get_run(request: Request, run_id: str) -> dict[str, Any]:
         }
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Unknown run: {run_id}") from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "run_contract_retired",
+                "message": "该运行不符合当前生产合同，已从主线历史中隔离。",
+            },
+        ) from exc
 
 
 @router.post("/{run_id}/start")
@@ -226,6 +249,48 @@ async def get_chapter_version(
     return record.model_dump(mode="json")
 
 
+@router.get("/{run_id}/stage-drafts/{decision_id}")
+def get_stage_artifact_draft(
+    request: Request,
+    run_id: str,
+    decision_id: str,
+) -> dict[str, Any] | None:
+    _require_run(request, run_id)
+    try:
+        record = load_stage_artifact_draft(
+            _stores(request),
+            run_id=run_id,
+            decision_id=decision_id,
+        )
+    except StageArtifactDraftConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return record.model_dump(mode="json") if record is not None else None
+
+
+@router.put("/{run_id}/stage-drafts/{decision_id}")
+def put_stage_artifact_draft(
+    request: Request,
+    run_id: str,
+    decision_id: str,
+    payload: StageArtifactDraftRequest,
+) -> dict[str, Any]:
+    _require_run(request, run_id)
+    try:
+        record = save_stage_artifact_draft(
+            _stores(request),
+            run_id=run_id,
+            decision_id=decision_id,
+            domain_revision=payload.domain_revision,
+            source_artifact_id=payload.source_artifact_id,
+            artifact=payload.artifact,
+        )
+    except StageArtifactDraftConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return record.model_dump(mode="json")
+
+
 @router.post("/{run_id}/decisions/{decision_id}")
 async def resolve_decision(
     request: Request,
@@ -260,6 +325,19 @@ async def resolve_decision(
         pending.get("domain_revision", -1)
     ):
         raise HTTPException(status_code=409, detail="Decision domain revision is stale")
+    if pending is not None and payload.action == "regenerate":
+        is_failure_retry = pending.get("type") == "stage_failure_decision"
+        direction = payload.direction.strip()
+        if is_failure_retry and direction:
+            raise HTTPException(
+                status_code=422,
+                detail="A failed stage retry must reuse the frozen input without a revision direction",
+            )
+        if not is_failure_retry and not direction:
+            raise HTTPException(
+                status_code=422,
+                detail="A stage redraft requires an explicit revision direction",
+            )
     decision = {
         "action": payload.action,
         "domain_revision": payload.domain_revision,
@@ -290,11 +368,12 @@ async def resolve_decision(
             raise HTTPException(status_code=422, detail="This decision does not accept an editable stage Artifact")
         else:
             try:
-                record = _save_edited_candidate(
+                record = save_edited_stage_candidate(
                     _stores(request),
-                    run_id,
-                    stage_id,  # type: ignore[arg-type]
-                    payload.artifact,
+                    run_id=run_id,
+                    stage_id=stage_id,  # type: ignore[arg-type]
+                    source_artifact_id=str(pending.get("artifact_ref") or ""),
+                    artifact=payload.artifact,
                     source=f"user-decision:{decision_id}",
                 )
             except (FileNotFoundError, ValueError) as exc:
@@ -322,94 +401,6 @@ async def resolve_decision(
     return {"run_id": run_id, "decision_id": decision_id, "status": "scheduled"}
 
 
-def _save_edited_candidate(
-    stores: Any,
-    run_id: str,
-    stage_id: StageId,
-    artifact: dict[str, Any],
-    *,
-    source: str,
-):
-    subject_ids: set[str] | None = None
-    turn_ids: set[str] | None = None
-    volume_cast_ids: dict[str, set[str]] | None = None
-    chapter_refs: set[str] | None = None
-    chapter_version_ids: list[str] | None = None
-    cover_asset_ids: set[str] | None = None
-    export_title: str | None = None
-    if stage_id in {"volumes", "detail"}:
-        character_record = stores.artifacts.latest(run_id, "cast")
-        character_bible = CharacterBibleArtifact.model_validate(
-            character_record.payload
-        )
-        subject_ids = {item.id for item in character_bible.subjects}
-    if stage_id == "volumes":
-        spine = StorySpineArtifact.model_validate(
-            stores.artifacts.latest(run_id, "spine").payload
-        )
-        turn_ids = {turn.id for turn in spine.turns}
-    if stage_id == "detail":
-        source_detail = DetailArtifact.model_validate(
-            stores.artifacts.latest(run_id, "detail", status="candidate").payload
-        )
-        candidate_detail = DetailArtifact.model_validate(artifact)
-        validate_detail_writeback_identity(source_detail, candidate_detail)
-        chapter_refs = {item.ref for item in source_detail.chapters}
-        architecture = VolumeArchitectureArtifact.model_validate(
-            stores.artifacts.latest(run_id, "volumes").payload
-        )
-        volume_cast_ids = {
-            volume.id: set(volume.cast_ids) for volume in architecture.volumes
-        }
-    if stage_id == "cover":
-        cover = CoverArtifact.model_validate(artifact)
-        source_cover = CoverArtifact.model_validate(
-            stores.artifacts.latest(run_id, "cover", status="candidate").payload
-        )
-        if cover.brief != source_cover.brief:
-            raise ValueError(
-                "Cover brief changes require regeneration before asset selection"
-            )
-        assets = stores.cover_assets.list(run_id)
-        latest_attempt = max((item.generation_attempt for item in assets), default=0)
-        cover_asset_ids = {
-            item.asset_id for item in assets if item.generation_attempt == latest_attempt
-        }
-        if not cover.selected_asset_id:
-            raise ValueError("Cover acceptance requires one selected immutable asset")
-    if stage_id == "export":
-        export = ExportArtifact.model_validate(artifact)
-        detail = stores.artifacts.latest(run_id, "detail").payload
-        accepted = [
-            stores.chapters.latest(run_id, str(chapter["ref"])).artifact
-            for chapter in detail["chapters"]
-        ]
-        if any(item.author_status != "accepted" for item in accepted):
-            raise ValueError("Export requires accepted versions for every frozen chapter")
-        chapter_version_ids = [item.version_id for item in accepted]
-        brief_artifact = stores.artifacts.latest(run_id, "brief").payload
-        export_title = str(brief_artifact["title"])
-        cover = CoverArtifact.model_validate(
-            stores.artifacts.latest(run_id, "cover").payload
-        )
-        if export.cover_asset_id != cover.selected_asset_id:
-            raise ValueError("Export must reference the committed Cover asset")
-        cover_asset_ids = {cover.selected_asset_id}
-    return stores.artifacts.save_candidate(
-        run_id,
-        stage_id,
-        artifact,
-        source=source,
-        subject_ids=subject_ids,
-        turn_ids=turn_ids,
-        volume_cast_ids=volume_cast_ids,
-        chapter_refs=chapter_refs,
-        chapter_version_ids=chapter_version_ids,
-        cover_asset_ids=cover_asset_ids,
-        export_title=export_title,
-    )
-
-
 @router.get("/{run_id}/state")
 async def get_graph_state(request: Request, run_id: str) -> dict[str, Any]:
     _require_run(request, run_id)
@@ -425,15 +416,45 @@ async def create_branch(
 ) -> dict[str, Any]:
     _require_run(request, run_id)
     try:
+        provider_binding_overrides = None
+        cover_asset_binding_override = None
+        binding_override = None
+        if payload.binding_override_stages:
+            source = _stores(request).runs.definition(run_id)
+            project = request.app.state.project_store.get(source.project_id)
+            workflow = require_executable_workflow(
+                request.app.state.workflow_store.read(project.workflow_id)
+            )
+            frozen = request.app.state.run_preflight.freeze_stages(
+                workflow,
+                payload.binding_override_stages,
+            )
+            provider_binding_overrides = frozen.provider_bindings
+            cover_asset_binding_override = frozen.cover_asset_binding
+            binding_override = BranchBindingOverride(
+                source_workflow_id=workflow.id,
+                source_workflow_revision=workflow.version,
+                source_workflow_digest=workflow_execution_digest(workflow),
+                stages=payload.binding_override_stages,
+            )
         projection = await request.app.state.narrative_execution.create_branch(
             source_run_id=run_id,
             target_run_id=payload.target_run_id,
             checkpoint_id=payload.checkpoint_id,
+            provider_binding_overrides=provider_binding_overrides,
+            cover_asset_binding_override=cover_asset_binding_override,
+            binding_override=binding_override,
+            branch_mode=payload.frontier_mode,
         )
     except RunExecutionConflict as exc:
         raise HTTPException(status_code=409, detail="Source or target Run execution is active") from exc
     except BranchConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (RunPreflightError, WorkflowContractError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
     except (CheckpointBranchError, FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {
@@ -442,6 +463,7 @@ async def create_branch(
         "status": projection.status,
         "source_run_id": run_id,
         "source_checkpoint_id": payload.checkpoint_id,
+        "frontier_mode": payload.frontier_mode,
     }
 
 

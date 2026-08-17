@@ -555,17 +555,52 @@ async def test_deepseek_disables_thinking_for_narrow_evidence() -> None:
 
 
 @pytest.mark.asyncio
-async def test_deepseek_reasoning_effort_is_matched_to_the_selected_model() -> None:
-    flash_provider, flash_client = _provider("deepseek-text", model="deepseek-v4-flash")
-    await flash_provider.generate_strict_structured(
+async def test_deepseek_flash_reserves_brief_and_cast_budgets_for_json_output() -> None:
+    for task_name in ("brief", "cast"):
+        provider, client = _provider("deepseek-text", model="deepseek-v4-flash")
+        await provider.generate_strict_structured(
+            "return JSON data like {\"ok\":true}",
+            task_name=task_name,
+            context={},
+            schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
+        )
+
+        request = client.calls[0]
+        assert request["extra_body"]["thinking"] == {"type": "disabled"}
+        assert "reasoning_effort" not in request
+        assert request["temperature"] == 0.2
+
+
+@pytest.mark.asyncio
+async def test_deepseek_pro_brief_reserves_completion_budget_for_json() -> None:
+    provider, client = _provider("deepseek-text", model="deepseek-v4-pro")
+    await provider.generate_strict_structured(
         "return JSON data like {\"ok\":true}",
         task_name="brief",
         context={},
         schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
     )
 
-    assert flash_client.calls[0]["reasoning_effort"] == "high"
-    assert flash_client.calls[0]["extra_body"]["thinking"] == {"type": "enabled"}
+    request = client.calls[0]
+    assert "reasoning_effort" not in request
+    assert request["extra_body"]["thinking"] == {"type": "disabled"}
+    assert request["temperature"] == 0.2
+
+
+@pytest.mark.asyncio
+async def test_deepseek_pro_spine_reserves_completion_budget_for_causal_json() -> None:
+    provider, client = _provider("deepseek-text", model="deepseek-v4-pro")
+    await provider.generate_strict_structured(
+        "return JSON data like {\"ok\":true}",
+        task_name="spine",
+        context={},
+        schema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
+    )
+
+    request = client.calls[0]
+    assert "reasoning_effort" not in request
+    assert request["extra_body"]["thinking"] == {"type": "disabled"}
+    assert request["temperature"] == 0.2
 
 
 @pytest.mark.asyncio
@@ -603,7 +638,7 @@ async def test_deepseek_structured_review_tasks_disable_thinking_by_default() ->
 
 
 @pytest.mark.asyncio
-async def test_deepseek_summary_reserves_budget_but_prose_remains_non_thinking() -> None:
+async def test_deepseek_structured_spine_and_prose_remain_non_thinking() -> None:
     summary_provider, summary_client = _provider("deepseek-text", model="deepseek-v4-pro")
     await summary_provider.generate_strict_structured(
         'return JSON data like {"ok":true}',
@@ -616,6 +651,7 @@ async def test_deepseek_summary_reserves_budget_but_prose_remains_non_thinking()
 
     assert summary_client.calls[0]["extra_body"]["thinking"] == {"type": "disabled"}
     assert "reasoning_effort" not in summary_client.calls[0]
+    assert summary_client.calls[0]["temperature"] == 0.2
     assert prose_client.calls[0]["extra_body"]["thinking"] == {"type": "disabled"}
 
 

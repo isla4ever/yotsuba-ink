@@ -8,7 +8,7 @@ import type {
   WorkflowDefinition,
 } from '../contracts';
 import { getPreferredRunSource, type RunSource } from '../lib/runSource';
-import { monitorRoute, settingsRoute } from '../lib/stageRoutes';
+import { settingsRoute } from '../lib/stageRoutes';
 import { listKnowledgeDocuments } from '../services/knowledge';
 import { saveWorkflowDefinition } from '../services/workflowApi';
 import { buildRunInputs } from './runInputs';
@@ -53,11 +53,6 @@ export function useNovelWorkflowApp() {
   const projectSession = useProjectSession();
   const activeProject = projectSession.activeProject;
   const [storedRunControl] = useState(() => loadRunControlLocally());
-  // Reloading the console must land back on the console, including for a run
-  // that already finished; every other entry keeps dropping terminal sessions.
-  const [bootedOnConsole] = useState(() => (
-    typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === monitorRoute
-  ));
   const [workflow, setWorkflow] = useState<WorkflowDefinition>(() => (
     workflowWithActiveRunMode(workflowWithStoredPreferences(defaultWorkflow), storedRunControl)
   ));
@@ -150,7 +145,6 @@ export function useNovelWorkflowApp() {
   });
   decisionContinuationRef.current = commands.continueAfterDecision;
   const runResetSafety = useRunResetSafety({
-    automationCockpitReady: transitions.automationCockpitReady,
     decision: stageDecision.state,
     eventsRef,
     onReset: commands.resetRunControl,
@@ -171,7 +165,6 @@ export function useNovelWorkflowApp() {
   });
   const initialRecovery = useRunRecovery({
     enabled: workflowHydrated,
-    presentTerminalRuns: bootedOnConsole,
     stored: storedRunControl,
     onDiscard: commands.clearRunState,
     onRestore: commands.restoreRecoveredRun,
@@ -268,6 +261,7 @@ export function useNovelWorkflowApp() {
   function applyEvent(event: RunEvent) {
     eventsRef.current = trimRunEventWindow([event, ...eventsRef.current]);
     dispatchRun({ type: 'event_received', event });
+    projectSession.applyRunEvent(event);
     stageDecision.applyEvent(event);
     const navigationStageId = stageIdForRunEventNavigation(event);
     if (navigationStageId) transitions.notifyStageNavigation(navigationStageId);
@@ -278,9 +272,7 @@ export function useNovelWorkflowApp() {
     ...workflowActions,
     activeProject,
     apiWarning,
-    approvalDraft: stageDecision.state.approvalDraft,
     approvalPending: stageDecision.state.approvalPending,
-    automationCockpitReady: transitions.automationCockpitReady,
     checkpointContinueReady: stageDecision.state.checkpointContinueReady,
     checkpointStageId: stageDecision.state.checkpointStageId,
     briefContinueReady: stageDecision.state.briefContinueReady,
@@ -310,13 +302,12 @@ export function useNovelWorkflowApp() {
     runResetUndoAvailable: runResetSafety.runResetUndoAvailable,
     resetRunControl: runResetSafety.resetRunControl,
     refreshKnowledgeDocuments,
-    returnExportToPlanning: commands.returnExportToPlanning,
+    completeExportAndStay: commands.completeExportAndStay,
     regenerateBrief: stageDecision.regenerateBrief,
     regenerateStageDraft: stageDecision.regenerateStageDraft,
     runWorkflow: commands.runWorkflow,
     saveStatus,
     selectedStage,
-    setApprovalDraft: stageDecision.setApprovalDraft,
     setApiWarning,
     setKnowledgeDocuments,
     setKnowledgePromptOpen,

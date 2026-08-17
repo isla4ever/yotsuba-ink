@@ -5,14 +5,11 @@ import { canNavigateToStage, type ModeRoutePolicy } from './runPresentationState
 import type { InspectorTarget } from '../contracts';
 
 type Params = {
-  cockpitVisible: boolean;
   routePhase: PipelinePhase;
   routePolicy: ModeRoutePolicy;
   routeStageId: string;
   /** A run (live or terminal) is attached: the monitor console has content. */
   runAttached: boolean;
-  /** A run is live/recoverable; drops on run.failed / run.completed. */
-  runHasStarted: boolean;
   selectedId: string;
   setRunStageNavigator: (navigator: (stageId: string) => void) => void;
   setSelectedId: (stageId: string) => void;
@@ -23,12 +20,10 @@ type Params = {
 
 /** Route → run-state synchronization for the app shell (moved out of App.tsx unchanged). */
 export function usePipelineShellRouting({
-  cockpitVisible,
   routePhase,
   routePolicy,
   routeStageId,
   runAttached,
-  runHasStarted,
   selectedId,
   setRunStageNavigator,
   setSelectedId,
@@ -52,16 +47,16 @@ export function usePipelineShellRouting({
 
   useEffect(() => {
     if (routePhase === 'running' && !canNavigateToStage(routePolicy, routeStageId)) {
-      navigate(routePolicy.monitor === 'default' ? monitorRoute : '/planning', { replace: true });
+      navigate(routePolicy.monitor !== 'none' && runAttached ? monitorRoute : '/planning', { replace: true });
     }
-  }, [navigate, routePhase, routePolicy, routeStageId]);
+  }, [navigate, routePhase, routePolicy, routeStageId, runAttached]);
 
   useEffect(() => {
     // The monitor console is a run surface: without a run it has nothing to
     // show, and deep mode promises item-by-item review instead of monitoring.
     if (routePhase !== 'monitor') return;
     if (!runAttached || routePolicy.monitor === 'none') {
-      navigate('/planning', { replace: true });
+      navigate(runAttached && routePolicy.stageRoutes === 'all' ? routeForStage(selectedId) : '/planning', { replace: true });
       return;
     }
     if (workspacePhase !== 'running') setWorkspacePhase('running');
@@ -73,14 +68,15 @@ export function usePipelineShellRouting({
     // before any run has started. Monitor has its own dedicated effect above.
     if (routePhase !== 'planning' && routePhase !== 'running') return;
     if (routePhase === 'planning') {
-      if (cockpitVisible) {
-        if (!runHasStarted && workspacePhase !== 'planning') setWorkspacePhase('planning');
+      if (runAttached) {
+        if (workspacePhase !== 'running') setWorkspacePhase('running');
+        navigate(routePolicy.monitor === 'default' ? monitorRoute : routeForStage(selectedId), { replace: true });
         return;
       }
       if (workspacePhase !== 'planning') setWorkspacePhase('planning');
       return;
     }
-    if (!runHasStarted) {
+    if (!runAttached) {
       if (selectedId !== 'brief') {
         setSelectedId('brief');
         setSelectedInspectorTarget({ kind: 'stage', id: 'brief' });
@@ -94,5 +90,5 @@ export function usePipelineShellRouting({
       setSelectedInspectorTarget({ kind: 'stage', id: routeStageId });
     }
     if (workspacePhase !== 'running') setWorkspacePhase('running');
-  }, [cockpitVisible, navigate, routePhase, routeStageId, runHasStarted, selectedId, setSelectedId, setSelectedInspectorTarget, setWorkspacePhase, workspacePhase]);
+  }, [navigate, routePhase, routePolicy, routeStageId, runAttached, selectedId, setSelectedId, setSelectedInspectorTarget, setWorkspacePhase, workspacePhase]);
 }

@@ -45,7 +45,7 @@ export type RunStateSlice = {
   /** True while a stage settlement transition is in flight. */
   transitioning: boolean;
   resetUndoAvailable: boolean;
-  /** Control-surface phase the header/docks present (cockpit-aware). */
+  /** Control-surface phase presented by the header and action dock. */
   workspacePhase: 'planning' | 'running';
   routePhase: PipelinePhase;
   routeStageId: string;

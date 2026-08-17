@@ -6,7 +6,11 @@ from fastapi import APIRouter, HTTPException, Request
 
 from novel_workflow.api.bootstrap import list_provider_profiles
 from novel_workflow.workflows.schemas import WorkflowDefinition, WorkflowDuplicateRequest
-from novel_workflow.workflows.templates import default_workflow, materialize_workflow_for_execution
+from novel_workflow.workflows.templates import (
+    default_workflow,
+    materialize_workflow_for_execution,
+)
+from novel_workflow.workflows.workflow_ids import is_official_workflow_id
 from novel_workflow.workflows.executable_contract import (
     WorkflowContractError,
     executable_workflows,
@@ -27,6 +31,8 @@ async def list_workflows(request: Request) -> list[WorkflowDefinition]:
 
 @router.post("")
 async def save_workflow(request: Request, workflow: WorkflowDefinition) -> WorkflowDefinition:
+    if is_official_workflow_id(workflow.id):
+        raise HTTPException(status_code=409, detail="官方工作流只读；请先复制再修改。")
     canonical = require_executable_workflow(
         workflow.model_copy(update={"provider_profiles": list_provider_profiles(request.app)})
     )
@@ -54,7 +60,8 @@ async def duplicate_workflow(request: Request, workflow_id: str, payload: Workfl
             status_code=409,
             detail={"code": exc.code, "message": str(exc)},
         ) from exc
-    new_id = payload.new_id or f"wf-copy-{uuid4().hex[:10]}"
+    generated_prefix = "wf-once" if payload.is_template is False else "wf-copy"
+    new_id = payload.new_id or f"{generated_prefix}-{uuid4().hex[:10]}"
     try:
         request.app.state.workflow_store.read(new_id)
     except FileNotFoundError:
@@ -72,8 +79,8 @@ async def duplicate_workflow(request: Request, workflow_id: str, payload: Workfl
 
 @router.delete("/{workflow_id}")
 async def delete_workflow(request: Request, workflow_id: str) -> dict[str, object]:
-    if workflow_id == default_workflow().id:
-        raise HTTPException(status_code=409, detail="默认工作流不可删除。")
+    if is_official_workflow_id(workflow_id):
+        raise HTTPException(status_code=409, detail="官方工作流不可删除。")
     referencing = request.app.state.project_store.projects_referencing_workflow(workflow_id)
     if referencing:
         titles = "、".join(f"「{record.title}」" for record in referencing)

@@ -23,6 +23,14 @@ describe('stageDeliveryStatus', () => {
     expect(stageDeliveryStatus(index, coverStage)).toBe('done');
   });
 
+  it('marks metadata-only Cover done when image generation is disabled for the Run', () => {
+    const index = buildRunEventIndex([
+      event('artifact.committed', 'cover', { payload: coverResult('') }),
+      event('cover.asset_skipped', 'cover', { payload: { metadata_only: true } }),
+    ]);
+    expect(stageDeliveryStatus(index, coverStage)).toBe('done');
+  });
+
   it('keeps Export in attention when no chapter version is selected', () => {
     const index = buildRunEventIndex([
       event('artifact.committed', 'export', { payload: exportResult(false) }),

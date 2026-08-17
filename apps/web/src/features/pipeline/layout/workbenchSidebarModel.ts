@@ -82,7 +82,7 @@ export function sidebarStageItems(input: {
 
 function stageDisabledReason(stageId: string, policy: ModeRoutePolicy, qualityMode: QualityMode, runHasStarted: boolean) {
   if (!canNavigateToStage(policy, stageId)) {
-    return qualityMode === 'fast' ? `${creationModeTitle('fast')}模式下阶段进度在驾驶舱内查看` : '当前模式下阶段进度在驾驶舱内查看';
+    return qualityMode === 'fast' ? `${creationModeTitle('fast')}模式下阶段进度在创作控制台查看` : '当前模式下阶段进度在创作控制台查看';
   }
   if (!runHasStarted) return '启动创作后可进入阶段工作台';
   return '';

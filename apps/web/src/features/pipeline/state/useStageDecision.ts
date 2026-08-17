@@ -1,5 +1,6 @@
 import { useState, type MutableRefObject } from 'react';
 import type { RunEvent, WorkflowDefinition } from '../contracts';
+import { pendingStageDecision } from '../lib/runDecisionProjection';
 import { resolveRunDecision } from '../services/runApi';
 import type { HydratedRunState } from './runState';
 import {
@@ -10,17 +11,11 @@ import {
 import {
   continuationStartedState,
   decisionStateForPausedStream,
-  exportReadyState,
   initialStageDecisionState,
   restoreStageDecisionState,
   stageDecisionStateForEvent,
 } from './stageDecisionState';
 import { useStageRegeneration } from './useStageRegeneration';
-import {
-  clearBriefApprovalDraft,
-  loadBriefApprovalDraft,
-  saveBriefApprovalDraft,
-} from './briefApprovalDraftStorage';
 
 type StageDecisionOptions = {
   activeRunId: string;
@@ -46,23 +41,11 @@ export function useStageDecision({
     workflow,
   });
 
-  function setApprovalDraft(approvalDraft: string) {
-    if (state.approvalPending && state.approvalSource) {
-      saveBriefApprovalDraft(activeRunId, state.approvalSource, approvalDraft);
-    }
-    setState((current) => ({ ...current, approvalDraft }));
-  }
-
   function restore(hydrated: HydratedRunState) {
-    const restored = restoreStageDecisionState(hydrated);
-    const localDraft = restored.approvalPending
-      ? loadBriefApprovalDraft(hydrated.activeRunId, restored.approvalSource)
-      : '';
-    setState({ ...restored, approvalDraft: localDraft || restored.approvalDraft });
+    setState(restoreStageDecisionState(hydrated));
   }
 
   function reset() {
-    clearBriefApprovalDraft(activeRunId);
     regeneration.resetRegeneration();
     setState(initialStageDecisionState);
   }
@@ -72,16 +55,7 @@ export function useStageDecision({
   }
 
   function applyEvent(event: RunEvent) {
-    if (event.type === 'artifact.committed' && event.stage_id === 'brief') clearBriefApprovalDraft(event.run_id || activeRunId);
-    setState((current) => {
-      const next = stageDecisionStateForEvent(current, event);
-      if (!isBriefSourceEvent(event) || !next.approvalPending || !next.approvalSource) return next;
-      if (next.approvalSource === current.approvalSource && current.approvalDraft) {
-        return { ...next, approvalDraft: current.approvalDraft };
-      }
-      const localDraft = loadBriefApprovalDraft(event.run_id || activeRunId, next.approvalSource);
-      return localDraft ? { ...next, approvalDraft: localDraft } : next;
-    });
+    setState((current) => stageDecisionStateForEvent(current, event));
   }
 
   function beginContinuation(stageId: string, selectedStageId: string) {
@@ -97,11 +71,6 @@ export function useStageDecision({
     return resolvedStageId;
   }
 
-  function markExportReady() {
-    regeneration.resetRegeneration();
-    setState((current) => exportReadyState(current));
-  }
-
   function clearCheckpoint() {
     setState((current) => continuationStartedState(current));
   }
@@ -115,7 +84,6 @@ export function useStageDecision({
       onWarning(`创作立项定稿提交失败：${errorMessage(error)}`);
       return false;
     }
-    clearBriefApprovalDraft(activeRunId);
     return true;
   }
 
@@ -147,11 +115,9 @@ export function useStageDecision({
     beginContinuation,
     clearCheckpoint,
     confirmStageArtifact,
-    markExportReady,
     regenerateBrief,
     reset,
     restore,
-    setApprovalDraft,
     state,
     syncPausedStream,
   };
@@ -161,10 +127,7 @@ export function useStageDecision({
     action: 'accept' | 'regenerate' | 'cancel',
     artifact?: unknown,
   ) {
-    const event = eventsRef.current.find((item) => (
-      item.type === 'decision.required'
-      && (item.stage_id || item.node_id?.split('.')[0]) === stageId
-    ));
+    const event = pendingStageDecision(eventsRef.current, stageId);
     const payload = event?.payload;
     const decisionId = typeof payload?.decision_id === 'string' ? payload.decision_id : '';
     const revision = Number(payload?.domain_revision);
@@ -188,8 +151,4 @@ export type StageDecisionController = ReturnType<typeof useStageDecision>;
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : '未知错误';
-}
-
-function isBriefSourceEvent(event: RunEvent) {
-  return event.stage_id === 'brief' && event.type === 'artifact.candidate_ready';
 }

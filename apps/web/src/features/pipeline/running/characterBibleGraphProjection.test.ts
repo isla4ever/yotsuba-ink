@@ -4,9 +4,9 @@ import { projectCharacterBibleGraph } from './characterBibleGraphProjection';
 
 const artifact: CharacterBibleArtifact = {
   subjects: [
-    { id: 'subject-lin', name: '林岚', kind: 'protagonist', function: '追查者', drive: '找到原始母带', change: '承认记忆会失真', debut: 'chapter:2-4', limits: ['不销毁原始记录'], demand_refs: ['demand-investigator'] },
-    { id: 'subject-zhou', name: '周屿', kind: 'functional', function: '证据守门人', drive: '保住档案室', change: '承认旁观也是选择', debut: 'chapter:3', limits: [], demand_refs: ['demand-gatekeeper'] },
-    { id: 'subject-su-he', name: '前任档案员苏禾', kind: 'historical_record', function: '通过值班记录留下证据', drive: '保留原始记录', change: '由缺席证据改变当下判断', debut: 'chapter:4', limits: ['不得产生当下行动'], demand_refs: ['demand-record'] },
+    { id: 'subject-lin', name: '林岚', kind: 'protagonist', function: '追查者', background: '旧港公共档案修复师，曾参与事故母带的初次修复。', conflict_history: '她亲眼见过事故母带被替换，却因证据不足保持沉默。', present_stakes: '若证据失效，她会失去职业资格和追查母亲去向的最后机会。', temperament: '受压时先核对记录，再逼迫对方作出明确选择。', speech_style: '短句，少下判断，习惯复述记录原文。', drive: '找到原始母带', change: '承认记忆会失真', debut: 'chapter:2-4', limits: ['不销毁原始记录'], demand_refs: ['demand-investigator'] },
+    { id: 'subject-zhou', name: '周屿', kind: 'functional', function: '证据守门人', background: '旧港广播站值守员，事故当夜负责切换备用信号。', conflict_history: '他曾按命令删除一段值守记录，因此一直回避公开作证。', present_stakes: '若实名证词公开，他会失去广播站职位并承担违规删除责任。', temperament: '压力越大越依赖程序用语，真正下决定前会反复确认退路。', speech_style: '措辞正式，长句较多，犹豫时会重复对方问题。', drive: '保住档案室', change: '承认旁观也是选择', debut: 'chapter:3', limits: ['不得无故撤回已经公开的证词'], demand_refs: ['demand-gatekeeper'] },
+    { id: 'subject-su-he', name: '苏禾', kind: 'historical_record', function: '前任档案员，通过值班记录留下证据', background: '事故前负责保存旧港原始录音，死亡后只留下可验证记录。', conflict_history: '她保留的异议记录是母带被替换前唯一未改写的来源。', present_stakes: '记录一旦失去可信度，她留下的事故异议将被永久封存。', temperament: '生前谨慎，坚持所有修改都必须保留异议痕迹。', speech_style: '录音中用词准确，句子短，不作情绪总结。', drive: '保留原始记录', change: '由缺席证据改变当下判断', debut: 'chapter:4', limits: ['不得产生当下行动'], demand_refs: ['demand-record'] },
   ],
   relations: [{ a: 'subject-lin', b: 'subject-zhou', type: '有条件的同盟', pressure: '公开期限逼近' }],
 };
@@ -18,7 +18,7 @@ describe('Character Bible graph projection', () => {
     expect(graph.updated_by).toBe('character-bible-artifact');
     expect(graph.nodes[0]).toMatchObject({ first_appearance_chapter: '2', id: 'subject-lin', tier: 'protagonist' });
     expect(graph.nodes[1]).toMatchObject({ id: 'subject-zhou', tier: 'supporting' });
-    expect(graph.nodes[2]).toMatchObject({ id: 'subject-su-he', name: '前任档案员苏禾', status: 'historical', tier: 'npc' });
+    expect(graph.nodes[2]).toMatchObject({ id: 'subject-su-he', name: '苏禾', status: 'historical', tier: 'npc' });
     expect(graph.edges[0]).toMatchObject({ relation: '有条件的同盟', source: 'subject-lin', target: 'subject-zhou' });
     expect(graph.nodes.some((node) => 'x' in node || 'y' in node || 'z' in node)).toBe(false);
   });

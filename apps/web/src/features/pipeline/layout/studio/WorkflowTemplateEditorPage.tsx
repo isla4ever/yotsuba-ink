@@ -1,29 +1,67 @@
-import { ArrowLeft, FilePlus2, Layers, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, BookmarkPlus, FilePlus2, Layers, SlidersHorizontal } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { WorkflowStage } from '../../contracts';
-import { CreationModeSetupSection } from '../../planning/CreationModeSetupSection';
 import { StageInspector } from '../../planning/StageInspector';
 import { ManuscriptLoadingIndicator } from '../ManuscriptLoadingIndicator';
 import { RevealText } from '../RevealText';
-import { defaultTemplateId, templateQualityLabels } from './newProjectWizardModel';
+import { templateQualityLabels } from './newProjectWizardModel';
 import { useWorkflowTemplateEditor, type TemplateEditorSaveState } from './useWorkflowTemplateEditor';
+import { isOfficialWorkflowId, isOneTimeWorkflowId } from '../../lib/officialWorkflows';
+import { WorkflowModeControl } from './WorkflowModeControl';
+import { WorkflowTemplateDeck } from './WorkflowTemplateDeck';
+import { contentSwapMotionVariants } from '../../lib/motion';
 
 type Props = { workflowId: string };
 
 /**
  * Full-page workflow template editor. The studio list only names templates; the
- * stage chain, per-stage parameters and model bindings are edited here, on the
- * same StageInspector the per-book planning surface uses.
+ * stage chain, per-stage parameters and model bindings are edited here. Book
+ * preparation deliberately has no stage-chain editor.
  */
 export function WorkflowTemplateEditorPage({ workflowId }: Props) {
   const navigate = useNavigate();
   const editor = useWorkflowTemplateEditor(workflowId);
   const [activeStageId, setActiveStageId] = useState('');
+  const [actionState, setActionState] = useState<'idle' | 'copying' | 'saving-template'>('idle');
+  const [actionError, setActionError] = useState('');
+  const controlBoardRef = useRef<HTMLElement>(null);
   const workflow = editor.workflow;
   const stages = workflow?.nodes ?? [];
   const activeStage: WorkflowStage | undefined = stages.find((stage) => stage.id === activeStageId) ?? stages[0];
-  const isDefault = workflowId === defaultTemplateId;
+  const isOfficial = isOfficialWorkflowId(workflowId);
+  const isOneTime = isOneTimeWorkflowId(workflowId);
+
+  useEffect(() => {
+    controlBoardRef.current?.scrollTo({ top: 0 });
+  }, [activeStage?.id]);
+
+  const configureForBook = async () => {
+    if (actionState !== 'idle') return;
+    setActionState('copying');
+    setActionError('');
+    try {
+      const draft = await editor.createOneTimeCopy();
+      navigate(`/studio/workflow/${encodeURIComponent(draft.id)}`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : '创建本书配置失败。');
+      setActionState('idle');
+    }
+  };
+
+  const saveOneTimeAsTemplate = async () => {
+    if (!workflow || actionState !== 'idle') return;
+    setActionState('saving-template');
+    setActionError('');
+    try {
+      const template = await editor.saveAsTemplate(`${workflow.name.replace('本书专用', '').trim() || '我的创作'}模板`);
+      navigate(`/studio/workflow/${encodeURIComponent(template.id)}`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : '另存模板失败。');
+      setActionState('idle');
+    }
+  };
 
   return (
     <section aria-labelledby="workflow-editor-title" className="workflow-editor-page workspace-page">
@@ -37,19 +75,22 @@ export function WorkflowTemplateEditorPage({ workflowId }: Props) {
             <RevealText as="h1" id="workflow-editor-title" text={workflow?.name || '工作流模板'} />
           </div>
           <span>
-            {isDefault
-              ? '默认模板是所有新作品的出厂配置：这里的修改会影响之后新建的作品，已建作品保持自己的副本。'
-              : '模板在建书时复制一份给作品：这里的修改只影响之后用它新建的作品。'}
+            {isOfficial
+              ? '官方配置只读，确保三种模式的模型策略稳定；复制为本书配置后可自由调整。'
+              : isOneTime
+                ? '这份配置只服务下一本书；可直接使用，也可另存为以后复用的模板。'
+                : '模板在建书时复制一份给作品：这里的修改只影响之后用它新建的作品。'}
           </span>
         </div>
         <dl className="workspace-page-stats">
           <div><dt><Layers size={13} />阶段</dt><dd>{stages.length}</dd></div>
           <div><dt><SlidersHorizontal size={13} />质量档位</dt><dd>{workflow ? templateQualityLabels[workflow.quality_mode] ?? workflow.quality_mode : '—'}</dd></div>
-          <div><dt>自动保存</dt><dd>{saveStateLabel(editor.saveState)}</dd></div>
+          <div><dt>{isOfficial ? '配置权限' : '自动保存'}</dt><dd>{isOfficial ? '官方只读' : saveStateLabel(editor.saveState)}</dd></div>
         </dl>
       </header>
 
       {editor.error ? <p className="studio-inline-error" role="alert">{editor.error}</p> : null}
+      {actionError ? <p className="studio-inline-error" role="alert">{actionError}</p> : null}
 
       {editor.loading || !workflow || !activeStage ? (
         <div className="workflow-editor-loading" role="status">
@@ -58,75 +99,78 @@ export function WorkflowTemplateEditorPage({ workflowId }: Props) {
         </div>
       ) : (
         <div className="workflow-editor-layout">
-          <div className="workflow-editor-side">
-            <section className="workflow-editor-panel">
-              <header className="workflow-editor-panel-head">
-                <h2>模板信息</h2>
-                <span>名称与质量档位</span>
-              </header>
+          <section aria-label="工作流阶段全貌" className="workflow-editor-deck-pane">
+            <header className="workflow-editor-deck-toolbar">
               <label className="workflow-editor-field">
-                <span>模板名称</span>
+                <span className="workflow-editor-control-label">
+                  <strong>模板名称</strong>
+                  <small>{isOneTime ? '仅本书' : isOfficial ? '官方只读' : '自定义模板'}</small>
+                </span>
                 <input
-                  disabled={isDefault}
+                  disabled={isOfficial}
                   maxLength={120}
                   onChange={(event) => editor.renameTemplate(event.target.value)}
                   type="text"
                   value={workflow.name}
                 />
               </label>
-              {isDefault ? <p className="workflow-editor-note">默认模板名称固定，可复制一份后自由命名。</p> : null}
-              <button className="workflow-editor-use" onClick={() => navigate(`/studio?view=templates&new=1&template=${encodeURIComponent(workflow.id)}`)} type="button">
-                <FilePlus2 size={14} />用这个模板建书
-              </button>
-            </section>
-
-            <nav aria-label="阶段链路" className="workflow-editor-panel workflow-editor-stages">
-              <header className="workflow-editor-panel-head">
-                <h2>阶段链路</h2>
-                <span>{stages.length} 个阶段</span>
-              </header>
-              <ol className="nw-reveal-scroll">
-                {stages.map((stage, position) => (
-                  <li key={stage.id}>
-                    <button
-                      aria-current={stage.id === activeStage.id ? 'true' : undefined}
-                      className={`workflow-editor-stage${stage.id === activeStage.id ? ' active' : ''}`}
-                      onClick={() => setActiveStageId(stage.id)}
-                      type="button"
-                    >
-                      <span className="workflow-editor-stage-ordinal">{position + 1}</span>
-                      <span className="workflow-editor-stage-copy">
-                        <strong>{stage.label}</strong>
-                        <small>{stage.model_settings.model || '继承默认模型'}</small>
-                      </span>
+              <WorkflowModeControl readOnly={isOfficial} value={workflow.quality_mode} onChange={editor.setQualityMode} />
+              <div className="workflow-editor-action-cluster">
+                <span className="workflow-editor-control-label">
+                  <strong>使用方式</strong>
+                  <small>{isOfficial ? '先复制，再按本书调整' : isOneTime ? '使用或沉淀为模板' : '从模板创建作品'}</small>
+                </span>
+                <div className="workflow-editor-actions">
+                  {isOfficial ? (
+                    <button className="workflow-editor-use" disabled={actionState !== 'idle'} onClick={() => void configureForBook()} type="button">
+                      <SlidersHorizontal size={14} />{actionState === 'copying' ? '正在创建…' : '配置本书'}
                     </button>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-          </div>
+                  ) : (
+                    <button className="workflow-editor-use" onClick={() => navigate(`/studio?view=templates&new=1&template=${encodeURIComponent(workflow.id)}`)} type="button">
+                      <FilePlus2 size={14} />{isOneTime ? '仅本书使用' : '用这个模板建书'}
+                    </button>
+                  )}
+                  {isOneTime ? (
+                    <button className="workflow-editor-use secondary" disabled={actionState !== 'idle'} onClick={() => void saveOneTimeAsTemplate()} type="button">
+                      <BookmarkPlus size={14} />{actionState === 'saving-template' ? '正在另存…' : '另存模板'}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </header>
+            <WorkflowTemplateDeck
+              activeStageId={activeStage.id}
+              qualityMode={workflow.quality_mode}
+              stages={stages}
+              onSelect={setActiveStageId}
+            />
+          </section>
 
-          <div className="workflow-editor-main">
-            <section className="workflow-editor-panel">
-              <header className="workflow-editor-panel-head">
-                <h2>创作模式</h2>
-                <span>决定审核强度与运行界面</span>
-              </header>
-              <CreationModeSetupSection context="review" value={workflow.quality_mode} onChange={editor.setQualityMode} />
-            </section>
-
-            <section className="workflow-editor-panel workflow-editor-inspector">
-              <StageInspector
-                inputIdPrefix={`template-${workflow.id}`}
-                knowledgeDocuments={[]}
-                providers={workflow.provider_profiles}
-                qualityMode={workflow.quality_mode}
-                stage={activeStage}
-                onAddModelOption={editor.addModelOption}
-                onChange={editor.updateStage}
-              />
-            </section>
-          </div>
+          <section aria-label="阶段配置" className="workflow-editor-control-board" ref={controlBoardRef}>
+            <AnimatePresence initial={false} mode="wait">
+              <motion.div
+                animate="animate"
+                className="workflow-editor-stage-panel"
+                exit="exit"
+                initial="initial"
+                key={activeStage.id}
+                variants={contentSwapMotionVariants}
+              >
+                <fieldset className="workflow-editor-inspector" disabled={isOfficial}>
+                  <StageInspector
+                    inputIdPrefix={`template-${workflow.id}`}
+                    knowledgeDocuments={[]}
+                    providers={workflow.provider_profiles}
+                    qualityMode={workflow.quality_mode}
+                    readOnly={isOfficial}
+                    stage={activeStage}
+                    onAddModelOption={editor.addModelOption}
+                    onChange={editor.updateStage}
+                  />
+                </fieldset>
+              </motion.div>
+            </AnimatePresence>
+          </section>
         </div>
       )}
     </section>

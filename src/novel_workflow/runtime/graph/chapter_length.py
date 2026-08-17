@@ -12,9 +12,6 @@ if TYPE_CHECKING:
     from novel_workflow.runtime.graph.stage_executor import StageExecutor
 
 
-_MAX_LENGTH_ATTEMPTS = 3
-
-
 def evaluate_chapter_length(
     executor: StageExecutor,
     state: NarrativeRunState,
@@ -40,29 +37,23 @@ def evaluate_chapter_length(
     actual = count_prose_characters(candidate.content)
     if contract.min_characters <= actual <= contract.max_characters:
         return {"chapter_gate_action": "review"}
-
-    attempt = int((state.get("chapter_attempts") or {}).get(chapter_id) or 1)
-    if attempt >= _MAX_LENGTH_ATTEMPTS:
-        raise ValueError(
-            f"Chapter length remained outside {contract.min_characters}-"
-            f"{contract.max_characters} characters after {attempt} attempts: {actual}"
-        )
-
-    attempts = dict(state.get("chapter_attempts") or {})
-    attempts[chapter_id] = attempt + 1
-    directions = dict(state.get("chapter_revision_directions") or {})
-    directions[chapter_id] = (
-        f"完整重写本章，保留冻结章题《{detail_chapter.title}》、全部场景转折与交接。"
-        f"上一稿去除空白后为 {actual} 字；本稿目标 {contract.target_characters} 字，"
-        f"必须落在 {contract.min_characters}-{contract.max_characters} 字。"
-        "不要新增施工图之外的事件；不足时深化场景动作、感官和对话反应，"
-        "超出时删除重复心理解释、总结和无效过场。"
+    executor.events.append(
+        run_id,
+        event_id=f"{run_id}:{chapter_id}:{version_id}:length-warning",
+        type="quality.warning",
+        stage_id="text",
+        node_id="text.check_length_contract",
+        chapter_id=chapter_id,
+        status="warning",
+        payload={
+            "code": "chapter_length_soft_band",
+            "actual_characters": actual,
+            "target_characters": contract.target_characters,
+            "soft_bounds": [contract.min_characters, contract.max_characters],
+        },
+        payload_ref=version_id,
     )
-    return {
-        "chapter_attempts": attempts,
-        "chapter_revision_directions": directions,
-        "chapter_gate_action": "regenerate",
-    }
+    return {"chapter_gate_action": "review"}
 
 
 __all__ = ["evaluate_chapter_length"]

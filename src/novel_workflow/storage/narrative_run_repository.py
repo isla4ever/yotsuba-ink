@@ -30,6 +30,7 @@ RunStatus = Literal[
     "cancelled",
 ]
 StageStatus = Literal["locked", "available", "running", "awaiting_decision", "completed", "failed"]
+BranchFrontierMode = Literal["active_decision", "stage_boundary"]
 
 
 class ProviderBinding(BaseModel):
@@ -136,6 +137,23 @@ class ExportPreferences(BaseModel):
     format: Literal["md", "json", "zip"] = "zip"
     author: str = Field(default="", max_length=160)
     version_note: str = Field(default="", max_length=500)
+    include_cover_image: bool = True
+
+
+class BranchBindingOverride(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_workflow_id: str = Field(min_length=1, max_length=240)
+    source_workflow_revision: str = Field(min_length=1, max_length=240)
+    source_workflow_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    stages: list[StageId] = Field(min_length=1)
+
+    @field_validator("stages")
+    @classmethod
+    def require_unique_stages(cls, value: list[StageId]) -> list[StageId]:
+        if len(value) != len(set(value)):
+            raise ValueError("Branch binding override stages must be unique")
+        return value
 
 
 class BranchOrigin(BaseModel):
@@ -143,6 +161,8 @@ class BranchOrigin(BaseModel):
 
     source_run_id: str = Field(min_length=1, max_length=240)
     source_checkpoint_id: str = Field(min_length=1, max_length=240)
+    frontier_mode: BranchFrontierMode = "active_decision"
+    binding_override: BranchBindingOverride | None = None
 
 
 class RunDefinition(BaseModel):

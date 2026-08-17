@@ -29,6 +29,10 @@ def keep_first_failure(
     current: GraphFailure | None,
     update: GraphFailure | None,
 ) -> GraphFailure | None:
+    # A recoverable failure decision clears the active failure explicitly
+    # before starting a new, independently receipted generation attempt.
+    if update is None:
+        return None
     return current if current is not None else update
 
 

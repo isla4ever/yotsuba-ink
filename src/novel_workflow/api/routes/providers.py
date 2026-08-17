@@ -14,6 +14,7 @@ from novel_workflow.providers.readiness import ProviderReadinessReport, live_pro
 from novel_workflow.providers.templates import ProviderTemplate, list_provider_templates, require_provider_template
 from novel_workflow.workflows.schemas import ProviderKind, ProviderProfile, WorkflowDefinition
 from novel_workflow.workflows.templates import materialize_workflow_for_execution
+from novel_workflow.workflows.workflow_ids import DEFAULT_WORKFLOW_ID
 
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])
@@ -45,7 +46,7 @@ class ProviderTestResult(BaseModel):
 
 
 class ProviderReadinessRequest(BaseModel):
-    workflow_id: str = "default-novel-workflow"
+    workflow_id: str = DEFAULT_WORKFLOW_ID
 
 
 class ProviderDefaultRequest(BaseModel):

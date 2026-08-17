@@ -1,5 +1,5 @@
-import { ArrowRight, BookOpen, Plus } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ProjectRecord, ProjectSummary } from '../../contracts';
 import { ButtonLoadingIndicator } from '../ButtonLoadingIndicator';
 import { ManuscriptLoadingIndicator } from '../ManuscriptLoadingIndicator';
@@ -27,6 +27,7 @@ type Props = {
  */
 export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, onCreate, openingProjectId = '' }: Props) {
   const [selectedId, setSelectedId] = useState('');
+  const shelfRef = useRef<HTMLDivElement>(null);
   const selected = projects.find((project) => project.id === selectedId) ?? projects[0] ?? null;
 
   useEffect(() => {
@@ -56,38 +57,49 @@ export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, 
   }
 
   const summary = selected ? summaries[selected.id] ?? null : null;
+  const scrollShelf = (direction: -1 | 1) => {
+    shelfRef.current?.scrollBy({ behavior: 'smooth', left: direction * Math.max(shelfRef.current.clientWidth * 0.72, 260) });
+  };
 
   return (
     <>
       {error ? <p className="studio-inline-error" role="alert">{error}</p> : null}
       <div className="studio-bookshelf-layout">
-        <div aria-label="书架" className="studio-shelf" role="listbox">
-          {projects.map((project) => {
-            const projectSummary = summaries[project.id] ?? null;
-            const active = selected?.id === project.id;
-            return (
-              <button
-                aria-selected={active}
-                className={`studio-book-spine${active ? ' selected' : ''}`}
-                key={project.id}
-                onClick={() => setSelectedId(project.id)}
-                onDoubleClick={() => onOpen(project, projectSummary)}
-                role="option"
-                style={{ '--project-accent-hue': project.accent_hue } as CSSProperties}
-                title={`${project.title} · ${formatWordCount(projectSummary?.words ?? 0)}`}
-                type="button"
-              >
-                <span className="spine-band" aria-hidden="true" />
-                <span className="spine-title">{project.title}</span>
-                <span className="spine-words">{formatWordCount(projectSummary?.words ?? 0)}</span>
-              </button>
-            );
-          })}
-          <button className="studio-book-spine new-book" onClick={onCreate} title="新建作品" type="button">
-            <Plus aria-hidden="true" size={15} />
-            <span className="spine-title">新建作品</span>
+        <div className="studio-shelf-frame">
+          <button aria-controls="project-shelf-rail" aria-label="向左浏览作品" className="studio-shelf-control prev" onClick={() => scrollShelf(-1)} title="向左浏览作品" type="button">
+            <ChevronLeft aria-hidden="true" size={18} />
           </button>
-          <span aria-hidden="true" className="studio-shelf-board" />
+          <div aria-label="书架" className="studio-shelf" id="project-shelf-rail" ref={shelfRef} role="listbox">
+            {projects.map((project) => {
+              const projectSummary = summaries[project.id] ?? null;
+              const active = selected?.id === project.id;
+              return (
+                <button
+                  aria-selected={active}
+                  className={`studio-book-spine${active ? ' selected' : ''}`}
+                  key={project.id}
+                  onClick={() => setSelectedId(project.id)}
+                  onDoubleClick={() => onOpen(project, projectSummary)}
+                  role="option"
+                  style={{ '--project-accent-hue': project.accent_hue } as CSSProperties}
+                  title={`${project.title} · ${formatWordCount(projectSummary?.words ?? 0)}`}
+                  type="button"
+                >
+                  <span className="spine-band" aria-hidden="true" />
+                  <span className="spine-title">{project.title}</span>
+                  <span className="spine-words">{formatWordCount(projectSummary?.words ?? 0)}</span>
+                </button>
+              );
+            })}
+            <button className="studio-book-spine new-book" onClick={onCreate} title="新建作品" type="button">
+              <Plus aria-hidden="true" size={15} />
+              <span className="spine-title">新建作品</span>
+            </button>
+            <span aria-hidden="true" className="studio-shelf-board" />
+          </div>
+          <button aria-controls="project-shelf-rail" aria-label="向右浏览作品" className="studio-shelf-control next" onClick={() => scrollShelf(1)} title="向右浏览作品" type="button">
+            <ChevronRight aria-hidden="true" size={18} />
+          </button>
         </div>
 
         {selected ? (

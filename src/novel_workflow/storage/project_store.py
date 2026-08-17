@@ -5,19 +5,19 @@ from typing import Any
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from collections.abc import Callable, Sequence
-
 from novel_workflow.storage.json_store import JsonStore
 from novel_workflow.storage.project_schemas import ProjectRecord, next_accent_hue
 from novel_workflow.storage.run_history_projection import RunHistoryProjection
-from novel_workflow.workflows.definition_schemas import ProviderProfile
-from novel_workflow.workflows.provider_binding import bind_stages_to_connected_providers
-from novel_workflow.workflows.seed_policy import scrub_narrative_seeds
+from novel_workflow.workflows.seed_policy import materialize_project_workflow
 from novel_workflow.workflows.executable_contract import require_executable_workflow
+from novel_workflow.workflows.workflow_ids import DEFAULT_WORKFLOW_ID
 
 
 class ProjectStoreError(ValueError):
     """Domain-rule violation (delete protection etc.); routes map it to 409."""
+
+
+WORKING_TITLE = "待定书名"
 
 
 def now() -> str:
@@ -37,47 +37,58 @@ class ProjectStore:
         *,
         workflow_store: JsonStore,
         run_history: RunHistoryProjection,
-        provider_profiles: Callable[[], Sequence[ProviderProfile]] | None = None,
-        secret_resolver: Callable[[str], str | None] | None = None,
     ) -> None:
         self.store = JsonStore(root)
         self.workflow_store = workflow_store
         self.run_history = run_history
-        self.provider_profiles = provider_profiles
-        self.secret_resolver = secret_resolver
 
     def list(self) -> list[ProjectRecord]:
-        records = [ProjectRecord.model_validate(item) for item in self.store.list()]
+        records = [self._with_generated_title(ProjectRecord.model_validate(item)) for item in self.store.list()]
         records.sort(key=lambda item: (item.updated_at, item.id), reverse=True)
         return records
 
     def get(self, project_id: str) -> ProjectRecord:
-        return ProjectRecord.model_validate(self.store.read(project_id))
+        return self._with_generated_title(ProjectRecord.model_validate(self.store.read(project_id)))
 
-    def create(self, *, title: str, summary: str = "", template_workflow_id: str = "default-novel-workflow") -> ProjectRecord:
-        # Phase 12 M1: the per-project copy starts from genuinely blank story
-        # fields — demo narrative seeds are cleared; the template itself keeps them.
+    def create(
+        self,
+        *,
+        idea: str,
+        template_workflow_id: str = DEFAULT_WORKFLOW_ID,
+        consume_workflow_draft: bool = False,
+    ) -> ProjectRecord:
+        if consume_workflow_draft and not template_workflow_id.startswith("wf-once-"):
+            raise ProjectStoreError("Only an explicit one-time workflow draft may be consumed")
         source = require_executable_workflow(self.workflow_store.read(template_workflow_id))
-        template = self._bind_to_connected_providers(scrub_narrative_seeds(source.model_dump(mode="json")))
+        template = materialize_project_workflow(source.model_dump(mode="json"), idea)
         project_id = f"proj-{uuid4().hex[:10]}"
         workflow_id = f"wf-{project_id}"
-        self.workflow_store.write(workflow_id, {**template, "id": workflow_id, "name": title, "is_template": False})
+        self.workflow_store.write(
+            workflow_id,
+            {**template, "id": workflow_id, "name": WORKING_TITLE, "is_template": False},
+        )
         timestamp = now()
         record = ProjectRecord(
             id=project_id,
-            title=title,
-            summary=summary,
+            title=WORKING_TITLE,
+            summary=idea.strip(),
             accent_hue=next_accent_hue([item.accent_hue for item in self.list()]),
             workflow_id=workflow_id,
             created_at=timestamp,
             updated_at=timestamp,
         )
         self.store.write(project_id, record.model_dump())
+        if consume_workflow_draft:
+            self.workflow_store.delete(template_workflow_id)
         return record
 
     def patch(self, project_id: str, changes: dict[str, Any]) -> ProjectRecord:
         record = self.get(project_id)
-        allowed = {key: value for key, value in changes.items() if key in {"title", "spine", "status", "accent_hue"}}
+        allowed = {
+            key: value
+            for key, value in changes.items()
+            if key in {"title", "summary", "status", "accent_hue"}
+        }
         updated = record.model_copy(update={**allowed, "updated_at": now()})
         self.store.write(project_id, updated.model_dump())
         return updated
@@ -119,14 +130,20 @@ class ProjectStore:
     def projects_referencing_workflow(self, workflow_id: str) -> list[ProjectRecord]:
         return [record for record in self.list() if record.workflow_id == workflow_id]
 
-    def _bind_to_connected_providers(self, workflow: dict[str, Any]) -> dict[str, Any]:
-        if self.provider_profiles is None:
-            return workflow
-        return bind_stages_to_connected_providers(
-            workflow,
-            self.provider_profiles(),
-            secret_resolver=self.secret_resolver,
-        )
+    def _with_generated_title(self, record: ProjectRecord) -> ProjectRecord:
+        latest = self.run_history.latest(record.id)
+        title = str((latest or {}).get("title") or "").strip()
+        updates: dict[str, Any] = {}
+        if title and title != WORKING_TITLE:
+            updates["title"] = title
+        if latest is not None:
+            updates["latest_run_id"] = str(latest.get("run_id") or "")
+        elif record.latest_run_id:
+            # A run that no longer satisfies the current strict contract is
+            # excluded from production projections and cannot remain a live
+            # navigation target.
+            updates["latest_run_id"] = ""
+        return record.model_copy(update=updates) if updates else record
 
     def _delete_owned_workflow(self, record: ProjectRecord) -> None:
         if record.workflow_id != f"wf-{record.id}":

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import socket
 from typing import Any
 
 import httpx
@@ -15,6 +16,7 @@ from novel_workflow.providers.errors import (
 )
 from novel_workflow.providers.openai_compat import OpenAICompatibleTextProvider
 from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
+from novel_workflow.providers.openai_sdk import translate_openai_error
 from novel_workflow.workflows.schemas import ProviderProfile
 
 
@@ -157,6 +159,18 @@ def test_stage_probe_route_is_removed(tmp_path, monkeypatch) -> None:
     response = client.post("/api/providers/stage-probe", json={})
 
     assert response.status_code == 405
+
+
+def test_wrapped_dns_failure_uses_portable_socket_diagnostic() -> None:
+    dns_error = socket.gaierror(socket.EAI_AGAIN, "temporary name resolution failure")
+    try:
+        raise httpx.ConnectError("private connection detail") from dns_error
+    except httpx.ConnectError as wrapped_error:
+        translated = translate_openai_error(wrapped_error, timeout_seconds=120)
+
+    assert translated.code == "network_error"
+    assert translated.diagnostic_code == "dns_error"
+    assert "temporary name resolution failure" not in str(translated)
 
 
 @pytest.mark.asyncio

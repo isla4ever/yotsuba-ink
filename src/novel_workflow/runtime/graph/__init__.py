@@ -4,7 +4,7 @@ from novel_workflow.runtime.graph.chapter_graph import DEFAULT_REVIEWERS, Review
 from novel_workflow.runtime.graph.narrative_graph import build_narrative_graph
 from novel_workflow.runtime.graph.provider_gateway import (
     CoverImageRequest,
-    ChapterGenerationRequest,
+    ChapterSceneGenerationRequest,
     ChapterReviewRequest,
     ChapterReviewResult,
     NarrativeProviderGateway,
@@ -23,7 +23,7 @@ from novel_workflow.runtime.graph.stage_graph import build_stage_graph
 from novel_workflow.runtime.graph.state import NarrativeRunState
 
 __all__ = [
-    "ChapterGenerationRequest",
+    "ChapterSceneGenerationRequest",
     "CoverImageRequest",
     "ChapterReviewRequest",
     "ChapterReviewResult",

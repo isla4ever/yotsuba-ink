@@ -18,14 +18,12 @@ type ResettableRunState = Pick<RunState,
 >;
 
 export function captureRunResetSnapshot({
-  automationCockpitReady,
   decision,
   events,
   inputs,
   runSource,
   state,
 }: {
-  automationCockpitReady: boolean;
   decision: StageDecisionState;
   events: RunEvent[];
   inputs?: RunInputs;
@@ -47,7 +45,6 @@ export function captureRunResetSnapshot({
     hydrated: {
       ...hydrated,
       ...decision,
-      automationCockpitReady,
       paused: true,
       runControlState: 'paused',
       selectedId: state.selectedId,

@@ -72,7 +72,7 @@ def guarded_node(
             failure: GraphFailure = {
                 "node_id": node_id,
                 "code": type(exc).__name__,
-                "retryable": False,
+                "retryable": _is_retryable_stage_failure(node_id, stage_id),
                 "evidence_ref": evidence_ref,
                 "message": str(exc),
             }
@@ -83,6 +83,15 @@ def guarded_node(
             }
 
     return guarded
+
+
+def _is_retryable_stage_failure(node_id: str, stage_id: StageId) -> bool:
+    if stage_id == "export":
+        return False
+    return node_id in {
+        f"{stage_id}.generate_candidate",
+        f"{stage_id}.validate_contract",
+    }
 
 
 def _node_occurrence_id(state: NarrativeRunState, node_id: str) -> str:

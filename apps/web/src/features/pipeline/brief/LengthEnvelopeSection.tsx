@@ -1,6 +1,6 @@
-import { BookOpenText, Layers, ListOrdered, SlidersHorizontal, Users, Waypoints } from 'lucide-react';
+import { BookOpenText, SlidersHorizontal, Waypoints } from 'lucide-react';
 import type { QualityMode, WorkflowStage } from '../contracts';
-import { lengthEnvelopeFromStage, suggestScalePlan } from '../lib/narrativeScale';
+import { DEFAULT_CAPACITY_POLICY, lengthEnvelopeFromStage, suggestScalePlan } from '../lib/narrativeScale';
 import { updateStageInputDefault, upsertStageInputDefault } from '../lib/stageConfig';
 
 type Props = {
@@ -9,12 +9,6 @@ type Props = {
   qualityMode?: QualityMode;
   onChange: (stage: WorkflowStage) => void;
 };
-
-const OVERRIDE_FIELDS = [
-  { key: 'volume_target_override', label: '自定义卷数', icon: Layers, min: 1, max: 50 },
-  { key: 'turn_target_override', label: '自定义脊柱转折数', icon: Waypoints, min: 3, max: 24 },
-  { key: 'cast_demand_override', label: '自定义人物数量', icon: Users, min: 1, max: 30 },
-] as const;
 
 export function LengthEnvelopeSection({ idPrefix, stage, qualityMode = 'balanced', onChange }: Props) {
   const envelope = lengthEnvelopeFromStage(stage);
@@ -27,18 +21,18 @@ export function LengthEnvelopeSection({ idPrefix, stage, qualityMode = 'balanced
       <div className="book-scale-target-head">
         <div>
           <span>篇幅包络</span>
-          <strong id={`${idPrefix}-length-envelope-title`}>软目标，不锁定故事边界</strong>
+          <strong id={`${idPrefix}-length-envelope-title`}>字数由用户决定，结构数量由系统冻结</strong>
         </div>
       </div>
       <div className="book-scale-preview" aria-label="篇幅软目标">
         <LengthField icon={<BookOpenText aria-hidden="true" size={15} />} id={`${idPrefix}-word-target`} label="目标字数" max={10_000_000} min={1} onChange={(value) => update('word_target_soft', value)} value={envelope.word_target_soft} />
-        <LengthField icon={<ListOrdered aria-hidden="true" size={15} />} id={`${idPrefix}-chapter-target`} label="建议章数" max={10_000} min={1} onChange={(value) => update('chapter_target_soft', value)} placeholder="留空则按字数估算" value={envelope.chapter_target_soft} />
       </div>
       <div className="book-scale-suggestion" aria-label="系统结构建议">
-        <SuggestionItem label="章节" value={`约 ${plan.chapterTarget} 章${plan.wordsPerChapter ? ` · 每章约 ${plan.wordsPerChapter.toLocaleString()} 字` : ''}`} />
-        <SuggestionItem label="分卷" value={rangeText(plan.volumeTarget, plan.volumeRange, '卷')} />
+        <SuggestionItem label="章节" value={chapterSuggestionText(plan)} />
+        <SuggestionItem label="分卷" value={volumeSuggestionText(plan)} />
+        <SuggestionItem label="场景容量" value={sceneRangeText(plan.sceneRange)} />
         <SuggestionItem label="脊柱转折" value={rangeText(plan.turnTarget, plan.turnRange, '个')} />
-        <SuggestionItem label="登场人物" value={rangeText(plan.castTarget, plan.castRange, '人')} />
+        <SuggestionItem label="核心人物" value={castRangeText(plan.castRecommendedRange, plan.castHardMax)} />
       </div>
       {qualityMode === 'deep' ? (
         <div className="book-scale-overrides">
@@ -47,19 +41,16 @@ export function LengthEnvelopeSection({ idPrefix, stage, qualityMode = 'balanced
             精工模式可锁定结构取值；留空表示沿用系统建议区间。
           </p>
           <div className="book-scale-overrides-grid">
-            {OVERRIDE_FIELDS.map(({ key, label, icon: Icon, min, max }) => (
-              <LengthField
-                icon={<Icon aria-hidden="true" size={15} />}
-                id={`${idPrefix}-${key}`}
-                key={key}
-                label={label}
-                max={max}
-                min={min}
-                onChange={(value) => updateOverride(key, label, value)}
-                placeholder="留空用建议值"
-                value={overrideValue(stage, key)}
-              />
-            ))}
+            <LengthField
+              icon={<Waypoints aria-hidden="true" size={15} />}
+              id={`${idPrefix}-turn_target_override`}
+              label="锁定脊柱转折数"
+              max={Math.min(120, plan.turnRange[1])}
+              min={plan.turnRange[0]}
+              onChange={(value) => updateOverride('turn_target_override', '锁定脊柱转折数', value)}
+              placeholder={`${plan.turnRange[0]}-${plan.turnRange[1]}`}
+              value={overrideValue(stage, 'turn_target_override')}
+            />
           </div>
         </div>
       ) : null}
@@ -67,9 +58,33 @@ export function LengthEnvelopeSection({ idPrefix, stage, qualityMode = 'balanced
   );
 }
 
+function chapterSuggestionText(plan: ReturnType<typeof suggestScalePlan>): string {
+  const [chapterLow, chapterHigh] = plan.chapterRange;
+  const [characterLow, characterHigh] = plan.chapterCharacterRange;
+  const chapters = chapterLow === chapterHigh
+    ? `${plan.chapterTarget} 章`
+    : `系统确定 ${plan.chapterTarget} 章（可行容量 ${chapterLow}-${chapterHigh} 章）`;
+  return `${chapters} · 合理章长 ${characterLow.toLocaleString()}-${characterHigh.toLocaleString()} 字`;
+}
+
+function volumeSuggestionText(plan: ReturnType<typeof suggestScalePlan>): string {
+  const [low, high] = plan.volumeRange;
+  const capacity = DEFAULT_CAPACITY_POLICY;
+  const range = low === high ? `${low} 卷` : `可行容量 ${low}-${high} 卷`;
+  return `系统确定 ${plan.volumeTarget} 卷（${range}） · 单卷 ${capacity.volume_chapters_min}-${capacity.volume_chapters_max} 章`;
+}
+
 function rangeText(target: number, [low, high]: [number, number], unit: string): string {
   if (low === high) return `${target} ${unit}`;
   return `建议 ${target} ${unit}（${low}-${high} ${unit}）`;
+}
+
+function sceneRangeText([low, high]: [number, number]): string {
+  return low === high ? `每章按剧情承载 ${low} 场` : `每章按剧情负载在 ${low}-${high} 场内选择`;
+}
+
+function castRangeText([low, high]: [number, number], hardMax: number): string {
+  return `按职责生成，建议 ${low}-${high} 人 · 最多 ${hardMax} 人`;
 }
 
 function overrideValue(stage: WorkflowStage, key: string): number | null {

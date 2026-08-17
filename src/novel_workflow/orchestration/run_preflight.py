@@ -47,6 +47,13 @@ class FrozenRunBindings(BaseModel):
     cover_asset_binding: CoverAssetBinding
 
 
+class FrozenStageBindings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider_bindings: dict[StageId, ProviderBinding]
+    cover_asset_binding: CoverAssetBinding | None = None
+
+
 class RunPreflightService:
     """Freeze every execution input before a new production Run can exist."""
 
@@ -56,14 +63,42 @@ class RunPreflightService:
         self.secret_store = secret_store
 
     def freeze_workflow(self, workflow: WorkflowDefinition) -> FrozenRunBindings:
+        frozen = self.freeze_stages(workflow, PROVIDER_STAGES)
+        if frozen.cover_asset_binding is None:
+            raise RunPreflightError(
+                "cover_configuration_invalid",
+                "A complete Run requires a frozen cover asset binding",
+            )
+        return FrozenRunBindings(
+            provider_bindings=frozen.provider_bindings,
+            cover_asset_binding=frozen.cover_asset_binding,
+        )
+
+    def freeze_stages(
+        self,
+        workflow: WorkflowDefinition,
+        stage_ids: tuple[StageId, ...] | list[StageId],
+    ) -> FrozenStageBindings:
         workflow = require_executable_workflow(workflow)
+        requested = tuple(stage_ids)
+        invalid = [stage_id for stage_id in requested if stage_id not in PROVIDER_STAGES]
+        if invalid:
+            raise RunPreflightError(
+                "stage_binding_override_invalid",
+                f"Stages do not own Provider bindings: {', '.join(invalid)}",
+            )
+        if len(requested) != len(set(requested)):
+            raise RunPreflightError(
+                "stage_binding_override_invalid",
+                "Provider binding override stages must be unique",
+            )
         nodes = {node.id: node for node in workflow.nodes}
         frozen = {
             stage_id: self._freeze_text_binding(stage_id, nodes[stage_id])
-            for stage_id in PROVIDER_STAGES
+            for stage_id in requested
         }
-        cover = self._freeze_cover_binding(nodes["cover"])
-        return FrozenRunBindings(
+        cover = self._freeze_cover_binding(nodes["cover"]) if "cover" in requested else None
+        return FrozenStageBindings(
             provider_bindings=frozen,
             cover_asset_binding=cover,
         )
@@ -229,6 +264,7 @@ def _schema_digest(schema: dict[str, object]) -> str:
 
 __all__ = [
     "FrozenRunBindings",
+    "FrozenStageBindings",
     "PROVIDER_STAGES",
     "RunPreflightError",
     "RunPreflightService",

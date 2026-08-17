@@ -74,8 +74,21 @@ def test_default_text_prompt_keeps_runtime_owned_identity_in_langgraph() -> None
         prompt for prompt in default_prompt_templates() if prompt.stage_type == "text"
     )
 
-    assert "不输出 JSON" in text_prompt.content
-    assert "纯文本流" in text_prompt.content
+    assert "只输出当前场景可直接组装的纯文本正文" in text_prompt.content
+    assert "JSON" in text_prompt.content
+    assert "version_id" in text_prompt.content
+
+
+def test_cast_prompt_delegates_dynamic_debut_projection_to_the_runtime() -> None:
+    cast_prompt = next(
+        prompt for prompt in default_prompt_templates() if prompt.stage_type == "cast"
+    )
+
+    assert "active_turn_refs" in cast_prompt.content
+    assert "代码冻结的精确 chapter_target 确定性重算" in cast_prompt.content
+    assert "chapter_target 只是建议" not in cast_prompt.content
+    assert "debut 字段必须满足 schema，但不是最终章号权威" in cast_prompt.content
+    assert "机构职责默认保持机构形态" in cast_prompt.content
 
 
 def test_production_uses_langgraph_without_a_direct_langchain_dependency() -> None:
@@ -108,7 +121,11 @@ def test_api_and_graph_do_not_import_deleted_production_paths() -> None:
         path.relative_to(SRC / "orchestration").as_posix()
         for path in (SRC / "orchestration").rglob("*.py")
     }
-    assert orchestration_files == {"__init__.py", "run_preflight.py"}
+    assert orchestration_files == {
+        "__init__.py",
+        "run_preflight.py",
+        "stage_artifact_editing.py",
+    }
 
 
 def test_deleted_runtime_files_cannot_return_as_importable_production_paths() -> None:
@@ -138,7 +155,11 @@ def test_phase27_production_authorities_have_no_retired_stage_identifiers() -> N
     defaults = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (
-            ROOT / "runtime" / "novel_workflow" / "workflows" / "default-novel-workflow.json",
+            *sorted(
+                (ROOT / "runtime" / "novel_workflow" / "workflows").glob(
+                    "official-deepseek-*.json"
+                )
+            ),
             *sorted((ROOT / "runtime" / "novel_workflow" / "prompts").glob("*.json")),
         )
     )
@@ -157,7 +178,11 @@ def test_phase27_production_authorities_have_no_retired_stage_identifiers() -> N
     runtime_defaults = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (
-            ROOT / "runtime" / "novel_workflow" / "workflows" / "default-novel-workflow.json",
+            *sorted(
+                (ROOT / "runtime" / "novel_workflow" / "workflows").glob(
+                    "official-deepseek-*.json"
+                )
+            ),
             *sorted((ROOT / "runtime" / "novel_workflow" / "prompts").glob("*.json")),
         )
     )

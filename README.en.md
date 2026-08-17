@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/CI-passing-3f8f68" alt="CI passing" />
-  <img src="https://img.shields.io/badge/version-0.1.0%20Alpha-68717a" alt="version 0.1.0 Alpha" />
+  <img src="https://img.shields.io/badge/version-1.0.0%20Demo-68717a" alt="version 1.0.0 Demo" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache 2.0 license" />
 </p>
 
@@ -18,31 +18,34 @@
 
 <p align="center"><img src="docs/assets/branding/yotsuba-ink-banner.png" alt="Yotsuba Ink long-form writing workbench banner" width="100%" /></p>
 
-> Brand assets: the trademark is `2048×2048` and the banner is `1600×720`. The image gateway was temporarily unavailable during this pass, so these assets are rasterized from the same approved local vector direction; they can be replaced in place when the gateway is available again.
+> Brand assets: the trademark is `2048×2048` and the banner is `1600×720`. The local demo does not depend on cover image generation; the Cover stage still preserves the complete visual metadata.
 
 Yotsuba Ink is an open-source workbench for long-form fiction. Instead of generating an entire book from one prompt, it organizes story information, synopsis, volume outline, chapter blueprint, prose, cover, and export into an editable, reviewable, traceable, and recoverable production pipeline.
 
-> Current version: `0.1.0 Alpha`. The local UI, stage contracts, Fake Provider automation, and primary browser flows have been verified. Real generation requires a configured text Provider, and real cover generation requires an image Provider. Passing automation does not mean that literary quality from a live model has been accepted.
+> Current version: `1.0.0 Demo`. This release completes one real balanced-mode long-form run above 100,000 characters and presents completed projects through a static terminal projection instead of replaying historical SSE. Live-model literary quality still requires ongoing human cold reads.
 
 ## Highlights
 
-- **Seven-stage Artifact workflow**: story information, full synopsis, volume outline, chapter blueprint, prose, AI cover, and export.
+- **Eight-stage Artifact workflow**: Brief, Spine, Cast, Volumes, Detail, Text, Cover metadata, and Export.
 - **Three creation modes**: Fast, Balanced, and Deep, each with a different cost, approval, and automation policy.
 - **Artifact-first semantics**: current drafts, approved artifacts, and formal writeback are separate; candidates never update Story Bible or Canon prematurely.
 - **Long-form continuity**: character relationships, worldbuilding, foreshadowing, Wiki/Canon, and chapter context constrain cross-chapter generation.
 - **Review and revision**: quality reports, fact writeback, selection revisions, version history, and stable checkpoints form a recoverable loop.
-- **Parallel delivery**: after the chapter blueprint is approved, prose and cover can proceed in parallel; export waits for both branches and validates the package.
+- **Terminal browsing**: completed projects open on the final workbench with all committed artifacts, accepted chapter versions, and immutable export receipts; historical execution is not replayed.
+- **Single-row bookshelf**: the library keeps one horizontal row of book spines with arrow controls, touchpad/touch scrolling, and a selected-book reading desk.
+- **Parallel delivery**: after Detail is approved, Text and Cover can proceed in parallel; Export waits for both branches and validates the package. Cover image generation can be disabled per Run without losing Cover metadata.
 - **Explicit Provider boundary**: production code uses OpenAI-compatible text and image Providers; Fake Providers exist only in tests.
 
 ## Workflow
 
 ```text
 Planning
-  -> Story Information (the default v1 human gate)
-  -> Full Synopsis
-  -> Volume Outline
-  -> Chapter Blueprint
-  -> [Prose || AI Cover]
+  -> Brief
+  -> Spine
+  -> Cast
+  -> Volumes
+  -> Detail
+  -> [Text || Cover metadata]
   -> Export
 ```
 
@@ -51,7 +54,7 @@ All modes share the same Artifact and writeback contracts:
 | Mode | User control | Default flow |
 | --- | --- | --- |
 | Fast | Minimal intervention | Runs the full pipeline after setup |
-| Balanced | Approve story information | Continues automatically after Info; comparison is user-triggered |
+| Balanced | Approve the Brief | Continues automatically after Brief; comparison is user-triggered |
 | Deep | Stage-by-stage review | Regenerate, edit, and approve each text stage before continuing |
 
 Cover and Export keep their own candidate, approval, and delivery decisions instead of copying the three-column text comparison UI.
@@ -127,6 +130,18 @@ export NOVEL_IMAGE_MODEL="your-image-model"
 
 No key is required to inspect setup, projects, or history. Live generation requires the Provider readiness check to pass. Never commit `.env` files, API keys, run history, or user manuscripts to a public repository.
 
+## v1.0 Demo acceptance
+
+The official `official-deepseek-balanced` template completed one real long-form Run:
+
+- Work: `明日来电`; Project `proj-e1007717ad`; Run `balanced-110k-v1-demo-20260817-040033`
+- `8/8` stages complete, 44 chapters, 107,613 non-whitespace characters; chapter range 1,710–3,692, average 2,445.75, P90 2,962
+- Volume distribution: 14/14/16 chapters; 100% title completeness; downloadable ZIP export
+- Provider: 314 operations, 311 successful, 3 failed and recovered; 1,760,252 total tokens
+- Cover image generation was disabled for this Run; Cover metadata and Export still closed successfully
+
+See the [v1.0 balanced long-form acceptance report](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md) for hard gates, continuity sampling, Provider receipts, warnings, and browser screenshots. Historical findings are listed in the [v1.0 follow-up record](docs/engineering/yotsuba-ink-v1-open-findings.md).
+
 ## Verification
 
 ```bash
@@ -141,7 +156,7 @@ npm run audit:css
 npm run check:css-split
 ```
 
-Current local baseline: frontend `132 files / 516 passed`, backend `1088 passed / 1 skipped`; the Prompt snapshots passed two consecutive determinism checks, the production build and both CSS gates passed, and first-screen CSS is `31.9 KiB gzip`. Live paid-Provider literary quality and real image generation are outside this automation claim.
+Run the automated suites, production build, CSS gates, and browser checks before publishing. Passing automation proves local contracts and UI projections; live Provider literary quality, AI flavor, and full human cold-read acceptance remain evidence-based release work.
 
 ## Documentation
 
@@ -150,7 +165,11 @@ Current local baseline: frontend `132 files / 516 passed`, backend `1088 passed 
 - [Production workflow](docs/architecture/product-production-workflow.md)
 - [Story Bible, Wiki, and quality boundaries](docs/architecture/story-bible-quality.md)
 - [Human preference calibration protocol](docs/architecture/preference-calibration-protocol.md)
-- [Wave 5 interaction and acceptance record](docs/architecture/phase-12-wave5-stage-focus-and-motion-closure.md)
+- [Phase 27 frontend/backend handoff](docs/architecture/phase-27-frontend-backend-handoff.md)
+- [DeepSeek Harness adoption review](docs/architecture/deepseek-harness-adoption-review.md)
+- [v1.0 balanced long-form acceptance](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)
+- [v1.0 follow-up record](docs/engineering/yotsuba-ink-v1-open-findings.md)
+- [Worktree cleanup record](docs/architecture/worktree-cleanup-2026-08-15.md)
 - [Repository contribution rules](AGENTS.md)
 
 ## Roadmap

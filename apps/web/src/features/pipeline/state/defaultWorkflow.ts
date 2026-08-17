@@ -2,21 +2,21 @@ import type { ProviderProfile, WorkflowDefinition, WorkflowStage } from '../cont
 import { defaultPromptTemplates } from './defaultPromptTemplates';
 
 export const providers: ProviderProfile[] = [
-  { id: 'openai-compatible', name: '文本接口', kind: 'openai-compatible', template_id: 'openai-compatible-text', base_url: '', api_key_env: 'NOVEL_LLM_API_KEY', default_model: 'gpt-4.1-mini', model_options: ['gpt-4.1-mini'], is_global_default: true, enabled: true },
+  { id: 'provider-deepseek-text', name: 'DeepSeek 官方文本', kind: 'openai-compatible', template_id: 'deepseek-text', base_url: 'https://api.deepseek.com', api_key_env: 'DEEPSEEK_API_KEY', default_model: 'deepseek-v4-pro', model_options: ['deepseek-v4-pro', 'deepseek-v4-flash'], is_global_default: true, enabled: true },
   { id: 'openai-compatible-image', name: '图片接口', kind: 'openai-compatible-image', template_id: 'openai-compatible-image', base_url: '', api_key_env: 'NOVEL_IMAGE_API_KEY', default_model: 'gpt-image-2', model_options: ['gpt-image-2'], is_global_default: true, enabled: true },
 ];
 
 export const prompts = defaultPromptTemplates;
 
-const baseModel = { model: 'gpt-4.1-mini', temperature: 0.7, max_tokens: 2600, top_p: 0.95, timeout_seconds: 120 };
+const baseModel = { model: 'deepseek-v4-pro', temperature: 0.7, max_tokens: 2600, top_p: 0.95, timeout_seconds: 120 };
 
 const generationBudgets = {
   brief: { max_tokens: 4600, description: '创作立项冻结承诺、世界规则、主题、结局方向、叙事声音与篇幅包络。' },
-  spine: { max_tokens: 5000, description: '输出精简的因果 turns、结局和开放问题；不提前分章或编排人物行为。' },
-  cast: { max_tokens: 7500, description: '人物档案按 role demand 分组生成，关系由独立窄调用建立。' },
-  volumes: { max_tokens: 6000, description: '按自然卷界输出完整故事卷合同；卷数和章数不按固定模板填充。' },
+  spine: { max_tokens: 8000, description: '按动态章节容量输出精简因果 turns、结局和开放问题；不提前分章或编排人物行为。' },
+  cast: { max_tokens: 10000, description: '全局 Role Demand 按动态人物硬上限预留响应空间，人物档案按冻结主体分组生成并建立关系。' },
+  volumes: { max_tokens: 6000, description: '按系统冻结卷数与故事脊柱的自然闭合输出卷合同；卷名与边界冻结，章数槽位由代码分配。' },
   detail: { max_tokens: 6000, description: '按 Spine 因果边界和输出容量拆为叙事段，每章只规划必要场景与交接。' },
-  text: { max_tokens: 6000, description: '单章纯文本输出，篇幅只服从冻结软目标与当前施工图。' },
+  text: { max_tokens: 6000, description: '按冻结场景顺序逐场生成；场景按戏剧负载使用滚动字符区间，整章命中质量档位长度合同，越界最多三次有界重写。' },
   cover: { max_tokens: 2200, description: '封面 brief/prompt 与视觉候选。' },
 };
 
@@ -25,21 +25,18 @@ export const stages: WorkflowStage[] = [
     id: 'brief',
     type: 'brief',
     label: '创作立项定稿',
-    provider_profile_id: 'openai-compatible',
-    model_settings: { ...baseModel, max_tokens: generationBudgets.brief.max_tokens },
+    provider_profile_id: 'provider-deepseek-text',
+    model_settings: { ...baseModel, model: 'deepseek-v4-pro', max_tokens: generationBudgets.brief.max_tokens },
     prompt_template_id: 'prompt-brief',
     input_schema: [
-      { key: 'genre', label: '题材', type: 'select', required: true, default: '悬疑', options: ['悬疑', '玄幻', '都市', '科幻', '言情', '历史', '现实', '轻小说'] },
+      { key: 'genre', label: '题材', type: 'select', required: false, default: '自动判断', options: ['自动判断', '悬疑', '玄幻', '都市', '科幻', '言情', '历史', '现实', '轻小说'], hint: '默认从创作想法判断；手动选择时作为类型惯例约束。' },
       { key: 'narrative_profile', label: '叙事角色', type: 'select', required: true, default: '故事建筑师', options: ['故事建筑师', '现场观察者', '心理戏剧家', '悬念导演', '群像编年者', '意象织造者'], help: '选择贯穿全书的观察与表达策略；角色 Prompt 只读。' },
-      { key: 'word_target_soft', label: '软字数目标', type: 'number', required: false, default: 100000, hint: '仅作为节奏建议，不会自动删改正文。' },
-      { key: 'chapter_target_soft', label: '软章数目标', type: 'number', required: false, default: null, hint: '仅作为规划建议，卷界和章节数量由剧情闭合决定。' },
-      { key: 'volume_target_override', label: '自定义卷数', type: 'number', required: false, default: null, hint: '仅精工模式生效；留空沿用系统建议区间。' },
-      { key: 'turn_target_override', label: '自定义脊柱转折数', type: 'number', required: false, default: null, hint: '仅精工模式生效；留空沿用系统建议区间。' },
-      { key: 'cast_demand_override', label: '自定义人物数量', type: 'number', required: false, default: null, hint: '仅精工模式生效；留空沿用系统建议区间。' },
-      { key: 'audience', label: '目标读者', type: 'text', required: true, default: '偏好强情节、悬念推进、人物关系清晰的网文读者' },
+      { key: 'word_target_soft', label: '全书字符目标', type: 'number', required: false, default: 100000, hint: '去除空白后统计；细纲定稿后按每章场景负载分配正文目标。' },
+      { key: 'turn_target_override', label: '锁定脊柱转折数', type: 'number', required: false, default: null, hint: '仅精细模式生效，且必须落在本书章长容量动态推导的区间内。' },
+      { key: 'audience', label: '目标读者', type: 'text', required: false, default: '偏好强情节、悬念推进、人物关系清晰的网文读者', hint: '可选；留空时由创作立项根据想法判断。' },
       { key: 'core_concept', label: '核心创意/冲突', type: 'textarea', required: true, default: '旧港多年前的记忆实验留下旧案回声，主角追查真相时发现自己最可信的记忆也被改写。', hint: '立项只需要一个能撑起全书的核心冲突；世界规则在本阶段形成，人物职责与关系在下一阶段冻结。' },
-      { key: 'keywords', label: '关键词', type: 'tags', required: true, default: ['旧港', '记忆实验', '群像', '旧案'] },
-      { key: 'taboos', label: '禁忌/不要出现', type: 'textarea', required: true, default: '避免无动机黑化、机械降神、纯设定堆砌、套路化系统开局和无关恋爱线抢主线。' },
+      { key: 'keywords', label: '关键词', type: 'tags', required: false, default: ['旧港', '记忆实验', '群像', '旧案'], hint: '可选；留空时从创作想法提炼，可用于参考检索。' },
+      { key: 'taboos', label: '禁忌/不要出现', type: 'textarea', required: false, default: '避免无动机黑化、机械降神、纯设定堆砌、套路化系统开局和无关恋爱线抢主线。', hint: '可选；填写后作为贯穿生成阶段的硬约束。' },
       { key: 'reference_mode', label: '参考源模式', type: 'select', required: true, default: 'smart_search', options: ['smart_search', 'url', 'knowledge_base'] },
       { key: 'reference_keywords', label: '参考关键词', type: 'tags', default: ['长篇悬疑', '记忆', '群像', '伏笔'] },
       { key: 'reference_query_intent', label: '参考检索意图', type: 'textarea', default: '检索旧港、记忆实验、群像悬疑结构的参考材料；只提炼结构、节奏、题材约束，不返回可照搬桥段。' },
@@ -54,8 +51,8 @@ export const stages: WorkflowStage[] = [
     id: 'spine',
     type: 'spine',
     label: '故事脊柱',
-    provider_profile_id: 'openai-compatible',
-    model_settings: { ...baseModel, max_tokens: generationBudgets.spine.max_tokens },
+    provider_profile_id: 'provider-deepseek-text',
+    model_settings: { ...baseModel, temperature: 0.45, max_tokens: generationBudgets.spine.max_tokens },
     prompt_template_id: 'prompt-spine',
     input_schema: [
       { key: 'structure', label: '结构偏好', type: 'select', default: '自适应因果链', options: ['自适应因果链', '悬疑递进', '群像交织'] },
@@ -67,8 +64,8 @@ export const stages: WorkflowStage[] = [
     id: 'cast',
     type: 'cast',
     label: '人物圣经',
-    provider_profile_id: 'openai-compatible',
-    model_settings: { ...baseModel, max_tokens: generationBudgets.cast.max_tokens },
+    provider_profile_id: 'provider-deepseek-text',
+    model_settings: { ...baseModel, temperature: 0.55, max_tokens: generationBudgets.cast.max_tokens },
     prompt_template_id: 'prompt-cast',
     input_schema: [],
     generation_budget: generationBudgets.cast,
@@ -77,7 +74,7 @@ export const stages: WorkflowStage[] = [
     id: 'volumes',
     type: 'volumes',
     label: '分卷架构',
-    provider_profile_id: 'openai-compatible',
+    provider_profile_id: 'provider-deepseek-text',
     model_settings: { ...baseModel, max_tokens: generationBudgets.volumes.max_tokens },
     prompt_template_id: 'prompt-volumes',
     input_schema: [
@@ -89,8 +86,8 @@ export const stages: WorkflowStage[] = [
     id: 'detail',
     type: 'detail',
     label: '章节施工图',
-    provider_profile_id: 'openai-compatible',
-    model_settings: { ...baseModel, max_tokens: generationBudgets.detail.max_tokens },
+    provider_profile_id: 'provider-deepseek-text',
+    model_settings: { ...baseModel, max_tokens: generationBudgets.detail.max_tokens, temperature: 0.30 },
     prompt_template_id: 'prompt-detail',
     input_schema: [
       { key: 'must_include', label: '每章必须包含', type: 'tags', default: ['目标', '冲突', '伏笔', '章末钩子'] },
@@ -101,8 +98,8 @@ export const stages: WorkflowStage[] = [
     id: 'text',
     type: 'text',
     label: '正文生成',
-    provider_profile_id: 'openai-compatible',
-    model_settings: { ...baseModel, max_tokens: generationBudgets.text.max_tokens, temperature: 0.82 },
+    provider_profile_id: 'provider-deepseek-text',
+    model_settings: { ...baseModel, model: 'deepseek-v4-pro', max_tokens: generationBudgets.text.max_tokens, temperature: 0.82 },
     prompt_template_id: 'prompt-text',
     input_schema: [
       { key: 'pov', label: '叙事视角', type: 'select', default: '第三人称有限视角', options: ['第一人称', '第三人称有限视角', '多视角'] },
@@ -113,9 +110,9 @@ export const stages: WorkflowStage[] = [
     id: 'cover',
     type: 'cover',
     label: 'AI 封面',
-    provider_profile_id: 'openai-compatible',
+    provider_profile_id: 'provider-deepseek-text',
     image_provider_profile_id: 'openai-compatible-image',
-    model_settings: { ...baseModel, model: 'gpt-4.1-mini', max_tokens: generationBudgets.cover.max_tokens },
+    model_settings: { ...baseModel, model: 'deepseek-v4-flash', max_tokens: generationBudgets.cover.max_tokens },
     prompt_template_id: 'prompt-cover',
     input_schema: [
       { key: 'cover_style', label: '封面风格', type: 'select', default: '电影感悬疑', options: ['电影感悬疑', '国风幻想', '赛博科幻', '青春现实'] },
@@ -129,8 +126,8 @@ export const stages: WorkflowStage[] = [
     id: 'export',
     type: 'export',
     label: '导出产物',
-    provider_profile_id: 'openai-compatible',
-    model_settings: { ...baseModel },
+    provider_profile_id: '',
+    model_settings: { model: '', temperature: 0, max_tokens: 0, top_p: 1, timeout_seconds: 0 },
     prompt_template_id: '',
     input_schema: [
       { key: 'export_format', label: '导出格式', type: 'select', default: 'zip', options: ['zip', 'md', 'json'] },
@@ -142,12 +139,11 @@ export const stages: WorkflowStage[] = [
 
 export const defaultWorkflow: WorkflowDefinition = {
   architecture_version: 'phase27-vnext',
-  id: 'default-novel-workflow',
-  name: '长篇小说生产线工作流',
-  version: '27.1.0-langgraph-native',
-  global_inputs: [
-    { key: 'title', label: '项目标题', type: 'text', required: true, default: '雾港旧声' },
-  ],
+  id: 'official-deepseek-balanced',
+  name: 'DeepSeek 平衡创作流水线',
+  version: '29.34.0-first-pass-causal-planning',
+  is_template: true,
+  global_inputs: [],
   provider_profiles: providers,
   prompt_templates: prompts,
   quality_mode: 'balanced',

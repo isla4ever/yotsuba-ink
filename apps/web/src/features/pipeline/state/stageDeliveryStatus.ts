@@ -29,6 +29,7 @@ export function completedDeliveryStageIds(index: RunEventIndex, stages: StageIde
 
 function coverReady(events: RunEvent[]) {
   const value = latestArtifactValue(events);
+  if (events.some((event) => event.type === 'cover.asset_skipped' && event.payload?.metadata_only === true)) return true;
   return Boolean(value && parseCoverArtifact(value).artifact?.selected_asset_id);
 }
 

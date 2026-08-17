@@ -46,7 +46,7 @@ describe('settlement dwell state machine (D7)', () => {
   });
 
   it('route settlements dwell until the 4s auto-continue, then navigate once', () => {
-    act(() => transitions.startSettlement({ kind: 'route', nextStageId: 'volumes', stageId: 'spine' }));
+    act(() => transitions.startSettlement({ nextStageId: 'volumes', stageId: 'spine' }));
     expect(transitions.settlementStageId).toBe('spine');
     expect(transitions.settlementDwell).toBe(true);
 
@@ -60,7 +60,7 @@ describe('settlement dwell state machine (D7)', () => {
   });
 
   it('user 继续 completes immediately and cancels the auto-continue', () => {
-    act(() => transitions.startSettlement({ kind: 'route', nextStageId: 'volumes', stageId: 'spine' }));
+    act(() => transitions.startSettlement({ nextStageId: 'volumes', stageId: 'spine' }));
     act(() => transitions.continueSettlement());
     expect(transitions.settlementStageId).toBe('');
     expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'volumes' }]);
@@ -69,14 +69,4 @@ describe('settlement dwell state machine (D7)', () => {
     expect(dispatched).toHaveLength(1);
   });
 
-  it('cockpit auto settlements keep the non-blocking auto-advance timing', () => {
-    act(() => transitions.startSettlement({ kind: 'cockpit_auto', nextStageId: 'volumes', stageId: 'spine' }));
-    expect(transitions.settlementDwell).toBe(false);
-
-    act(() => vi.advanceTimersByTime(900));
-    expect(dispatched).toEqual([{ type: 'stage_selected', stageId: 'volumes' }]);
-
-    act(() => vi.advanceTimersByTime(300));
-    expect(transitions.settlementStageId).toBe('');
-  });
 });

@@ -103,7 +103,14 @@ def test_deepseek_json_object_contract_freezes_every_phase27_task(tmp_path) -> N
     } == {"json_object"}
     assert frozen.provider_bindings["spine"].structured_tasks.keys() == {
         "spine",
+        "spine_review.proposal",
+    }
+    assert frozen.provider_bindings["cast"].structured_tasks.keys() == {
         "role_demand.proposal",
+        "role_demand_review.proposal",
+        "cast",
+        "cast_review.proposal",
+        "cast_relation.proposal",
     }
     assert frozen.provider_bindings["text"].structured_tasks.keys() == {
         "text.review.continuity",
@@ -111,6 +118,21 @@ def test_deepseek_json_object_contract_freezes_every_phase27_task(tmp_path) -> N
         "text.review.prose",
         "text.evidence",
     }
+
+
+def test_stage_freeze_only_requires_requested_future_provider(tmp_path) -> None:
+    service, _, _, secrets = _service(tmp_path)
+    secrets.delete_api_key(IMAGE_PROVIDER_ID)
+
+    frozen = service.freeze_stages(_workflow(), ["text"])
+
+    assert set(frozen.provider_bindings) == {"text"}
+    assert frozen.provider_bindings["text"].model == "deepseek-v4-pro"
+    assert frozen.cover_asset_binding is None
+
+    with pytest.raises(RunPreflightError) as captured:
+        service.freeze_stages(_workflow(), ["export"])
+    assert captured.value.code == "stage_binding_override_invalid"
 
 
 def test_prompt_only_provider_is_rejected_before_run_creation(tmp_path) -> None:

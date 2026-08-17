@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StageType } from '../contracts';
-import { stageEmptyStateAction, stageEmptyStateHint } from './stageEmptyState';
+import { stageEmptyStateHint } from './stageEmptyState';
 
 const allStageTypes: StageType[] = [
   'brief',
@@ -25,12 +25,5 @@ describe('stageEmptyStateHint (A2)', () => {
     expect(stageEmptyStateHint('volumes')).toContain('人物圣经冻结');
     expect(stageEmptyStateHint('text')).toContain('章节施工图冻结');
     expect(stageEmptyStateHint('export')).toContain('封面资产选定');
-  });
-});
-
-describe('stageEmptyStateAction (A2)', () => {
-  it('labels the exit CTA by whether a run has started', () => {
-    expect(stageEmptyStateAction(true)).toBe('回到创作规划');
-    expect(stageEmptyStateAction(false)).toBe('回到创作规划并启动');
   });
 });

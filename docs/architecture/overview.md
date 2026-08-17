@@ -23,7 +23,7 @@ docs                       产品与工程文档
 - 前端应用状态：[apps/web/src/features/pipeline/state/useNovelWorkflowApp.ts](/Users/isla/Desktop/project/multi-stage-creation-model-end/apps/web/src/features/pipeline/state/useNovelWorkflowApp.ts)
 - 后端入口：[src/novel_workflow/api/app.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/api/app.py)
 - 后端运行时初始化：[src/novel_workflow/api/bootstrap.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/api/bootstrap.py)
-- Workflow Runner 门面：[src/novel_workflow/workflows/runner.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/workflows/runner.py)
+- LangGraph 执行服务：[src/novel_workflow/runtime/graph/execution_service.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/runtime/graph/execution_service.py)
 
 ## 一次产品请求是怎么流动的
 
@@ -65,9 +65,10 @@ docs                       产品与工程文档
 
 `runtime/novel_workflow/` 下面受版本管理的内容属于产品默认资源：
 
-- `workflows/default-novel-workflow.json`
-- `prompts/*.json`
-- `providers/*.json`
+- `workflows/official-deepseek-fast.json`
+- `workflows/official-deepseek-balanced.json`
+- `workflows/official-deepseek-deep.json`
+- `prompts/prompt-*.json`
 - `examples/*.md`
 
 运行后生成的 `runs/`、`wiki/`、`references/`、`knowledge/` 属于本地状态数据，不是源码。

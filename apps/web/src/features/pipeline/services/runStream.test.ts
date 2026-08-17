@@ -2,6 +2,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { consumeRunEventStream } from './runStream';
 
 describe('run stream terminal state', () => {
+  it('does not treat a non-terminal EOF as run completion', async () => {
+    const terminal = await consumeRunEventStream({
+      onEvent: vi.fn(),
+      response: sseResponse([event('node.completed', 1)]),
+    });
+
+    expect(terminal).toBeNull();
+  });
+
+  it('leaves an interrupted trailing frame for sequence replay', async () => {
+    const onEvent = vi.fn();
+    const complete = `data: ${JSON.stringify(event('node.completed', 1))}\n\n`;
+    const response = new Response(`${complete}data: {"event_id":"interrupted`);
+
+    const terminal = await consumeRunEventStream({ onEvent, response });
+
+    expect(terminal).toBeNull();
+    expect(onEvent.mock.calls.map(([received]) => received.sequence)).toEqual([1]);
+  });
+
   it('stops only on the stable run.failed event', async () => {
     const onEvent = vi.fn();
     const response = sseResponse([

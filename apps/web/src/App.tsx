@@ -26,11 +26,6 @@ const PlanningWorkbench = lazy(async () => {
   return { default: module.PlanningWorkbench };
 });
 
-const ProductionCockpitWorkbench = lazy(async () => {
-  const module = await import('./features/pipeline/planning/ProductionCockpitWorkbench');
-  return { default: module.ProductionCockpitWorkbench };
-});
-
 const StoryBibleWorkbench = lazy(async () => {
   const module = await import('./features/pipeline/running/bible/StoryBibleWorkbench');
   return { default: module.StoryBibleWorkbench };
@@ -65,7 +60,6 @@ function useRouteChunkPrefetch() {
     const prefetch = () => {
       void import('./features/pipeline/running/RunningWorkbench');
       void import('./features/pipeline/planning/PlanningWorkbench');
-      void import('./features/pipeline/planning/ProductionCockpitWorkbench');
       void import('./features/pipeline/running/bible/StoryBibleWorkbench');
       void import('./features/pipeline/settings/SettingsPage');
       void import('./features/pipeline/settings/KnowledgeLibraryPage');
@@ -154,9 +148,6 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection, route
     || routePhase === 'studio-knowledge'
     || routePhase === 'studio-settings'
     || routePhase === 'studio-workflow';
-  const cockpitVisible = routePhase === 'planning' && routePolicy.planningSurface === 'cockpit';
-  const cockpitMode = qualityMode === 'balanced' ? 'balanced' : 'fast';
-  const runHasStarted = app.runHasStarted;
   // The monitor console carries its own rail (book skeleton + global entries),
   // so it takes over the shell sidebar slot instead of nesting a second column.
   const monitorOwnsRail = routePhase === 'monitor';
@@ -176,7 +167,7 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection, route
       {usesStudioChrome ? null : <AppHeader sidebarVisible={ui.sidebarVisible} />}
       <WorkbenchRouteTransition
         label={routeTransitionLabel(routePhase, app.selectedStage.label)}
-        routeKey={routeTransitionKey({ cockpitMode, cockpitVisible, routeBibleSection, routePhase, routeStageId })}
+        routeKey={routeTransitionKey({ routeBibleSection, routePhase, routeStageId })}
       >
       {isStudio ? (
         <StudioWorkbench />
@@ -257,16 +248,13 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection, route
           <RunningWorkbench
             activeRunId={app.activeRunId}
             activeStage={routeStageId ? app.workflow.nodes.find((stage) => stage.id === routeStageId) ?? app.selectedStage : app.selectedStage}
-            approvalDraft={app.approvalDraft}
-            approvalPending={app.approvalPending}
             events={app.events}
             knowledgeDocuments={app.knowledgeDocuments}
             memoryEvents={app.memoryEvents}
-            onApprovalDraftChange={app.setApprovalDraft}
             onApproveBrief={app.approveBrief}
             onContinueSettlement={app.continueSettlement}
             onOpenKnowledgeManager={ui.openKnowledge}
-            onOpenWorkbench={ui.navigatePlanning}
+            onOpenConsole={routePolicy.monitor !== 'none' ? ui.openMonitor : undefined}
             onRegenerateBrief={app.regenerateBrief}
             onConfirmStageArtifact={app.confirmStageArtifact}
             onRegenerateStageDraft={app.regenerateStageDraft}
@@ -275,41 +263,16 @@ function PipelineShell({ app, routePhase, routeStageId, routeBibleSection, route
             workflow={app.workflow}
           />
         </Suspense>
-      ) : cockpitVisible ? (
-        <Suspense fallback={<WorkbenchFallback label="正在载入创作驾驶舱..." />}>
-          <ProductionCockpitWorkbench
-            key={`${app.workflow.quality_mode}-${app.automationCockpitReady ? 'auto' : 'direct'}`}
-            workflow={app.workflow}
-            selectedId={app.selectedId}
-            selectedStage={app.selectedStage}
-            events={app.events}
-            knowledgeDocuments={app.knowledgeDocuments}
-            mode={cockpitMode}
-            runHasStarted={runHasStarted}
-            onCanvasSelect={app.handleCanvasSelect}
-            onAddModelOption={app.handleAddModelOption}
-            onOpenKnowledgeManager={ui.openKnowledge}
-            onStageChange={app.handleStageChange}
-          />
-        </Suspense>
       ) : (
         <Suspense fallback={<WorkbenchFallback label="正在载入创作规划..." />}>
           <PlanningWorkbench
             workflow={app.workflow}
-            selectedId={app.selectedId}
-            selectedStage={app.selectedStage}
-            events={app.events}
             knowledgeDocuments={app.knowledgeDocuments}
-            onLayoutChange={app.handleLayoutChange}
-            onCanvasSelect={app.handleCanvasSelect}
             onStageChange={app.handleStageChange}
-            onAddModelOption={app.handleAddModelOption}
+            onExit={ui.navigateStudio}
             onOpenKnowledgeManager={ui.openKnowledge}
-            onOpenStage={ui.navigateStage}
             onQualityModeChange={app.handleQualityModeChange}
             onRun={app.runWorkflow}
-            onWorkflowChange={app.setWorkflow}
-            runHasStarted={runHasStarted}
             saveStatus={app.saveStatus}
           />
         </Suspense>
@@ -347,16 +310,13 @@ function routeTransitionLabel(routePhase: PipelinePhase, stageLabel: string) {
   }
 }
 
-function routeTransitionKey({ cockpitMode, cockpitVisible, routeBibleSection, routePhase, routeStageId }: {
-  cockpitMode: string;
-  cockpitVisible: boolean;
+function routeTransitionKey({ routeBibleSection, routePhase, routeStageId }: {
   routeBibleSection: BibleSection | '';
   routePhase: PipelinePhase;
   routeStageId: string;
 }) {
   if (routePhase === 'running') return `running-${routeStageId}`;
   if (routePhase === 'bible') return `bible-${routeBibleSection}`;
-  if (routePhase === 'planning') return cockpitVisible ? `cockpit-${cockpitMode}` : 'planning';
   return routePhase;
 }
 

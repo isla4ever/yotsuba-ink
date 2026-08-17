@@ -7,7 +7,8 @@ import {
   listWorkflowDefinitions,
   saveWorkflowDefinition,
 } from '../services/workflowApi';
-import { defaultTemplateId, selectableTemplates } from '../layout/studio/newProjectWizardModel';
+import { selectableTemplates } from '../layout/studio/newProjectWizardModel';
+import { defaultWorkflowId, isOneTimeWorkflowId } from '../lib/officialWorkflows';
 import { mapWithConcurrency } from '../layout/studio/studioModel';
 
 const SUMMARY_CONCURRENCY = 4;
@@ -64,11 +65,11 @@ export function useStudioProjects(active: boolean) {
     void refreshTemplates();
   }, [active, refresh, refreshTemplates]);
 
-  const create = useCallback(async (input: { title: string; summary: string; templateId: string }) => {
+  const create = useCallback(async (input: { idea: string; templateId: string }) => {
     const project = await createProject({
-      title: input.title.trim(),
-      summary: input.summary.trim(),
-      template_workflow_id: input.templateId || defaultTemplateId,
+      idea: input.idea.trim(),
+      template_workflow_id: input.templateId || defaultWorkflowId,
+      consume_workflow_draft: isOneTimeWorkflowId(input.templateId),
     });
     setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
     return project;
@@ -83,6 +84,13 @@ export function useStudioProjects(active: boolean) {
       setTemplateError(reason instanceof Error ? reason.message : '复制模板失败');
     }
   }, [refreshTemplates]);
+
+  const createOneTimeWorkflow = useCallback(async (workflowId: string) => {
+    return duplicateWorkflowDefinition(workflowId, {
+      name: '本书专用创作流水线',
+      is_template: false,
+    });
+  }, []);
 
   const renameTemplate = useCallback(async (template: WorkflowDefinition, name: string) => {
     const trimmed = name.trim();
@@ -109,6 +117,7 @@ export function useStudioProjects(active: boolean) {
 
   return {
     create,
+    createOneTimeWorkflow,
     duplicateTemplate,
     error,
     loading,

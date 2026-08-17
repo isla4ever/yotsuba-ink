@@ -27,7 +27,7 @@ function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
       buildRunEventIndex([runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'brief', node_id: 'brief.commit_artifact', payload: {} })]),
       stages,
     ),
-    policy: modeRoutePolicy('deep', false),
+    policy: modeRoutePolicy('deep'),
     qualityMode: 'deep',
     runHasStarted: true,
     sidebarExpanded: true,
@@ -39,7 +39,7 @@ function context(overrides: Partial<PaletteContext> = {}): PaletteContext {
 
 describe('buildPaletteCommands', () => {
   it('derives stage commands with real status and keeps all balanced workbenches reachable', () => {
-    const commands = buildPaletteCommands(context({ policy: modeRoutePolicy('balanced', false), qualityMode: 'balanced' }));
+    const commands = buildPaletteCommands(context({ policy: modeRoutePolicy('balanced'), qualityMode: 'balanced' }));
     const brief = commands.find((command) => command.id === 'stage:brief');
     const spine = commands.find((command) => command.id === 'stage:spine');
     expect(brief?.disabled).toBe(false);
@@ -56,6 +56,7 @@ describe('buildPaletteCommands', () => {
     expect(studio?.group).toBe('navigation');
     expect(studio?.disabled).toBe(false);
     expect(newProject?.title).toBe('新建作品');
+    expect(newProject?.detail).toBe('选择流水线并提交一段创作想法');
     expect(newProject?.group).toBe('global');
     expect(filterPaletteCommands(commands, '工作室').map((command) => command.id)).toContain('nav:studio');
     expect(filterPaletteCommands(commands, '新建').map((command) => command.id)).toContain('studio:new-project');
@@ -77,7 +78,7 @@ describe('filterPaletteCommands', () => {
     const commands = buildPaletteCommands(context());
     const groups = groupPaletteCommands(filterPaletteCommands(commands, '  '));
     expect(groups.map((group) => group.label)).toEqual(['导航', '全局', '外观']);
-    expect(groups[0].commands).toHaveLength(9); // 3 stages + 创作规划 + 返回工作室 + 4 Story Bible sections
+    expect(groups[0].commands).toHaveLength(9); // 3 stages + 当前工作台 + 返回工作室 + 4 Story Bible sections
     expect(groups.reduce((total, group) => total + group.commands.length, 0)).toBe(commands.length);
   });
 
@@ -101,11 +102,18 @@ describe('filterPaletteCommands', () => {
       expect(command.disabled).toBe(false);
     }
   });
+
+  it('keeps pre-run navigation focused on creative preparation', () => {
+    const commands = buildPaletteCommands(context({ runHasStarted: false }));
+    expect(commands.find((command) => command.id === 'nav:planning')?.title).toBe('打开创作准备');
+    expect(commands.some((command) => command.id.startsWith('stage:'))).toBe(false);
+    expect(commands.some((command) => command.id.startsWith('bible:'))).toBe(false);
+  });
 });
 
 describe('movePaletteHighlight', () => {
   it('skips disabled commands and wraps around in both directions', () => {
-    const commands = buildPaletteCommands(context({ policy: modeRoutePolicy('balanced', false), qualityMode: 'balanced' }));
+    const commands = buildPaletteCommands(context({ policy: modeRoutePolicy('balanced'), qualityMode: 'balanced' }));
     const enabledIds = commands.filter((command) => !command.disabled).map((command) => command.id);
     expect(firstEnabledCommandId(commands)).toBe(enabledIds[0]);
     expect(movePaletteHighlight(commands, enabledIds[0], 1)).toBe(enabledIds[1]);

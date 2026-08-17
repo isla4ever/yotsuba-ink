@@ -36,6 +36,7 @@ describe('AppHeader route semantics', () => {
   it('uses the Yotsuba Ink product identity and keeps a real run stage visible', () => {
     const summary = defaultWorkflow.nodes.find((stage) => stage.id === 'spine') ?? defaultWorkflow.nodes[0];
     const html = renderHeader({
+      activeRunId: 'run-1',
       routePhase: 'running',
       routeStageId: summary.id,
       runHasStarted: true,
@@ -52,6 +53,7 @@ describe('AppHeader route semantics', () => {
   it('shows a human interrupt as 待决策 instead of 运行中', () => {
     const characters = defaultWorkflow.nodes.find((stage) => stage.id === 'cast') ?? defaultWorkflow.nodes[0];
     const html = renderHeader({
+      activeRunId: 'run-1',
       routePhase: 'running',
       routeStageId: characters.id,
       runHasStarted: true,

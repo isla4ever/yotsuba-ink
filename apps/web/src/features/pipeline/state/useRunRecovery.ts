@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { getRun, isRunNotFoundError } from '../services/runApi';
+import { getRunPresentationSnapshot, isRunNotFoundError } from '../services/runApi';
 import type { StoredRunControlState } from './storage';
 import {
   resolveServerRunPresentation,
-  resolveServerRunRecovery,
   type HydratedRunState,
   type RunRecoveryDiscardReason,
   type RunRecoveryResolution,
 } from './runState';
 
-type RunLoader = typeof getRun;
+type RunLoader = typeof getRunPresentationSnapshot;
 
 type RunRecoveryHandlers = {
   onDiscard: (reason: RunRecoveryDiscardReason) => void;
@@ -21,11 +20,6 @@ type RunRecoveryHandlers = {
 type UseRunRecoveryOptions = RunRecoveryHandlers & {
   enabled?: boolean;
   loadRun?: RunLoader;
-  /**
-   * Booting straight onto a read-only run surface (the console): a finished run
-   * must still be presented there, instead of being dropped as a stale session.
-   */
-  presentTerminalRuns?: boolean;
   stored: StoredRunControlState;
 };
 
@@ -40,8 +34,7 @@ type ActiveRunRecovery = {
 
 export function useRunRecovery({
   enabled = true,
-  loadRun = getRun,
-  presentTerminalRuns = false,
+  loadRun = getRunPresentationSnapshot,
   stored,
   ...handlers
 }: UseRunRecoveryOptions) {
@@ -72,8 +65,15 @@ export function useRunRecovery({
       try {
         const snapshot = await loadRun(stored.activeRunId, controller.signal);
         if (!recovery.active) return;
-        const resolve = presentTerminalRuns ? resolveServerRunPresentation : resolveServerRunRecovery;
-        dispatchRecovery(resolve(snapshot, stored.activeRunId), handlersRef.current);
+        // A project that has entered creation keeps its latest Run attached,
+        // including completed and failed read-only sessions. Only an explicit
+        // reset returns the project to pre-run planning.
+        dispatchRecovery(resolveServerRunPresentation(
+          snapshot.envelope,
+          stored.activeRunId,
+          snapshot.committedArtifacts,
+          snapshot.acceptedChapters,
+        ), handlersRef.current);
       } catch (error) {
         if (!recovery.active || isAbortError(error)) return;
         if (isRunNotFoundError(error)) {
@@ -94,7 +94,7 @@ export function useRunRecovery({
       recovery.active = false;
       controller.abort();
     };
-  }, [enabled, loadRun, presentTerminalRuns, stored]);
+  }, [enabled, loadRun, stored]);
 
   return control;
 }

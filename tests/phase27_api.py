@@ -2,15 +2,20 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from novel_workflow.workflows.schemas import ProviderProfile
-from novel_workflow.workflows.templates import default_workflow
+from novel_workflow.workflows.templates import (
+    DEEPSEEK_FLASH_MODEL,
+    DEEPSEEK_PRO_MODEL,
+    DEEPSEEK_PROVIDER_ID,
+    DEFAULT_IMAGE_MODEL,
+    IMAGE_PROVIDER_ID as OFFICIAL_IMAGE_PROVIDER_ID,
+)
 
 
 PROVIDER_STAGES = ("brief", "spine", "cast", "volumes", "detail", "text", "cover")
-TEXT_PROVIDER_ID = "phase27-deepseek"
-IMAGE_PROVIDER_ID = "phase27-image"
-TEXT_MODEL = "deepseek-v4-pro"
-IMAGE_MODEL = "gpt-image-2"
+TEXT_PROVIDER_ID = DEEPSEEK_PROVIDER_ID
+IMAGE_PROVIDER_ID = OFFICIAL_IMAGE_PROVIDER_ID
+TEXT_MODEL = DEEPSEEK_PRO_MODEL
+IMAGE_MODEL = DEFAULT_IMAGE_MODEL
 
 
 def configure_phase27_providers(client: TestClient) -> None:
@@ -22,7 +27,7 @@ def configure_phase27_providers(client: TestClient) -> None:
         "base_url": "https://provider.invalid/v1",
         "api_key_env": "PHASE27_TEST_TEXT_API_KEY",
         "default_model": TEXT_MODEL,
-        "model_options": [TEXT_MODEL],
+        "model_options": [DEEPSEEK_PRO_MODEL, DEEPSEEK_FLASH_MODEL],
         "enabled": True,
     }
     image_profile = {
@@ -44,25 +49,6 @@ def configure_phase27_providers(client: TestClient) -> None:
             json={"api_key": f"offline-test-secret-{profile['id']}"},
         )
         assert secret.status_code == 200, secret.text
-    workflow = default_workflow().model_copy(deep=True)
-    workflow.provider_profiles = [
-        ProviderProfile.model_validate(text_profile),
-        ProviderProfile.model_validate(image_profile),
-    ]
-    for node in workflow.nodes:
-        if node.id != "export":
-            node.provider_profile_id = TEXT_PROVIDER_ID
-            node.model_settings.model = TEXT_MODEL
-            node.model_settings.temperature = 0.3
-            node.model_settings.max_tokens = 12_000
-            node.model_settings.top_p = 0.8
-            node.model_settings.timeout_seconds = 30
-        if node.id == "cover":
-            node.image_provider_profile_id = IMAGE_PROVIDER_ID
-    response = client.post("/api/workflows", json=workflow.model_dump(mode="json"))
-    assert response.status_code == 200, response.text
-
-
 __all__ = [
     "IMAGE_PROVIDER_ID",
     "PROVIDER_STAGES",

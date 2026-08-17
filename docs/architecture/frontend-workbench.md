@@ -133,7 +133,7 @@ Fast 配置态 cockpit 仍可以使用自己的纵向画布和配置抽屉，但
 - `useWritingViewport` 按 `chapterId + compact/desktop + viewMode` 保存滚动、光标和选区；切章、切视图和从移动 Sheet 返回时不得把旧章选区错误恢复到新章。
 - 修订生成、候选接受、版本恢复、摘要复检和提案决策期间统一锁定切章；对应弹层或 Sheet 必须等待请求结束后才允许关闭。
 - 390px 下正文保持单栏，章节导航在任务 Sheet 内横向滚动；所有网格轨道使用 `minmax(0, 1fr)`，textarea 使用 `border-box`，禁止子面板制造隐性横向溢出。
-- 完整实现与验收见 [`phase-9-5c3-text-runtime-form-system.md`](./phase-9-5c3-text-runtime-form-system.md)。
+- 当前阶段工作台合同与交接见 [`stage-artifact-contract.md`](./stage-artifact-contract.md) 和 [`phase-27-frontend-backend-handoff.md`](./phase-27-frontend-backend-handoff.md)。
 
 ## 当前仓库约定的前端结构
 

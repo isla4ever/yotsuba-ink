@@ -4,7 +4,7 @@ import type { ModeRevealOrigin } from './modeRevealTransition';
 import { useRunStateContext, useWorkflowConfigContext, useUICommandContext } from '../state/pipelineShellContext';
 import { runActionPresentation } from '../state/runPresentationState';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Clock3, CornerUpLeft, Play, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, Clock3, Play, type LucideIcon } from 'lucide-react';
 import { ButtonLoadingIndicator } from './ButtonLoadingIndicator';
 
 type Props = {
@@ -39,9 +39,7 @@ export function CreationActionDock({ disabled, onQualityModeChange }: Props) {
   const loading = action.key === 'running-locked';
   const iconState: RunButtonIconState = action.key === 'awaiting-confirmation'
       ? { Icon: Clock3, key: 'awaiting', size: 16 }
-      : action.key === 'return'
-        ? { Icon: CornerUpLeft, key: 'return', size: 17 }
-        : action.key === 'continue' || action.key === 'resume'
+      : action.key === 'complete' || action.key === 'continue' || action.key === 'resume'
           ? { Icon: CheckCircle2, key: 'continue', size: 17 }
           : { Icon: Play, key: 'start', size: 17 };
   const RunIcon = iconState.Icon;
@@ -83,7 +81,7 @@ function QualityModeTabs({ value, disabled, onChange }: { value: QualityMode; di
     { key: 'deep' },
   ];
   return (
-    <div aria-label="创作模式" className={`quality-mode-tabs ${value}${disabled ? ' locked' : ''}`} role="group" title={disabled ? '本次运行模式已锁定；完成并回到配置态后可切换下一次运行。' : '创作模式'}>
+    <div aria-label="创作模式" className={`quality-mode-tabs ${value}${disabled ? ' locked' : ''}`} role="group" title={disabled ? '本次运行模式已锁定；新建作品时可重新选择。' : '创作模式'}>
       <span className="mode-glow" />
       {items.map((item) => {
         const profile = qualityModeProfiles[item.key];

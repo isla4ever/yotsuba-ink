@@ -1,5 +1,5 @@
 export type CharacterKind = 'protagonist' | 'major' | 'functional' | 'npc' | 'historical_record';
-export type CharacterSubject = { id: string; name: string; kind: CharacterKind; function: string; drive: string; change: string; debut: string; limits: string[]; demand_refs: string[] };
+export type CharacterSubject = { id: string; name: string; kind: CharacterKind; function: string; background: string; conflict_history: string; present_stakes: string; temperament: string; speech_style: string; drive: string; change: string; debut: string; limits: string[]; demand_refs: string[] };
 export type CharacterRelation = { a: string; b: string; type: string; pressure: string };
 export type CharacterBibleArtifact = { subjects: CharacterSubject[]; relations: CharacterRelation[] };
 export type CharacterBibleParseResult = { artifact: CharacterBibleArtifact | null; errors: string[] };
@@ -17,26 +17,24 @@ export function parseCharacterBibleArtifact(source: string): CharacterBibleParse
   const subjects = parseSubjects(value.subjects, errors);
   const relations = parseRelations(value.relations, errors);
   const ids = new Set(subjects.map((item) => item.id));
-  if (!subjects.some((item) => item.kind === 'protagonist')) errors.push('人物圣经至少需要一名主角');
+  if (subjects.filter((item) => item.kind === 'protagonist').length !== 1) errors.push('人物圣经必须且只能有一名主角');
   if (ids.size !== subjects.length) errors.push('人物 ID 必须唯一');
   relations.forEach((item, index) => { if (item.a === item.b || !ids.has(item.a) || !ids.has(item.b)) errors.push(`关系 ${index + 1} 引用了未登记主体`); });
   return errors.length ? { artifact: null, errors } : { artifact: { subjects, relations }, errors: [] };
 }
 
 export function characterBibleReadiness(artifact: CharacterBibleArtifact | null) {
-  const missingLabels = !artifact ? ['有效的人物圣经'] : artifact.subjects.some((item) => item.kind === 'protagonist') ? [] : ['至少一名主角'];
+  const missingLabels = !artifact ? ['有效的人物圣经'] : artifact.subjects.filter((item) => item.kind === 'protagonist').length === 1 ? [] : ['唯一主角'];
   return { completed: missingLabels.length ? 0 : 1, missingLabels, ready: !missingLabels.length, total: 1 };
 }
-
-export function nextSubjectId(artifact: CharacterBibleArtifact) { const used = new Set(artifact.subjects.map((item) => item.id)); let index = 1; while (used.has(`subject-${index}`)) index += 1; return `subject-${index}`; }
 
 function parseSubjects(value: unknown, errors: string[]): CharacterSubject[] {
   if (!Array.isArray(value)) { errors.push('subjects 必须是数组'); return []; }
   return value.flatMap((item, index) => {
     if (!isRecord(item)) { errors.push(`主体 ${index + 1} 不是对象`); return []; }
-    exactKeys(item, ['id', 'name', 'kind', 'function', 'drive', 'change', 'debut', 'limits', 'demand_refs'], `主体 ${index + 1}`, errors);
-    const subject: CharacterSubject = { id: String(item.id ?? ''), name: String(item.name ?? ''), kind: item.kind as CharacterKind, function: String(item.function ?? ''), drive: String(item.drive ?? ''), change: String(item.change ?? ''), debut: String(item.debut ?? ''), limits: stringList(item.limits, `主体 ${index + 1} 限制`, errors), demand_refs: stringList(item.demand_refs, `主体 ${index + 1} 职责引用`, errors) };
-    if (!ID_PATTERN.test(subject.id)) errors.push(`主体 ${index + 1} 的 ID 无效`); if (!subject.name.trim() || !subject.function.trim() || !subject.drive.trim() || !subject.change.trim()) errors.push(`主体 ${index + 1} 的核心字段不能为空`); if (!KINDS.has(subject.kind)) errors.push(`主体 ${index + 1} 的类型无效`); if (!validWindow(subject.debut)) errors.push(`主体 ${index + 1} 的首次窗口无效`);
+    exactKeys(item, ['id', 'name', 'kind', 'function', 'background', 'conflict_history', 'present_stakes', 'temperament', 'speech_style', 'drive', 'change', 'debut', 'limits', 'demand_refs'], `主体 ${index + 1}`, errors);
+    const subject: CharacterSubject = { id: String(item.id ?? ''), name: String(item.name ?? ''), kind: item.kind as CharacterKind, function: String(item.function ?? ''), background: String(item.background ?? ''), conflict_history: String(item.conflict_history ?? ''), present_stakes: String(item.present_stakes ?? ''), temperament: String(item.temperament ?? ''), speech_style: String(item.speech_style ?? ''), drive: String(item.drive ?? ''), change: String(item.change ?? ''), debut: String(item.debut ?? ''), limits: stringList(item.limits, `主体 ${index + 1} 限制`, errors), demand_refs: stringList(item.demand_refs, `主体 ${index + 1} 职责引用`, errors) };
+    if (!ID_PATTERN.test(subject.id)) errors.push(`主体 ${index + 1} 的 ID 无效`); if (!subject.name.trim() || !subject.function.trim() || !subject.background.trim() || !subject.conflict_history.trim() || !subject.present_stakes.trim() || !subject.temperament.trim() || !subject.speech_style.trim() || !subject.drive.trim() || !subject.change.trim()) errors.push(`主体 ${index + 1} 的核心字段不能为空`); if (!KINDS.has(subject.kind)) errors.push(`主体 ${index + 1} 的类型无效`); if (!validWindow(subject.debut)) errors.push(`主体 ${index + 1} 的首次窗口无效`);
     return [subject];
   });
 }

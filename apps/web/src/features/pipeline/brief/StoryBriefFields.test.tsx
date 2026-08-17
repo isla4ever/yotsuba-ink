@@ -35,14 +35,14 @@ describe('StoryBriefFields length envelope', () => {
     expect(html).toContain('例如：孤岛、双时间线、身份互换');
   });
 
-  it('shows soft targets without inventing a fixed volume shape', () => {
+  it('shows the deterministic chapter and volume plan without chapter controls', () => {
     const html = renderToStaticMarkup(<StoryBriefFields stage={briefStage()} onChange={() => undefined} />);
 
     expect(html).toContain('目标字数');
-    expect(html).toContain('建议章数');
-    expect(html).toContain('软目标，不锁定故事边界');
-    expect(html).not.toContain('合理下限');
-    expect(html).not.toContain('合理上限');
-    expect(html).not.toContain('卷 /');
+    expect(html).not.toContain('章数偏好（可选）');
+    expect(html).toContain('字数由用户决定，结构数量由系统冻结');
+    expect(html).toContain('系统确定 40 章');
+    expect(html).toContain('系统确定 3 卷');
+    expect(html).toContain('单卷 8-20 章');
   });
 });

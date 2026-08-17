@@ -5,7 +5,7 @@ export type RunCommandIntent =
   | { type: 'continue'; stageId: string }
   | { type: 'none' }
   | { type: 'observe' }
-  | { type: 'return_export' }
+  | { type: 'complete_export' }
   | { type: 'start' };
 
 export function resolveRunCommandIntent(params: {
@@ -36,7 +36,7 @@ export function resolveRunCommandIntent(params: {
 
   if (runningWorkspace && params.checkpointContinueReady && activeRun) {
     if (params.selectedStageType === 'export' || params.checkpointStageId === 'export') {
-      return { type: 'return_export' };
+      return { type: 'complete_export' };
     }
     return { type: 'continue', stageId: params.checkpointStageId };
   }

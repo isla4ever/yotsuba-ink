@@ -2,6 +2,7 @@ import type { StageType } from '../../contracts';
 import type { MonitorSelection } from './MonitorSidebar';
 import type { MonitorSnapshot } from './monitorModel';
 import { monitorChapterStatusLabel, monitorStageStatusLabel } from './monitorModel';
+import { suggestScalePlan } from '../../lib/narrativeScale';
 
 type Props = {
   snapshot: MonitorSnapshot;
@@ -50,6 +51,7 @@ function EmptyBoard({ hint }: { hint: string }) {
 function BriefBoard({ snapshot }: { snapshot: MonitorSnapshot }) {
   const brief = snapshot.brief;
   if (!brief) return <EmptyBoard hint="创作契约生成后将在此展示书名、题材承诺与叙事口吻。" />;
+  const scalePlan = suggestScalePlan(brief.length_envelope);
   return (
     <div className="monitor-board-body">
       <dl className="monitor-fact-grid">
@@ -58,7 +60,8 @@ function BriefBoard({ snapshot }: { snapshot: MonitorSnapshot }) {
         <Fact label="题材承诺" value={brief.promise} wide />
         <Fact label="叙事口吻" value={brief.voice} wide />
         <Fact label="目标字数" value={brief.length_envelope.word_target_soft ? `${brief.length_envelope.word_target_soft.toLocaleString()} 字` : '未指定'} />
-        <Fact label="目标章数" value={brief.length_envelope.chapter_target_soft ? `${brief.length_envelope.chapter_target_soft} 章` : '未指定'} />
+        <Fact label="系统章数" value={`${scalePlan.chapterTarget} 章`} />
+        <Fact label="系统卷数" value={`${scalePlan.volumeTarget} 卷`} />
         <Fact label="主题" value={brief.theme} />
         <Fact label="结局承诺" value={brief.ending_promise} />
       </dl>

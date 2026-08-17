@@ -4,11 +4,20 @@ import { latestProviderUsage } from './runtimeProviderUsage';
 
 describe('latestProviderUsage', () => {
   it('reads the newest receipted usage projection without inventing values', () => {
-    const events = [event(2, 780), event(3, 1240)];
+    const events = [event(22, 15, 64603), event(7, 7, 23918)];
 
     expect(latestProviderUsage(events)).toMatchObject({
-      provider_operations: 3,
-      total_tokens: 1240,
+      provider_operations: 15,
+      total_tokens: 64603,
+    });
+  });
+
+  it('uses event sequence rather than relying on input array order', () => {
+    const events = [event(7, 7, 23918), event(22, 15, 64603)];
+
+    expect(latestProviderUsage(events)).toMatchObject({
+      provider_operations: 15,
+      total_tokens: 64603,
     });
   });
 
@@ -20,10 +29,10 @@ describe('latestProviderUsage', () => {
   });
 });
 
-function event(providerOperations: number, totalTokens: number): RunEvent {
+function event(sequence: number, providerOperations: number, totalTokens: number): RunEvent {
   return {
-    event_id: `node-${providerOperations}`,
-    sequence: providerOperations,
+    event_id: `node-${sequence}`,
+    sequence,
     occurred_at: '2026-08-11T00:00:00Z',
     run_id: 'run-1',
     thread_id: 'run-1',

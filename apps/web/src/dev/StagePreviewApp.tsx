@@ -71,7 +71,7 @@ export function StagePreviewApp() {
           navigateBible: (section) => selectSurface(`bible:${section}`),
           navigateStage: (next) => selectSurface(next as StagePreviewId),
         }}
-        workflowConfig={{ qualityMode: mode, routePolicy: modeRoutePolicy(mode, true), workflow }}
+        workflowConfig={{ qualityMode: mode, routePolicy: modeRoutePolicy(mode), workflow }}
       >
         <main className={`product-shell mode-${mode} has-sidebar`}>
           <WorkbenchSidebar />
@@ -82,16 +82,13 @@ export function StagePreviewApp() {
             <RunningWorkbench
               activeRunId=""
               activeStage={stage}
-              approvalDraft=""
-              approvalPending={false}
               events={events}
               knowledgeDocuments={[]}
               memoryEvents={[]}
-              onApprovalDraftChange={() => undefined}
               onApproveBrief={async () => true}
               onContinueSettlement={() => undefined}
               onOpenKnowledgeManager={() => undefined}
-              onOpenWorkbench={() => undefined}
+              onOpenConsole={() => undefined}
               onRegenerateBrief={async () => true}
               onConfirmStageArtifact={async () => true}
               onRegenerateStageDraft={() => undefined}

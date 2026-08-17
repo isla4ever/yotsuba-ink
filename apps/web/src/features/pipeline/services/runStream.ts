@@ -21,7 +21,7 @@ export async function consumeRunEventStream({
   onEvents,
   response,
   signal,
-}: ConsumeRunStreamOptions): Promise<RunControlState> {
+}: ConsumeRunStreamOptions): Promise<RunControlState | null> {
   if (!response.ok) throw new Error(`Stream request failed: ${response.status}`);
   if (!response.body) throw new Error('Stream response has no body');
 
@@ -58,8 +58,9 @@ export async function consumeRunEventStream({
       await deliver(parsed.events);
       if (done) break;
     }
-    await deliver(drainSseEvents(`${buffer}\n\n`).events);
-    return terminal ?? 'completed';
+    // A trailing frame without the SSE blank-line delimiter was interrupted in
+    // transit. The controller reconnects from the last delivered sequence.
+    return terminal;
   } finally {
     signal?.removeEventListener('abort', abort);
   }

@@ -2,3 +2,6 @@
  * KnowledgeLibraryPage and ProviderManagerSheet (guided setup). */
 @import './settings-overview.css';
 @import './settings-workspace-pages.css';
+@import './settings-workflow-template-artifact-deck.css';
+@import './settings-workflow-template-editor.css';
+@import './settings-workflow-template-inspector.css';

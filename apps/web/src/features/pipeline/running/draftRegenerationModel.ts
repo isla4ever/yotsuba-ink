@@ -2,6 +2,22 @@ import type { WorkflowStage } from '../contracts';
 
 type StageType = WorkflowStage['type'];
 
+export type DecisionFinding = {
+  claim: string;
+  code: string;
+  evidence: string;
+  gate: 'blocking' | 'warning';
+};
+
+export type DecisionQualityGuidance = {
+  allowedActions: string[];
+  blockingFindings: DecisionFinding[];
+  regenerationLimit: number;
+  regenerationUsed: number;
+  recommendedDirection: string;
+  warningFindings: DecisionFinding[];
+};
+
 const DEFAULT_SUGGESTIONS = [
   '让结果更紧凑，减少过程性解释。',
   '增强当前阶段核心冲突。',
@@ -24,4 +40,61 @@ export function regenerationSuggestionsForStage(stage?: Pick<WorkflowStage, 'typ
 
 export function resolveRegenerationDirection(selectedSuggestion: string, customDirection: string) {
   return customDirection.trim() || selectedSuggestion.trim();
+}
+
+export function decisionQualityGuidance(payload: Record<string, unknown> | null | undefined): DecisionQualityGuidance {
+  const reason = recordValue(payload?.reason);
+  const blockingFindings = readFindings(reason?.blocking_findings, 'blocking');
+  const warningFindings = readFindings(reason?.warning_findings, 'warning');
+  const findings = blockingFindings.length ? blockingFindings : warningFindings;
+  return {
+    allowedActions: stringArray(payload?.allowed_actions),
+    blockingFindings,
+    regenerationLimit: nonNegativeInteger(payload?.regeneration_limit, 1),
+    regenerationUsed: nonNegativeInteger(payload?.regeneration_used, 0),
+    recommendedDirection: textValue(reason?.recommended_revision_direction) || directionFromFindings(findings),
+    warningFindings,
+  };
+}
+
+function directionFromFindings(findings: DecisionFinding[]) {
+  if (!findings.length) return '';
+  const items = findings.slice(0, 3).map((finding, index) => {
+    const evidence = finding.evidence ? `；证据：${finding.evidence.slice(0, 80)}` : '';
+    return `${index + 1}. ${finding.claim || finding.code || '审校问题'}${evidence}`;
+  });
+  return `只修复以下审校问题，不改变冻结章名、细纲场景顺序、主体职责或未点名情节：${items.join(' ')}。修改后核对本章结尾与下一章 handoff。`;
+}
+
+function readFindings(value: unknown, gate: DecisionFinding['gate']) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const finding = recordValue(item);
+    if (!finding) return [];
+    return [{
+      claim: textValue(finding.claim),
+      code: textValue(finding.code),
+      evidence: textValue(finding.evidence),
+      gate,
+    }];
+  });
+}
+
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function nonNegativeInteger(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= 0 ? numeric : fallback;
+}
+
+function textValue(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
 }

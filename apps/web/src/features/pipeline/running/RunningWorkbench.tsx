@@ -5,19 +5,16 @@ import type { KnowledgeDocument, RunEvent, WorkflowDefinition, WorkflowStage } f
 type Props = {
   activeRunId: string;
   activeStage: WorkflowStage;
-  approvalDraft: string;
-  approvalPending: boolean;
   events: RunEvent[];
   knowledgeDocuments: KnowledgeDocument[];
   memoryEvents: RunEvent[];
   settlementDwell: boolean;
   settlementStageId: string;
   workflow: WorkflowDefinition;
-  onApprovalDraftChange: (value: string) => void;
   onApproveBrief: (artifact: string) => Promise<boolean>;
   onContinueSettlement: () => void;
   onOpenKnowledgeManager: () => void;
-  onOpenWorkbench?: () => void;
+  onOpenConsole?: () => void;
   onRegenerateBrief: (direction?: string) => Promise<boolean>;
   onConfirmStageArtifact: (stageId: string, artifact?: string) => Promise<boolean>;
   onRegenerateStageDraft: (stageId: string, direction: string, chapterId?: string) => void;

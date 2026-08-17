@@ -14,7 +14,6 @@ import { defaultWorkflow } from './defaultWorkflow';
 
 const lengthEnvelope = {
   word_target_soft: 100_000,
-  chapter_target_soft: 3,
 };
 
 function memoryWindow(seed: Record<string, string> = {}) {

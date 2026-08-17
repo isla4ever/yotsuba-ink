@@ -28,21 +28,21 @@ function runtimesFrom(events: RunEvent[]) {
 }
 
 describe('sidebarStageItems route policy', () => {
-  it('disables every stage in fast mode and explains the cockpit takeover', () => {
+  it('disables every stage in fast mode and points to the creation console', () => {
     const items = sidebarStageItems({
-      policy: modeRoutePolicy('fast', false),
+      policy: modeRoutePolicy('fast'),
       qualityMode: 'fast',
       runHasStarted: true,
       stageRuntimes: {},
       stages,
     });
     expect(items.every((item) => item.disabled)).toBe(true);
-    expect(items[0].disabledReason).toBe('极速模式下阶段进度在驾驶舱内查看');
+    expect(items[0].disabledReason).toBe('极速模式下阶段进度在创作控制台查看');
   });
 
   it('keeps every stage workbench reachable in balanced mode', () => {
     const items = sidebarStageItems({
-      policy: modeRoutePolicy('balanced', false),
+      policy: modeRoutePolicy('balanced'),
       qualityMode: 'balanced',
       runHasStarted: true,
       stageRuntimes: {},
@@ -52,7 +52,7 @@ describe('sidebarStageItems route policy', () => {
   });
 
   it('disables deep-mode stages before the run starts and frees them after', () => {
-    const policy = modeRoutePolicy('deep', false);
+    const policy = modeRoutePolicy('deep');
     const before = sidebarStageItems({ policy, qualityMode: 'deep', runHasStarted: false, stageRuntimes: {}, stages });
     expect(before.every((item) => item.disabled)).toBe(true);
     expect(before[0].disabledReason).toBe('启动创作后可进入阶段工作台');
@@ -70,7 +70,7 @@ describe('sidebarStageItems status derivation', () => {
       event('node.started', 'brief'),
     ];
     const items = sidebarStageItems({
-      policy: modeRoutePolicy('deep', false),
+      policy: modeRoutePolicy('deep'),
       qualityMode: 'deep',
       runHasStarted: true,
       stageRuntimes: runtimesFrom(events),
@@ -92,7 +92,7 @@ describe('sidebarStageItems status derivation', () => {
       },
     })];
     const items = sidebarStageItems({
-      policy: modeRoutePolicy('deep', false),
+      policy: modeRoutePolicy('deep'),
       qualityMode: 'deep',
       runHasStarted: true,
       stageRuntimes: stageRuntimeSummaryMap(buildRunEventIndex(events), coverStages),
@@ -103,7 +103,7 @@ describe('sidebarStageItems status derivation', () => {
 
   it('labels a LangGraph human interrupt as 待决策', () => {
     const items = sidebarStageItems({
-      policy: modeRoutePolicy('deep', false),
+      policy: modeRoutePolicy('deep'),
       qualityMode: 'deep',
       runHasStarted: true,
       stageRuntimes: runtimesFrom([event('decision.required', 'spine')]),

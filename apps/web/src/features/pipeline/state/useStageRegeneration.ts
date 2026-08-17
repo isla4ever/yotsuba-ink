@@ -1,5 +1,6 @@
 import { useRef, type MutableRefObject } from 'react';
 import type { RunEvent, WorkflowDefinition } from '../contracts';
+import { isFailureDecision, pendingStageDecision } from '../lib/runDecisionProjection';
 import { resolveRunDecision } from '../services/runApi';
 
 type StageRegenerationOptions = {
@@ -23,25 +24,40 @@ export function useStageRegeneration({
     requestEpochRef.current += 1;
   }
 
-  async function regenerateStageDraft(stageId: string, direction: string, _chapterId = '') {
+  async function regenerateStageDraft(stageId: string, direction: string, chapterId = '') {
     if (!activeRunId) return false;
     const stage = workflow.nodes.find((item) => item.id === stageId);
     if (!stage) return false;
     const requestEpoch = ++requestEpochRef.current;
     try {
-      const pending = pendingDecision(eventsRef.current, stage.id);
+      const pending = pendingDecision(
+        eventsRef.current,
+        stage.id,
+        stage.type === 'text' ? chapterId : undefined,
+      );
+      const failureRetry = isFailureDecision(pending.event);
+      if (!failureRetry && !direction.trim()) {
+        throw new Error('换一稿必须给出明确调整方向');
+      }
       await resolveRunDecision(
         activeRunId,
         pending.decisionId,
         'regenerate',
         pending.domainRevision,
         undefined,
-        direction,
+        failureRetry ? undefined : direction,
       );
       await onDecisionSubmitted?.();
       return requestEpochRef.current === requestEpoch;
     } catch (error) {
-      onWarning(`${stage.label} 换一稿失败：${errorMessage(error)}`);
+      const failureRetry = isFailureDecision(
+        pendingStageDecision(
+          eventsRef.current,
+          stage.id,
+          stage.type === 'text' ? chapterId : undefined,
+        ),
+      );
+      onWarning(`${stage.label}${failureRetry ? '重试' : '换一稿'}失败：${errorMessage(error)}`);
       return false;
     }
   }
@@ -49,11 +65,8 @@ export function useStageRegeneration({
   return { regenerateStageDraft, resetRegeneration };
 }
 
-function pendingDecision(events: RunEvent[], stageId: string) {
-  const event = events.find((item) => (
-    item.type === 'decision.required'
-    && (item.stage_id || item.node_id?.split('.')[0]) === stageId
-  ));
+function pendingDecision(events: RunEvent[], stageId: string, chapterId?: string) {
+  const event = pendingStageDecision(events, stageId, chapterId);
   const decisionId = typeof event?.payload?.decision_id === 'string'
     ? event.payload.decision_id
     : '';
@@ -61,7 +74,7 @@ function pendingDecision(events: RunEvent[], stageId: string) {
   if (!decisionId || !Number.isInteger(domainRevision) || domainRevision < 0) {
     throw new Error('当前阶段没有可恢复的 LangGraph 决策');
   }
-  return { decisionId, domainRevision };
+  return { decisionId, domainRevision, event };
 }
 
 function errorMessage(error: unknown) {

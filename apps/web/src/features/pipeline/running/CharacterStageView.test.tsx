@@ -19,9 +19,9 @@ vi.mock('./bible/CharacterNetwork3DView', () => ({
 
 const artifact: CharacterBibleArtifact = {
   subjects: [
-    { id: 'subject-lin', name: '林岚', kind: 'protagonist', function: '追查母带来源', drive: '找回失踪母带', change: '接受记忆并不可靠', debut: 'chapter:1', limits: ['不会主动销毁原始记录'], demand_refs: ['demand-investigator'] },
-    { id: 'subject-zhou', name: '周屿', kind: 'major', function: '提供相反证词', drive: '保护广播站', change: '承认自己的隐瞒', debut: 'chapter:2-3', limits: [], demand_refs: ['demand-witness'] },
-    { id: 'subject-su-he', name: '前任档案员苏禾', kind: 'historical_record', function: '通过档案交付证据', drive: '保留原始记录', change: '以缺席证据改变当下判断', debut: 'chapter:1', limits: ['不得产生当下行动'], demand_refs: ['demand-record'] },
+    { id: 'subject-lin', name: '林岚', kind: 'protagonist', function: '追查母带来源', background: '旧港公共档案修复师，曾参与事故母带的初次修复。', conflict_history: '她亲眼见过事故母带被替换，却因证据不足保持沉默。', present_stakes: '若证据失效，她会失去职业资格和追查母亲去向的最后机会。', temperament: '受压时先核对记录，再逼迫对方作出明确选择。', speech_style: '短句，少下判断，习惯复述记录原文。', drive: '找回失踪母带', change: '接受记忆并不可靠', debut: 'chapter:1', limits: ['不会主动销毁原始记录'], demand_refs: ['demand-investigator'] },
+    { id: 'subject-zhou', name: '周屿', kind: 'major', function: '提供相反证词', background: '旧港广播站值守员，事故当夜负责切换备用信号。', conflict_history: '他曾按命令删除一段值守记录，因此一直回避公开作证。', present_stakes: '若实名证词公开，他会失去广播站职位并承担违规删除责任。', temperament: '压力越大越依赖程序用语，真正下决定前会反复确认退路。', speech_style: '措辞正式，长句较多，犹豫时会重复对方问题。', drive: '保护广播站', change: '承认自己的隐瞒', debut: 'chapter:2-3', limits: ['不得无故撤回已经公开的证词'], demand_refs: ['demand-witness'] },
+    { id: 'subject-su-he', name: '苏禾', kind: 'historical_record', function: '前任档案员，通过遗留档案交付证据', background: '事故前负责保存旧港原始录音，死亡后只留下可验证记录。', conflict_history: '她保留的异议记录是母带被替换前唯一未改写的来源。', present_stakes: '记录一旦失去可信度，她留下的事故异议将被永久封存。', temperament: '生前谨慎，坚持所有修改都必须保留异议痕迹。', speech_style: '录音中用词准确，句子短，不作情绪总结。', drive: '保留原始记录', change: '以缺席证据改变当下判断', debut: 'chapter:1', limits: ['不得产生当下行动'], demand_refs: ['demand-record'] },
   ],
   relations: [{ a: 'subject-lin', b: 'subject-zhou', type: '互不信任的同盟', pressure: '母带公开期限' }],
 };
@@ -79,11 +79,11 @@ describe('CharacterStageView orchestration workbench', () => {
 
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.mock-character-star-map button'))
       .find((button) => button.textContent === '历史主体节点')?.click());
-    expect(container.querySelector<HTMLInputElement>('input[aria-label="主体姓名"]')?.value).toBe('前任档案员苏禾');
+    expect(container.querySelector<HTMLInputElement>('input[aria-label="主体姓名"]')?.value).toBe('苏禾');
     expect(container.querySelector<HTMLSelectElement>('select[aria-label="主体类型"]')?.value).toBe('historical_record');
   });
 
-  it('creates every subject kind with a contract-valid chapter window', () => {
+  it('edits frozen subjects within the feasible chapter minimum without registry controls', () => {
     const source = JSON.stringify(artifact);
     const onArtifactChange = vi.fn();
     act(() => root.render(<CharacterStageView onArtifactChange={onArtifactChange} readOnly={false} result={source} sourceResult={source} totalChapters={3} />));
@@ -98,16 +98,7 @@ describe('CharacterStageView orchestration workbench', () => {
     const withBoundedWindow = onArtifactChange.mock.calls[onArtifactChange.mock.calls.length - 1]?.[0] as CharacterBibleArtifact;
     expect(withBoundedWindow.subjects[0]?.debut).toBe('chapter:3');
 
-    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="新增功能角色"]')?.click());
-    const withFunctional = onArtifactChange.mock.calls[onArtifactChange.mock.calls.length - 1]?.[0] as CharacterBibleArtifact;
-    expect(withFunctional.subjects[withFunctional.subjects.length - 1]).toMatchObject({ kind: 'functional', debut: 'chapter:1' });
-
-    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="新增NPC"]')?.click());
-    const withNpc = onArtifactChange.mock.calls[onArtifactChange.mock.calls.length - 1]?.[0] as CharacterBibleArtifact;
-    expect(withNpc.subjects[withNpc.subjects.length - 1]).toMatchObject({ kind: 'npc', debut: 'chapter:1' });
-
-    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="新增历史主体"]')?.click());
-    const withHistorical = onArtifactChange.mock.calls[onArtifactChange.mock.calls.length - 1]?.[0] as CharacterBibleArtifact;
-    expect(withHistorical.subjects[withHistorical.subjects.length - 1]).toMatchObject({ kind: 'historical_record', debut: 'chapter:1' });
+    expect(container.querySelector('.character-roster-rail button[aria-label^="新增"]')).toBeNull();
+    expect(container.querySelector('.character-roster-rail button[aria-label^="删除"]')).toBeNull();
   });
 });

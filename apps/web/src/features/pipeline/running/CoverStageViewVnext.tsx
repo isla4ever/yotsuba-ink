@@ -8,6 +8,7 @@ import { PhraseTagField } from './PhraseTagField';
 import { VnextArtifactError } from './VnextArtifactError';
 
 type Props = {
+  coverAssetRequired?: boolean;
   onArtifactChange: (artifact: CoverArtifactVnext) => void;
   readOnly: boolean;
   result: string;
@@ -15,14 +16,18 @@ type Props = {
   sourceResult: string;
 };
 
-export function CoverStageViewVnext({ onArtifactChange, readOnly, result, runId, sourceResult }: Props) {
+export function CoverStageViewVnext({ coverAssetRequired = true, onArtifactChange, readOnly, result, runId, sourceResult }: Props) {
   const parsed = useMemo(() => parseCoverArtifact(result), [result]);
   const [artifact, setArtifact] = useState<CoverArtifactVnext | null>(parsed.artifact);
   const [assets, setAssets] = useState<CoverAssetRecord[]>([]);
   const [assetState, setAssetState] = useState<'loading' | 'ready' | 'error'>('loading');
   useEffect(() => { if (parsed.artifact) setArtifact(parsed.artifact); }, [parsed.artifact]);
   useEffect(() => {
-    if (!runId) return undefined;
+    if (!coverAssetRequired || !runId) {
+      setAssets([]);
+      setAssetState('ready');
+      return undefined;
+    }
     const controller = new AbortController();
     setAssetState('loading');
     void getCoverAssets(runId, controller.signal)
@@ -35,23 +40,31 @@ export function CoverStageViewVnext({ onArtifactChange, readOnly, result, runId,
         setAssetState('error');
       });
     return () => controller.abort();
-  }, [runId, sourceResult]);
+  }, [coverAssetRequired, runId, sourceResult]);
   if (!artifact) return <VnextArtifactError errors={parsed.errors} label="Cover Artifact" />;
   const update = (next: CoverArtifactVnext) => { setArtifact(next); onArtifactChange(next); };
-  const preview = assets.find((item) => item.asset_id === artifact.selected_asset_id) ?? assets[0];
-  const briefReadOnly = readOnly || Boolean(runId) && (assetState !== 'ready' || assets.length > 0);
+  const preview = coverAssetRequired
+    ? assets.find((item) => item.asset_id === artifact.selected_asset_id) ?? assets[0]
+    : undefined;
+  const briefReadOnly = readOnly || coverAssetRequired && Boolean(runId) && (assetState !== 'ready' || assets.length > 0);
   return (
     <div className="vnext-artifact-workbench cover-vnext">
       <section className="vnext-cover-gallery">
         <header>
-          <div><span>封面候选</span><strong>{artifact.selected_asset_id ? <Check size={15} /> : <ImageOff size={15} />}{artifact.selected_asset_id ? '已选正式封面' : '待选择'}</strong></div>
-          <span className={`vnext-cover-asset-state ${assetState}`}>
-            {assetState === 'loading' ? <LoaderCircle size={14} /> : assetState === 'error' ? <ShieldAlert size={14} /> : <Image size={14} />}
-            {assetState === 'loading' ? '读取中' : assetState === 'error' ? '资产不可用' : `${assets.length} 张`}
+          <div><span>封面候选</span><strong>{coverAssetRequired ? (artifact.selected_asset_id ? <Check size={15} /> : <ImageOff size={15} />) : <ImageOff size={15} />}{coverAssetRequired ? (artifact.selected_asset_id ? '已选正式封面' : '待选择') : '仅保留元数据'}</strong></div>
+          <span className={`vnext-cover-asset-state ${coverAssetRequired ? assetState : 'ready'}`}>
+            {coverAssetRequired ? (assetState === 'loading' ? <LoaderCircle size={14} /> : assetState === 'error' ? <ShieldAlert size={14} /> : <Image size={14} />) : <ImageOff size={14} />}
+            {coverAssetRequired ? (assetState === 'loading' ? '读取中' : assetState === 'error' ? '资产不可用' : `${assets.length} 张`) : '生图已跳过'}
           </span>
         </header>
         <div className={`vnext-cover-preview${preview ? '' : ' empty'}`}>
-          {preview ? <img alt="当前封面候选" src={coverAssetUrl(runId, preview.asset_id)} /> : (
+          {!coverAssetRequired ? (
+            <div className="vnext-cover-preview-empty">
+              <ImageOff aria-hidden="true" size={28} />
+              <strong>封面生图已跳过</strong>
+              <span>本次运行保留完整封面 Brief 与元数据，导出不包含图片资产。</span>
+            </div>
+          ) : preview ? <img alt="当前封面候选" src={coverAssetUrl(runId, preview.asset_id)} /> : (
             <div className="vnext-cover-preview-empty">
               <ImageOff aria-hidden="true" size={28} />
               <strong>{assetState === 'loading' ? '正在读取封面候选' : assetState === 'error' ? '候选资产暂不可用' : '尚未生成封面候选'}</strong>
@@ -59,7 +72,7 @@ export function CoverStageViewVnext({ onArtifactChange, readOnly, result, runId,
             </div>
           )}
         </div>
-        <div aria-label="封面候选" className="vnext-cover-candidate-rail" role="list">
+        {coverAssetRequired ? <div aria-label="封面候选" className="vnext-cover-candidate-rail" role="list">
           {assets.map((asset) => {
             const selected = artifact.selected_asset_id === asset.asset_id;
             return (
@@ -78,7 +91,7 @@ export function CoverStageViewVnext({ onArtifactChange, readOnly, result, runId,
               </button>
             );
           })}
-        </div>
+        </div> : null}
       </section>
       <section className="vnext-artifact-section vnext-cover-brief">
         <header><div><Palette size={15} /><span>视觉 Brief</span><strong>{briefReadOnly && !readOnly ? '候选已绑定' : `${artifact.brief.palette.length} 色`}</strong></div></header>

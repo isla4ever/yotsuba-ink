@@ -1,5 +1,6 @@
 import type { ProjectRecord, ProjectSummary } from '../contracts';
 import { parseRunHistoryItem } from './runHistoryApi';
+import { defaultWorkflowId } from '../lib/officialWorkflows';
 
 /** IO-only adapter for `/api/projects` (Phase 11.2 Studio Shell). */
 
@@ -22,17 +23,17 @@ export async function listProjects(signal?: AbortSignal): Promise<ProjectRecord[
 }
 
 export async function createProject(input: {
-  title: string;
-  summary?: string;
+  idea: string;
   template_workflow_id?: string;
+  consume_workflow_draft?: boolean;
 }): Promise<ProjectRecord> {
   const response = await fetch('/api/projects', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      title: input.title,
-      summary: input.summary ?? '',
-      template_workflow_id: input.template_workflow_id || 'default-novel-workflow',
+      idea: input.idea,
+      template_workflow_id: input.template_workflow_id || defaultWorkflowId,
+      consume_workflow_draft: input.consume_workflow_draft ?? false,
     }),
   });
   if (!response.ok) throw await projectApiError(response, '/api/projects');

@@ -30,15 +30,11 @@ function SidebarEntry({ collapsed, tooltip, children }: { collapsed: boolean; to
   return collapsed ? <ControlTooltip label={tooltip}>{children}</ControlTooltip> : children;
 }
 
-/**
- * One console entry instead of a cockpit/monitor pair: before a run it opens
- * the stage cockpit, once a run is attached it opens the live monitor.
- */
-function creationConsoleEntry({ activeRunId, navigatePlanning, openMonitor, policy, routePhase }: {
+/** One console entry for modes that expose a run-wide monitor. */
+function creationConsoleEntry({ activeRunId, openMonitor, policy, routePhase }: {
   activeRunId: string;
-  navigatePlanning: () => void;
   openMonitor: () => void;
-  policy: { monitor: 'none' | 'available' | 'default'; planningSurface: 'cockpit' | 'planning' };
+  policy: { monitor: 'none' | 'available' | 'default' };
   routePhase: string;
 }) {
   const live = policy.monitor !== 'none' && activeRunId !== '';
@@ -51,17 +47,7 @@ function creationConsoleEntry({ activeRunId, navigatePlanning, openMonitor, poli
       open: openMonitor,
     };
   }
-  if (policy.planningSurface === 'cockpit') {
-    return {
-      current: routePhase === 'planning',
-      disabled: false,
-      hint: '尚未运行：查看八阶段状态并启动创作',
-      live,
-      open: navigatePlanning,
-    };
-  }
-  if (policy.monitor === 'none') return null;
-  return { current: routePhase === 'monitor', disabled: true, hint: '启动创作后可进入控制台', live, open: openMonitor };
+  return null;
 }
 
 /**
@@ -80,17 +66,17 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
 
   const expanded = ui.sidebarExpanded;
   const collapsed = !expanded;
+  const runAvailable = run.activeRunId !== '';
   const stageItems = sidebarStageItems({
     policy: routePolicy,
     qualityMode,
-    runHasStarted: run.runHasStarted,
+    runHasStarted: runAvailable,
     stageRuntimes: run.stageRuntimes,
     stages: workflow.nodes,
   });
   const toggleLabel = expanded ? '收起侧栏' : '展开侧栏';
   const creationConsole = creationConsoleEntry({
     activeRunId: run.activeRunId,
-    navigatePlanning: ui.navigatePlanning,
     openMonitor: ui.openMonitor,
     policy: routePolicy,
     routePhase: run.routePhase,
@@ -163,7 +149,7 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
           <kbd aria-hidden="true" className="sidebar-item-kbd">{shortcutHint}</kbd>
         </button>
       </SidebarEntry>
-      <p className="workbench-sidebar-heading" id="sidebar-stage-heading">创作流程</p>
+      <p className="workbench-sidebar-heading" id="sidebar-stage-heading">{runAvailable ? '创作流程' : '作品准备'}</p>
       <div aria-labelledby="sidebar-stage-heading" className="workbench-sidebar-group" role="group">
         {creationConsole ? (
           <SidebarEntry collapsed={collapsed} tooltip={`创作控制台 · ${creationConsole.hint}`}>
@@ -181,7 +167,7 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
             </button>
           </SidebarEntry>
         ) : null}
-        {routePolicy.stageRoutes === 'all' ? stageItems.map((item) => {
+        {runAvailable && routePolicy.stageRoutes === 'all' ? stageItems.map((item) => {
           const Icon = stageIcons[item.id] ?? Layers;
           const current = run.routePhase === 'running' && run.routeStageId === item.id;
           return (
@@ -203,24 +189,24 @@ export const WorkbenchSidebar = memo(function WorkbenchSidebar() {
           );
         }) : null}
       </div>
-      {routePolicy.planningSurface === 'planning' ? (
+      {!runAvailable ? (
         <>
           <span aria-hidden="true" className="workbench-sidebar-separator" />
-          <SidebarEntry collapsed={collapsed} tooltip="创作规划">
+          <SidebarEntry collapsed={collapsed} tooltip="创作准备">
             <button
               aria-current={run.routePhase === 'planning' ? 'page' : undefined}
               className={`workbench-sidebar-item${run.routePhase === 'planning' ? ' active' : ''}`}
               onClick={ui.navigatePlanning}
-              title="打开创作规划工作台"
+              title="打开创作准备"
               type="button"
             >
               <span aria-hidden="true" className="sidebar-item-icon"><Compass size={16} /></span>
-              <span className="sidebar-item-label">创作规划</span>
+              <span className="sidebar-item-label">创作准备</span>
             </button>
           </SidebarEntry>
         </>
       ) : null}
-      {qualityMode === 'fast' ? null : qualityMode === 'balanced' ? (
+      {!runAvailable || qualityMode === 'fast' ? null : qualityMode === 'balanced' ? (
         <>
           <span aria-hidden="true" className="workbench-sidebar-separator" />
           <SidebarEntry collapsed={collapsed} tooltip="Story Bible · 人物、世界观、伏笔与正典事实">

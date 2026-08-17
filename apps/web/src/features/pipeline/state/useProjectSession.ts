@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ProjectRecord, RunHistoryItem, WorkflowDefinition } from '../contracts';
-import { getProject } from '../services/projectApi';
+import type { ProjectRecord, RunEvent, RunHistoryItem, WorkflowDefinition } from '../contracts';
+import { projectAfterRunEvent } from '../lib/projectRunProjection';
+import { getProject, getProjectSummary } from '../services/projectApi';
 import {
   duplicateWorkflowDefinition,
   getDefaultWorkflowDefinition,
@@ -70,6 +71,12 @@ export function useProjectSession() {
     setActiveProjectState(project);
   }, []);
 
+  const applyRunEvent = useCallback((event: RunEvent) => {
+    const current = activeProjectRef.current;
+    const projected = projectAfterRunEvent(current, event);
+    if (projected !== current) applyActiveProject(projected);
+  }, [applyActiveProject]);
+
   /** Align the shell with the project that owns an opened Run. */
   const switchProjectContext = useCallback(async (projectId: string) => {
     if ((activeProjectRef.current?.id ?? '') === projectId) return;
@@ -92,13 +99,14 @@ export function useProjectSession() {
       deps.onWarning('当前运行仍在执行，请等待进入人工决策点或完成后再切换作品。');
       return { ok: false, stageId: '' };
     }
+    const canonicalLatestRun = await latestRunForProject(project, latestRun);
     if (current?.id === project.id) {
       if (
-        latestRun
-        && latestRun.run_id !== facts.activeRunId
-        && RESTORABLE_RUN_STATUSES.includes(latestRun.status)
+        canonicalLatestRun
+        && RESTORABLE_RUN_STATUSES.includes(canonicalLatestRun.status)
+        && (canonicalLatestRun.run_id !== facts.activeRunId || !runActive)
       ) {
-        const stageId = await deps.restoreProjectRun(latestRun);
+        const stageId = await deps.restoreProjectRun(canonicalLatestRun);
         if (stageId) return { ok: true, stageId };
       }
       // Re-entering the same latest live session does not need a second hydration.
@@ -107,8 +115,8 @@ export function useProjectSession() {
     deps.cancelInitialRecovery();
     applyActiveProject(project);
     deps.clearRunState();
-    if (latestRun && RESTORABLE_RUN_STATUSES.includes(latestRun.status)) {
-      const stageId = await deps.restoreProjectRun(latestRun);
+    if (canonicalLatestRun && RESTORABLE_RUN_STATUSES.includes(canonicalLatestRun.status)) {
+      const stageId = await deps.restoreProjectRun(canonicalLatestRun);
       if (stageId) return { ok: true, stageId };
     }
     try {
@@ -143,7 +151,15 @@ export function useProjectSession() {
   // does not restore or execute an unscoped Run.
   useEffect(() => {
     let active = true;
+    const projectId = activeProjectRef.current?.id ?? '';
     const workflowId = activeProjectRef.current?.workflow_id ?? '';
+    if (projectId) {
+      void getProject(projectId)
+        .then((project) => {
+          if (active && activeProjectRef.current?.id === project.id) applyActiveProject(project);
+        })
+        .catch(() => undefined);
+    }
     const load = workflowId
       ? getWorkflowDefinitionById(workflowId).catch(() => getDefaultWorkflowDefinition())
       : getDefaultWorkflowDefinition();
@@ -160,7 +176,27 @@ export function useProjectSession() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyActiveProject]);
 
-  return { activeProject, applyActiveProject, bind, openProject, saveWorkflowAsTemplate, switchProjectContext };
+  return {
+    activeProject,
+    applyActiveProject,
+    applyRunEvent,
+    bind,
+    openProject,
+    saveWorkflowAsTemplate,
+    switchProjectContext,
+  };
+}
+
+async function latestRunForProject(project: ProjectRecord, hint?: RunHistoryItem | null) {
+  if (!project.latest_run_id) return null;
+  if (hint?.run_id === project.latest_run_id && RESTORABLE_RUN_STATUSES.includes(hint.status)) return hint;
+  const summary = await getProjectSummary(project.id);
+  if (
+    summary.latest_run
+    && summary.latest_run.run_id === project.latest_run_id
+    && RESTORABLE_RUN_STATUSES.includes(summary.latest_run.status)
+  ) return summary.latest_run;
+  return null;
 }

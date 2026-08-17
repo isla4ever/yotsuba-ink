@@ -16,6 +16,7 @@ function renderSidebar(overrides: {
     <PipelineShellTestProviders
       events={[runEvent('artifact.committed', { run_id: 'run-1', stage_id: 'brief', node_id: 'brief.commit_artifact', payload: {} })]}
       runState={{
+        activeRunId: 'run-1',
         runHasStarted: true,
         routePhase: 'running',
         routeStageId: 'spine',
@@ -23,7 +24,7 @@ function renderSidebar(overrides: {
       }}
       workflowConfig={{
         qualityMode: 'deep',
-        routePolicy: modeRoutePolicy('deep', false),
+        routePolicy: modeRoutePolicy('deep'),
         ...overrides.workflowConfig,
       }}
       uiCommands={overrides.uiCommands}
@@ -48,16 +49,14 @@ describe('WorkbenchSidebar', () => {
     expect(html).toContain('搜索 / 命令');
   });
 
-  it('merges cockpit and monitor into one console entry alongside every stage workbench', () => {
+  it('keeps the run console and stage workbenches separate from creative preparation', () => {
     const html = renderSidebar({
-      runState: { routePhase: 'planning', routeStageId: '' },
-      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', true) },
+      runState: { routePhase: 'running', routeStageId: 'brief' },
+      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced') },
     });
     expect(html).toContain('创作控制台');
-    expect(html).not.toContain('创作驾驶舱');
     expect(html).not.toContain('全局监控台');
     expect(html).not.toContain('创作规划');
-    // No attached run: the console opens the cockpit, so nothing is disabled.
     expect(html.match(/disabled=""/g) ?? []).toHaveLength(0);
     expect(html).toContain('人物圣经');
     expect(html).toContain('章节施工图');
@@ -67,7 +66,7 @@ describe('WorkbenchSidebar', () => {
   it('condenses Story Bible to one entry in balanced mode and keeps the four sections in deep mode', () => {
     const balanced = renderSidebar({
       runState: { routePhase: 'planning', routeStageId: '' },
-      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', true) },
+      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced') },
     });
     expect(balanced).toContain('Story Bible');
     expect(balanced).not.toContain('伏笔账本');
@@ -77,7 +76,7 @@ describe('WorkbenchSidebar', () => {
   it('marks the console entry current on the monitor route once a run is attached', () => {
     const html = renderSidebar({
       runState: { activeRunId: 'run-1', routePhase: 'monitor', routeStageId: '' },
-      workflowConfig: { qualityMode: 'fast', routePolicy: modeRoutePolicy('fast', true) },
+      workflowConfig: { qualityMode: 'fast', routePolicy: modeRoutePolicy('fast') },
     });
     expect(html).toContain('创作控制台');
     expect(html).toContain('运行中：卷章结构、内容与日志同屏');
@@ -85,18 +84,18 @@ describe('WorkbenchSidebar', () => {
     expect(currentChunk).toContain('创作控制台');
   });
 
-  it('shows planning and all stages before a balanced run starts', () => {
+  it('shows only creative preparation before a run starts', () => {
     const html = renderSidebar({
-      runState: { routePhase: 'planning', routeStageId: '', runHasStarted: false },
-      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', false) },
+      runState: { activeRunId: '', routePhase: 'planning', routeStageId: '', runHasStarted: false },
+      workflowConfig: { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced') },
     });
-    expect(html).toContain('创作立项定稿');
-    expect(html).toContain('创作规划');
-    expect(html).not.toContain('创作驾驶舱');
+    expect(html).not.toContain('创作立项定稿');
+    expect(html).toContain('创作准备');
+    expect(html).not.toContain('Story Bible');
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
   });
 
-  it('always exposes the Story Bible section entries and marks the active section', () => {
+  it('exposes Story Bible after a run exists and marks the active section', () => {
     const html = renderSidebar({ runState: { routeBibleSection: 'foreshadow', routePhase: 'bible', routeStageId: '', runHasStarted: false } });
     for (const label of ['Story Bible', '人物关系', '世界观', '伏笔账本', '正典事实']) expect(html).toContain(label);
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);

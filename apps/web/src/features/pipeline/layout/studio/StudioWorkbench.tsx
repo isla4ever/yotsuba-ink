@@ -8,6 +8,7 @@ import { NewProjectWizard } from './NewProjectWizard';
 import { ProjectBookshelf } from './ProjectBookshelf';
 import { StudioMobileNav } from './StudioMobileNav';
 import { TemplateManagerSection } from './TemplateManagerSection';
+import { studioWorkflowRoute } from '../../lib/stageRoutes';
 
 /** Studio Shell main area: project card wall, new-project wizard, and template management. */
 export function StudioWorkbench() {
@@ -75,6 +76,10 @@ export function StudioWorkbench() {
       <NewProjectWizard
         initialTemplateId={initialTemplateId}
         onClose={closeWizard}
+        onConfigure={async (templateId) => {
+          const draft = await studio.createOneTimeWorkflow(templateId);
+          navigate(studioWorkflowRoute(draft.id), { replace: false });
+        }}
         onCreate={studio.create}
         onCreated={(project) => {
           void openProject(project, null);

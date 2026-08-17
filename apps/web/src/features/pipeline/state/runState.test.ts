@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphRunEnvelope, RunEvent } from '../contracts';
+import type { GraphRunEnvelope, RunArtifactRecord, RunEvent } from '../contracts';
 import {
   frozenCoverAssetBindingFixture,
   frozenProviderBindingsFixture,
@@ -10,12 +10,12 @@ import {
   hydrateGraphRun,
   hydrateLocalRunControl,
   resolveServerRunRecovery,
+  resolveServerRunPresentation,
 } from './runState';
 
 const runId = 'run-recovery-test';
 const lengthEnvelope = {
   word_target_soft: 100_000,
-  chapter_target_soft: 3,
 };
 
 describe('LangGraph read-model recovery', () => {
@@ -31,7 +31,9 @@ describe('LangGraph read-model recovery', () => {
     expect(resolution.reconnect).toBe(true);
     expect(resolution.hydrated.selectedId).toBe('spine');
     expect(resolution.hydrated.runControlState).toBe('running');
-    expect(resolution.hydrated.events).toEqual([]);
+    expect(resolution.hydrated.events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'node.completed', stage_id: 'brief' }),
+    ]));
   });
 
   it('restores an active interrupt without inventing a continuation state', () => {
@@ -81,14 +83,108 @@ describe('LangGraph read-model recovery', () => {
     });
 
     expect(hydrated.approvalPending).toBe(true);
-    expect(hydrated.approvalDraft).toContain('雾港回声');
     expect(hydrated.checkpointStageId).toBe('brief');
   });
 
   it('projects a Graph envelope without using local event history', () => {
     expect(hydrateGraphRun(envelope({ status: 'created' })).events).toEqual([]);
   });
+
+  it('presents a completed run from read-model artifacts and accepted chapters without reconnecting SSE', () => {
+    const terminal = envelope({
+      status: 'completed',
+      active_stage_id: 'export',
+      stage_status: stageStatus({
+        brief: 'completed',
+        spine: 'completed',
+        cast: 'completed',
+        volumes: 'completed',
+        detail: 'completed',
+        text: 'completed',
+        cover: 'completed',
+        export: 'completed',
+      }),
+    });
+    const terminalWithCover = {
+      ...terminal,
+      definition: {
+        ...terminal.definition,
+        export_preferences: { ...terminal.definition.export_preferences, include_cover_image: false },
+      },
+    };
+    const resolution = resolveServerRunPresentation(terminalWithCover, runId, [], [{
+      run_id: runId,
+      chapter_id: 'chapter-1',
+      version_id: 'chapter-1-v1',
+      artifact: { chapter_id: 'chapter-1', version_id: 'chapter-1-v1', title: '第一章', content: '正文', author_status: 'accepted' },
+      signature: 'c'.repeat(64),
+      created_at: '2026-08-10T00:00:01Z',
+    }]);
+
+    expect(resolution.kind).toBe('restore');
+    if (resolution.kind !== 'restore') return;
+    expect(resolution.reconnect).toBe(false);
+    expect(resolution.hydrated.selectedId).toBe('export');
+    expect(resolution.hydrated.events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'artifact.committed', stage_id: 'text', chapter_id: 'chapter-1' }),
+      expect.objectContaining({ type: 'cover.asset_skipped', stage_id: 'cover' }),
+      expect.objectContaining({ type: 'run.completed', payload: expect.objectContaining({ provider_usage: terminalWithCover.read_model.provider_usage }) }),
+    ]));
+  });
+
+  it('hydrates committed upstream artifacts copied into a branch read model', () => {
+    const branch = envelope({
+      active_stage_id: 'volumes',
+      artifact_refs: {
+        brief: 'brief-committed-1',
+        spine: 'spine-committed-1',
+      },
+      stage_status: stageStatus({
+        brief: 'completed',
+        spine: 'completed',
+        cast: 'completed',
+        volumes: 'awaiting_decision',
+      }),
+      status: 'awaiting_decision',
+    });
+    const hydrated = hydrateGraphRun(branch, [
+      artifactRecord('brief', 'brief-committed-1', { title: '潮汐证词' }),
+      artifactRecord('spine', 'spine-committed-1', { turns: [{ id: 'turn-1' }] }),
+    ]);
+
+    expect(hydrated.events).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        payload: { title: '潮汐证词' },
+        payload_ref: 'brief-committed-1',
+        stage_id: 'brief',
+        type: 'artifact.committed',
+      }),
+      expect.objectContaining({
+        payload: { turns: [{ id: 'turn-1' }] },
+        payload_ref: 'spine-committed-1',
+        stage_id: 'spine',
+        type: 'artifact.committed',
+      }),
+    ]));
+  });
 });
+
+function artifactRecord(
+  stageId: RunArtifactRecord['stage_id'],
+  artifactId: string,
+  payload: Record<string, unknown>,
+): RunArtifactRecord {
+  return {
+    artifact_id: artifactId,
+    run_id: runId,
+    stage_id: stageId,
+    status: 'committed',
+    payload,
+    signature: 'b'.repeat(64),
+    created_at: `2026-08-10T00:00:0${stageId === 'brief' ? '1' : '2'}Z`,
+    source: 'decision:test',
+  };
+}
 
 function envelope(readModel: Partial<GraphRunEnvelope['read_model']> = {}): GraphRunEnvelope {
   return {

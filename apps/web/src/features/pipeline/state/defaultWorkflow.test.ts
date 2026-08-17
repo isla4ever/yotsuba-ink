@@ -3,8 +3,11 @@ import { defaultWorkflow } from './defaultWorkflow';
 
 describe('default LangGraph workflow contract', () => {
   it('uses the eight vNext artifacts and joins text and cover at export', () => {
-    expect(defaultWorkflow.name).toBe('长篇小说生产线工作流');
-    expect(defaultWorkflow.version).toBe('27.1.0-langgraph-native');
+    expect(defaultWorkflow.name).toBe('DeepSeek 平衡创作流水线');
+    expect(defaultWorkflow.version).toBe('29.34.0-first-pass-causal-planning');
+    expect(defaultWorkflow.nodes.find((node) => node.id === 'spine')?.model_settings.temperature).toBe(0.45);
+    expect(defaultWorkflow.nodes.find((node) => node.id === 'cast')?.model_settings.temperature).toBe(0.55);
+    expect(defaultWorkflow.nodes.find((node) => node.id === 'detail')?.model_settings.temperature).toBe(0.3);
     expect(defaultWorkflow.edges).toEqual(expect.arrayContaining([
       { id: 'e-detail-text', source: 'detail', target: 'text' },
       { id: 'e-detail-cover', source: 'detail', target: 'cover' },
@@ -16,19 +19,27 @@ describe('default LangGraph workflow contract', () => {
     const text = defaultWorkflow.nodes.find((node) => node.id === 'text');
     expect(text?.generation_budget).toEqual({
       max_tokens: 6000,
-      description: '单章纯文本输出，篇幅只服从冻结软目标与当前施工图。',
+      description: '按冻结场景顺序逐场生成；场景按戏剧负载使用滚动字符区间，整章命中质量档位长度合同，越界最多三次有界重写。',
     });
     expect(text?.input_schema.map((field) => field.key)).toEqual(['pov']);
     const detail = defaultWorkflow.nodes.find((node) => node.id === 'detail');
     const volumes = defaultWorkflow.nodes.find((node) => node.id === 'volumes');
     const brief = defaultWorkflow.nodes.find((node) => node.id === 'brief');
+    const briefFields = new Map(brief?.input_schema.map((field) => [field.key, field]));
+    expect(brief?.model_settings.model).toBe('deepseek-v4-pro');
+    expect(briefFields.get('core_concept')?.required).toBe(true);
+    expect(briefFields.get('genre')?.default).toBe('自动判断');
+    expect(['audience', 'keywords', 'taboos'].map((key) => briefFields.get(key)?.required)).toEqual([
+      false, false, false,
+    ]);
     expect(brief?.input_schema.map((field) => field.key)).toEqual(expect.arrayContaining([
       'word_target_soft',
-      'chapter_target_soft',
     ]));
     expect(brief?.input_schema.map((field) => field.key)).not.toEqual(expect.arrayContaining([
+      'chapter_target_soft',
       'chapter_min_reasonable',
       'chapter_max_reasonable',
+      'volume_target_override',
     ]));
     expect(volumes?.input_schema.map((field) => field.key)).toEqual(['conflict_density']);
     expect(detail?.input_schema.map((field) => field.key)).toEqual(['must_include']);

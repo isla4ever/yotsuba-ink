@@ -1,5 +1,6 @@
 import '../../../../styles/entry-running.css';
-import { Crosshair, Gauge, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Crosshair, Gauge, PanelRightClose, PanelRightOpen, ShieldCheck } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { QualityMode, RunControlState, RunEvent, WorkflowDefinition } from '../../contracts';
 import { LoadingOverlay } from '../../layout/LoadingOverlay';
@@ -11,6 +12,8 @@ import { MonitorSidebar, type MonitorSelection } from './MonitorSidebar';
 import { MonitorStageBoard } from './MonitorStageBoard';
 import { buildMonitorSnapshot } from './monitorModel';
 import { loadReadingPosition, saveReadingPosition } from './monitorReadingPosition';
+import { useActiveRunDefinition } from '../../state/useActiveRunDefinition';
+import { FrozenBindingInventorySheet } from '../FrozenBindingInventorySheet';
 
 type Props = {
   activeRunId: string;
@@ -52,6 +55,8 @@ export function RunMonitorConsole({
   const reducedMotion = useReducedMotionPreference();
   const [pinned, setPinned] = useState<MonitorSelection | null>(() => loadReadingPosition(activeRunId));
   const [logOpen, setLogOpen] = useState(true);
+  const [bindingsOpen, setBindingsOpen] = useState(false);
+  const runDefinition = useActiveRunDefinition(activeRunId);
   const booting = useEntryDwell(activeRunId, reducedMotion, events.length);
   const selection: MonitorSelection = pinned ?? { kind: 'stage', stageId: snapshot.activeStageId };
   const stageLabels = useMemo(
@@ -100,6 +105,16 @@ export function RunMonitorConsole({
             <div><dt>审稿轮次</dt><dd>{snapshot.totals.reviews || '—'}</dd></div>
             <div><dt>事实写回</dt><dd>{snapshot.totals.writebacks || '—'}</dd></div>
           </dl>
+          <button
+            className="monitor-frozen-bindings"
+            disabled={!runDefinition.definition}
+            onClick={() => setBindingsOpen(true)}
+            title={runDefinition.error ? '冻结运行定义载入失败' : undefined}
+            type="button"
+          >
+            <ShieldCheck size={14} />
+            冻结配置
+          </button>
         </header>
 
         <div className="monitor-body">
@@ -145,6 +160,15 @@ export function RunMonitorConsole({
         open={booting}
         title="正在载入创作现场…"
       />
+      <AnimatePresence>
+        {bindingsOpen && runDefinition.definition ? (
+          <FrozenBindingInventorySheet
+            definition={runDefinition.definition}
+            onClose={() => setBindingsOpen(false)}
+            workflow={workflow}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

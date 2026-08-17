@@ -36,7 +36,7 @@ export const CommandPalette = memo(function CommandPalette() {
   const context: PaletteContext = {
     policy: routePolicy,
     qualityMode,
-    runHasStarted: run.runHasStarted,
+    runHasStarted: run.activeRunId !== '',
     sidebarExpanded: actions.sidebarExpanded,
     stageRuntimes: run.stageRuntimes,
     stages: workflow.nodes,

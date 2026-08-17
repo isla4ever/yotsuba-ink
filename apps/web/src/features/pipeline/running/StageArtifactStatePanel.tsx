@@ -2,21 +2,20 @@ import { AlertTriangle, ArrowLeft, Braces } from 'lucide-react';
 import type { StageType } from '../contracts';
 import { ManuscriptLoadingIndicator } from '../layout/ManuscriptLoadingIndicator';
 import type { StageArtifactState } from './stageArtifactState';
-import { stageEmptyStateAction, stageEmptyStateHint } from './stageEmptyState';
+import { stageEmptyStateHint } from './stageEmptyState';
 
 type Props = {
   label: string;
-  onReturn?: () => void;
+  onOpenConsole?: () => void;
   runStarted: boolean;
   stageType: StageType;
   state: StageArtifactState;
 };
 
-export function StageArtifactStatePanel({ label, onReturn, runStarted, stageType, state }: Props) {
+export function StageArtifactStatePanel({ label, onOpenConsole, runStarted, stageType, state }: Props) {
   if (state.status === 'ready') return null;
   const config = stateConfig(label, stageType, state);
-  const showReturn = Boolean(onReturn) && (state.status === 'error' || state.status === 'invalid' || state.status === 'empty');
-  const returnLabel = state.status === 'empty' ? stageEmptyStateAction(runStarted) : '返回流水线工作台';
+  const showConsoleAction = Boolean(onOpenConsole) && runStarted && (state.status === 'error' || state.status === 'invalid' || state.status === 'empty');
   return (
     <section
       aria-live={state.status === 'error' || state.status === 'invalid' ? 'assertive' : 'polite'}
@@ -35,8 +34,8 @@ export function StageArtifactStatePanel({ label, onReturn, runStarted, stageType
             {state.sections.map((section) => <span key={section}>{section}</span>)}
           </div>
         ) : null}
-        {showReturn ? (
-          <button className="ghost tiny-action app-feedback-action" onClick={onReturn} type="button"><ArrowLeft size={14} />{returnLabel}</button>
+        {showConsoleAction ? (
+          <button className="ghost tiny-action app-feedback-action" onClick={onOpenConsole} type="button"><ArrowLeft size={14} />打开创作控制台</button>
         ) : null}
       </div>
     </section>

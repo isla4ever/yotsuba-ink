@@ -6,14 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectRecord, WorkflowDefinition } from '../../contracts';
 import { overlayExitDurationMs } from '../../lib/motion';
 import { NewProjectWizard } from './NewProjectWizard';
+import { defaultWorkflowId } from '../../lib/officialWorkflows';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
 const defaultWorkflow: WorkflowDefinition = {
   architecture_version: 'phase27-vnext',
-  id: 'default-novel-workflow',
+  id: defaultWorkflowId,
   name: '默认工作流',
-  version: '1',
+    version: '1',
+    is_template: true,
   global_inputs: [],
   provider_profiles: [],
   prompt_templates: [],
@@ -50,6 +52,7 @@ describe('NewProjectWizard overlay interaction', () => {
             open={open}
             templates={[defaultWorkflow]}
             onClose={() => setOpen(false)}
+            onConfigure={() => Promise.resolve()}
             onCreate={() => Promise.resolve({} as ProjectRecord)}
             onCreated={() => undefined}
           />
@@ -63,19 +66,19 @@ describe('NewProjectWizard overlay interaction', () => {
     opener?.focus();
     act(() => opener?.click());
 
-    const titleInput = document.querySelector<HTMLInputElement>('#studio-wizard-title');
-    expect(titleInput).not.toBeNull();
+    const selectedPipeline = document.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]');
+    expect(selectedPipeline).not.toBeNull();
     expect(document.body.style.overflow).toBe('hidden');
     expect(container.inert).toBe(true);
     expect(container.getAttribute('aria-hidden')).toBe('true');
     act(() => vi.advanceTimersByTime(16));
-    expect(document.activeElement).toBe(titleInput);
+    expect(document.activeElement).toBe(selectedPipeline);
 
     act(() => opener?.focus());
-    expect(document.activeElement).toBe(titleInput);
+    expect(document.activeElement).toBe(selectedPipeline);
 
     act(() => {
-      titleInput?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' }));
+      selectedPipeline?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' }));
     });
     act(() => vi.advanceTimersByTime(overlayExitDurationMs.dialog));
 

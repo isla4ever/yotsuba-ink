@@ -8,7 +8,6 @@ import {
   providerReadinessSummary,
   reviewCreationModeCardId,
   reviewReferenceCardId,
-  shouldShowGuidedSetup,
 } from './setupProgress';
 
 const readyReport: ProviderReadinessReport = {
@@ -22,44 +21,36 @@ const readyReport: ProviderReadinessReport = {
   message: 'ready',
 };
 
-describe('setup progress derivation (Phase 12 A4 three-step flow)', () => {
-  it('derives the three-step flow 故事起点/连接 AI 服务/确认启动 without a detached completion flag', () => {
+describe('setup progress derivation (pre-run two-step flow)', () => {
+  it('derives the focused 故事起点/确认启动 flow without pipeline configuration', () => {
     const steps = buildSetupSteps({ workflow: defaultWorkflow, knowledgeDocuments: [], readiness: readyReport });
 
-    expect(steps.map((step) => step.id)).toEqual(['story', 'ai-service', 'review']);
-    expect(steps.map((step) => step.label)).toEqual(['故事起点', '连接 AI 服务', '确认启动']);
+    expect(steps.map((step) => step.id)).toEqual(['story', 'review']);
+    expect(steps.map((step) => step.label)).toEqual(['故事起点', '确认启动']);
     expect(steps.every((step) => step.status === 'complete')).toBe(true);
     // The complete review step summarizes the applied defaults for the nav rail.
-    expect(steps[2].summary).toContain('智能参考');
-    expect(steps[2].summary).toContain('平衡');
-    expect(shouldShowGuidedSetup(steps)).toBe(false);
+    expect(steps[1].summary).toContain('智能参考');
+    expect(steps[1].summary).toContain('平衡');
   });
 
-  it('targets the first missing story field before later readiness issues', () => {
+  it('carries a missing story field into launch confirmation without adding a provider step', () => {
     const workflow = updateInfoField(defaultWorkflow, 'core_concept', '');
     const steps = buildSetupSteps({ workflow, knowledgeDocuments: [], readiness: undefined });
 
     expect(firstBlockingSetupTarget(steps)).toEqual({ stepId: 'story', fieldId: 'setup-story-core_concept' });
-    expect(steps.find((step) => step.id === 'ai-service')?.status).toBe('blocked');
-    // Earlier blocking issues also block the launch step so 确认启动 cannot pass.
+    expect(steps.map((step) => step.id)).toEqual(['story', 'review']);
     expect(steps.find((step) => step.id === 'review')?.status).toBe('blocked');
   });
 
-  it('blocks the story step and forces guided setup for a project workflow with cleared narrative seeds', () => {
-    // Phase 12 M1: project creation blanks demo story seeds server-side; this
-    // mirrors that copy and guards hasConfiguredValue against regressions.
+  it('requires only the project idea after optional narrative seeds are cleared', () => {
+    // Project creation blanks demo story seeds server-side. Audience,
+    // keywords and taboos are inferred by Brief unless the author supplies them.
     const steps = buildSetupSteps({ workflow: clearNarrativeSeeds(defaultWorkflow), knowledgeDocuments: [], readiness: readyReport });
 
     const story = steps.find((step) => step.id === 'story');
     expect(story?.status).toBe('blocked');
-    expect(story?.issues.map((issue) => issue.code)).toEqual([
-      'story_audience_missing',
-      'story_core_concept_missing',
-      'story_keywords_missing',
-      'story_taboos_missing',
-    ]);
-    expect(firstBlockingSetupTarget(steps)).toEqual({ stepId: 'story', fieldId: 'setup-story-audience' });
-    expect(shouldShowGuidedSetup(steps)).toBe(true);
+    expect(story?.issues.map((issue) => issue.code)).toEqual(['story_core_concept_missing']);
+    expect(firstBlockingSetupTarget(steps)).toEqual({ stepId: 'story', fieldId: 'setup-story-core_concept' });
   });
 
   it('re-homes reference issues to the review step anchored on the reference card', () => {
@@ -74,10 +65,8 @@ describe('setup progress derivation (Phase 12 A4 three-step flow)', () => {
     const review = steps.find((step) => step.id === 'review');
     expect(review?.issues[0].code).toBe('knowledge_document_unavailable');
     expect(review?.issues[0].target).toEqual({ stepId: 'review', fieldId: reviewReferenceCardId });
-    // Story and service stay complete: the reference problem belongs to the launch page.
+    // Story stays complete: the reference problem belongs to the launch page.
     expect(steps.find((step) => step.id === 'story')?.status).toBe('complete');
-    expect(steps.find((step) => step.id === 'ai-service')?.status).toBe('complete');
-    expect(shouldShowGuidedSetup(steps)).toBe(true);
   });
 
   it('re-homes an invalid creation mode to the review step anchored on the mode card', () => {
@@ -95,13 +84,14 @@ describe('setup progress derivation (Phase 12 A4 three-step flow)', () => {
     const review = steps.find((step) => step.id === 'review');
     expect(review?.issues.map((issue) => issue.code)).toEqual(['reference_url_empty']);
     expect(review?.status).toBe('complete');
-    expect(shouldShowGuidedSetup(steps)).toBe(false);
   });
 
   it('reports setup truth as concise settings sections', () => {
     const sections = buildSettingsSections({ workflow: defaultWorkflow, knowledgeDocuments: [], readiness: readyReport });
 
-    expect(sections.map((section) => section.id)).toEqual(['story', 'references', 'creation-mode', 'ai-service']);
+    expect(sections.map((section) => section.id)).toEqual([
+      'story', 'references', 'creation-mode', 'ai-service', 'stage-exceptions',
+    ]);
     expect(sections.find((section) => section.id === 'ai-service')?.status).toBe('ready');
     expect(sections.find((section) => section.id === 'references')?.status).toBe('ready');
     expect(sections.find((section) => section.id === 'creation-mode')?.status).toBe('ready');
@@ -119,7 +109,6 @@ function clearNarrativeSeeds(workflow: WorkflowDefinition): WorkflowDefinition {
     ({ ...field, default: Array.isArray(field.default) ? [] : '' });
   return {
     ...workflow,
-    global_inputs: workflow.global_inputs.map((field) => field.key === 'title' ? blank(field) : field),
     nodes: workflow.nodes.map((stage) => stage.id === 'brief' ? {
       ...stage,
       input_schema: stage.input_schema.map((field) => seedKeys.includes(field.key) ? blank(field) : field),

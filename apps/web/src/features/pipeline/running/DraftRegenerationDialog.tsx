@@ -1,4 +1,4 @@
-import { RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ShieldAlert, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -6,18 +6,27 @@ import type { QualityMode, WorkflowStage } from '../contracts';
 import { backdropMotionVariants, dialogMotionVariants, overlayExitDurationMs } from '../lib/motion';
 import { useOverlayDialog } from '../state/useOverlayDialog';
 import { ArtifactDraftField } from './ArtifactDraftField';
-import { regenerationSuggestionsForStage, resolveRegenerationDirection } from './draftRegenerationModel';
+import {
+  regenerationSuggestionsForStage,
+  resolveRegenerationDirection,
+  type DecisionFinding,
+} from './draftRegenerationModel';
 
 type Props = {
+  findings?: DecisionFinding[];
   mode: QualityMode;
   onClose: () => void;
   onConfirm: (direction: string) => void;
   open: boolean;
+  recommendedDirection?: string;
   stage?: WorkflowStage;
 };
 
-export function DraftRegenerationDialog({ mode, onClose, onConfirm, open, stage }: Props) {
-  const suggestions = regenerationSuggestionsForStage(stage);
+export function DraftRegenerationDialog({ findings = [], mode, onClose, onConfirm, open, recommendedDirection = '', stage }: Props) {
+  const stageSuggestions = regenerationSuggestionsForStage(stage);
+  const suggestions = recommendedDirection
+    ? [recommendedDirection, ...stageSuggestions.slice(0, 2)]
+    : stageSuggestions;
   const [selectedSuggestion, setSelectedSuggestion] = useState(suggestions[0]);
   const [customDirection, setCustomDirection] = useState('');
   const direction = resolveRegenerationDirection(selectedSuggestion, customDirection);
@@ -28,7 +37,7 @@ export function DraftRegenerationDialog({ mode, onClose, onConfirm, open, stage 
       setSelectedSuggestion(suggestions[0]);
       setCustomDirection('');
     }
-  }, [open, stage?.id]);
+  }, [open, recommendedDirection, stage?.id]);
 
   return createPortal(
     <AnimatePresence>
@@ -59,6 +68,22 @@ export function DraftRegenerationDialog({ mode, onClose, onConfirm, open, stage 
             <p className="eyebrow">调整方向</p>
             <h2>{stage?.label ? `${stage.label}换一稿` : '换一稿'}</h2>
             <p>{stage?.label ? '给出这一稿要改什么，系统会按这个方向重写本阶段稿件替换当前稿；已定稿的上游阶段不受影响。' : '选择新版推荐的调整方向，系统会更新书名、简介、世界观和人物关系。'}</p>
+            {findings.length ? (
+              <section aria-label="审校缺陷证据" className="draft-quality-evidence">
+                <strong>审校证据</strong>
+                <ul>
+                  {findings.slice(0, 3).map((finding, index) => (
+                    <li key={`${finding.gate}-${finding.code}-${index}`}>
+                      {finding.gate === 'blocking' ? <ShieldAlert size={14} /> : <AlertTriangle size={14} />}
+                      <span>
+                        <b>{finding.gate === 'blocking' ? '硬门' : '告警'} · {finding.claim || finding.code}</b>
+                        {finding.evidence ? <small>证据：{finding.evidence}</small> : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <div aria-label="换一稿调整方向" className="recommendation-suggestion-list draft-direction-options" role="radiogroup">
               {suggestions.map((item, index) => (
                 <label className={selectedSuggestion === item ? 'active' : ''} key={item}>

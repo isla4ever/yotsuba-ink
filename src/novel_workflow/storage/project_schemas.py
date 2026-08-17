@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
+
+from novel_workflow.workflows.workflow_ids import DEFAULT_WORKFLOW_ID
 
 ProjectStatus = Literal["active", "archived"]
 
@@ -37,9 +39,9 @@ class ProjectRecord(BaseModel):
 
 
 class ProjectCreateRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=120)
-    summary: str = Field(default="", max_length=2000)
-    template_workflow_id: str = Field(default="default-novel-workflow", min_length=1, max_length=160)
+    idea: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
+    template_workflow_id: str = Field(default=DEFAULT_WORKFLOW_ID, min_length=1, max_length=160)
+    consume_workflow_draft: bool = False
 
 
 class ProjectPatchRequest(BaseModel):

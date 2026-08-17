@@ -13,7 +13,7 @@ const event = (stageId: string, artifact: Record<string, unknown>): RunEvent => 
 describe('Phase 27 Story Bible projection', () => {
   it('reads the frozen Character Bible without enriching it from later stages', () => {
     const cast = {
-      subjects: [{ id: 'subject-lin', name: '林默', kind: 'protagonist', function: '调查者', drive: '找到母带', change: '承认恐惧', debut: 'chapter:1', limits: [], demand_refs: ['demand-investigator'] }],
+      subjects: [{ id: 'subject-lin', name: '林默', kind: 'protagonist', function: '调查者', background: '旧港公共档案修复师，曾参与事故母带的初次修复。', conflict_history: '她亲眼见过事故母带被替换，却因证据不足保持沉默。', present_stakes: '若证据失效，她会失去职业资格和追查母亲去向的最后机会。', temperament: '受压时先核对记录，再逼迫对方作出明确选择。', speech_style: '短句，少下判断，习惯复述记录原文。', drive: '找到母带', change: '承认恐惧', debut: 'chapter:1', limits: ['不得伪造证据'], demand_refs: ['demand-investigator'] }],
       relations: [],
     };
 
@@ -33,7 +33,7 @@ describe('Phase 27 Story Bible projection', () => {
       theme: '真相的代价？',
       ending_promise: '公开真相',
       voice: '第三人称有限视角',
-      length_envelope: { word_target_soft: 80000, chapter_target_soft: 24 },
+      length_envelope: { word_target_soft: 80000 },
     };
 
     const world = bibleWorldView([event('brief', brief)]);

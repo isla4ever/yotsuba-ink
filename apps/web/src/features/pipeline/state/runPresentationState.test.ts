@@ -54,22 +54,29 @@ describe('runActionPresentation delivery gates', () => {
       selectedStageType: 'brief',
     })).toMatchObject({ key: 'continue', label: '继续进入故事脊柱' });
   });
+
+  it('finishes Export without returning to planning', () => {
+    expect(runActionPresentation({
+      ...base,
+      selectedStageType: 'export',
+    })).toMatchObject({ key: 'complete', label: '完成本次创作' });
+  });
 });
 
 describe('modeRoutePolicy', () => {
   it('keeps all stage routes available for balanced and deep modes', () => {
-    expect(modeRoutePolicy('balanced', false).stageRoutes).toBe('all');
-    expect(modeRoutePolicy('balanced', true)).toEqual({ planningSurface: 'cockpit', stageRoutes: 'all', monitor: 'available' });
-    expect(modeRoutePolicy('deep', false).stageRoutes).toBe('all');
+    expect(modeRoutePolicy('balanced').stageRoutes).toBe('all');
+    expect(modeRoutePolicy('balanced')).toEqual({ stageRoutes: 'all', monitor: 'available' });
+    expect(modeRoutePolicy('deep').stageRoutes).toBe('all');
   });
 
-  it('keeps fast mode in its read-only cockpit projection', () => {
-    expect(modeRoutePolicy('fast', true)).toEqual({ planningSurface: 'cockpit', stageRoutes: 'none', monitor: 'default' });
+  it('keeps fast mode on the run monitor without a planning surface', () => {
+    expect(modeRoutePolicy('fast')).toEqual({ stageRoutes: 'none', monitor: 'default' });
   });
 
   it('differentiates monitor console availability per mode', () => {
-    expect(modeRoutePolicy('fast', false).monitor).toBe('default');
-    expect(modeRoutePolicy('balanced', false).monitor).toBe('available');
-    expect(modeRoutePolicy('deep', true).monitor).toBe('none');
+    expect(modeRoutePolicy('fast').monitor).toBe('default');
+    expect(modeRoutePolicy('balanced').monitor).toBe('available');
+    expect(modeRoutePolicy('deep').monitor).toBe('none');
   });
 });

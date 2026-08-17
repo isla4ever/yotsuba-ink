@@ -1,6 +1,6 @@
 import { Check, LockKeyhole } from 'lucide-react';
 
-export type RefChipOption = { id: string; label: string; hint?: string };
+export type RefChipOption = { disabled?: boolean; id: string; label: string; hint?: string };
 
 type Props = {
   ariaLabel: string;
@@ -34,11 +34,12 @@ export function ArtifactRefChips({ ariaLabel, lockedIds = [], onChange, options,
       {options.map((option) => {
         const active = selected.includes(option.id);
         const locked = lockedIds.includes(option.id);
+        const unavailable = Boolean(option.disabled) && !active;
         return (
           <button
             aria-pressed={active}
             className={`vnext-ref-chip${active ? ' active' : ''}${locked ? ' locked' : ''}`}
-            disabled={readOnly || locked}
+            disabled={readOnly || locked || unavailable}
             key={option.id}
             onClick={() => toggle(option.id)}
             title={option.hint ?? option.label}

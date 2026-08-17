@@ -48,7 +48,7 @@ describe('useActiveRunDefinition', () => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })));
-    expect(observed?.definition?.scale_profile.chapter_target_soft).toBe(3);
+    expect(observed?.definition?.scale_profile.word_target_soft).toBe(100_000);
     expect(observed?.loading).toBe(false);
   });
 
@@ -73,7 +73,6 @@ function definition(): GraphRunDefinition {
     inputs: {},
     scale_profile: scaleProfileFromLengthEnvelope({
       word_target_soft: 100_000,
-      chapter_target_soft: 3,
     }),
     provider_bindings: frozenProviderBindingsFixture(),
     cover_asset_binding: frozenCoverAssetBindingFixture(),

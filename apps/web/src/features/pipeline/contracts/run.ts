@@ -224,10 +224,18 @@ export type GraphRunDefinition = Readonly<{
     format: 'md' | 'json' | 'zip';
     author: string;
     version_note: string;
+    include_cover_image?: boolean;
   };
   branch_origin?: {
     source_run_id: string;
     source_checkpoint_id: string;
+    frontier_mode: 'active_decision' | 'stage_boundary';
+    binding_override?: {
+      source_workflow_id: string;
+      source_workflow_revision: string;
+      source_workflow_digest: string;
+      stages: ProviderStageId[];
+    } | null;
   } | null;
   created_at: string;
 }>;
@@ -316,18 +324,37 @@ export type RunEvent = {
   checkpoint_id: string;
 };
 
+export type RunArtifactRecord = {
+  artifact_id: string;
+  run_id: string;
+  stage_id: NarrativeStageId;
+  status: 'candidate' | 'committed' | 'rejected';
+  payload: Record<string, unknown>;
+  signature: string;
+  created_at: string;
+  source: string;
+};
+
+export type StageArtifactDraftRecord = {
+  draft_id: string;
+  run_id: string;
+  stage_id: NarrativeStageId;
+  decision_id: string;
+  domain_revision: number;
+  source_artifact_id: string;
+  payload: Record<string, unknown>;
+  signature: string;
+  created_at: string;
+};
+
 type RunInputBase = {
-  title: string;
-  theme: string;
   /** Required owning project id for the canonical Run repository. */
   project_id: string;
   quality_mode: QualityMode;
   length_envelope: LengthEnvelope;
   /** Deep-mode structural customization; the backend honors it only in deep quality mode. */
   scale_overrides?: {
-    volume_target: number | null;
     turn_target: number | null;
-    cast_demand_target: number | null;
   };
   run_intent: {
     project_brief: Record<string, unknown>;
@@ -337,6 +364,7 @@ type RunInputBase = {
     format: 'md' | 'json' | 'zip';
     author: string;
     version_note: string;
+    include_cover_image?: boolean;
   };
 };
 

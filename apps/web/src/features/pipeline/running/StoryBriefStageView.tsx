@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { suggestScalePlan } from '../lib/narrativeScale';
 import { parseStoryBriefArtifact, type StoryBriefArtifact } from './artifactsVnext';
 import { VnextArtifactError } from './VnextArtifactError';
 
@@ -9,6 +10,7 @@ export function StoryBriefStageView({ onArtifactChange, readOnly, result }: Prop
   const [artifact, setArtifact] = useState<StoryBriefArtifact | null>(parsed.artifact);
   useEffect(() => { if (parsed.artifact) setArtifact(parsed.artifact); }, [parsed.artifact]);
   if (!artifact) return <VnextArtifactError errors={parsed.errors} label="Story Brief" />;
+  const scalePlan = suggestScalePlan(artifact.length_envelope);
   const update = (next: StoryBriefArtifact) => { setArtifact(next); onArtifactChange(next); };
   return (
     <div className="vnext-artifact-workbench story-brief-vnext">
@@ -29,18 +31,19 @@ export function StoryBriefStageView({ onArtifactChange, readOnly, result }: Prop
         <label className="vnext-field vnext-wide"><span>叙事声音</span><textarea onChange={(event) => update({ ...artifact, voice: event.target.value })} readOnly={readOnly} rows={3} value={artifact.voice} /></label>
       </section>
       <section className="vnext-artifact-section">
-        <header><div><span>长度包络</span><strong>软目标，不锁定故事边界</strong></div></header>
+        <header><div><span>长度与结构</span><strong>数量由冻结编辑政策确定</strong></div></header>
         <div className="vnext-field-grid">
-          <NumberField label="目标字数" onChange={(value) => update({ ...artifact, length_envelope: { ...artifact.length_envelope, word_target_soft: value } })} readOnly={readOnly} value={artifact.length_envelope.word_target_soft} />
-          <NumberField label="建议章数" onChange={(value) => update({ ...artifact, length_envelope: { ...artifact.length_envelope, chapter_target_soft: value } })} readOnly={readOnly} value={artifact.length_envelope.chapter_target_soft} />
+          <NumberField label="冻结目标字数" readOnly value={artifact.length_envelope.word_target_soft} />
+          <NumberField label="系统章节数" readOnly value={scalePlan.chapterTarget} />
+          <NumberField label="系统分卷数" readOnly value={scalePlan.volumeTarget} />
         </div>
       </section>
     </div>
   );
 }
 
-function NumberField({ label, onChange, readOnly, value }: { label: string; onChange: (value: number | null) => void; readOnly: boolean; value: number | null }) {
-  return <label className="vnext-field"><span>{label}</span><input min={1} onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)} readOnly={readOnly} type="number" value={value ?? ''} /></label>;
+function NumberField({ label, readOnly, value }: { label: string; readOnly: boolean; value: number | null }) {
+  return <label className="vnext-field"><span>{label}</span><input min={1} readOnly={readOnly} type="number" value={value ?? ''} /></label>;
 }
 
 function splitLines(value: string) { return value.split('\n').map((item) => item.trim()).filter(Boolean); }

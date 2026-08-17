@@ -3,13 +3,16 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from langgraph.types import Interrupt
 
 
 class CheckpointBranchError(ValueError):
     pass
+
+
+CheckpointBranchMode = Literal["active_decision", "stage_boundary"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,6 +22,7 @@ class CheckpointBranchPlan:
     records: tuple[Any, ...]
     frontier_values: tuple[dict[str, Any], ...]
     active_interrupt_ids: frozenset[str]
+    mode: CheckpointBranchMode
 
 
 async def build_checkpoint_branch_plan(
@@ -26,8 +30,9 @@ async def build_checkpoint_branch_plan(
     *,
     source_thread_id: str,
     checkpoint_id: str,
+    mode: CheckpointBranchMode = "active_decision",
 ) -> CheckpointBranchPlan:
-    """Resolve the exact interrupt frontier for an immutable branch snapshot."""
+    """Resolve one explicit immutable branch frontier."""
 
     source_config = {"configurable": {"thread_id": source_thread_id}}
     records = [record async for record in checkpointer.alist(source_config)]
@@ -43,9 +48,13 @@ async def build_checkpoint_branch_plan(
         raise CheckpointBranchError("Unknown top-level checkpoint")
 
     active_interrupt_ids = _interrupt_ids(selected)
-    if not active_interrupt_ids:
+    if mode == "active_decision" and not active_interrupt_ids:
         raise CheckpointBranchError(
             "A production branch must start from a checkpoint with an active decision"
+        )
+    if mode == "stage_boundary" and not _is_stable_stage_boundary(selected):
+        raise CheckpointBranchError(
+            "A stage-boundary branch requires a completed stage with a resumable next node"
         )
 
     records_by_key = {
@@ -72,23 +81,24 @@ async def build_checkpoint_branch_plan(
 
     include_chain("", checkpoint_id)
 
-    for record in records:
-        namespace = _namespace(record)
-        if not namespace or not (_interrupt_ids(record) & active_interrupt_ids):
-            continue
-        parents = record.metadata.get("parents") or {}
-        if str(parents.get("") or "") != checkpoint_id:
-            continue
-        record_key = (namespace, _checkpoint_id(record))
-        frontier_keys.add(record_key)
-        include_chain(*record_key)
-        for parent_namespace, parent_id in parents.items():
-            parent_namespace = str(parent_namespace)
-            parent_id = str(parent_id or "")
-            if not parent_namespace or not parent_id:
+    if mode == "active_decision":
+        for record in records:
+            namespace = _namespace(record)
+            if not namespace or not (_interrupt_ids(record) & active_interrupt_ids):
                 continue
-            frontier_keys.add((parent_namespace, parent_id))
-            include_chain(parent_namespace, parent_id)
+            parents = record.metadata.get("parents") or {}
+            if str(parents.get("") or "") != checkpoint_id:
+                continue
+            record_key = (namespace, _checkpoint_id(record))
+            frontier_keys.add(record_key)
+            include_chain(*record_key)
+            for parent_namespace, parent_id in parents.items():
+                parent_namespace = str(parent_namespace)
+                parent_id = str(parent_id or "")
+                if not parent_namespace or not parent_id:
+                    continue
+                frontier_keys.add((parent_namespace, parent_id))
+                include_chain(parent_namespace, parent_id)
 
     lineage = tuple(
         sorted(
@@ -113,7 +123,12 @@ async def build_checkpoint_branch_plan(
             deepcopy(record.checkpoint.get("channel_values") or {})
             for record in frontiers
         ),
-        active_interrupt_ids=frozenset(active_interrupt_ids),
+        active_interrupt_ids=(
+            frozenset(active_interrupt_ids)
+            if mode == "active_decision"
+            else frozenset()
+        ),
+        mode=mode,
     )
 
 
@@ -164,7 +179,10 @@ async def copy_checkpoint_lineage(
             checkpoint.get("channel_versions", {}),
         )
         grouped_writes: dict[str, list[tuple[str, Any]]] = defaultdict(list)
-        for task_id, channel, value in record.pending_writes or []:
+        pending_writes = record.pending_writes or []
+        if plan.mode == "stage_boundary":
+            pending_writes = []
+        for task_id, channel, value in pending_writes:
             if (
                 _interrupt_ids(record) & plan.active_interrupt_ids
                 and channel != "__interrupt__"
@@ -203,6 +221,23 @@ def _interrupt_ids(record: Any) -> set[str]:
     return ids
 
 
+def _is_stable_stage_boundary(record: Any) -> bool:
+    values = record.checkpoint.get("channel_values") or {}
+    active_stage = str(values.get("active_stage_id") or "")
+    stage_status = values.get("stage_status") or {}
+    has_next_node = any(
+        key.startswith("branch:to:")
+        for key in values
+    )
+    return (
+        bool(active_stage)
+        and stage_status.get(active_stage) == "completed"
+        and values.get("status") == "running"
+        and values.get("failure") is None
+        and has_next_node
+    )
+
+
 def _remap_identity(value: Any, source: str, target: str) -> Any:
     if isinstance(value, str):
         if value == source:
@@ -232,6 +267,7 @@ def _remap_identity(value: Any, source: str, target: str) -> Any:
 
 __all__ = [
     "CheckpointBranchError",
+    "CheckpointBranchMode",
     "CheckpointBranchPlan",
     "build_checkpoint_branch_plan",
     "copy_checkpoint_lineage",

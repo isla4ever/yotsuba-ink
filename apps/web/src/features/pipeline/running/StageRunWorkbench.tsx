@@ -7,13 +7,14 @@ import { RuntimeInsights } from './RuntimeInsights';
 import type { RuntimeInsightContext } from './RuntimeInsightPanel';
 import { RuntimeSideDetailSheet } from './RuntimeSideDetailSheet';
 import { StageRunMainArea } from './StageRunMainArea';
-import { currentStageArtifact, type StageArtifactDraft } from './stageArtifactState';
+import { currentStageArtifact } from './stageArtifactState';
 import { StageSettlementOverlay } from './StageSettlementOverlay';
 import { stageRuntimeLayout, type RuntimePanelKey } from './stageRuntimeLayout';
 import { latestApprovedArtifact, latestResult } from './stageRunUtils';
 import { runtimeArtifactProjection } from './runtimeArtifactProjection';
 import { useActiveRunDefinition } from '../state/useActiveRunDefinition';
 import { useChapterContextManifest } from '../state/useChapterContextManifest';
+import { useStageArtifactDraft } from '../state/useStageArtifactDraft';
 
 type Props = {
   activeRunId: string;
@@ -25,13 +26,10 @@ type Props = {
   onContinueSettlement: () => void;
   workflow: WorkflowDefinition;
   activeStage: WorkflowStage;
-  approvalDraft: string;
-  approvalPending: boolean;
   knowledgeDocuments: KnowledgeDocument[];
-  onApprovalDraftChange: (value: string) => void;
   onApproveBrief: (artifact: string) => Promise<boolean>;
   onOpenKnowledgeManager: () => void;
-  onOpenWorkbench?: () => void;
+  onOpenConsole?: () => void;
   onRegenerateBrief: (direction?: string) => Promise<boolean>;
   onConfirmStageArtifact: (stageId: string, artifact?: string) => Promise<boolean>;
   onRegenerateStageDraft: (stageId: string, direction: string, chapterId?: string) => void;
@@ -39,16 +37,13 @@ type Props = {
 
 export function StageRunWorkbench({
   activeRunId,
-  approvalDraft,
-  approvalPending,
   events,
   knowledgeDocuments,
   memoryEvents,
-  onApprovalDraftChange,
   onApproveBrief,
   onContinueSettlement,
   onOpenKnowledgeManager,
-  onOpenWorkbench,
+  onOpenConsole,
   onRegenerateBrief,
   onConfirmStageArtifact,
   onRegenerateStageDraft,
@@ -57,7 +52,6 @@ export function StageRunWorkbench({
   settlementDwell,
   settlementStageId,
 }: Props) {
-  const [stageArtifactDrafts, setStageArtifactDrafts] = useState<Record<string, StageArtifactDraft>>({});
   const [sideDetailPanel, setSideDetailPanel] = useState<RuntimePanelKey | null>(null);
   const runDefinition = useActiveRunDefinition(activeRunId);
   const contextManifest = useChapterContextManifest(
@@ -68,19 +62,26 @@ export function StageRunWorkbench({
   const runtimeLayout = stageRuntimeLayout[activeStage.type];
   const hasSidePanels = runtimeLayout.primary.length > 0 || runtimeLayout.compact.length > 0;
   const hasContextRail = hasSidePanels && runtimeLayout.primary.length === 0 && runtimeLayout.compact.length > 0;
-  const briefArtifact = latestApprovedArtifact(events, 'brief') || latestResult(events, 'brief') || approvalDraft;
+  const briefArtifact = latestApprovedArtifact(events, 'brief') || latestResult(events, 'brief');
+  const activeStageSource = latestResult(events, activeStage.id);
+  const stageDraftPersistence = useStageArtifactDraft({
+    events,
+    runId: activeRunId,
+    source: activeStageSource,
+    stageId: activeStage.id,
+  });
   const castArtifact = latestApprovedArtifact(events, 'cast') || latestResult(events, 'cast');
   const spineBaselineArtifact = latestApprovedArtifact(events, 'spine') || latestResult(events, 'spine');
   const spineSource = activeStage.type === 'spine' ? latestResult(events, activeStage.id) : spineBaselineArtifact;
-  const spineDraft = stageArtifactDrafts[activeStage.id];
+  const spineDraft = activeStage.type === 'spine' ? stageDraftPersistence.draft : undefined;
   const spineValue = spineDraft?.source === spineSource ? spineDraft.value : spineSource;
   const volumesBaselineArtifact = latestApprovedArtifact(events, 'volumes') || latestResult(events, 'volumes');
   const volumesSource = activeStage.type === 'volumes' ? latestResult(events, activeStage.id) : volumesBaselineArtifact;
-  const volumesDraft = stageArtifactDrafts[activeStage.id];
+  const volumesDraft = activeStage.type === 'volumes' ? stageDraftPersistence.draft : undefined;
   const volumesValue = volumesDraft?.source === volumesSource ? volumesDraft.value : volumesSource;
   const detailBaselineArtifact = latestApprovedArtifact(events, 'detail') || latestResult(events, 'detail');
   const detailSource = activeStage.type === 'detail' ? latestResult(events, activeStage.id) : detailBaselineArtifact;
-  const detailDraft = stageArtifactDrafts[activeStage.id];
+  const detailDraft = activeStage.type === 'detail' ? stageDraftPersistence.draft : undefined;
   const detailValue = detailDraft?.source === detailSource ? detailDraft.value : detailSource;
   const projection = runtimeArtifactProjection({
     activeStageType: activeStage.type,
@@ -117,21 +118,18 @@ export function StageRunWorkbench({
       />
       <StageRunMainArea
         activeRunId={activeRunId}
-        approvalDraft={approvalDraft}
-        approvalPending={approvalPending}
         events={events}
-        onApprovalDraftChange={onApprovalDraftChange}
         onApproveBrief={onApproveBrief}
         onConfirmStageArtifact={onConfirmStageArtifact}
-        onOpenWorkbench={onOpenWorkbench}
+        onOpenConsole={onOpenConsole}
         onOpenRuntimePanel={setSideDetailPanel}
         onRegenerateBrief={onRegenerateBrief}
         onRegenerateStageDraft={onRegenerateStageDraft}
-        onStageArtifactDraftChange={(stageId, source, value) => {
-          setStageArtifactDrafts((current) => ({ ...current, [stageId]: { source, value } }));
-        }}
+        onStageArtifactDraftChange={stageDraftPersistence.change}
         stage={activeStage}
-        stageArtifactDraft={stageArtifactDrafts[activeStage.id]}
+        stageArtifactDraft={stageDraftPersistence.draft}
+        stageArtifactDraftError={stageDraftPersistence.error}
+        stageArtifactDraftStatus={stageDraftPersistence.status}
         runDefinition={runDefinition.definition}
         workflow={workflow}
       />

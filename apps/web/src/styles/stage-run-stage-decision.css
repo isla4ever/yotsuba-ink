@@ -33,9 +33,13 @@
 }
 
 .stage-decision-bar span {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--muted);
+  display: -webkit-box;
   font-size: 11px;
   line-height: 1.35;
+  overflow: hidden;
 }
 
 .stage-decision-actions {

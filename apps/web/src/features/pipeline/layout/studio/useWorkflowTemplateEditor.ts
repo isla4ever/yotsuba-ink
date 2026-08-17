@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WorkflowDefinition, WorkflowStage } from '../../contracts';
-import { getWorkflowDefinitionById, saveWorkflowDefinition } from '../../services/workflowApi';
+import {
+  duplicateWorkflowDefinition,
+  getWorkflowDefinitionById,
+  saveWorkflowDefinition,
+} from '../../services/workflowApi';
 import { withAddedModelOption, withQualityMode, withUpdatedStage } from '../../state/workflowMutations';
 
 export type TemplateEditorSaveState = 'idle' | 'saving' | 'saved' | 'failed';
@@ -60,12 +64,20 @@ export function useWorkflowTemplateEditor(workflowId: string) {
     addModelOption: useCallback((providerId: string, model: string) => {
       edit((current) => withAddedModelOption(current, providerId, model));
     }, [edit]),
+    createOneTimeCopy: useCallback(() => duplicateWorkflowDefinition(workflowId, {
+      name: '本书专用创作流水线',
+      is_template: false,
+    }), [workflowId]),
     error,
     loading,
     renameTemplate: useCallback((name: string) => {
       edit((current) => ({ ...current, name }));
     }, [edit]),
     saveState,
+    saveAsTemplate: useCallback((name: string) => duplicateWorkflowDefinition(workflowId, {
+      name,
+      is_template: true,
+    }), [workflowId]),
     setQualityMode: useCallback((mode: WorkflowDefinition['quality_mode']) => {
       edit((current) => withQualityMode(current, mode));
     }, [edit]),

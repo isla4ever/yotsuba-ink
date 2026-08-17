@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { ExportReceipt, RunControlState, RunHistoryItem } from '../contracts';
-import { createRunBranch, getRun } from '../services/runApi';
+import { createRunBranch, getRun, getRunPresentationSnapshot } from '../services/runApi';
 import {
   downloadRunExportReceipt,
 } from '../services/runHistoryApi';
@@ -29,9 +29,15 @@ export function useRunHistoryActions(options: Options) {
     }
     options.cancelInitialRecovery();
     try {
-      const source = await getRun(item.run_id);
+      const snapshot = await getRunPresentationSnapshot(item.run_id);
+      const source = snapshot.envelope;
       // Explicit open: terminal runs are presented read-only instead of discarded.
-      const resolution = resolveServerRunPresentation(source, item.run_id);
+      const resolution = resolveServerRunPresentation(
+        source,
+        item.run_id,
+        snapshot.committedArtifacts,
+        snapshot.acceptedChapters,
+      );
       if (resolution.kind !== 'restore') {
         options.onWarning('该作品的最新运行没有可恢复的 LangGraph 状态。');
         return '';
@@ -39,7 +45,7 @@ export function useRunHistoryActions(options: Options) {
       options.stopActiveStream();
       await options.onProjectContext(source.definition.project_id);
       options.setRunSource('backend');
-      void options.onRestore(resolution.hydrated, resolution.reconnect);
+      await options.onRestore(resolution.hydrated, resolution.reconnect);
       options.onWarning('');
       return resolution.hydrated.selectedId || item.current_stage.id || 'brief';
     } catch (error) {
@@ -49,18 +55,8 @@ export function useRunHistoryActions(options: Options) {
   }, [options]);
 
   const openRun = useCallback(async (item: RunHistoryItem) => {
-    if (item.run_id === options.activeRunId) {
-      try {
-        const envelope = await getRun(item.run_id);
-        options.onWarning('');
-        return envelope.read_model.active_stage_id;
-      } catch (error) {
-        options.onWarning(`读取当前运行配置失败：${errorMessage(error)}`);
-        return '';
-      }
-    }
     return restoreProjectRun(item);
-  }, [options.activeRunId, options.onWarning, restoreProjectRun]);
+  }, [restoreProjectRun]);
 
   const branchFromCheckpoint = useCallback(async (item: RunHistoryItem) => {
     if (options.activeRunId && options.activeRunId !== item.run_id && (options.running || ['starting', 'running', 'stop_requested'].includes(options.runControlState))) {
@@ -83,8 +79,13 @@ export function useRunHistoryActions(options: Options) {
       }
       const targetRunId = branchRunId();
       await createRunBranch(item.run_id, source.read_model.checkpoint_id, targetRunId);
-      const branch = await getRun(targetRunId);
-      const resolution = resolveServerRunRecovery(branch, targetRunId);
+      const branchSnapshot = await getRunPresentationSnapshot(targetRunId);
+      const branch = branchSnapshot.envelope;
+      const resolution = resolveServerRunRecovery(
+        branch,
+        targetRunId,
+        branchSnapshot.committedArtifacts,
+      );
       if (resolution.kind !== 'restore') {
         options.onWarning('新分支没有形成可恢复的 LangGraph 决策状态。');
         return '';
@@ -92,7 +93,7 @@ export function useRunHistoryActions(options: Options) {
       options.stopActiveStream();
       await options.onProjectContext(branch.definition.project_id);
       options.setRunSource('backend');
-      void options.onRestore(resolution.hydrated, resolution.reconnect);
+      await options.onRestore(resolution.hydrated, resolution.reconnect);
       options.onWarning('');
       await options.historyRefresh();
       return resolution.hydrated.selectedId || item.current_stage.id || 'brief';

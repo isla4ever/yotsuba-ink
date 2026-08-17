@@ -1,4 +1,5 @@
 import type { RunEvent, StageType, WorkflowStage } from '../contracts';
+import { isFailureDecision, pendingStageDecision } from '../lib/runDecisionProjection';
 import { eventStageId } from './stageRunUtils';
 
 export type ArtifactSource = 'live' | 'fixture';
@@ -17,31 +18,63 @@ const artifactEventTypes = new Set([
   'artifact.committed',
 ]);
 
-export function stageArtifactState(stage: WorkflowStage, events: RunEvent[], draft = ''): StageArtifactState {
+export function stageArtifactState(stage: WorkflowStage, events: RunEvent[]): StageArtifactState {
   const stageEvents = events.filter((event) => eventStageId(event) === stage.id || event.type === 'run.failed');
-  const failure = stageEvents.find((event) => event.type === 'run.failed');
+  const failure = activeRunFailure(stageEvents);
   if (failure) {
     const message = payloadText(failure, 'message') || payloadText(failure, 'code') || '阶段执行失败，请返回工作台检查运行配置。';
     return { status: 'error', message };
   }
 
+  const pendingDecision = pendingStageDecision(stageEvents, stage.id);
+  const failureDecision = isFailureDecision(pendingDecision) ? pendingDecision : undefined;
   const artifactIndex = stageEvents.findIndex((event) => artifactEventTypes.has(event.type));
   if (artifactIndex >= 0) {
     const artifactEvent = stageEvents[artifactIndex];
     const newerEvents = stageEvents.slice(0, artifactIndex);
+    if (failureDecision && failureDecision.sequence > artifactEvent.sequence) {
+      return assessArtifact(stage.type, artifactEvent.payload, artifactSource(artifactEvent));
+    }
     if (newCandidateCycleStarted(stage.type, artifactEvent, newerEvents)) {
       return { status: 'streaming', sections: streamSections(stageEvents) };
     }
     return assessArtifact(stage.type, artifactEvent.payload, artifactSource(artifactEvent));
   }
 
-  if (stage.type === 'brief' && draft.trim()) {
-    return assessArtifact(stage.type, draft, 'live');
+  const recoverableFailure = failureDecision
+    ? stageEvents.find((event) => event.type === 'node.failed' && event.sequence < failureDecision.sequence)
+    : undefined;
+  if (recoverableFailure && failureDecision) {
+    const message = payloadText(recoverableFailure, 'message') || payloadText(recoverableFailure, 'code') || '本次生成未通过阶段合同。';
+    return { status: 'error', message };
   }
+
   if (stageEvents.some((event) => event.type === 'node.started')) {
     return { status: 'streaming', sections: streamSections(stageEvents) };
   }
   return { status: 'empty' };
+}
+
+function activeRunFailure(events: RunEvent[]) {
+  const failure = events
+    .filter((event) => event.type === 'run.failed')
+    .reduce<RunEvent | undefined>((latest, event) => (
+      !latest || event.sequence > latest.sequence ? event : latest
+    ), undefined);
+  if (!failure) return undefined;
+  const superseded = events.some((event) => (
+    event.sequence > failure.sequence
+    && (
+      event.type === 'branch.created'
+      || event.type === 'run.started'
+      || event.type === 'run.completed'
+      || event.type === 'node.started'
+      || event.type === 'decision.required'
+      || event.type === 'decision.resolved'
+      || artifactEventTypes.has(event.type)
+    )
+  ));
+  return superseded ? undefined : failure;
 }
 
 function newCandidateCycleStarted(type: StageType, artifactEvent: RunEvent, newerEvents: RunEvent[]) {

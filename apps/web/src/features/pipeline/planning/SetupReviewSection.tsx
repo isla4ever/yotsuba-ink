@@ -44,7 +44,7 @@ export function SetupReviewSection({
   return (
     <section aria-labelledby="setup-step-title-review" className="setup-form-section setup-review-section">
       <header>
-        <p className="eyebrow">第 3 步</p>
+        <p className="eyebrow">第 2 步</p>
         <h2 id="setup-step-title-review" tabIndex={-1}>确认启动</h2>
         <p>参考方式与创作模式已使用推荐默认，点开卡片即可修改。开始后会按当前快照创建运行。</p>
       </header>

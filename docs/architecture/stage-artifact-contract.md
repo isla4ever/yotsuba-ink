@@ -1,6 +1,6 @@
 # Yotsuba Ink vNext Stage Artifact Contract
 
-状态：Phase 27 实施中的唯一生产合同（2026-08-12）。生产阶段、Artifact、Run 输入与 LangGraph 路径必须遵循本文；Phase 26 和更早文档只保留为失败证据。当前仅证明离线合同与 fake Provider 基线，尚未完成 Phase 27 浏览器矩阵、全新真实 Provider Run、8-12 章单卷冷读或投稿质量验收。
+状态：Phase 27 唯一生产合同（2026-08-17 v1.0 Demo 收口）。生产阶段、Artifact、Run 输入与 LangGraph 路径必须遵循本文；Phase 26 和更早文档只保留为失败证据。当前已完成浏览器矩阵、全新 `official-deepseek-balanced` 真实长篇 Run 与 Export；人工逐章冷读、真实图片生图和投稿质量仍是后续软质量工作，不改变本合同硬门。
 
 ## 生产阶段
 
@@ -9,6 +9,15 @@
 ```text
 brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 ```
+
+### 新建作品合同
+
+新建作品固定为两步，且不增加 `info` 或其他运行阶段：
+
+1. 先选择一套官方或自定义流水线；需要调整时进入独立配置页，可仅供本书使用或另存为模板。
+2. 再提交一段自由创作想法。建书接口只接收该想法和已选流水线，不提前要求用户填写书名、题材或结构表单。
+
+作品创建后以“待定书名”显示，创作想法写入项目专属流水线 `brief.core_concept`。正式书名属于 `StoryBriefArtifact.title`：由 `brief` 生成，必须是 2-30 字的非占位标题，用户确认 Brief 后才投影到作品列表、运行历史和导出元数据。Brief 候选稿或未确认内容不得提前改写作品标题。
 
 | 阶段 | 唯一核心 Artifact | 用户决策 | 正式写回 | 下游依赖 |
 | --- | --- | --- | --- | --- |
@@ -27,11 +36,12 @@ brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 
 ### 核心 Artifact
 
-- `StoryBriefArtifact`：`title`、`premise`、`promise`、`world_rules`、`theme`、`ending_promise`、`voice`、`length_envelope`。
-- `StorySpineArtifact`：确定性 `turn-N`、每个 turn 的 `cause/change`、`ending`、有限 `open_questions` 和 `progress_types`。
-- `CharacterBibleArtifact`：预分配稳定 subject id；每个主体只保存 `name/kind/function/drive/change/debut/limits/demand_refs`，关系只引用冻结 id。`historical_record` 不得承担 POV 或产生当下行动。
-- `VolumeArchitectureArtifact`：确定性 `volume-N`、2-12 字唯一卷名、`promise/conflict/climax/closure`、连续 `turn_refs`、`cast_ids/thread_ids` 和粗粒度 `length_hint`；精确章数由确定性 Scale 投影按卷负载冻结。
-- `DetailArtifact`：连续 `chapter-N`、卷引用、2-12 字唯一章名、代码冻结的逐章目标字符数、`purpose`、POV id、2-4 个 `scenes { place/objective/conflict/turn/result }` 和 handoff；相邻章场景数最多相差 1。
+- `StoryBriefArtifact`：`title`、`premise`、`promise`、`world_rules`、`theme`、`ending_promise`、`voice`、`length_envelope`。其中 `length_envelope` 是 Run 创建时冻结输入的只读镜像；官方流程只让用户填写全书字符目标，章数与卷数由代码根据冻结编辑政策计算，Provider 和阶段编辑都不能另行填写或改写。要改变篇幅目标必须新建 Run。Brief 只冻结主人公处境、读者承诺、最少必要世界规则、核心两难、终局代价与叙事声音，不替 Spine 冻结潜入、取物、工具、权限、抓捕逃脱、设施防护等行动路线；一次性障碍、设备清单和证据获取步骤不得伪装成 `world_rules`。
+- `StorySpineArtifact`：确定性 `turn-N`、每个 turn 的 `cause/change/progress_type/milestones`、`ending`、有限 `open_questions` 和 `progress_types`。代码先按冻结章数与章节承载密度计算容量区间，再冻结其中的精确 `turn_target`；Provider 必须一次返回该精确数量，不能自行选择区间端点或靠换稿纠正数量。Provider 只写 `cause/change/progress_type`，六个 `milestones` 的位置由代码按精确 turn 数绑定并写入 Artifact；对应位置必须承担启动、承诺、中心反转、危机、唯一高潮和余波语义。短篇可在保持顺序时合并相邻功能。长篇还必须包含 relationship 与 external 推进，12 turns 以上至少有两次 external 推进，禁止连续三个 information turn；不同 turns 不得复用相同 `cause` 或 `change`，单个 turn 的前因和变化也不能是同一状态。最终渲染 Prompt 必须要求 Provider 在同一次响应内静默核对数量、锚点、因果链与推进节奏；独立语义预审再检查责任归属、动机桥、行动主体、现实可行性、因果交接、重复推进、提前结案和终局推导。未通过的私有草稿不能写入候选：局部问题可在同一冻结合同下有界修复；提前结案、重复推进和因果交接同时失效时，运行时必须丢弃失败稿正文，只把根因清单带入一次全新因果重规划，避免模型锚定旧链。两类内部处理都不属于用户换稿。
+- `CharacterBibleArtifact`：Role Demand 先按全书规模获得动态容量区间，再只从已冻结 Spine 提取不可合并职责；独立预审通过后代码才预分配稳定 subject id。每个主体保存 `name/kind/function/background/conflict_history/present_stakes/temperament/speech_style/drive/change/debut/limits/demand_refs`，关系只引用冻结 id。`background` 只写故事开始前已经成立的身份与经历，`conflict_history` 单列其与核心冲突的既往渊源，`present_stakes` 明确当下失败会失去的具体人、关系、资格、位置或信念，`temperament` 与 `speech_style` 必须能被正文直接演绎，`limits` 必须写具体能力、伦理、知识、资源或行为边界；空泛标签、运行时术语、重名主体和多主角都由严格合同拒绝。每个档案分组还必须在候选写入前经过独立语义预审，核对需求对齐、背景时态、冲突史、利害归属、动机桥、行为区分与历史主体边界；私有修复不会生成用户可见候选。关系 `type/pressure` 必须描述已成立的选择、信任、责任或风险，不能使用“可能、或许、潜在、关系复杂”等未决表述。`role_demand.proposal` 与两类预审都属于 Cast Provider binding，不属于 Spine binding；每项 demand 必须显式冻结 `subject_mode=actor|historical_record`、`narrative_role` 与 `irreducibility`，其中 `irreducibility` 必须指出无法并入已有主体或机构的具体选择、压力或后果。预分配 subject ref 携带同一模式，代码强制 actor 生成非历史档案、historical_record 生成历史档案。唯一主角的 demand 必须同时引用首尾 Spine turns；actor 的 `active_turn_refs` 表示第一次真正登台的位置，historical_record 表示其身份、声音、证词、遗物或缺席第一次成为有效叙事依据的位置。代码再依据完整 turn 数与冻结章数确定性投影 `debut` 窄章节窗口。`turn-N` 不是 `chapter:N`，不得直接抄号。`historical_record` 的变化只描述其记录或遗产的叙事意义变化，不得承担 POV、当下行动或当下说话。
+- `VolumeArchitectureArtifact`：确定性 `volume-N`、2-12 字唯一卷名、`promise/conflict/climax/closure`、连续 `turn_refs`、`cast_ids` 和粗粒度 `length_hint`。代码先用全书精确章节目标与冻结的单卷 `8-20` 章、首选约 `14` 章产品政策计算 `volume_min/target/max`，再要求 `VolumeBoundaryProposal` 精确返回 `volume_target` 个连续边界。模型拥有自然边界位置、卷名与卷内承诺的创作权，不拥有卷数。代码随后只按各卷 turn 负载和每卷容量边界分配精确章节槽位；`length_hint` 不参与数量计算。DetailLayout 只负责把连续 turns 和独立戏剧任务编排进这些槽位，不拥有增删槽位的数值权威。当前没有独立叙事线程注册表，因此 Artifact、UI 和下游上下文均不得生成或展示 `thread_ids`。
+- Volumes 的“换一稿”会先使用同一条阶段修订意见重新生成自然卷界提案，再按新边界逐卷重写合同；不得复用上一稿的 boundary proposal，否则 UI 中“调整自然卷界”会成为无效操作。新的 boundary proposal 输入不携带上一稿边界，避免模型把旧答案当作冻结事实。
+- `DetailArtifact`：连续 `chapter-N`、卷引用、2-12 字唯一章名、代码冻结的逐章目标字符数、`purpose`、POV id、动态场景区间内的 `scenes { place/objective/conflict/turn/result }` 和 handoff。系统先以合理章长带推导并冻结全书精确章数，再按确定性卷数、自然边界与逐卷 turn 负载分配精确章节槽位；`length_hint` 只描述内容负载，不参与数量计算。DetailLayout 把必要 POV 交接、地点/时间断点、关系并发和独立台面变化映射进每个槽位，无法无填充地支撑全部槽位时必须返回 `insufficient` 并退回上游重规划，不能自行缩短章节数组。系统再以冻结总章数、全书预算中心和单场景承载区间收窄本 Run 的每章可行场景容量。该区间只是防止单场过载或章节碎片化的容量边界，不是固定的场景配额。Spine 冻结宏观 cause/change 端点，Detail 拥有把端点演成可执行剧本的局部创作权：可以生成因果桥接所必需的尝试、受阻、策略选择、关系反应、失败的中间结果和后果传播，并让相邻章节引用同一 turn；这些局部动作不得改变该 turn 的起点事实和终局变化，也不得新增主线线索、具名主体、机构规则、权限、时间事实、宏观结果或支线。Provider 再按每章的事件单元、对抗层次、时空转换与不可逆转折动态选择场数，不得机械统一。Detail 是可执行的章节剧本卡，不是正文梗概：`purpose`、场景字段和 handoff 只记录本章要演出的事件、人物、冲突、转折、结果与交接。`target_characters` 只属于正文预算元数据，不计入细纲内容字数；Detail 调用应保持短而可核对，禁止扩写对白、氛围、内心或文学化填充。
 - `ChapterArtifact`：章节 id、运行时分配的版本 id、从 Detail 原样继承的只读章名、正文和 `author_status`。正文 Provider 只返回纯文本流；版本身份、标题和状态由 LangGraph 确定性绑定。
 - `CoverArtifact`：可执行 `brief` 和已选择资产 id；资产 URL、尺寸和生成收据属于 sidecar。
 - `ExportArtifact`：格式、已接受章节版本 id、封面资产 id 和导出元数据。
@@ -42,7 +52,7 @@ brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 
 ### 运行时 sidecar
 
-`NarrativeRunState` 只保存 routing：`run_id`、阶段状态、Artifact ref、章节版本 ref、当前节点、decision ref、operation ref、失败证据 ref 和状态 revision。Provider receipt、token/cost、review lane、checkpoint id、interrupt、Evidence、Outbox 事务和 SSE 序列存放在各自的领域存储。
+`NarrativeRunState` 只保存 routing：`run_id`、阶段状态、Artifact ref、章节版本 ref、当前节点、decision ref、operation ref、失败证据 ref 和状态 revision。Provider receipt、脱敏的模型可见输入快照、token/cost、review lane、checkpoint id、interrupt、Evidence、Outbox 事务和 SSE 序列存放在各自的领域存储；输入快照不得进入 Graph State。
 
 ### 窄调用 / 工具结果
 
@@ -56,14 +66,15 @@ brief -> spine -> cast -> volumes -> detail -> text -> cover -> export
 
 `cast` 是正文前唯一具名主体注册表。`volumes`、`detail`、`text` 只能引用冻结主体 id。新增主体、职责升级、关系重定向或首次出现窗口变化必须生成带触发证据和影响 Artifact 的 `CharacterChangeProposal`，由 LangGraph `interrupt()` 等待明确批准后创建新版本；不得在下游阶段临时补登记、转换旧槽位或用 alias 修复引用。
 
-主角和重要配角必须冻结完整档案；功能角色必须冻结剧情职责；必要功能主体与历史主体必须在正文前冻结稳定名称、类型、用途、窗口和至少一条限制，不能升级职责。Fast 模式也必须在正文前产生版本和决策回执。
+主角和重要配角必须冻结完整档案；功能角色必须冻结剧情职责；必要功能主体与历史主体必须在正文前冻结稳定名称、类型、用途、窗口和至少一条限制，不能升级职责。人物数量由冻结章数和培养密度动态投影为最小可培养容量、编辑中心与硬上限；Provider 必须至少满足动态下限，实际数量仍由不可合并的 Role Demand 决定，不能用机构代表或空泛人物填槽。默认 10 万字、40 章时建议下限 `3`、编辑中心上限 `7`、硬上限 `11`；超过上限或低于下限都必须重新评估，不能让模型自行放宽。长篇每一个 relationship turn 都必须由至少一个非主角 demand 的 `active_turn_refs` 覆盖，不能出现“Spine 声称关系变化、Cast 却没有另一方”的断链。所有 `debut` 窗口使用精确冻结章数投影，不使用章节可行区间下限。Fast 模式也必须在正文前产生版本和决策回执。
 
 ## Memory、Wiki、Canon、RAG
 
 - 用户上传知识库是前置 `brief` 的 Source Pack。RAG 只在 `brief/spine/volumes` 前置规划读取，结果带来源、签名和采用状态；正文节点禁止盲检索。
 - Worldbuilding 是创作设定；Character Graph 是角色与关系投影；Wiki 是正文 Evidence 驱动的事实账本；Canon 是用户批准后的事实权威；它们不能互相代替。
 - Evidence 先生成 proposal，用户或明确的写回节点批准后才进入 Canon/Wiki；Retrieval、proposal agent 和模型自评分没有写权限。
-- 全书字符目标按去除空白后的字符数确定性均分到冻结章数，各章目标最多相差 1 字。正文容差为极速 ±15%、平衡 ±12%、精细 ±8%；超界时完整定向重写，最多 3 次，不截断正文，也不允许改动冻结章名、场景转折或交接。
+- 全书字符目标按去除空白后的字符数统计。Run 冻结默认 `2000-3000` 字、首选 `2500` 字的编辑章长政策，由全书目标除以章长上限/下限得到章节可行区间，再以 `round(全书目标 / 2500)` 冻结精确章数；用户与模型都不能覆盖。系统随后使用单卷 `8-20` 章、首选约 `14` 章的产品容量政策，从精确章数推导卷数可行区间和精确卷数。10 万字因此固定为 `34-50` 章可行容量、`40` 章精确目标，以及 `2-5` 卷可行容量、`3` 卷精确目标。该卷政策是 Yotsuba Ink 的编辑策略，不伪称行业统一定律。`VolumeBoundaryProposal` 必须精确返回三个连续自然边界，模型只决定边界落在哪些 turns 之间。代码再按各卷连续 turn 负载、单卷容量与 turn 承载密度分配精确且总和为 40 的卷内章节槽位；`length_hint` 和人物数量都不参与数量计算。失衡到无法承载的边界退回 Volumes，不能把末卷压成三四章或让 Detail 补水。DetailLayout 按卷顺序窄调用，每次只读取当前卷合同、turns、相关人物和精确槽位；Provider 必须逐槽写不同的戏剧任务，不能增删、合并或私改章数。每卷独立 Provider receipt 带 `volume_ref`，恢复时只补调未完成卷；全部卷聚合后仍须精确等于冻结总章数。系统随后从冻结章数、编辑章长中心与单场承载区间推导动态场景边界；每章具体场景数仍由事件单元、对抗层次、时空转换和不可逆转折决定。Detail 冻结章名、场景负载与交接后，代码综合场景、出场人物、转折、地点和 `length_hint` 在预算中心两侧形成有差异的逐章正文目标，并只在软目标容差带内做有界整体校准；不得把均分值复制到各章。正文容差为极速 ±15%、平衡 ±12%、精细 ±8%。Provider 按冻结场景顺序生成纯文本；每场使用滚动区间，已接受场景的真实字符数确定性传给下一场。所有场景通过后才组装唯一 `ChapterArtifact`，整章长度门继续硬复核，不截断正文，也不允许改动冻结章名、场景转折或交接。
+- Spine 转折数由同一冻结政策中的“每 turn 可承载章节数”动态推导，不把固定 20/24 写成所有篇幅的常量；默认密度为每 turn 承载 `1.50-2.50` 章、首选 `2.00` 章。10 万字固定 40 章时精确目标为 `20` turns、完整可行区间 `16-26`。这一区间描述重大因果变化的承载力，不要求一章一个 turn，也不允许为了填满过密转折数重复取证、听证、处分或终局。极速和平衡模式使用同一代码目标；精细模式仅在用户显式锁定时收缩为可行区间内的单点。Spine 确认后，代码只检查真实 turn 数能否承载冻结的 40 章，不能反向改写章数；默认 20 turns 可承载 `34-50` 章，15 turns 无法承载 40 章，必须退回 Spine。只有当作品短到长篇密度带与最小三段式 Spine 根本没有交集时，三个 turns 才作为结构语法而非章节配额，允许多个 turns 落入同一章。`120` 只作为 Artifact/序列化技术上限。
 
 ## LangGraph、LangChain 和 Provider
 
@@ -71,9 +82,13 @@ LangGraph Graph API 是唯一生产运行时：一个 thread、一个持久 chec
 
 生产源码默认禁止直接使用 LangChain API：`pyproject.toml` 不直接依赖 `langchain*`，`src/` 不导入 `langchain`。LangGraph 传递安装的 `langchain-core` 只视为框架内部依赖，不成为 Yotsuba Ink 的模型、工具、Prompt、memory、structured output 或 Agent authority。若未来出现直接 LangGraph 子图与现有领域端口都无法覆盖的真实需求，必须先通过独立 RFC、源码 spike 和删除矩阵评审，不能在窄节点中顺手引入。
 
-每个生产节点使用 Run 创建时冻结的 `ProviderBinding`（provider、model、temperature、max tokens、top-p、timeout、prompt、idempotency key）。没有隐式默认、Provider fallback、Reviewer fallback、schema alias、converter 或 legacy execution switch。Provider 失败进入 Graph failure/interrupt，由用户决定重试或取消。
+每个生产节点使用 Run 创建时冻结的 `ProviderBinding`（provider、model、temperature、max tokens、top-p、timeout、prompt、idempotency key）。没有隐式默认、Provider fallback、Reviewer fallback、schema alias、converter 或 legacy execution switch。明确的瞬时网络或超时错误可在同一 operation key、同一输入快照和同一 Provider 下内部重试最多三次，并把实际传输次数写入 receipt；合同、格式、余额、鉴权或语义失败不得隐藏重试。传输重试耗尽后才进入 Graph failure/interrupt，由用户决定是否继续。
 
-Provider 结构化响应去除首尾空白后必须是一个完整 JSON object，只允许一次标准 JSON 解析；Markdown fence、解释文本、对象截取、语法 repair、字段 alias/converter、默认值注入和未知字段丢弃全部禁止。所有核心键必须显式出现，允许为空时返回空字符串或空数组。Cast dossier、关系、卷边界、卷合同和 Detail 只按调用前冻结的容量/叙事边界拆分，单元结果经 operation receipt、冻结目标和引用校验后才确定性聚合；部分结果不得写成候选 Artifact。正文是单章纯文本流，不包 JSON；Export 不调用 Provider。
+官方平衡模板把高杠杆的 `brief/spine/cast/volumes/detail/text` 绑定到 DeepSeek Pro；`cover` 仍可使用 Flash。三档官方模板的 Spine/Cast 温度分别冻结为 `0.45/0.55`，Detail/Text 为 `0.30/0.82`；结构与人物阶段不能靠高随机性把合同修复转嫁给换稿。所有 DeepSeek 结构化节点显式关闭 thinking，且不发送 `reasoning_effort`，避免隐藏推理吞占 Artifact 的可见输出预算；质量由阶段职责、冻结上下文、严格 Schema、首稿自检、换稿与人工决策保证，不能用截断或 JSON repair 换取表面成功。极速模式仍可选 Flash，但不得绕过相同 Artifact、容量和人工决策合同。
+
+每个带 Provider 的 operation 必须在调用前写入不可变、内容寻址的输入快照，并由 receipt 保存快照引用。快照包含脱敏冻结绑定、Prompt identity 与最终渲染正文、结构化 context、JSON schema 或纯文本/图片合同、stage/task、attempt、chapter/version 和 request signature；不得包含 API key、secret ref、Authorization/header 配置或 Provider 原始网络对象。同一 operation key 输入变化必须失败，换稿必须使用新的 attempt/operation key，既有快照和完成 receipt 不得覆盖。
+
+Provider 结构化响应去除首尾空白后必须是一个完整 JSON object，只允许一次标准 JSON 解析；Markdown fence、解释文本、对象截取、语法 repair、字段 alias/converter、默认值注入和未知字段丢弃全部禁止。所有核心键必须显式出现，允许为空时返回空字符串或空数组。Cast dossier、关系、卷边界、卷合同和 Detail 只按调用前冻结的容量/叙事边界拆分，单元结果经 operation receipt、冻结目标和引用校验后才确定性聚合；部分结果不得写成候选 Artifact。Volumes 必须按卷顺序执行一个卷一个窄调用：输入只含该卷冻结的 `volume_spine_turns`、单个 boundary、最小人物引用、卷序策略和可选上一卷 closure 交接，不得暴露完整 Story Spine 或相邻卷 turns。正文的核心 Artifact 仍按章冻结，但 Provider 只按当前章冻结场景顺序执行窄纯文本调用，不包 JSON；相邻场景共享最小交接，单场收据不可直接成为章节候选，只有全部场景通过长度合同后的确定性组装结果才能写入 `ChapterStore`。Export 不调用 Provider。
 
 审稿结果同样是严格 sidecar 合同。每个 finding 必须含当前章节正文中的非空精确 `evidence` 和显式 `subject_ids`；人物审稿只可引用冻结主体 id。运行时向人物审稿确定性投影当前章必需、当前可用和未来尚不可用的主体集合。未来窗口主体缺席不构成 finding；只有精确正文证据证明提前出现时才允许阻断。无效证据或未知主体使该 review receipt 失败并投影 `review.unavailable`，不得过滤、降级或自动改文。
 
@@ -91,7 +106,7 @@ SSE 只投影稳定领域事件：`run.started/completed/failed`、`node.started
 2. 静态扫描无 legacy/shadow/dual runtime、Detail v1/v2/v3、fallback、alias、converter 或旧 stage id 生产引用。
 3. projection 可删除重建；断线重连不影响执行；同一 operation/decision/writeback 恰好一次。
 4. 全量离线测试和前端构建通过后，才可在用户批准、限额和脱敏收据下进行新的真实 Provider Run。真实输出、文学连续性、成本和作者冷读另行验收。
-5. Character reviewer 的未来窗口误报必须因缺少章节内精确证据而成为不可用 receipt；真实提前出现、有效 prose 硬边界和硬容量 finding 仍可阻断；正文必须通过当前质量档位的字符数合同，三次完整重写仍超界时 Run 明确失败。
+5. Character reviewer 的未来窗口误报必须因缺少章节内精确证据而成为不可用 receipt；真实提前出现、有效 prose 硬边界和硬容量 finding 仍可阻断；正文必须通过当前质量档位的字符数合同，任一场景三次有界重写仍超界时 Run 明确失败，不能回退到整章盲目重写。
 
 ## 2026-08-11 真实三章合同证据
 

@@ -2,25 +2,20 @@ import { ArrowLeft, ArrowRight, LogOut, Play } from 'lucide-react';
 import type { KnowledgeDocument, SetupStep, WorkflowDefinition, WorkflowStage } from '../contracts';
 import type { SaveStatus as WorkflowSaveStatus } from '../state/useWorkflowAutosave';
 import { useSetupFlow } from '../state/useSetupFlow';
-import type { ProviderReadinessState } from '../settings/useProviderReadiness';
-import { AiServiceSetupSection } from '../settings/AiServiceSetupSection';
 import { SetupReviewSection } from './SetupReviewSection';
 import { SetupStepNavigation } from './SetupStepNavigation';
 import { StorySetupSection } from './StorySetupSection';
 
 type Props = {
   knowledgeDocuments: KnowledgeDocument[];
-  readiness: ProviderReadinessState;
   saveStatus: WorkflowSaveStatus;
   steps: SetupStep[];
   workflow: WorkflowDefinition;
   onOpenKnowledgeManager: () => void;
   onQualityModeChange: (mode: WorkflowDefinition['quality_mode']) => void;
-  onReadinessRefresh: () => void;
   onSaveAndExit: () => void;
   onStageChange: (stage: WorkflowStage) => void;
   onStart: () => Promise<void>;
-  onWorkflowChange: (workflow: WorkflowDefinition) => void;
 };
 
 const setupFormId = 'guided-setup-form';
@@ -29,12 +24,9 @@ export function GuidedSetupWorkbench({
   knowledgeDocuments,
   onOpenKnowledgeManager,
   onQualityModeChange,
-  onReadinessRefresh,
   onSaveAndExit,
   onStageChange,
   onStart,
-  onWorkflowChange,
-  readiness,
   saveStatus,
   steps,
   workflow,
@@ -48,7 +40,7 @@ export function GuidedSetupWorkbench({
   return (
     <section className="guided-setup-workbench">
       <header className="guided-setup-head">
-        <div><p className="eyebrow">首次准备</p><h1>{workflow.name}</h1></div>
+        <div><p className="eyebrow">创作准备</p><h1>{workflow.name}</h1></div>
         <span className={`setup-save-state ${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
       </header>
       <div className="guided-setup-body">
@@ -68,9 +60,6 @@ export function GuidedSetupWorkbench({
           >
             <div className="setup-step-panel" data-direction={setup.flow.direction} key={setup.flow.activeStepId}>
               {setup.flow.activeStepId === 'story' ? <StorySetupSection stage={briefStage} qualityMode={workflow.quality_mode} onChange={onStageChange} /> : null}
-              {setup.flow.activeStepId === 'ai-service' ? (
-                <AiServiceSetupSection readiness={readiness} workflow={workflow} onReadinessRefresh={onReadinessRefresh} onWorkflowChange={onWorkflowChange} />
-              ) : null}
               {onReview ? (
                 <SetupReviewSection
                   knowledgeDocuments={knowledgeDocuments}

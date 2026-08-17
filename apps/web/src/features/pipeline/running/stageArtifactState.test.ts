@@ -24,10 +24,10 @@ describe('current stage artifact', () => {
       type: 'spine',
     } as WorkflowStage;
     const artifact = {
-      turns: [{ id: 'turn-1', cause: '母带被删除', change: '主角决定调查' }],
+      turns: [{ id: 'turn-1', cause: '母带被删除', change: '主角决定调查并承担公开后果', progress_type: 'information', milestones: ['inciting', 'commitment', 'midpoint_reversal', 'crisis', 'climax', 'aftermath'] }],
       ending: '公开母带并承担记忆损失',
       open_questions: ['谁签署了删除令？'],
-      progress_types: ['information', 'external', 'internal'],
+      progress_types: ['information'],
     };
     const events = [
       runEvent('artifact.candidate_ready', { payload: artifact, stage_id: 'spine', node_id: 'spine.generate_candidate', run_id: 'run' }),
@@ -73,7 +73,7 @@ describe('current stage artifact', () => {
       theme: '记住真相是否值得失去安稳',
       ending_promise: '主角必须决定公开母带或永久封存。',
       voice: '克制的近距离第三人称',
-      length_envelope: { word_target_soft: 80000, chapter_target_soft: 12 },
+      length_envelope: { word_target_soft: 80000 },
     };
     const events = [
       runEvent('decision.required', { sequence: 13, stage_id: 'brief', node_id: 'brief.human_decision', run_id: 'run' }),
@@ -112,6 +112,83 @@ describe('current stage artifact', () => {
     expect(stageArtifactState(stage, events)).toEqual({
       status: 'streaming',
       sections: ['generate candidate', 'prepare regeneration'],
+    });
+  });
+
+  it('restores the previous candidate when replacement generation fails at a recoverable decision', () => {
+    const stage = { id: 'brief', type: 'brief' } as WorkflowStage;
+    const oldArtifact = {
+      title: '雾港旧声',
+      premise: '旧候选仍可人工检查',
+      world_rules: ['旧规则'],
+    };
+    const events = [
+      runEvent('decision.required', { sequence: 22, stage_id: 'brief', node_id: 'brief.failure_decision', run_id: 'run' }),
+      runEvent('node.failed', { sequence: 21, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+      runEvent('node.started', { sequence: 20, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+      runEvent('artifact.candidate_ready', { sequence: 8, payload: oldArtifact, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+    ];
+
+    expect(stageArtifactState(stage, events)).toEqual({
+      status: 'ready',
+      result: JSON.stringify(oldArtifact),
+      source: 'live',
+    });
+  });
+
+  it('shows the recoverable failure when no previous candidate exists', () => {
+    const stage = { id: 'brief', type: 'brief' } as WorkflowStage;
+    const events = [
+      runEvent('decision.required', { sequence: 3, stage_id: 'brief', node_id: 'brief.failure_decision', run_id: 'run' }),
+      runEvent('node.failed', {
+        sequence: 2,
+        stage_id: 'brief',
+        node_id: 'brief.generate_candidate',
+        payload: { message: 'Provider JSON 不符合合同' },
+        run_id: 'run',
+      }),
+      runEvent('node.started', { sequence: 1, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+    ];
+
+    expect(stageArtifactState(stage, events)).toEqual({
+      status: 'error',
+      message: 'Provider JSON 不符合合同',
+    });
+  });
+
+  it('shows generation progress after a recoverable failure decision is resolved', () => {
+    const stage = { id: 'brief', type: 'brief' } as WorkflowStage;
+    const events = [
+      runEvent('node.started', { sequence: 5, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+      runEvent('decision.resolved', { sequence: 4, stage_id: 'brief', node_id: 'brief.failure_decision', run_id: 'run' }),
+      runEvent('decision.required', { sequence: 3, stage_id: 'brief', node_id: 'brief.failure_decision', run_id: 'run' }),
+      runEvent('node.failed', { sequence: 2, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+    ];
+
+    expect(stageArtifactState(stage, events)).toEqual({
+      status: 'streaming',
+      sections: ['generate candidate'],
+    });
+  });
+
+  it('ignores a historical terminal failure after a later candidate cycle succeeds', () => {
+    const stage = { id: 'brief', type: 'brief' } as WorkflowStage;
+    const artifact = {
+      title: '雾港新声',
+      premise: '新候选已经通过合同',
+      world_rules: ['记忆公证必须留痕'],
+    };
+    const events = [
+      runEvent('decision.required', { sequence: 8, stage_id: 'brief', node_id: 'brief.human_decision', run_id: 'run' }),
+      runEvent('artifact.candidate_ready', { sequence: 7, payload: artifact, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+      runEvent('node.started', { sequence: 6, stage_id: 'brief', node_id: 'brief.generate_candidate', run_id: 'run' }),
+      runEvent('run.failed', { sequence: 5, stage_id: 'brief', node_id: 'graph.failure', run_id: 'run' }),
+    ];
+
+    expect(stageArtifactState(stage, events)).toEqual({
+      status: 'ready',
+      result: JSON.stringify(artifact),
+      source: 'live',
     });
   });
 

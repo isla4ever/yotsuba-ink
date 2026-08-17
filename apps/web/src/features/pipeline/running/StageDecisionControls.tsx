@@ -1,9 +1,12 @@
-import { CheckCircle2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, CloudAlert, CloudUpload, LoaderCircle, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import type { RunEvent, WorkflowDefinition, WorkflowStage } from '../contracts';
 import { DraftRegenerationDialog } from './DraftRegenerationDialog';
 import { StageFinalizeTray } from './StageFinalizeTray';
 import { TERM } from '../lib/terminology';
+import { isFailureDecision, pendingStageDecision } from '../lib/runDecisionProjection';
+import type { StageArtifactDraftSaveStatus } from '../state/useStageArtifactDraft';
+import { decisionQualityGuidance } from './draftRegenerationModel';
 
 type DecisionProps = {
   artifactMissingLabels?: string[];
@@ -14,6 +17,8 @@ type DecisionProps = {
   onConfirmStageArtifact: (stageId: string) => Promise<boolean>;
   onRegenerateStageDraft: (stageId: string, direction: string, chapterId?: string) => void;
   stage: WorkflowStage;
+  stageArtifactDraftError?: string;
+  stageArtifactDraftStatus?: StageArtifactDraftSaveStatus;
   workflow: WorkflowDefinition;
 };
 
@@ -26,24 +31,34 @@ export function StageDecisionControls({
   onConfirmStageArtifact,
   onRegenerateStageDraft,
   stage,
+  stageArtifactDraftError = '',
+  stageArtifactDraftStatus = 'idle',
   workflow,
 }: DecisionProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const pendingDecision = events.find((event) => (
-    event.type === 'decision.required'
-    && event.stage_id === stage.id
-    && (stage.type !== 'text' || event.chapter_id === chapterId)
-  ));
+  const pendingDecision = pendingStageDecision(
+    events,
+    stage.id,
+    stage.type === 'text' ? chapterId : undefined,
+  );
   const confirmed = events.some((event) => (
     event.type === 'artifact.committed'
     && event.stage_id === stage.id
     && (stage.type !== 'text' || event.chapter_id === chapterId)
   ));
+  const failureDecision = isFailureDecision(pendingDecision);
+  const guidance = decisionQualityGuidance(pendingDecision?.payload);
+  const allowedActions = guidance.allowedActions.length
+    ? new Set(guidance.allowedActions)
+    : new Set(['accept', 'regenerate', 'cancel']);
+  const qualityFindings = [...guidance.blockingFindings, ...guidance.warningFindings];
+  const hardBlocked = guidance.blockingFindings.length > 0;
+  const regenerationExhausted = !allowedActions.has('regenerate') && guidance.regenerationUsed >= guidance.regenerationLimit;
   const targetReady = stage.type !== 'text' || Boolean(chapterId);
-  const decisionEnabled = workflow.quality_mode !== 'fast';
-  const canDraft = decisionEnabled && completed && !confirmed && targetReady && Boolean(pendingDecision);
-  const canConfirm = decisionEnabled && completed && !confirmed && artifactReady && !confirming && Boolean(pendingDecision);
+  const decisionEnabled = workflow.quality_mode !== 'fast' || failureDecision;
+  const canDraft = decisionEnabled && allowedActions.has('regenerate') && (completed || failureDecision) && !confirmed && targetReady && Boolean(pendingDecision);
+  const canConfirm = decisionEnabled && allowedActions.has('accept') && !failureDecision && completed && !confirmed && artifactReady && !confirming && Boolean(pendingDecision);
   const showDecisionBar = decisionEnabled && !confirmed;
   return (
     <>
@@ -51,13 +66,25 @@ export function StageDecisionControls({
         <section className={`stage-decision-bar stage-${stage.type}`}>
           <div>
             <p className="eyebrow">人工定稿</p>
-            <strong>{stageDecisionTitle(stage, completed, artifactReady)}</strong>
-            <span>{stageDecisionHint(stage, completed, artifactMissingLabels)}</span>
+            <strong>{failureDecision ? '本次生成未通过阶段合同' : decisionTitle(stage, completed, artifactReady, hardBlocked, guidance.warningFindings.length)}</strong>
+            <span>{failureDecision ? '失败调用与输入快照已保留；重试会沿用冻结输入并创建新的独立调用记录。' : decisionHint(stage, completed, artifactMissingLabels, guidance, regenerationExhausted)}</span>
+            <DraftSaveIndicator error={stageArtifactDraftError} status={stageArtifactDraftStatus} />
           </div>
           <div className="stage-decision-actions">
             {stage.type === 'export' ? null : (
-              <button className="ghost tiny-action" disabled={!canDraft} onClick={() => setDialogOpen(true)} type="button">
-                <RefreshCw size={14} />{TERM.redraft}
+              <button
+                className="ghost tiny-action"
+                disabled={!canDraft}
+                onClick={() => {
+                  if (failureDecision) {
+                    onRegenerateStageDraft(stage.id, '', chapterId);
+                    return;
+                  }
+                  setDialogOpen(true);
+                }}
+                type="button"
+              >
+                <RefreshCw size={14} />{failureDecision ? '重试本阶段' : regenerationExhausted ? '已换稿 1/1' : qualityFindings.length ? '推荐换稿' : TERM.redraft}
               </button>
             )}
             <button
@@ -76,9 +103,11 @@ export function StageDecisionControls({
         </section>
       </StageFinalizeTray>
       <DraftRegenerationDialog
+        findings={qualityFindings}
         mode={workflow.quality_mode}
-        open={dialogOpen}
+        open={dialogOpen && !failureDecision}
         stage={stage}
+        recommendedDirection={guidance.recommendedDirection}
         onClose={() => setDialogOpen(false)}
         onConfirm={(direction) => {
           onRegenerateStageDraft(stage.id, direction, chapterId);
@@ -86,6 +115,51 @@ export function StageDecisionControls({
         }}
       />
     </>
+  );
+}
+
+function decisionTitle(
+  stage: WorkflowStage,
+  completed: boolean,
+  artifactReady: boolean,
+  hardBlocked: boolean,
+  warningCount: number,
+) {
+  if (hardBlocked) return '发现明确硬冲突，当前稿不可定稿';
+  if (warningCount) return `审稿有 ${warningCount} 项告警，可接受或定向换稿`;
+  return stageDecisionTitle(stage, completed, artifactReady);
+}
+
+function decisionHint(
+  stage: WorkflowStage,
+  completed: boolean,
+  missingLabels: string[],
+  guidance: ReturnType<typeof decisionQualityGuidance>,
+  regenerationExhausted: boolean,
+) {
+  const finding = guidance.blockingFindings[0] ?? guidance.warningFindings[0];
+  if (finding) {
+    const prefix = finding.gate === 'blocking' ? '必须先处理' : '不阻塞定稿';
+    const suffix = regenerationExhausted ? '；本候选已用完一次换稿机会' : '；换稿窗口已自动带入证据与修订方向';
+    return `${prefix}：${finding.claim || finding.code}${suffix}。`;
+  }
+  return stageDecisionHint(stage, completed, missingLabels);
+}
+
+function DraftSaveIndicator({ error, status }: { error: string; status: StageArtifactDraftSaveStatus }) {
+  if (status === 'idle') return null;
+  const content = {
+    clean: { icon: <CloudUpload size={13} />, label: '当前稿已同步' },
+    dirty: { icon: <CloudAlert size={13} />, label: '未保存' },
+    error: { icon: <CloudAlert size={13} />, label: error || '保存失败' },
+    loading: { icon: <LoaderCircle className="spin" size={13} />, label: '读取草稿' },
+    saved: { icon: <CloudUpload size={13} />, label: '已保存' },
+    saving: { icon: <LoaderCircle className="spin" size={13} />, label: '保存中' },
+  }[status];
+  return (
+    <span className={`artifact-draft-status ${status}`} role="status">
+      {content.icon}{content.label}
+    </span>
   );
 }
 

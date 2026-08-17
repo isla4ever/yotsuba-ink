@@ -11,11 +11,12 @@ function renderPalette(open: boolean, workflowConfig: Partial<WorkflowConfigSlic
     <PipelineShellTestProviders
       events={[{ type: 'node_completed', node_id: 'brief' } as RunEvent]}
       runState={{
+        activeRunId: 'run-1',
         runHasStarted: true,
       }}
       workflowConfig={{
         qualityMode: 'deep',
-        routePolicy: modeRoutePolicy('deep', false),
+        routePolicy: modeRoutePolicy('deep'),
         ...workflowConfig,
       }}
       uiCommands={{ commandPaletteOpen: open }}
@@ -45,8 +46,7 @@ describe('CommandPalette', () => {
   });
 
   it('keeps every balanced stage command available', () => {
-    const html = renderPalette(true, { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced', false) });
-    expect(html).not.toContain('平衡模式下后续阶段在驾驶舱内查看');
+    const html = renderPalette(true, { qualityMode: 'balanced', routePolicy: modeRoutePolicy('balanced') });
     expect(html).toContain('故事脊柱');
     const activeDescendant = html.match(/aria-activedescendant="([^"]+)"/)?.[1];
     expect(activeDescendant).toContain('stage-brief');

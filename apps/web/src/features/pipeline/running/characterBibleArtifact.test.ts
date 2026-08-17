@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { characterBibleReadiness, nextSubjectId, parseCharacterBibleArtifact, type CharacterBibleArtifact } from './characterBibleArtifact';
+import { characterBibleReadiness, parseCharacterBibleArtifact, type CharacterBibleArtifact } from './characterBibleArtifact';
 
 const artifact: CharacterBibleArtifact = {
   subjects: [{
@@ -7,6 +7,11 @@ const artifact: CharacterBibleArtifact = {
     name: '林默',
     kind: 'protagonist',
     function: '承担真相调查',
+    background: '旧港公共档案修复师，曾参与事故母带的初次修复。',
+    conflict_history: '她亲眼见过事故母带被替换，却因证据不足保持沉默。',
+    present_stakes: '若证据失效，她会失去职业资格和追查母亲去向的最后机会。',
+    temperament: '受压时先核对记录，再逼迫对方作出明确选择。',
+    speech_style: '短句，少下判断，习惯复述记录中的原始措辞。',
     drive: '找到失踪母带',
     change: '接受共同记忆',
     debut: 'chapter:1',
@@ -47,9 +52,5 @@ describe('CharacterBibleArtifact Phase 27', () => {
     const reversed = structuredClone(artifact);
     reversed.subjects[0].debut = 'chapter:8-3';
     expect(parseCharacterBibleArtifact(JSON.stringify(reversed)).artifact).toBeNull();
-  });
-
-  it('allocates a stable local id without reusing registry ids', () => {
-    expect(nextSubjectId(artifact)).toBe('subject-1');
   });
 });

@@ -49,10 +49,9 @@ export type RunAction =
   | { type: 'control_changed'; control: RunControlChange }
   | { type: 'event_received'; event: RunEvent }
   | { type: 'knowledge_prompt_open_changed'; open: boolean }
-  | { type: 'run_export_stayed' }
+  | { type: 'run_export_completed' }
   | { type: 'run_reset'; stageId: string }
   | { type: 'run_restored'; hydrated: HydratedRunState }
-  | { type: 'run_returned_to_planning'; stageId: string }
   | { type: 'run_started_locally'; runId: string; stageId: string }
   | { type: 'selected_id_changed'; selectedId: string }
   | { type: 'selected_inspector_changed'; target: InspectorTarget }
@@ -121,11 +120,11 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       return stateForRunEvent(state, action.event);
     case 'knowledge_prompt_open_changed':
       return { ...state, knowledgePromptOpen: action.open };
-    case 'run_export_stayed':
+    case 'run_export_completed':
       return {
         ...state,
-        paused: true,
-        runControlState: 'paused',
+        paused: false,
+        runControlState: 'completed',
         running: false,
         selectedId: 'export',
         selectedInspectorTarget: stageTarget('export'),
@@ -164,16 +163,6 @@ export function runReducer(state: RunState, action: RunAction): RunState {
         selectedId: action.hydrated.selectedId,
         selectedInspectorTarget: stageTarget(action.hydrated.selectedId),
         workspacePhase: 'running',
-      };
-    case 'run_returned_to_planning':
-      return {
-        ...state,
-        paused: false,
-        runControlState: 'completed',
-        running: false,
-        selectedId: action.stageId,
-        selectedInspectorTarget: stageTarget(action.stageId),
-        workspacePhase: 'planning',
       };
     case 'run_started_locally':
       return {

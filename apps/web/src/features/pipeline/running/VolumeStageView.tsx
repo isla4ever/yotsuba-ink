@@ -3,7 +3,7 @@ import { ArtifactRefChips } from './ArtifactRefChips';
 import { parseVolumesArtifact, type VolumeArchitectureArtifact } from './artifactsVnext';
 import { VnextArtifactError } from './VnextArtifactError';
 
-type SpineTurn = { id: string; cause: string; change: string };
+type SpineTurn = { id: string; cause: string; change: string; progress_type?: string; milestones?: string[] };
 
 type Props = {
   characters: Array<{ id: string; name: string }>;
@@ -37,7 +37,7 @@ export function VolumeStageView({ characters, onArtifactChange, readOnly, result
     ...artifact,
     volumes: artifact.volumes.map((item, index) => index === selectedIndex ? { ...item, ...patch } : item),
   });
-  const turnOptions = spineTurns.map((turn, index) => ({ id: turn.id, label: `转折 ${index + 1}`, hint: `${turn.cause} → ${turn.change}` }));
+  const turnOptions = spineTurns.map((turn, index) => ({ id: turn.id, label: `转折 ${index + 1}${turn.milestones?.includes('climax') ? ' · 全书高潮' : ''}`, hint: `${turn.cause} → ${turn.change}` }));
   const castOptions = characters.map((character) => ({ id: character.id, label: character.name }));
   return (
     <div className="vnext-artifact-workbench volumes-vnext">
@@ -51,6 +51,7 @@ export function VolumeStageView({ characters, onArtifactChange, readOnly, result
           <VolumeField label="本卷承诺" onChange={(promise) => updateVolume({ promise })} readOnly={readOnly} value={volume.promise} />
           <VolumeField label="核心冲突" onChange={(conflict) => updateVolume({ conflict })} readOnly={readOnly} value={volume.conflict} />
           <VolumeField label="高潮" onChange={(climax) => updateVolume({ climax })} readOnly={readOnly} value={volume.climax} />
+          <label className="vnext-field"><span>高潮转折</span><select aria-label="高潮转折" disabled={readOnly} onChange={(event) => updateVolume({ climax_turn_ref: event.target.value })} value={volume.climax_turn_ref}>{turnOptions.filter((option) => volume.turn_refs.includes(option.id)).map((option) => <option key={option.id} value={option.id}>{option.label} · {option.hint}</option>)}</select></label>
           <VolumeField label="闭合" onChange={(closure) => updateVolume({ closure })} readOnly={readOnly} value={volume.closure} />
         </div>
       </section>
@@ -70,25 +71,22 @@ export function VolumeStageView({ characters, onArtifactChange, readOnly, result
             <ArtifactRefChips ariaLabel="本卷相关人物" onChange={(cast_ids) => updateVolume({ cast_ids })} options={castOptions} readOnly={readOnly} selected={volume.cast_ids} />
           </div>
         ) : null}
-        <div className="vnext-field-grid">
-          <label className="vnext-field"><span>叙事线程引用</span><textarea onChange={(event) => updateVolume({ thread_ids: splitLines(event.target.value) })} readOnly={readOnly} rows={3} value={volume.thread_ids.join('\n')} /></label>
-          <div className="vnext-ref-field">
-            <span>长度建议（软目标）</span>
-            <div aria-label="长度建议" className="vnext-progress-pills" role="group">
-              {LENGTH_HINTS.map((option) => (
-                <button
-                  aria-pressed={volume.length_hint === option.value}
-                  className={`vnext-progress-pill${volume.length_hint === option.value ? ' active' : ''}`}
-                  disabled={readOnly}
-                  key={option.value}
-                  onClick={() => updateVolume({ length_hint: option.value })}
-                  type="button"
-                >
-                  <strong>{option.label}</strong>
-                  <span>{option.hint}</span>
-                </button>
-              ))}
-            </div>
+        <div className="vnext-ref-field">
+          <span>长度建议（软目标）</span>
+          <div aria-label="长度建议" className="vnext-progress-pills" role="group">
+            {LENGTH_HINTS.map((option) => (
+              <button
+                aria-pressed={volume.length_hint === option.value}
+                className={`vnext-progress-pill${volume.length_hint === option.value ? ' active' : ''}`}
+                disabled={readOnly}
+                key={option.value}
+                onClick={() => updateVolume({ length_hint: option.value })}
+                type="button"
+              >
+                <strong>{option.label}</strong>
+                <span>{option.hint}</span>
+              </button>
+            ))}
           </div>
         </div>
       </section>

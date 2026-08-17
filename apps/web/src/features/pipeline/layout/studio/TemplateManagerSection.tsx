@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import type { WorkflowDefinition } from '../../contracts';
 import { studioWorkflowRoute } from '../../lib/stageRoutes';
 import { LoadingButton } from '../LoadingButton';
-import { defaultTemplateId, templateStageDigest, templateSummaryLine } from './newProjectWizardModel';
+import { templateStageDigest, templateSummaryLine } from './newProjectWizardModel';
+import { defaultWorkflowId, isOfficialWorkflowId } from '../../lib/officialWorkflows';
 
 type Props = {
   templates: WorkflowDefinition[];
@@ -43,7 +44,8 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
       {error ? <p className="studio-inline-error" role="alert">{error}</p> : null}
       <div className="studio-template-list nw-reveal-scroll">
         {templates.map((template) => {
-          const isDefault = template.id === defaultTemplateId;
+          const isOfficial = isOfficialWorkflowId(template.id);
+          const isRecommended = template.id === defaultWorkflowId;
           const renaming = renamingId === template.id;
           const busy = pendingAction.endsWith(`:${template.id}`);
           const stages = templateStageDigest(template);
@@ -69,7 +71,7 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
                 ) : (
                   <strong>{template.name}</strong>
                 )}
-                <span>{templateSummaryLine(template)}{isDefault ? ' · 默认模板' : ''}</span>
+                <span>{templateSummaryLine(template)}{isRecommended ? ' · 官方推荐' : isOfficial ? ' · 官方配置' : ''}</span>
               </div>
               <div className="studio-template-actions">
                 <button
@@ -78,7 +80,7 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
                   title="打开工作流配置页：阶段参数与模型绑定"
                   type="button"
                 >
-                  <SlidersHorizontal aria-hidden="true" size={14} />查看 / 编辑
+                  <SlidersHorizontal aria-hidden="true" size={14} />{isOfficial ? '查看配置' : '查看 / 编辑'}
                 </button>
                 <button className="ghost" disabled={busy} onClick={() => onUse(template.id)} title="使用此模板新建作品" type="button">
                   <FilePlus2 aria-hidden="true" size={14} />用它建书
@@ -93,7 +95,7 @@ export function TemplateManagerSection({ templates, error, onDuplicate, onRename
                 >
                   <Copy aria-hidden="true" size={14} />复制
                 </LoadingButton>
-                {isDefault ? null : (
+                {isOfficial ? null : (
                   <>
                     <LoadingButton
                       className="ghost"

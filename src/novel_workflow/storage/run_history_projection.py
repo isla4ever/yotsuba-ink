@@ -5,9 +5,11 @@ from typing import Any
 
 from novel_workflow.output_contracts.artifacts_vnext import stage_pointer
 from novel_workflow.storage.chapter_store import ChapterStore
+from novel_workflow.storage.artifact_store import ArtifactStore
 from novel_workflow.storage.export_store import ExportStore
 from novel_workflow.storage.narrative_run_repository import (
     NarrativeRunRepository,
+    RunDefinition,
     RunReadModel,
 )
 
@@ -19,6 +21,7 @@ class RunHistoryProjection:
     runs: NarrativeRunRepository
     exports: ExportStore
     chapters: ChapterStore
+    artifacts: ArtifactStore
     # Word totals scan every chapter file of a run; cache per (run, updated_at)
     # so terminal runs are only summed once per process.
     _words_cache: dict[str, tuple[str, int]] = field(default_factory=dict)
@@ -36,7 +39,10 @@ class RunHistoryProjection:
                 continue
             if status and projection.status != status:
                 continue
-            items.append(self.item(projection))
+            item = self._production_item(projection)
+            if item is None:
+                continue
+            items.append(item)
             if limit is not None and len(items) >= limit:
                 break
         return items
@@ -44,7 +50,9 @@ class RunHistoryProjection:
     def latest(self, project_id: str) -> dict[str, Any] | None:
         for projection in self.runs.list():
             if projection.project_id == project_id:
-                return self.item(projection)
+                item = self._production_item(projection)
+                if item is not None:
+                    return item
         return None
 
     def has_project_run(self, project_id: str) -> bool:
@@ -53,6 +61,20 @@ class RunHistoryProjection:
 
     def item(self, projection: RunReadModel) -> dict[str, Any]:
         definition = self.runs.definition(projection.run_id)
+        return self._item_from_definition(projection, definition)
+
+    def _production_item(self, projection: RunReadModel) -> dict[str, Any] | None:
+        try:
+            definition = self.runs.definition(projection.run_id)
+        except (FileNotFoundError, ValueError):
+            return None
+        return self._item_from_definition(projection, definition)
+
+    def _item_from_definition(
+        self,
+        projection: RunReadModel,
+        definition: RunDefinition,
+    ) -> dict[str, Any]:
         completed = [
             stage
             for stage, value in projection.stage_status.items()
@@ -62,7 +84,7 @@ class RunHistoryProjection:
         return {
             "run_id": projection.run_id,
             "project_id": projection.project_id,
-            "title": str(definition.inputs.get("title") or "未命名小说"),
+            "title": self._generated_title(projection.run_id),
             "quality_mode": definition.quality_mode,
             "status": projection.status,
             "current_stage": stage_pointer(projection.active_stage_id),
@@ -93,6 +115,12 @@ class RunHistoryProjection:
         total = self.chapters.latest_word_total(projection.run_id)
         self._words_cache[projection.run_id] = (projection.updated_at, total)
         return total
+
+    def _generated_title(self, run_id: str) -> str:
+        try:
+            return str(self.artifacts.latest(run_id, "brief").payload["title"])
+        except (FileNotFoundError, KeyError):
+            return "待定书名"
 
 
 _STATUS_TEXT = {

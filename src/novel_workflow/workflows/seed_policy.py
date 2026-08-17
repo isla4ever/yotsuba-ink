@@ -20,10 +20,6 @@ NARRATIVE_SEED_FIELD_KEYS: frozenset[str] = frozenset(
     }
 )
 
-# global_inputs keys whose template defaults are concrete story content.
-NARRATIVE_SEED_GLOBAL_INPUT_KEYS: frozenset[str] = frozenset({"title"})
-
-
 def cleared_seed_default(default: Any) -> Any:
     """Empty value preserving the field's shape: tag lists stay lists, text goes blank."""
     return [] if isinstance(default, list) else ""
@@ -36,12 +32,27 @@ def scrub_narrative_seeds(workflow: dict[str, Any]) -> dict[str, Any]:
     workflow. Stored templates themselves are never modified.
     """
     scrubbed = copy.deepcopy(workflow)
-    for field in scrubbed.get("global_inputs") or []:
-        if field.get("key") in NARRATIVE_SEED_GLOBAL_INPUT_KEYS:
-            field["default"] = cleared_seed_default(field.get("default"))
     for node in scrubbed.get("nodes") or []:
         _scrub_input_schema(node.get("input_schema"))
     return scrubbed
+
+
+def materialize_project_workflow(workflow: dict[str, Any], idea: str) -> dict[str, Any]:
+    materialized = scrub_narrative_seeds(workflow)
+    brief = next(
+        (node for node in materialized.get("nodes") or [] if node.get("type") == "brief"),
+        None,
+    )
+    if brief is None:
+        raise ValueError("Workflow is missing the Brief stage")
+    concept = next(
+        (field for field in brief.get("input_schema") or [] if field.get("key") == "core_concept"),
+        None,
+    )
+    if concept is None:
+        raise ValueError("Brief stage is missing the project idea field")
+    concept["default"] = idea.strip()
+    return materialized
 
 
 def _scrub_input_schema(input_schema: Any) -> None:

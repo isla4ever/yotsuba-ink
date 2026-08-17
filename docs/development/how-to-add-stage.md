@@ -1,80 +1,30 @@
 # 如何新增一个阶段
 
-当你准备给工作流新增一个阶段时，建议按下面这份检查单来做。
+Yotsuba Ink 当前只允许在 Phase 27 LangGraph 主线上新增阶段。先更新阶段产物合同，再同步运行时、模板和前端投影，不再向旧的 `info/summary/outline` 阶段或旧 Runner 增加兼容入口。
 
-## 1. 先定义 workflow 节点
+## 1. 先定义合同
 
-优先从这里开始看：
+- 阅读 [`stage-artifact-contract.md`](../architecture/stage-artifact-contract.md)。
+- 在 `src/novel_workflow/output_contracts/` 定义输入、输出、引用和写回约束。
+- 明确阶段 id、上游依赖、用户决策和下游消费方。
 
-- [src/novel_workflow/workflows/templates.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/workflows/templates.py)
-- [runtime/novel_workflow/workflows/default-novel-workflow.json](/Users/isla/Desktop/project/multi-stage-creation-model-end/runtime/novel_workflow/workflows/default-novel-workflow.json)
+## 2. 接入 LangGraph
 
-你通常需要补齐：
+- 在 `src/novel_workflow/runtime/graph/` 更新图状态、上下文编译和阶段执行。
+- 通过 `src/novel_workflow/runtime/graph/execution_service.py` 进入生产执行路径。
+- Provider 请求必须走冻结的合同编译器和 usage receipt，不能添加隐式 fallback 或旧 runtime selector。
 
-- 节点 id
-- 节点 type
-- prompt template id
-- provider profile 绑定
-- input schema
-- quality policy
-- 如果适用，还要配置 variant policy
+## 3. 更新官方模板
 
-## 2. 注册阶段行为
+三套官方模板位于 `runtime/novel_workflow/workflows/official-deepseek-fast.json`、`official-deepseek-balanced.json` 和 `official-deepseek-deep.json`，需要保持阶段顺序、Provider 绑定和 prompt id 一致。
 
-重点检查：
+## 4. 更新前端投影
 
-- [src/novel_workflow/stages/registry.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/stages/registry.py)
-- [src/novel_workflow/stages/prompt_plan.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/stages/prompt_plan.py)
+- `apps/web/src/features/pipeline/contracts/`：共享类型与事件合同。
+- `apps/web/src/features/pipeline/running/`：运行态产物和决策面板。
+- `apps/web/src/features/pipeline/planning/`、`settings/`：配置、模板和 Provider 回显。
+- 纯布局/校验逻辑放到 `lib/`，不要在组件内复制合同解析。
 
-确保这个阶段有：
+## 5. 验证
 
-- 清晰的输入合同
-- 清晰的输出合同
-- 明确的记忆读写意图
-- 失败处理预期
-
-## 3. 评估它对编排层的影响
-
-如果这个阶段会影响运行控制、质量闭环或写回逻辑，就继续看：
-
-- `src/novel_workflow/orchestration/`
-- `src/novel_workflow/quality/`
-- `src/novel_workflow/memory/`
-
-典型问题包括：
-
-- 它是否需要审批暂停？
-- 它是否要写回 Story Bible？
-- 它的质量问题是否会阻断后续阶段？
-
-## 4. 在前端暴露这个阶段
-
-重点看这些地方：
-
-- [apps/web/src/features/pipeline/contracts/workflow.ts](/Users/isla/Desktop/project/multi-stage-creation-model-end/apps/web/src/features/pipeline/contracts/workflow.ts)
-- [apps/web/src/features/pipeline/planning/PipelineCanvas.tsx](/Users/isla/Desktop/project/multi-stage-creation-model-end/apps/web/src/features/pipeline/planning/PipelineCanvas.tsx)
-- [apps/web/src/features/pipeline/planning/StageInspector.tsx](/Users/isla/Desktop/project/multi-stage-creation-model-end/apps/web/src/features/pipeline/planning/StageInspector.tsx)
-- 运行态视图：`apps/web/src/features/pipeline/running/`
-
-前端通常要补：
-
-- 阶段标签与默认值
-- Inspector 字段
-- 画布位置
-- 如果这个阶段产物特殊，还要补运行态展示
-
-## 5. 增加测试
-
-至少要更新：
-
-- [tests/test_workflow_runner.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/tests/test_workflow_runner.py)
-
-测试通常要覆盖：
-
-- 编排顺序是否正确
-- 阶段输出或副作用是否符合预期
-- 如果有特殊审批或质量行为，也要覆盖
-
-## 一个很实用的判断标准
-
-如果新增一个阶段需要你同时去改很多不相关的页面、零散 helper 和到处字符串匹配的事件逻辑，那先别急着继续堆代码。通常这说明合同边界没有收好，应该先把边界拉回一个明确位置。
+至少补齐后端合同、图执行、Provider 编译和 API 测试，并运行 `.venv/bin/pytest -q`、`cd apps/web && npm test && npm run build`。真实 Provider 验收另行记录，离线测试不能替代真实模型质量结论。

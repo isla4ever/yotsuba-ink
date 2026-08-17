@@ -11,16 +11,20 @@ from novel_workflow.output_contracts.artifacts_vnext import (
     CharacterDossierBatch,
     CharacterRelationBatch,
     CoverBrief,
+    DetailLayoutProposalBatch,
     DetailSegmentArtifact,
     RoleDemandProposalBatch,
     StorySpineDraftArtifact,
-    VolumeArchitectureDraftArtifact,
+    VolumeArchitectureUnitArtifact,
     VolumeBoundaryProposalBatch,
 )
 from novel_workflow.providers.frozen_contract import schema_digest
 from novel_workflow.output_contracts.provider_tasks import (
+    CastDossierSemanticReviewResult,
     ChapterEvidenceResult,
     ChapterReviewResult,
+    RoleDemandSemanticReviewResult,
+    SpineSemanticReviewResult,
 )
 
 
@@ -39,20 +43,26 @@ def structured_task_contracts_for_stage(stage_id: str) -> tuple[StructuredTaskCo
     if stage_id == "spine":
         return (
             _contract("spine", StorySpineDraftArtifact),
-            _contract("role_demand.proposal", RoleDemandProposalBatch),
+            _contract("spine_review.proposal", SpineSemanticReviewResult),
         )
     if stage_id == "cast":
         return (
+            _contract("role_demand.proposal", RoleDemandProposalBatch),
+            _contract("role_demand_review.proposal", RoleDemandSemanticReviewResult),
             _contract("cast", CharacterDossierBatch),
+            _contract("cast_review.proposal", CastDossierSemanticReviewResult),
             _contract("cast_relation.proposal", CharacterRelationBatch),
         )
     if stage_id == "volumes":
         return (
-            _contract("volumes", VolumeArchitectureDraftArtifact),
+            _contract("volumes", VolumeArchitectureUnitArtifact),
             _contract("volume_boundary.proposal", VolumeBoundaryProposalBatch),
         )
     if stage_id == "detail":
-        return (_contract("detail", DetailSegmentArtifact),)
+        return (
+            _contract("detail", DetailSegmentArtifact),
+            _contract("detail_layout.proposal", DetailLayoutProposalBatch),
+        )
     if stage_id == "text":
         return (
             _review_contract("continuity"),

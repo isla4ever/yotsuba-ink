@@ -1,19 +1,5 @@
-/* entry-planning: planning/config workbench styles, imported by PlanningWorkbench and
- * ProductionCockpitWorkbench. */
-@import './planning-layout.css';
-@import './knowledge-rail.css';
+/* entry-planning: pre-run creative preparation only. */
 @import './inspector-reference.css';
-@import './planning-interaction-truth.css';
-@import './planning-stage-readiness.css';
-@import './planning-inspector-hierarchy.css';
-@import './planning-config-sheet.css';
-@import './planning-knowledge-status.css';
 @import './guided-setup.css';
 @import './narrative-profiles.css';
 @import './book-scale-target.css';
-@import './planning-stage-rail.css';
-@import './artifact-deck-shell.css';
-@import './artifact-deck.css';
-@import './artifact-deck-depth.css';
-@import './artifact-deck-caption.css';
-@import './artifact-deck-responsive.css';

@@ -17,6 +17,8 @@ export type SemanticReadiness = {
 export type SemanticContext = {
   characterBible: CharacterBibleArtifact | null;
   coverAssetIds?: Set<string>;
+  coverAssetRequired?: boolean;
+  detailSceneRange?: readonly [number, number];
   spine?: StorySpineArtifact | null;
 };
 
@@ -56,6 +58,12 @@ export function detailSemanticReadiness(
   if (result.artifact && result.artifact.chapters.some((chapter) => chapter.cast_ids.some((id) => !subjects.has(id)))) {
     errors.push('本章出场人物只能引用人物圣经中的主体');
   }
+  if (result.artifact && context.detailSceneRange) {
+    const [minimum, maximum] = context.detailSceneRange;
+    if (result.artifact.chapters.some((chapter) => chapter.scenes.length < minimum || chapter.scenes.length > maximum)) {
+      errors.push(`每章场景数必须落在本次运行动态推导的 ${minimum}-${maximum} 场容量区间内`);
+    }
+  }
   return readiness(errors);
 }
 
@@ -64,6 +72,7 @@ export function coverSemanticReadiness(
   context: SemanticContext,
 ): SemanticReadiness {
   const errors = parseErrors(result);
+  if (context.coverAssetRequired === false) return readiness(errors);
   const selected = result.artifact?.selected_asset_id ?? '';
   if (!selected) errors.push('正式封面候选');
   else if (!context.coverAssetIds?.has(selected)) errors.push('正式封面必须来自当前不可变候选');

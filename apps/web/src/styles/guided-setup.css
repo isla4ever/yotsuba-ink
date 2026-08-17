@@ -626,56 +626,6 @@
   gap: 4px;
 }
 
-.setup-readiness-gate {
-  align-content: center;
-  background: var(--color-surface-base);
-  display: grid;
-  gap: 8px;
-  height: 100%;
-  justify-items: center;
-}
-
-.setup-readiness-gate span {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.setup-readiness-line {
-  background: var(--color-border-subtle);
-  height: 2px;
-  overflow: hidden;
-  position: relative;
-  width: min(240px, 60vw);
-}
-
-.setup-readiness-line::after {
-  animation: setupReadiness 1.2s var(--ease-standard) infinite;
-  background: var(--color-mode-primary);
-  content: "";
-  inset: 0;
-  position: absolute;
-  transform: translateX(-100%);
-}
-
-.setup-return-banner {
-  align-items: center;
-  background: color-mix(in srgb, var(--color-status-warning) 9%, var(--color-surface-base));
-  border: 1px solid color-mix(in srgb, var(--color-status-warning) 38%, var(--color-border-subtle));
-  display: flex;
-  grid-column: 1 / -1;
-  justify-content: space-between;
-  padding: 10px 12px;
-}
-
-.setup-return-banner span {
-  display: grid;
-  gap: 3px;
-}
-
-.setup-return-banner small {
-  color: var(--color-text-muted);
-}
-
 @keyframes setupStepIn {
   from { opacity: 0; transform: translateX(6px); }
   to { opacity: 1; transform: translateX(0); }
@@ -684,10 +634,6 @@
 @keyframes setupStepBackIn {
   from { opacity: 0; transform: translateX(-6px); }
   to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes setupReadiness {
-  to { transform: translateX(100%); }
 }
 
 @media (max-width: 760px) {

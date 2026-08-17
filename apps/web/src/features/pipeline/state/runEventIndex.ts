@@ -148,7 +148,7 @@ export function indexedHasRecoverableRun(
   return index.size > 0 || runControlState !== 'idle';
 }
 
-/** Index-backed equivalent of `latestNodeStatus(...).status` (cockpitRuntime). */
+/** Projects the current runtime status for one stage from stable domain events. */
 export function indexedStageStatus(index: RunEventIndex, stageId: string): StageRunStatus {
   const lifecycle = index.lifecycleByStage[stageId];
   if (!lifecycle || !lifecycle.statusEventType) return 'idle';

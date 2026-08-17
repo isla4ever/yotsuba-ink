@@ -147,6 +147,21 @@ describe('run reducer', () => {
     expect(exportReady.latestResult).toContain('正式写回');
   });
 
+  it('keeps the completed export attached to the running workspace', () => {
+    const completed = runReducer(initialState({ activeRunId: 'run-export' }), {
+      type: 'run_export_completed',
+    });
+
+    expect(completed).toMatchObject({
+      activeRunId: 'run-export',
+      paused: false,
+      runControlState: 'completed',
+      running: false,
+      selectedId: 'export',
+      workspacePhase: 'running',
+    });
+  });
+
   it('restores and resets all stable run fields as one transition', () => {
     const restored = runReducer(initialState(), {
       type: 'run_restored',
@@ -223,10 +238,7 @@ function hydratedState(): HydratedRunState {
   return {
     activeRunId: 'restored-run',
     inputs: undefined,
-    approvalDraft: '',
     approvalPending: false,
-    approvalSource: '',
-    automationCockpitReady: true,
     checkpointContinueReady: false,
     checkpointStageId: '',
     events: [memory],

@@ -3,7 +3,6 @@ import { runEvent } from '../contracts/runEventTestFactory';
 import {
   continuationStartedState,
   decisionStateForPausedStream,
-  exportReadyState,
   initialStageDecisionState,
   stageDecisionStateForEvent,
   stageConfirmedState,
@@ -17,7 +16,7 @@ describe('stage decision state', () => {
     expect(state).toMatchObject({ approvalPending: true, checkpointStageId: 'brief', checkpointContinueReady: false });
   });
 
-  it('loads a Brief candidate from payload while preserving the interrupt', () => {
+  it('keeps the Brief candidate out of decision state while preserving the interrupt', () => {
     const pending = stageDecisionStateForEvent(
       initialStageDecisionState,
       runEvent('decision.required', { stage_id: 'brief', node_id: 'brief.human_decision' }),
@@ -28,7 +27,7 @@ describe('stage decision state', () => {
       payload: { title: '候选标题' },
     }));
     expect(candidate.approvalPending).toBe(true);
-    expect(candidate.approvalDraft).toContain('候选标题');
+    expect(candidate).toEqual(pending);
   });
 
   it('moves committed stages into explicit local navigation gates', () => {
@@ -38,9 +37,8 @@ describe('stage decision state', () => {
     expect(volumes).toMatchObject({ checkpointContinueReady: true, checkpointStageId: 'volumes' });
   });
 
-  it('clears local navigation flags and restores the export return gate', () => {
+  it('clears local navigation flags after continuation begins', () => {
     const continued = continuationStartedState(stageConfirmedState(initialStageDecisionState, 'cover'));
     expect(continued.checkpointContinueReady).toBe(false);
-    expect(exportReadyState(continued)).toMatchObject({ checkpointContinueReady: true, checkpointStageId: 'export' });
   });
 });

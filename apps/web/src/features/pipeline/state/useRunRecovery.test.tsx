@@ -16,14 +16,13 @@ const runId = 'run-boot-recovery';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
-function Harness({ present }: { present: boolean }) {
+function Harness() {
   useRunRecovery({
-    loadRun: async () => completedEnvelope(),
+    loadRun: async () => ({ acceptedChapters: [], committedArtifacts: [], envelope: completedEnvelope() }),
     onDiscard: handlers.onDiscard,
     onRestore: handlers.onRestore,
     onSettled: handlers.onSettled,
     onWarning: vi.fn(),
-    presentTerminalRuns: present,
     stored: stored(),
   });
   return null;
@@ -35,7 +34,7 @@ const handlers = {
   onSettled: vi.fn(),
 };
 
-async function bootRecovery(present: boolean) {
+async function bootRecovery() {
   handlers.onDiscard = vi.fn();
   handlers.onRestore = vi.fn();
   let settle = () => {};
@@ -44,7 +43,7 @@ async function bootRecovery(present: boolean) {
   const container = document.createElement('div');
   const root = createRoot(container);
   await act(async () => {
-    root.render(<Harness present={present} />);
+    root.render(<Harness />);
   });
   await act(async () => { await settled; });
   act(() => root.unmount());
@@ -52,14 +51,8 @@ async function bootRecovery(present: boolean) {
 }
 
 describe('useRunRecovery boot resolution', () => {
-  it('drops a finished run on a normal boot', async () => {
-    const result = await bootRecovery(false);
-    expect(result.onDiscard).toHaveBeenCalledWith('completed');
-    expect(result.onRestore).not.toHaveBeenCalled();
-  });
-
-  it('presents a finished run when the console itself is the boot route', async () => {
-    const result = await bootRecovery(true);
+  it('keeps a finished run attached on every project boot route', async () => {
+    const result = await bootRecovery();
     expect(result.onDiscard).not.toHaveBeenCalled();
     expect(result.onRestore).toHaveBeenCalled();
     expect(result.onRestore.mock.calls[0][0].activeRunId).toBe(runId);
@@ -89,7 +82,7 @@ function completedEnvelope(): GraphRunEnvelope {
       workflow_digest: 'a'.repeat(64),
       quality_mode: 'fast',
       inputs: {},
-      scale_profile: scaleProfileFromLengthEnvelope({ word_target_soft: 100_000, chapter_target_soft: 3 }),
+      scale_profile: scaleProfileFromLengthEnvelope({ word_target_soft: 100_000 }),
       provider_bindings: frozenProviderBindingsFixture(),
       cover_asset_binding: frozenCoverAssetBindingFixture(),
       export_preferences: { format: 'zip', author: '', version_note: '' },

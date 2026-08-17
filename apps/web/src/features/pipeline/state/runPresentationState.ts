@@ -7,7 +7,7 @@ export type RunActionKey =
   | 'resume'
   | 'awaiting-confirmation'
   | 'continue'
-  | 'return';
+  | 'complete';
 
 export type RunActionPresentation = {
   key: RunActionKey;
@@ -18,7 +18,6 @@ export type RunActionPresentation = {
 };
 
 export type ModeRoutePolicy = {
-  planningSurface: 'planning' | 'cockpit';
   stageRoutes: 'none' | 'all';
   /**
    * Run monitor console availability per quality mode:
@@ -55,7 +54,7 @@ export function runActionPresentation(params: Params): RunActionPresentation {
   }
   if (params.briefContinueReady) return continueAction('继续进入故事脊柱', '显示阶段结算并进入故事脊柱');
   if (params.checkpointContinueReady && params.selectedStageType === 'export') {
-    return { key: 'return', label: '返回控制台', title: '导出完成，返回工作台', disabled: false, visualState: 'continue-ready' };
+    return { key: 'complete', label: '完成本次创作', title: '结束运行并保留导出工作台', disabled: false, visualState: 'continue-ready' };
   }
   if (params.checkpointContinueReady) return continueAction('继续下一阶段', '显示阶段结算并进入下一阶段');
   if (params.qualityMode !== 'fast' && params.approvalPending) {
@@ -72,14 +71,10 @@ export function runActionPresentation(params: Params): RunActionPresentation {
   return startAction(params.qualityMode);
 }
 
-export function modeRoutePolicy(mode: QualityMode, automationCockpitReady: boolean): ModeRoutePolicy {
-  if (mode === 'fast') return { planningSurface: 'cockpit', stageRoutes: 'none', monitor: 'default' };
-  if (mode === 'balanced') {
-    return automationCockpitReady
-      ? { planningSurface: 'cockpit', stageRoutes: 'all', monitor: 'available' }
-      : { planningSurface: 'planning', stageRoutes: 'all', monitor: 'available' };
-  }
-  return { planningSurface: 'planning', stageRoutes: 'all', monitor: 'none' };
+export function modeRoutePolicy(mode: QualityMode): ModeRoutePolicy {
+  if (mode === 'fast') return { stageRoutes: 'none', monitor: 'default' };
+  if (mode === 'balanced') return { stageRoutes: 'all', monitor: 'available' };
+  return { stageRoutes: 'all', monitor: 'none' };
 }
 
 export function canNavigateToStage(policy: ModeRoutePolicy, stageId: string) {

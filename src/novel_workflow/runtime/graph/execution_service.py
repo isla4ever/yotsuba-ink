@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from novel_workflow.runtime.graph.provider_gateway import NarrativeProviderGateway
-from novel_workflow.runtime.graph.runtime import filesystem_stores, open_sqlite_runtime
+from novel_workflow.runtime.graph.checkpoint_branch import CheckpointBranchMode
+from novel_workflow.runtime.graph.runtime import (
+    filesystem_stores,
+    has_active_graph_interrupt,
+    open_sqlite_runtime,
+)
 
 
 class RunExecutionConflict(RuntimeError):
@@ -41,9 +46,10 @@ class NarrativeExecutionService:
                 continue
             async with open_sqlite_runtime(self.root, self.provider_factory()) as runtime:
                 snapshot = await runtime.graph.aget_state(
-                    {"configurable": {"thread_id": projection.run_id}}
+                    {"configurable": {"thread_id": projection.run_id}},
+                    subgraphs=True,
                 )
-            if snapshot.values and snapshot.next and not snapshot.interrupts:
+            if snapshot.values and snapshot.next and not has_active_graph_interrupt(snapshot):
                 self.dispatch_recover(projection.run_id)
 
     async def wait(self, run_id: str) -> None:
@@ -61,17 +67,28 @@ class NarrativeExecutionService:
         source_run_id: str,
         target_run_id: str,
         checkpoint_id: str,
+        provider_binding_overrides=None,
+        cover_asset_binding_override=None,
+        binding_override=None,
+        branch_mode: CheckpointBranchMode = "active_decision",
     ):
         if self.is_running(source_run_id) or self.is_running(target_run_id):
             raise RunExecutionConflict(source_run_id)
         from novel_workflow.runtime.graph.branch_service import NarrativeBranchService
 
         async with open_sqlite_runtime(self.root, self.provider_factory()) as runtime:
-            return await NarrativeBranchService(runtime).create(
+            projection = await NarrativeBranchService(runtime).create(
                 source_run_id=source_run_id,
                 target_run_id=target_run_id,
                 checkpoint_id=checkpoint_id,
+                provider_binding_overrides=provider_binding_overrides,
+                cover_asset_binding_override=cover_asset_binding_override,
+                binding_override=binding_override,
+                branch_mode=branch_mode,
             )
+        if branch_mode == "stage_boundary":
+            self.dispatch_recover(target_run_id)
+        return projection
 
     def _dispatch(self, run_id: str, coroutine: Any) -> None:
         if self.is_running(run_id):

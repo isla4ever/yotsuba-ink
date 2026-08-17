@@ -230,3 +230,116 @@
 .runtime-side-detail-body .quality-monitor-widget {
   grid-template-rows: auto auto auto auto minmax(0, 1fr);
 }
+
+.runtime-side-detail-sheet.frozen-binding-sheet {
+  width: clamp(420px, 34vw, 560px);
+}
+
+.frozen-binding-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 4px 8px 2px;
+  scrollbar-width: thin;
+}
+
+.frozen-binding-summary {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--detail-aura);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2) var(--space-4);
+}
+
+.frozen-binding-summary p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.frozen-binding-summary strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.frozen-binding-summary span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.frozen-binding-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.frozen-binding-list > li {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: var(--space-4) var(--space-2);
+}
+
+.frozen-binding-list > li > header {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.frozen-binding-list > li > header span {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.frozen-binding-list code {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.frozen-binding-list dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.frozen-binding-list dl > div {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+.frozen-binding-list dt {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 11px;
+  gap: var(--space-2);
+}
+
+.frozen-binding-list dd {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 11px;
+  gap: 2px;
+  line-height: 1.5;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.frozen-binding-list dd strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 620px) {
+  .runtime-side-detail-sheet.frozen-binding-sheet {
+    width: min(100%, 430px);
+  }
+
+  .frozen-binding-list dl > div {
+    gap: 3px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -56,7 +56,7 @@ export function buildTestWorkflowConfig(overrides: Partial<WorkflowConfigSlice> 
     knowledgeDocuments: [],
     project: null,
     qualityMode: defaultWorkflow.quality_mode,
-    routePolicy: modeRoutePolicy(defaultWorkflow.quality_mode, false),
+    routePolicy: modeRoutePolicy(defaultWorkflow.quality_mode),
     saveStatus: 'idle',
     workflow: defaultWorkflow,
     ...overrides,

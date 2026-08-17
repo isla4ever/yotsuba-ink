@@ -43,7 +43,7 @@ export const AppHeader = memo(function AppHeader({ sidebarVisible }: Props) {
     () => buildConfigProgress(workflow, knowledgeDocuments, providerReadiness),
     [knowledgeDocuments, providerReadiness.report, providerReadiness.status, workflow],
   );
-  const isRunSurface = run.routePhase === 'running' && run.runHasStarted;
+  const isRunSurface = run.routePhase === 'running' && run.activeRunId !== '';
   const bibleSurface = run.routePhase === 'bible' && run.routeBibleSection
     ? bibleSectionMeta[run.routeBibleSection]
     : null;

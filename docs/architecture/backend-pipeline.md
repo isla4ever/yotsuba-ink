@@ -8,7 +8,7 @@
 
 - API 应用入口：[src/novel_workflow/api/app.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/api/app.py)
 - 应用状态初始化：[src/novel_workflow/api/bootstrap.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/api/bootstrap.py)
-- Runner 门面：[src/novel_workflow/workflows/runner.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/workflows/runner.py)
+- LangGraph 执行服务：[src/novel_workflow/runtime/graph/execution_service.py](/Users/isla/Desktop/project/multi-stage-creation-model-end/src/novel_workflow/runtime/graph/execution_service.py)
 
 ## 一次运行的生命周期
 

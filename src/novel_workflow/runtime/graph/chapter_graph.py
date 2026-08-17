@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import asyncio
-import hashlib
-import json
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
 from novel_workflow.output_contracts.artifacts_vnext import ChapterArtifact, ContextManifest
-from novel_workflow.runtime.graph.provider_gateway import (
-    ChapterGenerationRequest,
-    ProviderOperationError,
+from novel_workflow.runtime.graph.provider_gateway import ProviderOperationError
+from novel_workflow.runtime.graph.chapter_scene_generation import (
+    generate_chapter_scenes,
 )
 from novel_workflow.runtime.graph.chapter_review import (
     DEFAULT_REVIEWERS,
@@ -26,10 +23,7 @@ from novel_workflow.runtime.graph.chapter_writeback import (
     enqueue_domain_commit,
     extract_evidence,
 )
-from novel_workflow.runtime.graph.stage_executor import (
-    StageExecutor,
-    _is_transient_network_error,
-)
+from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.failure import (
     emit_terminal_failure,
     failure_route,
@@ -39,6 +33,8 @@ from novel_workflow.runtime.graph.state import (
     NarrativeRunState,
     copy_stage_status,
 )
+from novel_workflow.workflows.narrative_scale import count_prose_characters
+from novel_workflow.workflows.narrative_scale import soft_book_length_bounds
 
 
 def build_chapter_graph(
@@ -98,7 +94,6 @@ def build_chapter_graph(
         if detail_chapter.ref != chapter_id:
             raise ValueError("Active chapter does not match the frozen Detail Artifact")
         attempt = int((state.get("chapter_attempts") or {}).get(chapter_id) or 1)
-        operation_key = f"{run_id}:{chapter_id}:generate:{attempt}"
         definition = executor.runs.definition(run_id)
         binding = definition.provider_bindings.get("text")
         if binding is None:
@@ -111,88 +106,27 @@ def build_chapter_graph(
             raise ValueError("Context Manifest does not match the active chapter attempt")
         planner = executor.output_budget_planner(state)
         budget = planner.for_chapter(binding)
-        context = {
-            "target": "text",
-            "sources": {},
-            "material": {
-                "chapter_context_manifest": manifest_record.manifest.model_dump(mode="json")
-            },
-        }
-        request = ChapterGenerationRequest(
-            operation_key=operation_key,
-            run_id=run_id,
+        generated = await generate_chapter_scenes(
+            executor,
+            state,
+            base_manifest=manifest_record.manifest,
+            detail_chapter=detail_chapter,
+            binding=binding,
+            budget=budget,
+        )
+        artifact = _chapter_artifact(
             chapter_id=chapter_id,
-            chapter_number=chapter_number,
-            binding=budget.bind(binding),
-            context=planner.attach(context, budget),
+            attempt=attempt,
+            content=generated.content,
+            title=detail_chapter.title,
         )
-        receipt = executor.operations.begin(
-            run_id=run_id,
-            operation_key=operation_key,
-            kind="chapter_generation",
-            request_signature=_signature(request.model_dump(mode="json")),
-            provider_profile_id=binding.provider_profile_id,
-            model=binding.model,
+        _validate_generated_chapter(
+            artifact,
+            chapter_id=chapter_id,
+            expected_title=detail_chapter.title,
         )
-        if receipt.status == "failed":
-            raise ProviderOperationError.for_operation(
-                operation_key, f"Provider operation already failed: {operation_key}"
-            )
-        if receipt.status == "succeeded":
-            payload = receipt.result
-            content = _read_prose_receipt(payload)
-            artifact = _chapter_artifact(
-                chapter_id=chapter_id,
-                attempt=attempt,
-                content=content,
-                title=detail_chapter.title,
-            )
-            _validate_generated_chapter(
-                artifact,
-                chapter_id=chapter_id,
-                expected_title=detail_chapter.title,
-            )
-        else:
-            response = None
-            try:
-                response = await _generate_chapter_with_retry(executor, request)
-                payload = {"content": response.content}
-                artifact = _chapter_artifact(
-                    chapter_id=chapter_id,
-                    attempt=attempt,
-                    content=response.content,
-                    title=detail_chapter.title,
-                )
-                _validate_generated_chapter(
-                    artifact,
-                    chapter_id=chapter_id,
-                    expected_title=detail_chapter.title,
-                )
-            except Exception as exc:
-                executor.operations.fail(
-                    run_id,
-                    operation_key,
-                    {"type": type(exc).__name__, "message": str(exc)},
-                    usage=(
-                        response.usage
-                        if response is not None
-                        else getattr(exc, "usage", {})
-                    ),
-                    diagnostic=(
-                        response.diagnostic
-                        if response is not None
-                        else getattr(exc, "diagnostic", {})
-                    ),
-                )
-                raise ProviderOperationError.for_operation(operation_key, exc) from exc
-            executor.operations.succeed(
-                run_id,
-                operation_key,
-                payload,
-                usage=response.usage,
-                diagnostic=response.diagnostic,
-            )
         record = executor.chapters.write(run_id, artifact.model_dump(mode="json"))
+        operation_key = generated.operation_keys[-1]
         executor.events.append(
             run_id,
             event_id=f"{operation_key}:candidate",
@@ -204,7 +138,7 @@ def build_chapter_graph(
         )
         return {
             "chapter_version_refs": _copy_chapter_ref(state, chapter_id, record.version_id),
-            "pending_operation_refs": [operation_key],
+            "pending_operation_refs": list(generated.operation_keys),
         }
 
     def commit_chapter(state: NarrativeRunState) -> dict[str, Any]:
@@ -235,6 +169,22 @@ def build_chapter_graph(
         }
 
     def finish_chapters(state: NarrativeRunState) -> dict[str, Any]:
+        run_id = state["run_id"]
+        detail = executor.detail(state)
+        refs = state.get("chapter_version_refs") or {}
+        accepted = [
+            executor.chapters.read(run_id, chapter.ref, refs[chapter.ref]).artifact
+            for chapter in detail.chapters
+        ]
+        actual_total = sum(count_prose_characters(chapter.content) for chapter in accepted)
+        profile = executor.runs.definition(run_id).scale_profile
+        minimum, maximum = soft_book_length_bounds(profile)
+        if actual_total < minimum:
+            raise ValueError(
+                "Whole-book prose total is below the accepted minimum of "
+                f"{minimum} characters (frozen target {profile.word_target_soft}, "
+                f"soft maximum {maximum}): {actual_total}"
+            )
         return {
             "stage_status": copy_stage_status(state, "text", "completed"),
             "status": "running",
@@ -289,12 +239,9 @@ def build_chapter_graph(
     builder.add_conditional_edges("generate_prose", lambda state: failure_route(state, "check_length_contract"), {"failure": "fail_chapter", "check_length_contract": "check_length_contract"})
     builder.add_conditional_edges(
         "check_length_contract",
-        lambda state: (
-            "failure" if state.get("failure") is not None else state.get("chapter_gate_action", "review")
-        ),
+        lambda state: "failure" if state.get("failure") is not None else "review",
         {
             "review": "plan_review_roles",
-            "regenerate": "prepare_context",
             "failure": "fail_chapter",
         },
     )
@@ -341,25 +288,6 @@ def _validate_generated_chapter(
         raise ValueError("Chapter title must be inherited from the frozen Detail Artifact")
 
 
-_CHAPTER_NETWORK_ATTEMPTS = 3
-
-
-async def _generate_chapter_with_retry(executor: StageExecutor, request: Any) -> Any:
-    """Long prose calls are the slowest in the chain; a timeout or dropped
-    connection must not kill the whole run when a fresh attempt can succeed."""
-    for round_index in range(_CHAPTER_NETWORK_ATTEMPTS):
-        try:
-            return await executor.provider.generate_chapter(request)
-        except Exception as exc:
-            if (
-                round_index >= _CHAPTER_NETWORK_ATTEMPTS - 1
-                or not _is_transient_network_error(exc)
-            ):
-                raise
-            await asyncio.sleep(2 * (round_index + 1))
-    raise RuntimeError("unreachable")
-
-
 def _chapter_artifact(
     *,
     chapter_id: str,
@@ -376,16 +304,4 @@ def _chapter_artifact(
     )
 
 
-def _read_prose_receipt(payload: Any) -> str:
-    if not isinstance(payload, dict):
-        raise ValueError("Chapter prose receipt must be an object")
-    content = payload.get("content")
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError("Chapter prose receipt must contain non-empty text")
-    return content
-
-
-def _signature(value: Any) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 __all__ = ["DEFAULT_REVIEWERS", "ReviewerSpec", "build_chapter_graph"]

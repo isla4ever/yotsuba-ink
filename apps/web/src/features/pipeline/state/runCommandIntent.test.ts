@@ -26,7 +26,7 @@ describe('run command intent', () => {
     });
   });
 
-  it('returns from Export instead of reopening the stream', () => {
+  it('completes Export instead of reopening the stream', () => {
     expect(resolveRunCommandIntent(context({
       activeRunId: 'deep-run',
       checkpointContinueReady: true,
@@ -35,7 +35,7 @@ describe('run command intent', () => {
       qualityMode: 'deep',
       selectedStageType: 'export',
       workspacePhase: 'running',
-    }))).toEqual({ type: 'return_export' });
+    }))).toEqual({ type: 'complete_export' });
   });
 
   it('does not resume a deep checkpoint before confirmation', () => {

@@ -14,10 +14,10 @@ const artifact = {
     promise: '找到失踪母带的来源',
     conflict: '广播站封锁证据',
     climax: '在全港广播原始录音',
+    climax_turn_ref: 'turn-1',
     closure: '林岚接受共同作证',
     turn_refs: ['turn-1'],
     cast_ids: ['subject-lin'],
-    thread_ids: ['thread-tape'],
     length_hint: 'short' as const,
   }],
 };
