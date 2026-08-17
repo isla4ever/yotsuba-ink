@@ -32,7 +32,7 @@ Project：`proj-e1007717ad`
 - 章节数：`44`；标题完整率：`44/44 = 100%`。
 - 单章非空白字符：最小 `1,710`，最大 `3,692`，平均 `2,445.75`，P90 `2,962`。
 - 章节范围没有出现 1,000 与 6,000 字的极端离散；自然差异保留。
-- 分卷：`来电初现` 14 章，`破碎回声` 14 章，`永夜回声` 16 章；卷标题完整率 `3/3 = 100%`。
+- 分卷：`来电初现` 14 章 / 35,795 字符，`破碎回声` 14 章 / 34,126 字符，`永夜回声` 16 章 / 37,692 字符；卷标题完整率 `3/3 = 100%`。
 - Detail Artifact 章节数为 44，Export Artifact 选择的章节版本数为 44。
 
 ## 连续性抽检
@@ -48,6 +48,12 @@ Project：`proj-e1007717ad`
 - 总 tokens：`1,760,252`（prompt `1,627,787`，completion `132,465`）。
 - 失败回执：Volumes 候选的 climax 位置合同、Text 终检的冻结 `110,000` 精确目标、Cover 候选的 `negative_constraints` 数量合同。
 - 以上失败均没有破坏最终产品硬门：Volumes/Cover 形成有效 committed Artifact；Text 的最终正文高于产品 100,000 字硬门，随后恢复并完成 Cover/Export。
+
+## 导出回执
+
+- 文件名：`明日来电.zip`；格式：`application/zip`；大小：`329,105` bytes。
+- SHA-256：`62132a9dd82cf18691189af27a727628cc1c8c6327f29c1da52224f42a33df55`。
+- 本地交付文件：`runtime/novel_workflow/native_runtime/exports/balanced-110k-v1-demo-20260817-040033/files/export-bddc2be828bc5fa7be566ddd.bin`；文件签名与回执一致，`unzip -t` 无错误。
 
 ## UI 与浏览器证据
 
