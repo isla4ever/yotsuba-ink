@@ -33,6 +33,7 @@ describe('ExportStageViewVnext', () => {
   it('edits delivery preferences while keeping authority references read-only', () => {
     const onArtifactChange = vi.fn();
     act(() => root.render(<ExportStageViewVnext
+      chapterTitles={['回声入库', '六面封锁']}
       deliveryRevision=""
       onArtifactChange={onArtifactChange}
       readOnly={false}
@@ -43,7 +44,8 @@ describe('ExportStageViewVnext', () => {
     const title = container.querySelector<HTMLInputElement>('input[value="雾港旧声"]');
     expect(title?.readOnly).toBe(true);
     expect(container.querySelector('input[value="cover-a"]')).toBeNull();
-    expect(container.textContent).toContain('chapter-2-v1-accepted');
+    expect(container.textContent).toContain('六面封锁');
+    expect(container.textContent).not.toContain('chapter-2-v1-accepted');
     expect(container.textContent).toContain('雾港残响');
 
     const markdown = Array.from(container.querySelectorAll<HTMLButtonElement>('.vnext-export-format button'))
@@ -72,6 +74,7 @@ describe('ExportStageViewVnext', () => {
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
 
     await act(async () => root.render(<ExportStageViewVnext
+      chapterTitles={['回声入库', '六面封锁']}
       deliveryRevision="event-export-committed"
       onArtifactChange={() => undefined}
       readOnly

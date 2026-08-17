@@ -4,7 +4,9 @@ import {
   mapWithConcurrency,
   relativeTimeLabel,
   stageProgressDots,
+  studioLibraryStats,
 } from './studioModel';
+import type { ProjectRecord, ProjectSummary } from '../../contracts';
 
 describe('stageProgressDots', () => {
   it('derives the eight-stage dot matrix from real completed/current facts', () => {
@@ -39,6 +41,29 @@ describe('mapWithConcurrency', () => {
     });
     expect(results).toEqual([10, 20, null, 40, 50, 60]);
     expect(peak).toBeLessThanOrEqual(4);
+  });
+});
+
+describe('studioLibraryStats', () => {
+  it('derives word, delivery, and stage coverage figures from project summaries', () => {
+    const project = (id: string): ProjectRecord => ({
+      accent_hue: 160, created_at: '', id, latest_run_id: '', status: 'active', summary: '', title: id, updated_at: '', workflow_id: '',
+    });
+    const projects = [project('p1'), project('p2')];
+    const summary = (projectRecord: ProjectRecord, status: string, words: number, completed: string[]): ProjectSummary => ({
+      completed_stage_ids: completed,
+      current_stage: {},
+      latest_run: null,
+      project: projectRecord,
+      status,
+      title: projectRecord.title,
+      updated_at: '',
+      words,
+    });
+    expect(studioLibraryStats(projects, {
+      p1: summary(projects[0], 'completed', 107_613, ['brief', 'spine', 'cast', 'volumes', 'detail', 'text', 'cover', 'export']),
+      p2: summary(projects[1], 'running', 12_000, ['brief', 'spine']),
+    })).toEqual({ completedProjects: 1, projectCount: 2, stageCoverage: 63, totalWords: 119_613 });
   });
 });
 

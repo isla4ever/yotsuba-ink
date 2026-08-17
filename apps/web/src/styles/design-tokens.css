@@ -80,6 +80,8 @@
   --shell-header-height-medium: 132px;
   --shell-header-height-mobile: 184px;
   --shell-min-height: 720px;
+  /* Fanqie author-platform delivery frame: 600x800, width / height = 3 / 4. */
+  --novel-cover-aspect: 3 / 4;
 
   /* Overlay system */
   --overlay-backdrop: rgba(2, 6, 14, 0.72);

@@ -3,6 +3,7 @@ import type { CharacterEdge, CharacterNode } from '../../contracts';
 
 type VisualNode = CharacterNode & { anchorX?: number; anchorY?: number; val: number };
 export type NodeLabelDetail = 'full' | 'name' | 'hidden';
+export type CharacterNodeVisualKind = 'functional' | 'historical_record' | 'major' | 'npc' | 'protagonist';
 
 export function relationshipTouchesNode(edge: CharacterEdge, nodeId: string) {
   return endpointId(edge.source) === nodeId || endpointId(edge.target) === nodeId;
@@ -16,8 +17,9 @@ export function createCharacterNode3D(
 ) {
   const group = new THREE.Group();
   const radius = Math.max(11, node.val * 2.02);
+  const visualKind = characterNodeVisualKind(node);
   const crystal = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(radius, 2),
+    createNodeGeometry(visualKind, radius),
     new THREE.MeshStandardMaterial({
       color,
       emissive: color,
@@ -29,7 +31,7 @@ export function createCharacterNode3D(
     }),
   );
   const shell = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(radius * 1.28, 1),
+    createNodeGeometry(visualKind, radius * 1.28),
     new THREE.MeshBasicMaterial({
       color,
       opacity: selected ? 0.46 : 0.2,
@@ -52,10 +54,31 @@ export function createCharacterNode3D(
     new THREE.MeshBasicMaterial({ color: '#f6fbf9', opacity: selected ? 0.94 : 0.7, transparent: true }),
   );
   group.add(crystal, core, shell, orbit, polarOrbit);
+  group.userData.visualKind = visualKind;
   if (options.labelDetail !== 'hidden') {
     group.add(createNodeLabel(node, color, radius, options.labelDetail ?? 'full', Boolean(options.compact)));
   }
   return group;
+}
+
+export function characterNodeVisualKind(node: Pick<CharacterNode, 'status' | 'tier'>): CharacterNodeVisualKind {
+  if (node.status === 'historical_record' || node.status === 'historical') return 'historical_record';
+  if (node.status === 'functional') return 'functional';
+  if (node.status === 'major') return 'major';
+  if (node.status === 'npc') return 'npc';
+  if (node.status === 'protagonist') return 'protagonist';
+  if (node.tier === 'protagonist') return 'protagonist';
+  if (node.tier === 'major') return 'major';
+  if (node.tier === 'supporting' || node.tier === 'minor') return 'functional';
+  return 'npc';
+}
+
+function createNodeGeometry(kind: CharacterNodeVisualKind, radius: number): THREE.BufferGeometry {
+  if (kind === 'protagonist') return new THREE.DodecahedronGeometry(radius, 1);
+  if (kind === 'major') return new THREE.OctahedronGeometry(radius, 1);
+  if (kind === 'functional') return new THREE.BoxGeometry(radius * 1.5, radius * 1.5, radius * 1.5, 2, 2, 2);
+  if (kind === 'historical_record') return new THREE.CylinderGeometry(radius * 0.7, radius, radius * 1.7, 6, 1);
+  return new THREE.TetrahedronGeometry(radius, 1);
 }
 
 function createNodeLabel(node: VisualNode, color: string, radius: number, detail: NodeLabelDetail, compact: boolean) {

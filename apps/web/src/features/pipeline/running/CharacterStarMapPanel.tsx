@@ -1,8 +1,9 @@
 import { Focus, ZoomIn, ZoomOut } from 'lucide-react';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterNode } from '../contracts';
 import type { CharacterBibleArtifact, CharacterKind } from './characterBibleArtifact';
 import { projectCharacterBibleGraph } from './characterBibleGraphProjection';
+import { CharacterKindIcon, characterKindLabels } from './CharacterKindIcon';
 
 const CharacterNetwork3DView = lazy(() =>
   import('./bible/CharacterNetwork3DView').then((module) => ({ default: module.CharacterNetwork3DView })),
@@ -25,11 +26,8 @@ const tierColors: Record<CharacterKind, string> = {
 };
 
 const subjectLegend = [
-  { color: tierColors.protagonist, label: '主角' },
-  { color: tierColors.major, label: '重要配角' },
-  { color: tierColors.functional, label: '功能角色' },
-  { color: '#c88955', label: 'NPC / 历史主体' },
-];
+  'protagonist', 'major', 'functional', 'npc', 'historical_record',
+].map((kind) => ({ kind: kind as CharacterKind, label: characterKindLabels[kind as CharacterKind] }));
 
 const graphTierColors: Record<CharacterNode['tier'], string> = {
   major: tierColors.major,
@@ -42,9 +40,17 @@ const graphTierColors: Record<CharacterNode['tier'], string> = {
 export function CharacterStarMapPanel({ artifact, onSelect, selectedId }: Props) {
   const graph = useMemo(() => projectCharacterBibleGraph(artifact), [artifact]);
   const [cameraRequest, setCameraRequest] = useState<CameraRequest>();
+  const previousSelectedId = useRef(selectedId);
   const requestCamera = (kind: CameraRequest['kind']) => {
     setCameraRequest((current) => ({ id: selectedId, key: (current?.key ?? 0) + 1, kind }));
   };
+
+  useEffect(() => {
+    if (previousSelectedId.current && previousSelectedId.current !== selectedId) {
+      setCameraRequest((current) => ({ id: selectedId, key: (current?.key ?? 0) + 1, kind: 'focus' }));
+    }
+    previousSelectedId.current = selectedId;
+  }, [selectedId]);
 
   return (
     <section className="character-star-map-stage">
@@ -73,8 +79,8 @@ export function CharacterStarMapPanel({ artifact, onSelect, selectedId }: Props)
           />
         </Suspense>
         <div aria-label="人物层级图例" className="character-star-map-legend">
-          {subjectLegend.map(({ color, label }) => (
-            <span key={label}><i style={{ backgroundColor: color }} />{label}</span>
+          {subjectLegend.map(({ kind, label }) => (
+            <span key={kind}><CharacterKindIcon kind={kind} size={12} />{label}</span>
           ))}
         </div>
       </div>

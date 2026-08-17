@@ -34,13 +34,18 @@
 .character-bible-star-layout {
   border-block: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
   display: grid;
-  grid-template-columns: minmax(184px, .5fr) minmax(520px, 1.65fr) minmax(300px, .85fr);
-  min-height: 650px;
+  grid-template-columns: minmax(196px, .48fr) minmax(520px, 1.58fr) minmax(360px, .94fr);
+  min-height: 740px;
   min-width: 0;
 }
 
 .character-bible-star-layout > .character-dossier-editor {
-  max-height: 650px;
+  max-height: 740px;
+  overflow-y: auto;
+}
+
+.character-bible-star-layout > .character-roster-rail {
+  max-height: 740px;
   overflow-y: auto;
 }
 
@@ -136,14 +141,14 @@
   gap: 5px;
 }
 
-.character-star-map-legend i {
-  border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
-  height: 6px;
-  width: 6px;
-}
+.character-star-map-legend .character-kind-icon { color: var(--muted); }
+.character-star-map-legend .kind-protagonist { color: #4edbe7; }
+.character-star-map-legend .kind-major { color: #edbd68; }
+.character-star-map-legend .kind-functional { color: #9babb2; }
+.character-star-map-legend .kind-npc,
+.character-star-map-legend .kind-historical_record { color: #c88955; }
 
-@container (max-width: 1100px) {
+@container (max-width: 1260px) {
   .character-bible-star-layout { grid-template-columns: minmax(170px, .42fr) minmax(460px, 1.4fr); }
   .character-bible-star-layout > .character-dossier-editor { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent); grid-column: 1 / -1; max-height: none; }
 }

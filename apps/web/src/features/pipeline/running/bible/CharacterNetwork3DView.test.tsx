@@ -70,6 +70,14 @@ describe('CharacterNetwork3DView data mapping', () => {
     expect(props.nodeColor(byId('n1'))).toBe(modeAccent);
   });
 
+  it('keeps projected subject kinds visually distinct instead of reducing every node to one crystal', async () => {
+    const { characterNodeVisualKind } = await import('./characterNetwork3DObjects');
+    expect(characterNodeVisualKind({ status: 'protagonist', tier: 'protagonist' })).toBe('protagonist');
+    expect(characterNodeVisualKind({ status: 'functional', tier: 'supporting' })).toBe('functional');
+    expect(characterNodeVisualKind({ status: 'historical_record', tier: 'npc' })).toBe('historical_record');
+    expect(characterNodeVisualKind({ status: '', tier: 'npc' })).toBe('npc');
+  });
+
   it('dims nodes outside the highlighted faction and keeps edges on the active mode color', async () => {
     const props = await render('', 'faction-黑市');
     const nodes = props.graphData.nodes as Array<Record<string, any>>;

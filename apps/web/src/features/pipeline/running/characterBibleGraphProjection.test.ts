@@ -18,7 +18,7 @@ describe('Character Bible graph projection', () => {
     expect(graph.updated_by).toBe('character-bible-artifact');
     expect(graph.nodes[0]).toMatchObject({ first_appearance_chapter: '2', id: 'subject-lin', tier: 'protagonist' });
     expect(graph.nodes[1]).toMatchObject({ id: 'subject-zhou', tier: 'supporting' });
-    expect(graph.nodes[2]).toMatchObject({ id: 'subject-su-he', name: '苏禾', status: 'historical', tier: 'npc' });
+    expect(graph.nodes[2]).toMatchObject({ id: 'subject-su-he', name: '苏禾', status: 'historical_record', tier: 'npc' });
     expect(graph.edges[0]).toMatchObject({ relation: '有条件的同盟', source: 'subject-lin', target: 'subject-zhou' });
     expect(graph.nodes.some((node) => 'x' in node || 'y' in node || 'z' in node)).toBe(false);
   });

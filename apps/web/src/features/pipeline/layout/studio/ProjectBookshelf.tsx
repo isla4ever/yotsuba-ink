@@ -1,5 +1,5 @@
-import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ProjectRecord, ProjectSummary } from '../../contracts';
 import { ButtonLoadingIndicator } from '../ButtonLoadingIndicator';
 import { ManuscriptLoadingIndicator } from '../ManuscriptLoadingIndicator';
@@ -16,7 +16,6 @@ type Props = {
   loading: boolean;
   error: string;
   onOpen: (project: ProjectRecord, summary: ProjectSummary | null) => void;
-  onCreate: () => void;
   openingProjectId?: string;
 };
 
@@ -25,14 +24,39 @@ type Props = {
  * project, vertical titles), a reading-desk detail panel on the right for the
  * selected work. Single click selects, the desk's CTA (or double click) opens.
  */
-export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, onCreate, openingProjectId = '' }: Props) {
+export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, openingProjectId = '' }: Props) {
   const [selectedId, setSelectedId] = useState('');
+  const [scrollState, setScrollState] = useState({ next: false, prev: false });
   const shelfRef = useRef<HTMLDivElement>(null);
   const selected = projects.find((project) => project.id === selectedId) ?? projects[0] ?? null;
 
   useEffect(() => {
     if (selected && selected.id !== selectedId) setSelectedId(selected.id);
   }, [selected, selectedId]);
+
+  const syncScrollState = useCallback(() => {
+    const rail = shelfRef.current;
+    if (!rail) return;
+    setScrollState({
+      next: rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 2,
+      prev: rail.scrollLeft > 2,
+    });
+  }, []);
+
+  useEffect(() => {
+    const rail = shelfRef.current;
+    if (!rail) return undefined;
+    syncScrollState();
+    rail.addEventListener('scroll', syncScrollState, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(syncScrollState);
+    observer?.observe(rail);
+    window.addEventListener('resize', syncScrollState);
+    return () => {
+      rail.removeEventListener('scroll', syncScrollState);
+      observer?.disconnect();
+      window.removeEventListener('resize', syncScrollState);
+    };
+  }, [projects.length, syncScrollState]);
 
   if (loading && !projects.length && !error) {
     return (
@@ -47,11 +71,7 @@ export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, 
     return (
       <div className="studio-empty-state">
         <h2>书架还空着</h2>
-        <p>新建第一部作品，它会以一本书的形式立在这里。</p>
-        <button className="tech-button" onClick={onCreate} type="button">
-          <Plus aria-hidden="true" size={16} />
-          新建作品
-        </button>
+        <p>从上方新建第一部作品，它会以一本书的形式立在这里。</p>
       </div>
     );
   }
@@ -66,7 +86,7 @@ export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, 
       {error ? <p className="studio-inline-error" role="alert">{error}</p> : null}
       <div className="studio-bookshelf-layout">
         <div className="studio-shelf-frame">
-          <button aria-controls="project-shelf-rail" aria-label="向左浏览作品" className="studio-shelf-control prev" onClick={() => scrollShelf(-1)} title="向左浏览作品" type="button">
+          <button aria-controls="project-shelf-rail" aria-label="向左浏览作品" className="studio-shelf-control prev" disabled={!scrollState.prev} onClick={() => scrollShelf(-1)} title="向左浏览作品" type="button">
             <ChevronLeft aria-hidden="true" size={18} />
           </button>
           <div aria-label="书架" className="studio-shelf" id="project-shelf-rail" ref={shelfRef} role="listbox">
@@ -91,13 +111,9 @@ export function ProjectBookshelf({ projects, summaries, loading, error, onOpen, 
                 </button>
               );
             })}
-            <button className="studio-book-spine new-book" onClick={onCreate} title="新建作品" type="button">
-              <Plus aria-hidden="true" size={15} />
-              <span className="spine-title">新建作品</span>
-            </button>
             <span aria-hidden="true" className="studio-shelf-board" />
           </div>
-          <button aria-controls="project-shelf-rail" aria-label="向右浏览作品" className="studio-shelf-control next" onClick={() => scrollShelf(1)} title="向右浏览作品" type="button">
+          <button aria-controls="project-shelf-rail" aria-label="向右浏览作品" className="studio-shelf-control next" disabled={!scrollState.next} onClick={() => scrollShelf(1)} title="向右浏览作品" type="button">
             <ChevronRight aria-hidden="true" size={18} />
           </button>
         </div>

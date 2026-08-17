@@ -22,16 +22,6 @@
   letter-spacing: 0;
 }
 
-/* Bookshelf shelf area sits on the black-crystal backdrop. */
-.studio-shelf {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 42%, rgba(5, 8, 7, 0.9)),
-    rgba(10, 13, 12, 0.66);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 22px 42px rgba(0, 0, 0, 0.26);
-}
-
 .studio-book-desk {
   background-color: #101312;
   border-color: rgba(255, 255, 255, 0.15);
@@ -69,8 +59,6 @@
 
 .studio-empty-state h2 { font-size: 22px; font-weight: 500; }
 .studio-empty-state p { max-width: 420px; }
-.studio-empty-state .tech-button { align-self: flex-start; }
-
 .studio-template-card {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.055), transparent 20px), rgba(12, 15, 14, 0.88);
   border-color: rgba(255, 255, 255, 0.13);
@@ -85,7 +73,6 @@
 }
 
 :root[data-theme="light"] .studio-workbench { background: var(--surface-0); }
-:root[data-theme="light"] .studio-shelf,
 :root[data-theme="light"] .studio-book-desk,
 :root[data-theme="light"] .studio-empty-state,
 :root[data-theme="light"] .studio-template-card {

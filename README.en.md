@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/library.png" alt="Yotsuba Ink project library and horizontal bookshelf" width="100%" />
+  <img src="docs/assets/branding/yotsuba-ink-product-hero.png" alt="Concept visual for the Yotsuba Ink long-form production workbench" width="100%" />
 </p>
 
 Yotsuba Ink is built for long-form projects that need sustained control over structure, characters, continuity, and versions. It turns model calls into a production workflow with explicit artifacts, author decisions, quality boundaries, and recovery records instead of asking one conversation to generate an entire book.
@@ -31,18 +31,28 @@ Yotsuba Ink is built for long-form projects that need sustained control over str
 Each stage owns one core Artifact. Downstream work starts from committed upstream decisions, and prose chapters are generated sequentially from the previous chapter's accepted state.
 
 ```mermaid
-flowchart LR
-  idea["Story idea"] --> brief["Brief<br/>Title, promise, rules, and voice"]
-  brief --> spine["Spine<br/>Book-level causality and payoff"]
-  spine --> cast["Cast<br/>Character bible and debut boundaries"]
-  cast --> volumes["Volumes<br/>Promise, conflict, climax, and closure"]
-  volumes --> detail["Detail<br/>Chapter purpose, scenes, and handoff"]
-  detail --> text["Text<br/>Sequential chapter generation"]
-  text --> gate{"Contract and quality gate"}
-  gate -->|Pass| cover["Cover<br/>Visual brief and optional asset"]
-  gate -->|One targeted revision| text
-  gate -. Soft issues stay warnings .-> evidence["Evidence<br/>Findings, excerpts, and direction"]
-  cover --> export["Export<br/>Versions, metadata, and ZIP"]
+flowchart TB
+  idea["Story idea"] --> brief
+
+  subgraph planningStage["01 Planning"]
+    direction LR
+    brief["Brief<br/>Premise and promise"] --> spine["Spine<br/>Book-level causality"] --> cast["Cast<br/>Characters and boundaries"]
+  end
+
+  subgraph architectureStage["02 Architecture"]
+    direction LR
+    volumes["Volumes<br/>Natural boundaries and closure"] --> detail["Detail<br/>Chapter scripts and handoffs"]
+  end
+
+  subgraph productionStage["03 Production and delivery"]
+    direction LR
+    text["Text<br/>Sequential chapter generation"] --> qualityGate{"Contract and quality gate"} -->|Pass| cover["Cover<br/>Visual metadata and assets"] --> export["Export<br/>Versions and deliverables"]
+  end
+
+  cast --> volumes
+  detail --> text
+  qualityGate -->|Proven hard issue| revision["At most one targeted revision"] --> text
+  qualityGate -.->|Soft issue| evidence["Evidence<br/>Findings and warnings"]
 
   classDef planning fill:#102a24,stroke:#2fd68f,color:#f2fff9;
   classDef writing fill:#172433,stroke:#69a7e8,color:#f4f8ff;
@@ -50,42 +60,51 @@ flowchart LR
   classDef delivery fill:#26203a,stroke:#9a7ce2,color:#fbf8ff;
   class brief,spine,cast,volumes,detail planning;
   class text,evidence writing;
-  class gate decision;
+  class qualityGate,revision decision;
   class cover,export delivery;
 ```
 
-| Stage | Core artifact | Author decision |
-| --- | --- | --- |
-| Brief | `StoryBriefArtifact` | Title, premise, world rules, theme, ending direction, and voice |
-| Spine | `StorySpineArtifact` | Whether major changes form a causal chain and pay off the Brief |
-| Cast | `CharacterBibleArtifact` | Subject roles, drives, arcs, limits, relationships, and debuts |
-| Volumes | `VolumeArchitectureArtifact` | Each volume's promise, conflict, climax, closure, and handoff |
-| Detail | `DetailArtifact` | Chapter purpose, POV, scene sequence, result, and next handoff |
-| Text | `ChapterArtifact` | Accept, edit, or request an evidence-directed revision |
-| Cover | `CoverArtifact` | Visual direction, image prompt, candidate asset, and final choice |
-| Export | `ExportArtifact` | Accepted chapter versions, metadata, cover, and format |
+<table width="100%">
+  <thead><tr><th width="18%">Stage</th><th width="30%">Core artifact</th><th width="52%">Author decision</th></tr></thead>
+  <tbody>
+    <tr><td>Brief</td><td><code>StoryBriefArtifact</code></td><td>Title, premise, world rules, theme, ending direction, and voice</td></tr>
+    <tr><td>Spine</td><td><code>StorySpineArtifact</code></td><td>Whether major changes form a causal chain and pay off the Brief</td></tr>
+    <tr><td>Cast</td><td><code>CharacterBibleArtifact</code></td><td>Subject roles, drives, arcs, limits, relationships, and debuts</td></tr>
+    <tr><td>Volumes</td><td><code>VolumeArchitectureArtifact</code></td><td>Each volume's promise, conflict, climax, closure, and handoff</td></tr>
+    <tr><td>Detail</td><td><code>DetailArtifact</code></td><td>Chapter purpose, POV, scene sequence, result, and next handoff</td></tr>
+    <tr><td>Text</td><td><code>ChapterArtifact</code></td><td>Accept, edit, or request an evidence-directed revision</td></tr>
+    <tr><td>Cover</td><td><code>CoverArtifact</code></td><td>Visual direction, image prompt, candidate asset, and final choice</td></tr>
+    <tr><td>Export</td><td><code>ExportArtifact</code></td><td>Accepted chapter versions, metadata, cover, and format</td></tr>
+  </tbody>
+</table>
 
 ## Why Yotsuba Ink
 
-| Capability | How it works | Why it matters |
-| --- | --- | --- |
-| Structure before prose | Brief, Spine, Cast, Volumes, and Detail are committed in order | A long novel does not depend on improvising from one prompt |
-| Bounded context | Each chapter receives a signed Context Manifest and only required references | Prompt growth and cross-chapter drift stay controlled |
-| Sequential continuity | Chapter N+1 depends on chapter N's accepted prose, handoff, and temporary state | Location, knowledge, and consequences can carry forward coherently |
-| Evidence-based review | Deterministic contracts can block; LLM reviewers provide evidence and warnings by default | Ambiguous literary opinions do not create infinite rewrite loops |
-| One targeted revision | The UI shows the finding, exact evidence, and suggested direction | A clear defect can be corrected without reopening frozen structure |
-| Recoverable execution | LangGraph checkpoints, operation receipts, SSE sequences, and terminal snapshots | Failures are traceable, streams reconnect, and completed runs do not replay history |
-| Verifiable delivery | Export freezes accepted chapter versions, metadata, checksums, and receipts | The delivered manuscript can be traced back to approved work |
+<table width="100%">
+  <thead><tr><th width="20%">Capability</th><th width="44%">How it works</th><th width="36%">Why it matters</th></tr></thead>
+  <tbody>
+    <tr><td>Structure before prose</td><td>Brief, Spine, Cast, Volumes, and Detail are committed in order</td><td>A long novel does not depend on improvising from one prompt</td></tr>
+    <tr><td>Bounded context</td><td>Each chapter receives a signed Context Manifest and only required references</td><td>Prompt growth and cross-chapter drift stay controlled</td></tr>
+    <tr><td>Sequential continuity</td><td>Chapter N+1 depends on chapter N's accepted prose, handoff, and temporary state</td><td>Location, knowledge, and consequences can carry forward coherently</td></tr>
+    <tr><td>Evidence-based review</td><td>Deterministic contracts can block; LLM reviewers provide evidence and warnings by default</td><td>Ambiguous literary opinions do not create infinite rewrite loops</td></tr>
+    <tr><td>One targeted revision</td><td>The UI shows the finding, exact evidence, and suggested direction</td><td>A clear defect can be corrected without reopening frozen structure</td></tr>
+    <tr><td>Recoverable execution</td><td>LangGraph checkpoints, operation receipts, SSE sequences, and terminal snapshots</td><td>Failures are traceable, streams reconnect, and completed runs do not replay history</td></tr>
+    <tr><td>Verifiable delivery</td><td>Export freezes accepted chapter versions, metadata, checksums, and receipts</td><td>The delivered manuscript can be traced back to approved work</td></tr>
+  </tbody>
+</table>
 
 ## Creation modes
 
-All three modes use the same Artifacts, quality contracts, and export format. They differ only in model selection, author decision density, and review strength.
+The repository includes `official-deepseek-fast`, `official-deepseek-balanced`, and `official-deepseek-deep` as three DeepSeek-based example pipelines. The modes define stage responsibilities, decision density, quality gates, and default parameters. Any Provider binding can be replaced with another OpenAI-compatible model; product capabilities are not tied to one model name.
 
-| Mode | Model path | Decisions | Quality and revision | Best for |
-| --- | --- | --- | --- | --- |
-| Fast | Primarily DeepSeek Flash | Stage and chapter decisions are accepted automatically | Hard gates remain active; one automatic targeted revision is allowed for a proven hard issue | Testing an idea and producing a complete first draft quickly |
-| Balanced (recommended) | Pro for planning and prose; Flash for cover metadata | Every stage and chapter can be accepted, edited, regenerated, or cancelled | Continuity and character review are required; evidence and revision direction stay visible | Everyday long-form work with practical cost and control |
-| Deep | Pro across Provider-backed stages | Every stage and chapter is finalized by the author | All three review lanes must return; selected structure values can be locked inside the feasible range | High-control drafting and formal revision |
+<table width="100%">
+  <thead><tr><th width="14%">Mode</th><th width="27%">Default model strategy</th><th width="20%">Decisions</th><th width="24%">Quality and revision</th><th width="15%">Best for</th></tr></thead>
+  <tbody>
+    <tr><td>Fast</td><td>Favor low-latency, economical models; a DeepSeek example is included</td><td>Stage and chapter decisions are accepted automatically</td><td>Hard gates remain active; a proven hard issue gets at most one targeted revision</td><td>Testing an idea and completing a first draft</td></tr>
+    <tr><td>Balanced (recommended)</td><td>Use stronger models for high-leverage planning and prose, economical models for lighter nodes</td><td>Each stage and chapter can be accepted, edited, regenerated, or cancelled</td><td>Continuity and character review are required; evidence and direction remain visible</td><td>Everyday long-form creation</td></tr>
+    <tr><td>Deep</td><td>Favor high-quality models across Provider-backed stages with denser author control</td><td>Every stage and chapter is finalized by the author</td><td>All three review lanes return; feasible structure values can be locked</td><td>Formal revision and high-control drafting</td></tr>
+  </tbody>
+</table>
 
 ## Quality and continuity boundaries
 
@@ -97,38 +116,41 @@ Yotsuba Ink separates issues that must stop production from issues that deserve 
 
 ```mermaid
 flowchart TB
-  ui["React workbench"] <--> api["FastAPI / SSE adapter"]
-  api <--> graph["LangGraph<br/>single production runtime"]
-  graph --> context["Context Compiler<br/>frozen references and budgets"]
-  context --> gateway["Provider Gateway<br/>OpenAI-compatible"]
-  gateway --> graph
-  graph --> stores["Artifact / Chapter / Decision / Receipt Stores"]
-  stores --> readmodel["Rebuildable Read Model"]
-  readmodel --> api
-  stores --> exportstore["Export files and integrity receipts"]
+  workbench["React workbench"] <--> apiLayer["FastAPI and SSE adapter"]
+  apiLayer <--> runtimeGraph["LangGraph single production runtime"]
+  runtimeGraph --> contextCompiler["Context Compiler: frozen references and budgets"]
+  contextCompiler --> providerGateway["Provider Gateway: OpenAI-compatible"]
+  providerGateway --> runtimeGraph
+  runtimeGraph --> domainStores["Artifact / Chapter / Decision / Receipt Stores"]
+  domainStores --> readModel["Rebuildable Read Model"]
+  readModel --> apiLayer
+  domainStores --> exportFiles["Export files and integrity receipts"]
 
   classDef surface fill:#121d1a,stroke:#2fd68f,color:#f4fff9;
   classDef runtime fill:#172433,stroke:#69a7e8,color:#f4f8ff;
   classDef data fill:#2a2338,stroke:#9a7ce2,color:#fbf8ff;
-  class ui,api surface;
-  class graph,context,gateway runtime;
-  class stores,readmodel,exportstore data;
+  class workbench,apiLayer surface;
+  class runtimeGraph,contextCompiler,providerGateway runtime;
+  class domainStores,readModel,exportFiles data;
 ```
 
 ## Verified v1.0 run
 
 The official `official-deepseek-balanced` workflow has completed a real long-form production run above 100,000 characters:
 
-| Metric | Result |
-| --- | --- |
-| Work | *明日来电* |
-| Run / Project | `balanced-110k-v1-demo-20260817-040033` / `proj-e1007717ad` |
-| Stages | 8/8 complete |
-| Prose | 44 chapters, 107,613 non-whitespace characters |
-| Chapter distribution | 1,710-3,692; average 2,445.75; P90 2,962 |
-| Volumes | 14 / 14 / 16 chapters; 100% chapter and volume title completeness |
-| Provider | 314 calls, 311 successful, 3 failed and recovered, 1,760,252 tokens |
-| Export | Valid ZIP, 44 accepted chapter versions, verified SHA-256 |
+<table width="100%">
+  <thead><tr><th width="25%">Metric</th><th width="75%">Result</th></tr></thead>
+  <tbody>
+    <tr><td>Work</td><td><em>明日来电</em></td></tr>
+    <tr><td>Run / Project</td><td><code>balanced-110k-v1-demo-20260817-040033</code> / <code>proj-e1007717ad</code></td></tr>
+    <tr><td>Stages</td><td>8/8 complete</td></tr>
+    <tr><td>Prose</td><td>44 chapters, 107,613 non-whitespace characters</td></tr>
+    <tr><td>Chapter distribution</td><td>1,710-3,692; average 2,445.75; P90 2,962</td></tr>
+    <tr><td>Volumes</td><td>14 / 14 / 16 chapters; 100% chapter and volume title completeness</td></tr>
+    <tr><td>Provider</td><td>314 calls, 311 successful, 3 failed and recovered, 1,760,252 tokens</td></tr>
+    <tr><td>Export</td><td>Valid ZIP, 44 accepted chapter versions, verified SHA-256</td></tr>
+  </tbody>
+</table>
 
 <p align="center">
   <img src="docs/assets/screenshots/export-workbench.png" alt="Yotsuba Ink export workbench" width="100%" />
@@ -211,7 +233,7 @@ npm run audit:css
 npm run check:css-split
 ```
 
-Current v1.0 baseline: backend `527 passed`; frontend `112` test files and `421 passed`; TypeScript, production build, CSS audit, CSS splitting, and desktop/390px browser checks pass.
+Current v1.0 baseline: backend `527 passed`; frontend `114` test files and `425 passed`; TypeScript, production build, CSS audit, CSS splitting, and desktop/390px browser checks pass.
 
 ## Repository layout
 

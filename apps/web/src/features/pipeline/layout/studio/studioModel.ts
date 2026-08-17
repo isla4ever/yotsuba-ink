@@ -1,4 +1,4 @@
-import type { ProjectSummary } from '../../contracts';
+import type { ProjectRecord, ProjectSummary } from '../../contracts';
 import { canonicalStageOrder } from '../../lib/stageRoutes';
 
 /** Pure derivations for the Studio Shell (Phase 11.2). */
@@ -60,6 +60,32 @@ export function formatWordCount(words: number): string {
   if (!Number.isFinite(words) || words <= 0) return '0 字';
   if (words >= 10_000) return `${(words / 10_000).toFixed(1)} 万字`;
   return `${Math.round(words)} 字`;
+}
+
+export type StudioLibraryStats = {
+  completedProjects: number;
+  projectCount: number;
+  stageCoverage: number;
+  totalWords: number;
+};
+
+/** Library-level figures derived only from persisted project/run read models. */
+export function studioLibraryStats(
+  projects: ProjectRecord[],
+  summaries: Record<string, ProjectSummary>,
+): StudioLibraryStats {
+  const projectSummaries = projects.map((project) => summaries[project.id] ?? null);
+  const completedStages = projectSummaries.reduce(
+    (total, summary) => total + stageProgressDots(summary).filter((stage) => stage.status === 'completed').length,
+    0,
+  );
+  const totalStageSlots = projects.length * canonicalStageOrder.length;
+  return {
+    completedProjects: projectSummaries.filter((summary) => summary?.status === 'completed').length,
+    projectCount: projects.length,
+    stageCoverage: totalStageSlots ? Math.round((completedStages / totalStageSlots) * 100) : 0,
+    totalWords: projectSummaries.reduce((total, summary) => total + Math.max(0, summary?.words ?? 0), 0),
+  };
 }
 
 /** Ordered map with bounded concurrency for project read-model fan-out. */

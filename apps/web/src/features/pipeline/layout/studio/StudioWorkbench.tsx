@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ProjectRecord, ProjectSummary } from '../../contracts';
 import { useUICommandContext, useWorkflowConfigContext } from '../../state/pipelineShellContext';
 import { useStudioProjects } from '../../state/useStudioProjects';
-import { RevealText } from '../RevealText';
 import { NewProjectWizard } from './NewProjectWizard';
 import { ProjectBookshelf } from './ProjectBookshelf';
+import { StudioLibraryOverview } from './StudioLibraryOverview';
 import { StudioMobileNav } from './StudioMobileNav';
 import { TemplateManagerSection } from './TemplateManagerSection';
 import { studioWorkflowRoute } from '../../lib/stageRoutes';
@@ -57,14 +57,10 @@ export function StudioWorkbench() {
       ) : (
         <>
           <section aria-labelledby="studio-projects-heading" className="studio-projects nw-reveal" id="studio-projects">
-            <div className="studio-section-head">
-              <RevealText as="h1" className="studio-section-title" id="studio-projects-heading" text="作品库" />
-              <p>{studio.loading ? '正在同步作品状态…' : `共 ${studio.projects.length} 部作品`}</p>
-            </div>
+            <StudioLibraryOverview loading={studio.loading} onCreate={openWizard} projects={studio.projects} summaries={studio.summaries} />
             <ProjectBookshelf
               error={studio.error}
               loading={studio.loading}
-              onCreate={openWizard}
               onOpen={openProject}
               openingProjectId={openingProjectId}
               projects={studio.projects}

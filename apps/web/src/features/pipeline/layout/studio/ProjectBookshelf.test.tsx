@@ -29,26 +29,25 @@ const summary = {
 describe('ProjectBookshelf', () => {
   it('shows the quiet empty state with a single create entry when there are no projects', () => {
     const html = renderToStaticMarkup(
-      <ProjectBookshelf error="" loading={false} onCreate={() => undefined} onOpen={() => undefined} projects={[]} summaries={{}} />,
+      <ProjectBookshelf error="" loading={false} onOpen={() => undefined} projects={[]} summaries={{}} />,
     );
     expect(html).toContain('studio-empty-state');
-    expect(html).toContain('新建作品');
+    expect(html).not.toContain('tech-button');
     expect(html).not.toContain('studio-shelf');
   });
 
-  it('renders one spine per project plus the new-book spine, and desks the first project', () => {
+  it('renders exactly one spine per project and keeps creation outside the shelf', () => {
     const html = renderToStaticMarkup(
       <ProjectBookshelf
         error=""
         loading={false}
-        onCreate={() => undefined}
         onOpen={() => undefined}
         projects={[project, { ...project, id: 'proj-2', title: '第二部' }]}
         summaries={{ [project.id]: summary }}
       />,
     );
-    expect(html.match(/studio-book-spine/g)?.length).toBe(3);
-    expect(html).toContain('new-book');
+    expect(html.match(/studio-book-spine/g)?.length).toBe(2);
+    expect(html).not.toContain('new-book');
     expect(html).toContain('studio-book-desk');
     expect(html).toContain('studio-shelf-control prev');
     expect(html).toContain('studio-shelf-control next');
@@ -62,7 +61,6 @@ describe('ProjectBookshelf', () => {
       <ProjectBookshelf
         error=""
         loading={false}
-        onCreate={() => undefined}
         onOpen={() => undefined}
         projects={[project]}
         summaries={{ [project.id]: summary }}

@@ -220,7 +220,7 @@
 }
 
 .cover-candidate-visual > img {
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--novel-cover-aspect);
   border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--border));
   border-radius: 10px;
   display: block;
@@ -231,7 +231,7 @@
 
 .cover-candidate-asset {
   align-items: center;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--novel-cover-aspect);
   background: color-mix(in srgb, var(--panel-muted) 82%, var(--panel));
   border: 1px dashed color-mix(in srgb, var(--accent-2) 30%, var(--border));
   border-radius: 10px;

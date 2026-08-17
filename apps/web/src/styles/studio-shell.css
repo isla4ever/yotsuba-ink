@@ -154,6 +154,100 @@
   padding: 8px 10px;
 }
 
+.studio-library-overview {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.studio-library-heading {
+  align-items: end;
+  display: flex;
+  gap: var(--space-6);
+  justify-content: space-between;
+}
+
+.studio-library-heading > div {
+  border-left: 2px solid var(--accent);
+  display: grid;
+  gap: 5px;
+  padding-left: var(--space-4);
+}
+
+.studio-library-heading h1 {
+  font-size: 22px;
+  font-weight: 560;
+  margin: 0;
+}
+
+.studio-library-heading p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.studio-create-project {
+  flex: none;
+  min-width: 126px;
+}
+
+.studio-library-metrics {
+  border-block: 1px solid var(--stroke-2);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.studio-library-metrics > div {
+  align-items: center;
+  display: grid;
+  gap: 3px 10px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  min-height: 74px;
+  padding: 12px var(--space-5);
+  position: relative;
+}
+
+.studio-library-metrics > div + div {
+  border-left: 1px solid var(--stroke-2);
+}
+
+.studio-library-metrics svg {
+  color: var(--accent);
+  grid-row: 1 / span 2;
+}
+
+.studio-library-metrics dt {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.studio-library-metrics dd {
+  color: var(--text);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 620;
+  grid-column: 2;
+  margin: 0;
+}
+
+.studio-stage-coverage > i {
+  background: var(--stroke-2);
+  bottom: 0;
+  height: 2px;
+  left: 0;
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+}
+
+.studio-stage-coverage > i::after {
+  background: var(--accent);
+  content: '';
+  display: block;
+  height: 100%;
+  width: var(--studio-stage-coverage);
+}
+
 /* ---------- Bookshelf: standing spines + reading desk ---------- */
 
 /* The library is the page, not a card floating in it: the shelf and the desk
@@ -171,7 +265,7 @@
   flex: 1;
   gap: 28px;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-  margin-top: 24px;
+  margin-top: 34px;
   min-height: min(520px, 58vh);
 }
 
@@ -190,30 +284,43 @@
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  padding: var(--space-6) 52px var(--space-5);
+  padding: var(--space-6) 44px var(--space-5);
   position: relative;
   scroll-snap-type: x proximity;
-  scroll-padding-inline: 52px;
-  scrollbar-width: thin;
+  scroll-padding-inline: 44px;
+  scrollbar-width: none;
   touch-action: pan-x;
 }
+
+.studio-shelf::-webkit-scrollbar { display: none; }
 
 .studio-shelf-control {
   align-items: center;
   background: color-mix(in srgb, var(--surface-2) 92%, transparent);
   border: 1px solid var(--stroke-2);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   color: var(--text);
   display: flex;
-  height: 44px;
+  height: 72px;
   justify-content: center;
   padding: 0;
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  transition: background var(--duration-standard) var(--ease-standard), border-color var(--duration-standard) var(--ease-standard);
-  width: 44px;
+  opacity: 0;
+  pointer-events: none;
+  top: 52%;
+  transition: background var(--duration-standard) var(--ease-standard), border-color var(--duration-standard) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard), transform var(--duration-standard) var(--ease-standard);
+  width: 36px;
   z-index: 2;
+}
+
+.studio-shelf-frame:hover .studio-shelf-control:not(:disabled),
+.studio-shelf-frame:focus-within .studio-shelf-control:not(:disabled) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.studio-shelf-control:disabled {
+  opacity: 0;
 }
 
 .studio-shelf-control:hover,
@@ -222,20 +329,19 @@
   border-color: var(--accent);
 }
 
-.studio-shelf-control.prev { left: 8px; }
-.studio-shelf-control.next { right: 8px; }
+.studio-shelf-control.prev { left: 0; transform: translate(-8px, -50%); }
+.studio-shelf-control.next { right: 0; transform: translate(8px, -50%); }
+.studio-shelf-frame:hover .studio-shelf-control.prev:not(:disabled),
+.studio-shelf-frame:focus-within .studio-shelf-control.prev:not(:disabled) { transform: translate(0, -50%); }
+.studio-shelf-frame:hover .studio-shelf-control.next:not(:disabled),
+.studio-shelf-frame:focus-within .studio-shelf-control.next:not(:disabled) { transform: translate(0, -50%); }
 
 /* The shelf board the books stand on. */
 .studio-shelf-board {
-  background: linear-gradient(
-    color-mix(in srgb, var(--stroke-3) 90%, transparent),
-    color-mix(in srgb, var(--stroke-2) 40%, transparent)
-  );
-  border-radius: 3px;
-  bottom: 8px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(90deg, transparent, var(--stroke-3) 5%, var(--stroke-3) 95%, transparent);
+  bottom: 11px;
   content: '';
-  height: 6px;
+  height: 2px;
   left: 0;
   position: absolute;
   right: 0;
@@ -316,19 +422,6 @@
   writing-mode: vertical-rl;
 }
 
-.studio-book-spine.new-book {
-  background: transparent;
-  border: 1px dashed var(--stroke-3);
-  box-shadow: none;
-  color: var(--muted);
-}
-
-.studio-book-spine.new-book:hover,
-.studio-book-spine.new-book:focus-visible {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
 /* Reading desk: detail panel for the selected work. */
 .studio-book-desk {
   background: var(--surface-2);
@@ -377,12 +470,6 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-5) var(--space-5);
-}
-
-/* Only the open button is pinned to the bottom: a second auto margin on the
-   progress dots would tear the panel into two floating halves. */
-.studio-book-desk .studio-card-progress {
-  margin-top: 0;
 }
 
 /* Named stages instead of a bare dot row: the desk should say where the book
@@ -495,6 +582,26 @@
   .studio-bookshelf-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .studio-library-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .studio-library-metrics > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--stroke-2); }
+  .studio-library-metrics > div:nth-child(4) { border-top: 1px solid var(--stroke-2); }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .studio-shelf-control:not(:disabled) { opacity: 1; pointer-events: auto; }
+  .studio-shelf-control.prev:not(:disabled),
+  .studio-shelf-control.next:not(:disabled) { transform: translate(0, -50%); }
+}
+
+@media (max-width: 560px) {
+  .studio-library-heading { align-items: stretch; flex-direction: column; }
+  .studio-create-project { justify-content: center; width: 100%; }
+  .studio-library-metrics > div { min-height: 68px; padding: 10px 12px; }
+  .studio-library-metrics dd { font-size: 15px; }
+  .studio-bookshelf-layout { margin-top: 24px; }
+  .studio-shelf { gap: 10px; min-height: 330px; padding-inline: 36px; scroll-padding-inline: 36px; }
+  .studio-book-spine { height: 280px; }
 }
 
 .studio-card-status {
@@ -508,13 +615,6 @@
 
 .studio-card-status.archived {
   opacity: 0.7;
-}
-
-.studio-card-progress {
-  align-items: center;
-  display: flex;
-  gap: 6px;
-  margin-top: auto;
 }
 
 .studio-progress-dot {
@@ -556,10 +656,6 @@
   font-size: 13px;
   line-height: 1.6;
   margin: 0;
-}
-
-.studio-empty-state .tech-button {
-  align-self: center;
 }
 
 /* ---------- Template management ---------- */

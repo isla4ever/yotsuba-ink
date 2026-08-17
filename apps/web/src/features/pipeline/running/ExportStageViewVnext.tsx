@@ -6,6 +6,7 @@ import { parseExportArtifact, type ExportArtifactVnext } from './artifactsVnext'
 import { VnextArtifactError } from './VnextArtifactError';
 
 type Props = {
+  chapterTitles: string[];
   deliveryRevision: string;
   onArtifactChange: (artifact: ExportArtifactVnext) => void;
   readOnly: boolean;
@@ -19,7 +20,7 @@ const FORMATS: Array<{ id: ExportArtifactVnext['format']; label: string; icon: t
   { id: 'json', label: 'JSON', icon: FileJson2 },
 ];
 
-export function ExportStageViewVnext({ deliveryRevision, onArtifactChange, readOnly, result, runId }: Props) {
+export function ExportStageViewVnext({ chapterTitles, deliveryRevision, onArtifactChange, readOnly, result, runId }: Props) {
   const parsed = useMemo(() => parseExportArtifact(result), [result]);
   const [artifact, setArtifact] = useState<ExportArtifactVnext | null>(parsed.artifact);
   useEffect(() => { if (parsed.artifact) setArtifact(parsed.artifact); }, [parsed.artifact]);
@@ -57,8 +58,8 @@ export function ExportStageViewVnext({ deliveryRevision, onArtifactChange, readO
         <div className="vnext-version-list">{artifact.volumes.map((volume, index) => <div key={`${volume.title}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><strong>{volume.title}</strong><span>{volume.chapter_count} 章</span></div>)}</div>
       </section>
       <section className="vnext-artifact-section">
-        <header><div><span>已接受章节版本</span><strong>{artifact.chapter_version_ids.length} 章</strong></div></header>
-        <div className="vnext-version-list">{artifact.chapter_version_ids.map((versionId, index) => <div key={versionId}><span>{String(index + 1).padStart(2, '0')}</span><strong>{versionId}</strong><CheckCircle2 size={15} /></div>)}</div>
+        <header><div><span>已接受章节</span><strong>{artifact.chapter_version_ids.length} 章</strong></div></header>
+        <div className="vnext-version-list">{artifact.chapter_version_ids.map((versionId, index) => <div key={versionId}><span>{String(index + 1).padStart(2, '0')}</span><strong>{chapterTitles[index] || `第 ${index + 1} 章`}</strong><CheckCircle2 size={15} /></div>)}</div>
       </section>
       {readOnly ? <ExportDeliveryReceipt delivery={delivery} /> : null}
     </div>

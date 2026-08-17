@@ -224,11 +224,11 @@
 .vnext-cover-gallery > header strong,
 .vnext-cover-asset-state { align-items: center; display: inline-flex; font-size: 12px; gap: 6px; }
 .vnext-cover-asset-state.error { color: var(--danger); }
-.vnext-cover-preview { align-items: center; aspect-ratio: 2 / 3; background: color-mix(in srgb, var(--surface) 82%, #111 18%); border: 1px solid color-mix(in srgb, var(--workbench-accent) 32%, var(--line)); display: flex; justify-content: center; max-height: 62vh; min-height: 360px; overflow: hidden; width: min(100%, 430px); }
+.vnext-cover-preview { align-items: center; aspect-ratio: var(--novel-cover-aspect); background: color-mix(in srgb, var(--surface) 82%, #111 18%); border: 1px solid color-mix(in srgb, var(--workbench-accent) 32%, var(--line)); display: flex; justify-content: center; max-height: 62vh; min-height: 360px; overflow: hidden; width: min(100%, 430px); }
 .vnext-cover-preview img { height: 100%; object-fit: cover; width: 100%; }
 .vnext-cover-preview > svg { color: var(--muted); }
 .vnext-cover-candidate-rail { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 84px; }
-.vnext-cover-candidate-rail button { aspect-ratio: 2 / 3; background: var(--surface); border: 1px solid var(--line); color: var(--text); min-width: 0; overflow: hidden; padding: 0; position: relative; }
+.vnext-cover-candidate-rail button { aspect-ratio: var(--novel-cover-aspect); background: var(--surface); border: 1px solid var(--line); color: var(--text); min-width: 0; overflow: hidden; padding: 0; position: relative; }
 .vnext-cover-candidate-rail button img { height: 100%; object-fit: cover; width: 100%; }
 .vnext-cover-candidate-rail button span { background: color-mix(in srgb, var(--surface) 88%, transparent); bottom: 4px; font: 600 9px/1 ui-monospace, SFMono-Regular, monospace; left: 4px; padding: 4px; position: absolute; }
 .vnext-cover-candidate-rail button svg { background: var(--accent); border-radius: 50%; color: var(--surface); padding: 2px; position: absolute; right: 5px; top: 5px; }
@@ -239,7 +239,7 @@
 .vnext-export-format button { align-items: center; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--muted); display: inline-flex; gap: 6px; min-height: 38px; padding: 8px 12px; }
 .vnext-export-format button[aria-pressed='true'] { border-bottom-color: var(--accent); color: var(--text); }
 .vnext-export-cover-row { align-items: center; border-block: 1px solid var(--line); display: grid; gap: 12px; grid-template-columns: 54px minmax(0, 1fr); padding: 10px 0; }
-.vnext-export-cover-row img { aspect-ratio: 2 / 3; background: var(--surface); object-fit: cover; width: 54px; }
+.vnext-export-cover-row img { aspect-ratio: var(--novel-cover-aspect); background: var(--surface); object-fit: cover; width: 54px; }
 .vnext-export-cover-row > div { align-items: center; display: grid; gap: 4px; grid-template-columns: 18px 1fr; min-width: 0; }
 .vnext-export-cover-row span { color: var(--muted); font-size: 10px; }
 .vnext-export-cover-row strong { font: 500 10px/1.3 ui-monospace, SFMono-Regular, monospace; grid-column: 2; overflow-wrap: anywhere; }
@@ -489,7 +489,7 @@ button.vnext-ref-chip:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, v
 /* ---- Export cover placeholder ---- */
 .vnext-export-cover-empty {
   align-items: center;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--novel-cover-aspect);
   background: color-mix(in srgb, var(--surface) 82%, #111 18%);
   border: 1px dashed color-mix(in srgb, var(--line) 88%, transparent);
   color: var(--muted);

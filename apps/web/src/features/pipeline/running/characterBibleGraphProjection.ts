@@ -6,7 +6,7 @@ const graphTier: Record<CharacterKind, GraphTier> = { protagonist: 'protagonist'
 /** Rebuildable browsing projection. Coordinates and graph interaction never write back to the Artifact. */
 export function projectCharacterBibleGraph(artifact: CharacterBibleArtifact): CharacterGraph {
   return {
-    nodes: artifact.subjects.map((subject) => ({ faction: '', first_appearance_chapter: firstChapter(subject.debut), first_appearance_stage: 'cast', id: subject.id, name: subject.name, role: subject.function, status: subject.kind === 'historical_record' ? 'historical' : 'frozen', tier: graphTier[subject.kind] })),
+    nodes: artifact.subjects.map((subject) => ({ faction: '', first_appearance_chapter: firstChapter(subject.debut), first_appearance_stage: 'cast', id: subject.id, name: subject.name, role: subject.function, status: subject.kind, tier: graphTier[subject.kind] })),
     edges: artifact.relations.map((relation) => ({ relation: relation.type, source: relation.a, strength: 0.72, target: relation.b, valid_from_stage: 'cast' })),
     updated_by: 'character-bible-artifact',
   };

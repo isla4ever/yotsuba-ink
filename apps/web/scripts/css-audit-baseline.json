@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedOn": "2026-08-16",
+  "generatedOn": "2026-08-17",
   "entryFiles": [
     "src/styles/entry-bible.css",
     "src/styles/entry-core.css",
@@ -10,13 +10,13 @@
   ],
   "budgets": {
     "importedFileCount": 72,
-    "cssBytes": 486324,
-    "sourceLineCount": 19565,
-    "ruleCount": 3001,
-    "selectorCount": 3695,
-    "uniqueSelectorCount": 2918,
-    "crossFileDuplicateSelectorCount": 136,
-    "crossFileDuplicateSelectorOccurrences": 371,
+    "cssBytes": 489581,
+    "sourceLineCount": 19661,
+    "ruleCount": 3040,
+    "selectorCount": 3737,
+    "uniqueSelectorCount": 2950,
+    "crossFileDuplicateSelectorCount": 134,
+    "crossFileDuplicateSelectorOccurrences": 368,
     "keyframeCount": 65,
     "duplicateKeyframeNameCount": 0,
     "animationDeclarationCount": 72,

@@ -27,6 +27,7 @@ import { parseCharacterBibleArtifact } from './characterBibleArtifact';
 import { artifactReadiness, parseSpineArtifact, parseDetailArtifact, parseChapterArtifact, parseCoverArtifact, parseExportArtifact, parseVolumesArtifact } from './artifactsVnext';
 import { latestProviderUsage } from './runtimeProviderUsage';
 import type { StageArtifactDraftSaveStatus } from '../state/useStageArtifactDraft';
+import { projectExportChapterTitles } from './exportChapterPresentation';
 
 type Props = {
   activeRunId: string;
@@ -105,6 +106,10 @@ export function StageRunMain({
     coverAssetRequired: runDefinition?.export_preferences.include_cover_image !== false,
   }) : null;
   const exportStatus = stage.type === 'export' ? artifactReadiness(parseExportArtifact(artifactResult)) : null;
+  const exportArtifact = stage.type === 'export' ? parseExportArtifact(artifactResult).artifact : null;
+  const exportChapterTitles = exportArtifact
+    ? projectExportChapterTitles(events, exportArtifact.chapter_version_ids)
+    : [];
   const providerUsage = latestProviderUsage(events);
   const pendingDecision = pendingStageDecision(
     events,
@@ -169,7 +174,7 @@ export function StageRunMain({
       {showArtifact && stage.type === 'detail' ? <DetailStageViewVnext characters={characters} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} sceneRange={scaleSuggestion?.sceneRange} /> : null}
       {showArtifact && stage.type === 'text' ? <ChapterStageViewVnext onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} /> : null}
       {showArtifact && stage.type === 'cover' ? <CoverStageViewVnext coverAssetRequired={runDefinition?.export_preferences.include_cover_image !== false} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} runId={activeRunId} sourceResult={sourceArtifactResult} /> : null}
-      {showArtifact && stage.type === 'export' ? <ExportStageViewVnext deliveryRevision={events.find((event) => event.stage_id === 'export' && event.type === 'artifact.committed')?.event_id ?? ''} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} runId={activeRunId} /> : null}
+      {showArtifact && stage.type === 'export' ? <ExportStageViewVnext chapterTitles={exportChapterTitles} deliveryRevision={events.find((event) => event.stage_id === 'export' && event.type === 'artifact.committed')?.event_id ?? ''} onArtifactChange={(artifact) => onStageArtifactDraftChange(stage.id, sourceArtifactResult, JSON.stringify(artifact, null, 2))} readOnly={stageConfirmed} result={artifactResult} runId={activeRunId} /> : null}
       {showArtifact && (characterStatus ?? spineStatus ?? volumeStatus ?? detailStatus ?? coverStatus)?.missingLabels.length ? (
         <div className="vnext-contract-warning" role="alert">
           {(characterStatus ?? spineStatus ?? volumeStatus ?? detailStatus ?? coverStatus)?.missingLabels.join('、')}
