@@ -60,6 +60,7 @@ apps/web/node_modules/
 apps/web/dist/
 *.tsbuildinfo
 .playwright-cli/
+.mimocode/
 
 # OS
 .DS_Store

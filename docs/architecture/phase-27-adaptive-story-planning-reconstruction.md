@@ -431,15 +431,6 @@ UI 派生的角色计数、卷章数、节奏条、引用列表、完整性 badg
 
 Phase 27 的成功不是“阶段更多”或“返回 JSON 更大”，而是用更少的核心决策让 Detail 形成可执行剧本，让 Text 在有限上下文内完成有约束的创作，并且每个失败都能沿唯一 LangGraph 路径被定位、恢复或明确交给用户。
 
-## 16. 2026-08-17 v1.0 Demo 收口附录
-
-- 真实 Run：`balanced-110k-v1-demo-20260817-040033`，Project `proj-e1007717ad`，书名 `明日来电`。
-- 阶段：`brief -> spine -> cast -> volumes -> detail -> text -> cover -> export` 全部完成；封面生图按配置跳过，但 Cover 元数据与 Export 闭环。
-- 正文：44 章、107,613 个非空白字符，章节标题与分卷标题完整，单章 1,710-3,692 字，平均 2,445.75，P90 2,962。
-- Provider：314 次调用，311 成功、3 次失败后恢复，总 tokens 1,760,252；失败收据保留在验收报告中。
-- 质量边界：只有流程崩溃/死锁、合同解析失败、关键 Artifact/正文缺失、明确上游硬约束冲突、主体越权或章内物理状态直接矛盾、未达 10 万字和不可导出才是本次硬门；模型低置信 finding、转折伏笔、AI 味和文学偏好记录为软告警。
-- 发布：前后端完整测试、TypeScript、生产构建、CSS 门禁、compileall、diff 检查与浏览器桌面/390px 证据均已完成；本次可按用户要求提交并推送 GitHub `main`。
-
 ## 15. 2026-08-12 实施证据（滚动更新）
 
 - 当前生产合同已断代为 `brief -> spine -> cast -> volumes -> detail -> text -> cover -> export`；Run 创建只接受项目绑定的 `workflow_id`，Provider、Prompt、workflow revision/digest 和 quality mode 由后端冻结。
@@ -450,7 +441,7 @@ Phase 27 的成功不是“阶段更多”或“返回 JSON 更大”，而是�
 - 生产静态缺席门现覆盖整个 `src/novel_workflow`、整个 frontend pipeline 生产 TypeScript、默认 workflow 和所有默认 Prompt；无旧 stage assignment、`BookScalePlan`、旧 Artifact/ChapterPlan、Detail v1/v2/v3、第二 Runner、fallback Provider/Reviewer 或直接 LangChain import。离线归档 viewer 与生产 Graph/Store 物理隔离，只暴露 list/read 且所有执行能力为 false。
 - 截至 2026-08-15，章节预算、Spine 容量合同、Cast 换稿重新派生 Role Demand、Volumes 单卷窄调用、阶段草稿持久化与 SSE sequence 续接后的最新完整离线基线为后端 `356 passed`、前端 `402 passed`；`compileall`、TypeScript/Vite production build、CSS audit、首屏/lazy CSS split、`git diff --check` 和 production closure audit 均通过。闭环审计未发现 legacy runtime 标记或意外的 frontend pipeline 目录；构建中的 3D 图 vendor 大 chunk 已独立懒加载，不进入首屏执行路径。该基线不代表三章、单卷或 10 万字验收。
 - 工作流配置页已在 `1440x1000`、`1280x920`、`1024x900` 和 `390x844` 验证：八阶段稿件栈、官方模板信息层级、右侧配置区、键盘切换和阶段切换后的滚动复位均正常，控制台为 0 error / 0 warning。三套官方 DeepSeek 流水线的文本和图片 Provider 均通过 `configuration_only` 准备度检查；该检查不发送真实生成请求。
-- 本证据关闭 contract/fake Provider/Graph/frontend source 离线门、工作流配置页浏览器门与一次真实 Run 的 SSE 中途截断续接门。运行工作台其余阶段浏览器矩阵、全新 DeepSeek 三章 Run、三章人工冷读、8-12 章单卷、10 万字长篇、投稿模拟和 GitHub 发布仍未验收，不得据此宣称 Phase 27 生产闭环完成。
+- 截至 2026-08-15，本证据只关闭 contract/fake Provider/Graph/frontend source 离线门、工作流配置页浏览器门与一次真实 Run 的 SSE 中途截断续接门；当时尚未完成 10 万字长篇和 GitHub 发布。该历史状态已由本文第 16 节的 2026-08-17 v1.0 Demo 证据取代。
 
 ### 15.1 Harness H1 真实 Brief 换稿门（2026-08-15）
 
@@ -627,3 +618,12 @@ Phase 27 的成功不是“阶段更多”或“返回 JSON 更大”，而是�
 - Spine 的最终渲染 Prompt 在所有官方和自定义模板之后追加不可绕过的首稿自检：输出前静默核对精确 turn 数、六个代码锚点、上一 change 到下一 cause 的因果链和推进类型；任意三个连续 turns 必须至少包含一个 `relationship/external/internal`，且关系或外部转折必须留下可供 Role Demand 识别的选择承担者、后果承担者或压力来源。检查过程不输出，失败内容在同一次响应内重排或重写，不能留给读者换稿。
 - 人物数量继续由两层权威共同约束：字数量级只计算最小可培养容量、编辑中心和硬上限，真实人数由不可合并 Role Demand 决定。10 万字的 `3-7/11` 不是填槽配额。人物档案继续强制拆分 `background/conflict_history/present_stakes/temperament/speech_style`，新增要求 `limits` 必须给出具体能力、伦理、知识、资源或行为边界；关系 `type/pressure` 也必须描述已经成立的选择、信任、责任或风险，拒绝“可能、或许、潜在、关系复杂”等未决表述。
 - 定向门已通过：后端模板、Artifact 与 Provider Prompt 合同 `82 passed`，前端模板镜像 `6 passed`，`compileall` 通过。完整后端、完整前端、生产构建、CSS、闭环审计和真实 Provider 首稿仍待验证，不能据此宣称 10 万字全链路完成。
+
+## 16. 2026-08-17 v1.0 Demo 收口附录
+
+- 真实 Run：`balanced-110k-v1-demo-20260817-040033`，Project `proj-e1007717ad`，书名 `明日来电`。
+- 阶段：`brief -> spine -> cast -> volumes -> detail -> text -> cover -> export` 全部完成；封面生图按配置跳过，但 Cover 元数据与 Export 闭环。
+- 正文：44 章、107,613 个非空白字符，章节标题与分卷标题完整，单章 1,710-3,692 字，平均 2,445.75，P90 2,962。
+- Provider：314 次调用，311 成功、3 次失败后恢复，总 tokens 1,760,252；失败收据保留在验收报告中。
+- 质量边界：只有流程崩溃/死锁、合同解析失败、关键 Artifact/正文缺失、明确上游硬约束冲突、主体越权或章内物理状态直接矛盾、未达 10 万字和不可导出才是本次硬门；模型低置信 finding、转折伏笔、AI 味和文学偏好记录为软告警。
+- 发布：前后端完整测试、TypeScript、生产构建、CSS 门禁、compileall、diff 检查与浏览器桌面/390px 证据均已完成；本次可按用户要求提交并推送 GitHub `main`。
