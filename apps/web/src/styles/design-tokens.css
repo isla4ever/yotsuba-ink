@@ -1,53 +1,59 @@
 :root {
-  /* Black-crystal surface ladder: neutral graphite steps keep the creation-mode
-     color as the only active light source. */
-  --surface-0: #070908;
-  --surface-1: #0b0f0e;
-  --surface-2: #111615;
-  --surface-3: #171d1b;
+  /* Slate-gray / Rock-gray surface ladder (Vercel / Linear inspired) */
+  --surface-0: #0c0e12;
+  --surface-1: #13151a;
+  --surface-2: #1c1f26;
+  --surface-3: #252932;
+
+  /* Glassmorphism surfaces */
+  --surface-glass-base: rgba(19, 21, 26, 0.65);
+  --surface-glass-raised: rgba(28, 31, 38, 0.75);
+  --surface-glass-muted: rgba(19, 21, 26, 0.4);
 
   /* Stroke ladder v2: default / card / interactive emphasis. */
   --stroke-1: rgba(255, 255, 255, 0.06);
-  --stroke-2: rgba(255, 255, 255, 0.08);
-  --stroke-3: rgba(255, 255, 255, 0.12);
+  --stroke-2: rgba(255, 255, 255, 0.1);
+  --stroke-3: rgba(255, 255, 255, 0.15);
 
   /* Standard card top light source. Compose into box-shadow lists. */
   --card-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --card-inner-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
   /* Theme surfaces */
-  --color-canvas: #070908;
-  --color-canvas-subtle: #0a0d0c;
-  --color-surface-base: #0e1211;
-  --color-surface-raised: #141918;
-  --color-surface-muted: #0b100f;
-  --color-border-subtle: #26302d;
-  --color-border-strong: #40514b;
+  --color-canvas: var(--surface-0);
+  --color-canvas-subtle: var(--surface-1);
+  --color-surface-base: var(--surface-glass-base);
+  --color-surface-raised: var(--surface-glass-raised);
+  --color-surface-muted: var(--surface-glass-muted);
+  --color-border-subtle: var(--stroke-2);
+  --color-border-strong: var(--stroke-3);
 
   /* Content and actions */
-  --color-text-primary: #eef3f1;
-  --color-text-secondary: #b8c2be;
-  --color-text-muted: #84918c;
-  --color-action-primary: #2fd68f;
-  --color-action-secondary: #2f8f72;
-  --color-action-emphasis: #76ddb7;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-action-primary: #3b82f6; /* Will be overridden by modes */
+  --color-action-secondary: #60a5fa;
+  --color-action-emphasis: #93c5fd;
   --color-action-foreground: #ffffff;
+
   --color-mode-primary: var(--color-action-primary);
   --color-mode-secondary: var(--color-action-secondary);
-  --color-status-success: #26c985;
-  --color-status-warning: #e8b44c;
-  --color-status-danger: #f06464;
+  --color-status-success: #10b981;
+  --color-status-warning: #f59e0b;
+  --color-status-danger: #ef4444;
 
   /* Graph surfaces */
-  --color-graph-edge: #688078;
-  --color-graph-label-surface: rgba(14, 18, 17, 0.78);
-  --color-graph-label-surface-strong: rgba(17, 22, 21, 0.96);
-  --color-graph-label-text: #c8d3cf;
-  --color-graph-node-meta: #86a59a;
-  --color-graph-minimap-mask: rgba(7, 9, 8, 0.6);
+  --color-graph-edge: rgba(255, 255, 255, 0.15);
+  --color-graph-label-surface: rgba(19, 21, 26, 0.78);
+  --color-graph-label-surface-strong: rgba(28, 31, 38, 0.96);
+  --color-graph-label-text: #e4e4e7;
+  --color-graph-node-meta: #a1a1aa;
+  --color-graph-minimap-mask: rgba(12, 14, 18, 0.7);
 
   /* Typography */
-  --font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-family-sans: "Inter", "SF Pro Display", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Density */
   --space-1: 4px;
@@ -62,29 +68,27 @@
   --field-padding-block: 6px;
   --field-padding-inline: 8px;
 
-  /* Shape and sizing. v2 semantic pair: --radius-control (controls) / --radius-surface
-     (cards, panels, overlays). --radius-xs/panel/dialog are legacy; migrate incrementally. */
+  /* Shape and sizing */
   --radius-xs: 4px;
   --radius-control: 6px;
-  --radius-surface: 8px;
-  --radius-panel: 8px;
-  --radius-dialog: 8px;
+  --radius-surface: 12px;
+  --radius-panel: 12px;
+  --radius-dialog: 16px;
   --radius-pill: 999px;
   --control-height-sm: 34px;
   --control-height-md: 38px;
   --control-height-lg: 42px;
-  --control-font-size: 12px;
-  --control-font-weight: 600;
-  --control-disabled-opacity: 0.56;
+  --control-font-size: 13px; /* Slightly larger for readability */
+  --control-font-weight: 500;
+  --control-disabled-opacity: 0.5;
   --shell-header-height: 78px;
   --shell-header-height-medium: 132px;
   --shell-header-height-mobile: 184px;
   --shell-min-height: 720px;
-  /* Fanqie author-platform delivery frame: 600x800, width / height = 3 / 4. */
   --novel-cover-aspect: 3 / 4;
 
   /* Overlay system */
-  --overlay-backdrop: rgba(2, 6, 14, 0.72);
+  --overlay-backdrop: rgba(12, 14, 18, 0.6); /* Slightly more transparent for glass effect */
   --overlay-gutter: 24px;
   --z-overlay: 10000;
   --z-dialog: 10001;
@@ -92,28 +96,35 @@
   --z-tooltip: 10100;
 
   /* Elevation and motion */
-  --shadow-panel: 0 18px 60px rgba(0, 0, 0, 0.24);
+  --shadow-panel: 0 24px 48px -12px rgba(0, 0, 0, 0.5); /* Deeper shadows for float effect */
+  --shadow-float: 0 12px 24px -8px rgba(0, 0, 0, 0.4), 0 4px 8px -4px rgba(0, 0, 0, 0.3);
+
   --duration-instant: 0ms;
   --duration-feedback: 100ms;
-  --duration-exit: 120ms;
-  --duration-fast: 160ms;
-  --duration-standard: 220ms;
-  --duration-slow: 280ms;
-  --mode-infusion-duration: 260ms;
-  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-emphasized: cubic-bezier(0.18, 0.86, 0.18, 1);
-  --ease-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
-  --color-focus-ring: #55dbe6;
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 28%, transparent);
+  --duration-exit: 150ms;
+  --duration-fast: 200ms;
+  --duration-standard: 300ms;
+  --duration-slow: 400ms;
+  --duration-ripple: 600ms; /* Sci-fi ripple */
+  --mode-infusion-duration: 400ms;
 
-  /* Visual effect controls */
+  /* Smoother bezier curves */
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --color-focus-ring: var(--color-action-primary);
+  --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px color-mix(in srgb, var(--color-focus-ring) 50%, transparent);
+
+  /* Visual effect controls - breathing glow */
   --fx-color: var(--color-action-secondary);
-  --fx-opacity: 0.72;
-  --fx-speed: 8s;
+  --fx-opacity: 0.15;
+  --fx-speed: 6s;
   --mode-aura: var(--color-action-secondary);
-  --mode-aura-soft: color-mix(in srgb, var(--mode-aura) 12%, transparent);
+  --mode-aura-soft: color-mix(in srgb, var(--mode-aura) 15%, transparent);
 
-  /* Compatibility aliases. Migrate consumers incrementally. */
+  /* Compatibility aliases */
   --line: var(--color-border-subtle);
   --surface: var(--color-surface-base);
   --bg: var(--color-canvas);
@@ -149,98 +160,115 @@
     --duration-fast: 0ms;
     --duration-standard: 0ms;
     --duration-slow: 0ms;
+    --duration-ripple: 0ms;
     --mode-infusion-duration: 0ms;
   }
 }
 
+/* Fast Mode: Cyan/Blue tech vibe */
 .product-shell.mode-fast,
 .app-overlay-backdrop.mode-fast,
 .app-sheet-surface.mode-fast {
-  --mode-aura: #d8ecff;
-  --mode-aura-strong: #8fc7ff;
-  --mode-aura-soft: rgba(216, 236, 255, 0.13);
-  --color-mode-primary: #78aef8;
-  --color-mode-secondary: #d8ecff;
-  --color-action-primary: #78aef8;
-  --color-action-secondary: #8fc7ff;
-  --color-action-emphasis: #d8ecff;
-  --color-status-success: #78aef8;
-  --color-focus-ring: #8fc7ff;
-  --color-graph-edge: color-mix(in srgb, #78aef8 42%, #688078);
-  --color-graph-node-meta: color-mix(in srgb, #78aef8 52%, #84918c);
-  --accent: #78aef8;
-  --accent-2: #d8ecff;
+  --mode-aura: #0ea5e9;
+  --mode-aura-strong: #38bdf8;
+  --mode-aura-soft: rgba(14, 165, 233, 0.15);
+  --color-mode-primary: #0ea5e9;
+  --color-mode-secondary: #38bdf8;
+  --color-action-primary: #0ea5e9;
+  --color-action-secondary: #38bdf8;
+  --color-action-emphasis: #7dd3fc;
+  --color-status-success: #0ea5e9;
+  --color-focus-ring: #38bdf8;
+  --color-graph-edge: color-mix(in srgb, #0ea5e9 30%, rgba(255, 255, 255, 0.15));
+  --color-graph-node-meta: color-mix(in srgb, #0ea5e9 40%, #a1a1aa);
+  --accent: #0ea5e9;
+  --accent-2: #38bdf8;
 }
 
+/* Balanced Mode: Emerald/Teal balanced vibe */
 .product-shell.mode-balanced,
 .app-overlay-backdrop.mode-balanced,
 .app-sheet-surface.mode-balanced {
-  --mode-aura: #35e7a6;
-  --mode-aura-strong: #22c984;
-  --mode-aura-soft: rgba(53, 231, 166, 0.13);
-  --color-mode-primary: #2fd68f;
-  --color-mode-secondary: #43e7ba;
-  --color-action-primary: #2fd68f;
-  --color-action-secondary: #43e7ba;
-  --color-action-emphasis: #76ddb7;
-  --color-status-success: #2fd68f;
-  --color-focus-ring: #43e7ba;
-  --color-graph-edge: color-mix(in srgb, #2fd68f 42%, #688078);
-  --color-graph-node-meta: color-mix(in srgb, #2fd68f 48%, #84918c);
-  --accent: #2fd68f;
-  --accent-2: #43e7ba;
+  --mode-aura: #10b981;
+  --mode-aura-strong: #34d399;
+  --mode-aura-soft: rgba(16, 185, 129, 0.15);
+  --color-mode-primary: #10b981;
+  --color-mode-secondary: #34d399;
+  --color-action-primary: #10b981;
+  --color-action-secondary: #34d399;
+  --color-action-emphasis: #6ee7b7;
+  --color-status-success: #10b981;
+  --color-focus-ring: #34d399;
+  --color-graph-edge: color-mix(in srgb, #10b981 30%, rgba(255, 255, 255, 0.15));
+  --color-graph-node-meta: color-mix(in srgb, #10b981 40%, #a1a1aa);
+  --accent: #10b981;
+  --accent-2: #34d399;
 }
 
+/* Deep Mode: Purple/Violet premium vibe */
 .product-shell.mode-deep,
 .app-overlay-backdrop.mode-deep,
 .app-sheet-surface.mode-deep {
-  --mode-aura: #a778ff;
-  --mode-aura-strong: #8d5cff;
-  --mode-aura-soft: rgba(167, 120, 255, 0.14);
+  --mode-aura: #8b5cf6;
+  --mode-aura-strong: #a78bfa;
+  --mode-aura-soft: rgba(139, 92, 246, 0.15);
   --color-mode-primary: #8b5cf6;
-  --color-mode-secondary: #b38cff;
+  --color-mode-secondary: #a78bfa;
   --color-action-primary: #8b5cf6;
-  --color-action-secondary: #a778ff;
-  --color-action-emphasis: #b38cff;
+  --color-action-secondary: #a78bfa;
+  --color-action-emphasis: #c4b5fd;
   --color-status-success: #8b5cf6;
-  --color-focus-ring: #a778ff;
-  --color-graph-edge: color-mix(in srgb, #8b5cf6 42%, #688078);
-  --color-graph-node-meta: color-mix(in srgb, #8b5cf6 50%, #84918c);
+  --color-focus-ring: #a78bfa;
+  --color-graph-edge: color-mix(in srgb, #8b5cf6 30%, rgba(255, 255, 255, 0.15));
+  --color-graph-node-meta: color-mix(in srgb, #8b5cf6 40%, #a1a1aa);
   --accent: #8b5cf6;
-  --accent-2: #b38cff;
+  --accent-2: #a78bfa;
 }
 
 :root[data-theme="light"] {
-  --surface-0: #eef2f0;
-  --surface-1: #f4f7f5;
-  --surface-2: #fbfcfb;
-  --surface-3: #ffffff;
-  --stroke-1: rgba(10, 24, 19, 0.08);
-  --stroke-2: rgba(10, 24, 19, 0.11);
-  --stroke-3: rgba(10, 24, 19, 0.16);
-  --card-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  --color-canvas: #eef2f0;
-  --color-canvas-subtle: #e5ebe8;
-  --color-surface-base: #ffffff;
-  --color-surface-raised: #f7faf8;
-  --color-surface-muted: #edf3f0;
-  --color-border-subtle: #c7d4cf;
-  --color-border-strong: #87a79b;
-  --color-text-primary: #14211c;
-  --color-text-secondary: #365248;
-  --color-text-muted: #587068;
-  --color-action-primary: #087a54;
-  --color-action-secondary: #176d59;
-  --color-action-emphasis: #176d59;
-  --color-status-success: #08784f;
-  --color-status-warning: #9a610f;
-  --color-status-danger: #c23d3d;
-  --color-focus-ring: #087a54;
-  --color-graph-edge: #728f85;
-  --color-graph-label-surface: rgba(255, 255, 255, 0.78);
-  --color-graph-label-surface-strong: rgba(255, 255, 255, 0.96);
-  --color-graph-label-text: #3b554c;
-  --color-graph-node-meta: #5f8779;
-  --color-graph-minimap-mask: rgba(229, 236, 233, 0.58);
-  --shadow-panel: 0 18px 44px rgba(35, 57, 49, 0.14);
+  --surface-0: #fafafa;
+  --surface-1: #f4f4f5;
+  --surface-2: #e4e4e7;
+  --surface-3: #d4d4d8;
+
+  --surface-glass-base: rgba(255, 255, 255, 0.7);
+  --surface-glass-raised: rgba(255, 255, 255, 0.9);
+  --surface-glass-muted: rgba(244, 244, 245, 0.6);
+
+  --stroke-1: rgba(0, 0, 0, 0.04);
+  --stroke-2: rgba(0, 0, 0, 0.08);
+  --stroke-3: rgba(0, 0, 0, 0.12);
+
+  --card-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --card-inner-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+
+  --color-canvas: var(--surface-0);
+  --color-canvas-subtle: var(--surface-1);
+  --color-surface-base: var(--surface-glass-base);
+  --color-surface-raised: var(--surface-glass-raised);
+  --color-surface-muted: var(--surface-glass-muted);
+  --color-border-subtle: var(--stroke-2);
+  --color-border-strong: var(--stroke-3);
+
+  --color-text-primary: #18181b;
+  --color-text-secondary: #52525b;
+  --color-text-muted: #a1a1aa;
+
+  --color-action-primary: #2563eb;
+  --color-action-secondary: #3b82f6;
+  --color-action-emphasis: #60a5fa;
+
+  --color-status-success: #059669;
+  --color-status-warning: #d97706;
+  --color-status-danger: #dc2626;
+  --color-focus-ring: #3b82f6;
+
+  --color-graph-edge: rgba(0, 0, 0, 0.15);
+  --color-graph-label-surface: rgba(255, 255, 255, 0.85);
+  --color-graph-label-surface-strong: rgba(255, 255, 255, 0.98);
+  --color-graph-label-text: #27272a;
+  --color-graph-node-meta: #71717a;
+  --color-graph-minimap-mask: rgba(244, 244, 245, 0.6);
+  --shadow-panel: 0 16px 32px -8px rgba(0, 0, 0, 0.1);
+  --shadow-float: 0 8px 16px -4px rgba(0, 0, 0, 0.1), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
 }

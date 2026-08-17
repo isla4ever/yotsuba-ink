@@ -1,7 +1,9 @@
 .app-header {
   align-items: center;
   /* Phase 11.1 surface v2 takeover: shell chrome sits on --surface-1 with --stroke-1 separators. */
-  background: var(--surface-1);
+  background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--stroke-1);
   display: grid;
   gap: clamp(var(--space-3), 1.5vw, var(--space-6));

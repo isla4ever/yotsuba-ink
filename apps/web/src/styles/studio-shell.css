@@ -669,7 +669,9 @@
 
 .studio-template-card {
   align-items: center;
-  background: var(--surface-1);
+  background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--stroke-1);
   border-radius: var(--radius-surface);
   box-shadow: var(--card-top-highlight);
@@ -829,7 +831,9 @@
 
 .studio-template-option {
   align-items: baseline;
-  background: var(--surface-1);
+  background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--stroke-2);
   border-radius: var(--radius-surface);
   box-shadow: var(--card-top-highlight);

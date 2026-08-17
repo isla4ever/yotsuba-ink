@@ -17,7 +17,9 @@
 
   .workbench-sidebar {
     /* Phase 11.1 surface v2 takeover: shell chrome on --surface-1 / --stroke-1. */
-    background: var(--surface-1);
+    background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--stroke-1);
     display: flex;
     flex-direction: column;
@@ -37,7 +39,9 @@
   }
 
   .sidebar-project-header {
-    background: var(--surface-1);
+    background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
     position: sticky;
     top: 0;
     z-index: 2;

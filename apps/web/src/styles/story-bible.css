@@ -457,3 +457,29 @@
     width: 100%;
   }
 }
+
+/* Story Bible Micro-panels and elegant typography overrides */
+.story-bible-panel {
+  background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-surface);
+  padding: 16px;
+  box-shadow: var(--card-inner-shadow);
+  transition: all var(--duration-standard) var(--ease-standard);
+}
+
+.story-bible-heading {
+  font-family: var(--font-family-sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.story-bible-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}

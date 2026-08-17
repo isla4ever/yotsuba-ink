@@ -567,3 +567,35 @@ button.vnext-ref-chip:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, v
   .vnext-prose-editor { padding: 14px 12px 22px; }
   .vnext-prose-textarea { font-size: 15px; line-height: 2; min-height: 70vh; }
 }
+
+/* Micro-panels & Elegant Typography Overrides */
+.stage-artifact-frame, .stage-run-card, .story-bible-ledger-item {
+  background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-float);
+  transition: transform 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard), border-color 0.2s var(--ease-standard);
+  font-family: var(--font-family-sans);
+  letter-spacing: 0.01em;
+}
+
+.stage-artifact-frame:hover, .stage-run-card:hover, .story-bible-ledger-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-panel);
+  border-color: var(--color-border-strong);
+}
+
+.stage-artifact-frame-title, .stage-run-card-title, .story-bible-ledger-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.stage-artifact-frame-meta, .stage-run-card-meta {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}

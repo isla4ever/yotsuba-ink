@@ -189,3 +189,28 @@ textarea {
   position: relative;
   z-index: 1;
 }
+
+@keyframes ambientGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.product-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at 50% 0%, var(--mode-aura-soft), transparent 60%);
+  opacity: 0.6;
+  transition: background 1.5s ease-in-out;
+  animation: ambientGlow 8s ease-in-out infinite;
+  background-size: 200% 200%;
+}

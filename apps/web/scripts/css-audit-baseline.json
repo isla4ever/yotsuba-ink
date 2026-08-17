@@ -10,17 +10,17 @@
   ],
   "budgets": {
     "importedFileCount": 72,
-    "cssBytes": 489581,
-    "sourceLineCount": 19661,
-    "ruleCount": 3040,
-    "selectorCount": 3737,
-    "uniqueSelectorCount": 2950,
-    "crossFileDuplicateSelectorCount": 134,
-    "crossFileDuplicateSelectorOccurrences": 368,
-    "keyframeCount": 65,
-    "duplicateKeyframeNameCount": 0,
-    "animationDeclarationCount": 72,
-    "infiniteAnimationDeclarationCount": 20
+    "cssBytes": 495638,
+    "sourceLineCount": 19849,
+    "ruleCount": 3055,
+    "selectorCount": 3759,
+    "uniqueSelectorCount": 2962,
+    "crossFileDuplicateSelectorCount": 135,
+    "crossFileDuplicateSelectorOccurrences": 372,
+    "keyframeCount": 71,
+    "duplicateKeyframeNameCount": 1,
+    "animationDeclarationCount": 79,
+    "infiniteAnimationDeclarationCount": 21
   },
   "minimums": {
     "globalReducedMotionGuardCount": 2

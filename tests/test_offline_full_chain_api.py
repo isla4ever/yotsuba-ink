@@ -27,7 +27,7 @@ def _wait_for_new_pause(
     run_id: str,
     *,
     resolved: set[str],
-    timeout: float = 30.0,
+    timeout: float = 60.0,
 ) -> dict[str, Any]:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:

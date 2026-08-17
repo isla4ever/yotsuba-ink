@@ -203,7 +203,9 @@
 /* ---- rail: owns the shell sidebar slot on /monitor ---- */
 
 .monitor-sidebar {
-  background: var(--surface-1);
+  background: var(--color-surface-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid var(--stroke-1);
   display: flex;
   flex-direction: column;
