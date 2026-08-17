@@ -56,18 +56,27 @@ def test_workflow_without_required_phase27_fields_is_not_executable(tmp_path, mo
 
 
 @pytest.mark.parametrize(
-    "fixture_name",
-    ("wf-proj-850f449dd8.json", "wf-proj-ad5c056eef.json"),
+    ("workflow_id", "retired_version"),
+    (
+        ("wf-retired-book-scale", "1.3.0-book-scale-plan"),
+        ("wf-retired-stage-contract", "1.2.0-stage-contract"),
+    ),
 )
-def test_real_retired_workflow_files_are_inert_production_data(
+def test_retired_workflow_contracts_are_inert_production_data(
     tmp_path,
     monkeypatch,
-    fixture_name,
+    workflow_id,
+    retired_version,
 ):
     client = _client(tmp_path, monkeypatch)
-    source = REPOSITORY_ROOT / "runtime" / "novel_workflow" / "workflows" / fixture_name
-    legacy = json.loads(source.read_text(encoding="utf-8"))
-    workflow_id = legacy["id"]
+    legacy = default_workflow().model_dump(mode="json")
+    legacy.update(
+        {
+            "id": workflow_id,
+            "version": retired_version,
+            "architecture_version": "phase24-retired",
+        }
+    )
     client.app.state.workflow_store.write(workflow_id, legacy)
 
     assert workflow_id not in {item["id"] for item in client.get("/api/workflows").json()}
