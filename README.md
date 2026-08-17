@@ -65,16 +65,16 @@ flowchart TB
 ```
 
 <table width="100%">
-  <thead><tr><th width="18%">阶段</th><th width="30%">核心产物</th><th width="52%">作者在此阶段决定什么</th></tr></thead>
+  <thead><tr><th width="14%">阶段</th><th width="25%">核心产物</th><th width="43%">作者在此阶段决定什么</th><th width="18%">下游使用</th></tr></thead>
   <tbody>
-    <tr><td>Brief</td><td><code>StoryBriefArtifact</code></td><td>书名、故事承诺、规则、主题、结局方向与叙事声音</td></tr>
-    <tr><td>Spine</td><td><code>StorySpineArtifact</code></td><td>关键变化是否形成完整因果链，结局是否兑现立项承诺</td></tr>
-    <tr><td>Cast</td><td><code>CharacterBibleArtifact</code></td><td>主体职责、欲望、变化、限制、关系与首次出场</td></tr>
-    <tr><td>Volumes</td><td><code>VolumeArchitectureArtifact</code></td><td>每卷的承诺、冲突、高潮、闭合和卷间承接</td></tr>
-    <tr><td>Detail</td><td><code>DetailArtifact</code></td><td>每章目的、POV、场景序列、结果与下一章交接</td></tr>
-    <tr><td>Text</td><td><code>ChapterArtifact</code></td><td>接受正文、人工编辑或按证据定向换稿</td></tr>
-    <tr><td>Cover</td><td><code>CoverArtifact</code></td><td>视觉方向、图像提示、候选资产与最终选择</td></tr>
-    <tr><td>Export</td><td><code>ExportArtifact</code></td><td>章节版本、书名/作者元数据、封面和交付格式</td></tr>
+    <tr><td>Brief</td><td><code>StoryBriefArtifact</code></td><td>书名、故事承诺、规则、主题、结局方向与叙事声音</td><td>Spine</td></tr>
+    <tr><td>Spine</td><td><code>StorySpineArtifact</code></td><td>关键变化是否形成完整因果链，结局是否兑现立项承诺</td><td>Cast、Volumes</td></tr>
+    <tr><td>Cast</td><td><code>CharacterBibleArtifact</code></td><td>主体职责、欲望、变化、限制、关系与首次出场</td><td>Volumes、Detail、Text</td></tr>
+    <tr><td>Volumes</td><td><code>VolumeArchitectureArtifact</code></td><td>每卷的承诺、冲突、高潮、闭合和卷间承接</td><td>Detail</td></tr>
+    <tr><td>Detail</td><td><code>DetailArtifact</code></td><td>每章目的、POV、场景序列、结果与下一章交接</td><td>Text、Cover</td></tr>
+    <tr><td>Text</td><td><code>ChapterArtifact</code></td><td>接受正文、人工编辑或按证据定向换稿</td><td>下一章、Cover、Export</td></tr>
+    <tr><td>Cover</td><td><code>CoverArtifact</code></td><td>视觉方向、图像提示、候选资产与最终选择</td><td>Export</td></tr>
+    <tr><td>Export</td><td><code>ExportArtifact</code></td><td>章节版本、书名/作者元数据、封面和交付格式</td><td>不可变交付文件</td></tr>
   </tbody>
 </table>
 
@@ -139,16 +139,16 @@ flowchart TB
 `official-deepseek-balanced` 已完成一轮真实 10 万字以上长篇生产：
 
 <table width="100%">
-  <thead><tr><th width="25%">指标</th><th width="75%">结果</th></tr></thead>
+  <thead><tr><th width="18%">指标</th><th width="45%">结果</th><th width="37%">验收含义</th></tr></thead>
   <tbody>
-    <tr><td>作品</td><td>《明日来电》</td></tr>
-    <tr><td>Run / Project</td><td><code>balanced-110k-v1-demo-20260817-040033</code> / <code>proj-e1007717ad</code></td></tr>
-    <tr><td>阶段</td><td>8/8 完成</td></tr>
-    <tr><td>正文</td><td>44 章，107,613 个非空白字符</td></tr>
-    <tr><td>单章分布</td><td>1,710-3,692，平均 2,445.75，P90 2,962</td></tr>
-    <tr><td>分卷</td><td>14 / 14 / 16 章，卷与章标题完整率 100%</td></tr>
-    <tr><td>Provider</td><td>314 次调用，311 成功，3 次失败后恢复，1,760,252 tokens</td></tr>
-    <tr><td>Export</td><td>ZIP 可用，44 个已接受章节版本，SHA-256 已核验</td></tr>
+    <tr><td>作品</td><td>《明日来电》</td><td>全新都市悬疑题材，不沿用历史失败 Run</td></tr>
+    <tr><td>Run / Project</td><td><code>balanced-110k-v1-demo-20260817-040033</code> / <code>proj-e1007717ad</code></td><td>运行与项目可独立追溯</td></tr>
+    <tr><td>阶段</td><td>8/8 完成</td><td>从 Brief 到 Export 全链路闭环</td></tr>
+    <tr><td>正文</td><td>44 章，107,613 个非空白字符</td><td>达到冻结的 10 万字交付目标</td></tr>
+    <tr><td>单章分布</td><td>1,710-3,692，平均 2,445.75，P90 2,962</td><td>保留自然差异且无 1000/6000 字极端离散</td></tr>
+    <tr><td>分卷</td><td>14 / 14 / 16 章，卷与章标题完整率 100%</td><td>卷名、章名与顺序完整</td></tr>
+    <tr><td>Provider</td><td>314 次调用，311 成功，3 次失败后恢复，1,760,252 tokens</td><td>失败与恢复均保留回执</td></tr>
+    <tr><td>Export</td><td>ZIP 可用，44 个已接受章节版本，SHA-256 已核验</td><td>交付文件可下载并校验完整性</td></tr>
   </tbody>
 </table>
 

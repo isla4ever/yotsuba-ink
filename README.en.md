@@ -65,16 +65,16 @@ flowchart TB
 ```
 
 <table width="100%">
-  <thead><tr><th width="18%">Stage</th><th width="30%">Core artifact</th><th width="52%">Author decision</th></tr></thead>
+  <thead><tr><th width="14%">Stage</th><th width="25%">Core artifact</th><th width="43%">Author decision</th><th width="18%">Used by</th></tr></thead>
   <tbody>
-    <tr><td>Brief</td><td><code>StoryBriefArtifact</code></td><td>Title, premise, world rules, theme, ending direction, and voice</td></tr>
-    <tr><td>Spine</td><td><code>StorySpineArtifact</code></td><td>Whether major changes form a causal chain and pay off the Brief</td></tr>
-    <tr><td>Cast</td><td><code>CharacterBibleArtifact</code></td><td>Subject roles, drives, arcs, limits, relationships, and debuts</td></tr>
-    <tr><td>Volumes</td><td><code>VolumeArchitectureArtifact</code></td><td>Each volume's promise, conflict, climax, closure, and handoff</td></tr>
-    <tr><td>Detail</td><td><code>DetailArtifact</code></td><td>Chapter purpose, POV, scene sequence, result, and next handoff</td></tr>
-    <tr><td>Text</td><td><code>ChapterArtifact</code></td><td>Accept, edit, or request an evidence-directed revision</td></tr>
-    <tr><td>Cover</td><td><code>CoverArtifact</code></td><td>Visual direction, image prompt, candidate asset, and final choice</td></tr>
-    <tr><td>Export</td><td><code>ExportArtifact</code></td><td>Accepted chapter versions, metadata, cover, and format</td></tr>
+    <tr><td>Brief</td><td><code>StoryBriefArtifact</code></td><td>Title, premise, world rules, theme, ending direction, and voice</td><td>Spine</td></tr>
+    <tr><td>Spine</td><td><code>StorySpineArtifact</code></td><td>Whether major changes form a causal chain and pay off the Brief</td><td>Cast, Volumes</td></tr>
+    <tr><td>Cast</td><td><code>CharacterBibleArtifact</code></td><td>Subject roles, drives, arcs, limits, relationships, and debuts</td><td>Volumes, Detail, Text</td></tr>
+    <tr><td>Volumes</td><td><code>VolumeArchitectureArtifact</code></td><td>Each volume's promise, conflict, climax, closure, and handoff</td><td>Detail</td></tr>
+    <tr><td>Detail</td><td><code>DetailArtifact</code></td><td>Chapter purpose, POV, scene sequence, result, and next handoff</td><td>Text, Cover</td></tr>
+    <tr><td>Text</td><td><code>ChapterArtifact</code></td><td>Accept, edit, or request an evidence-directed revision</td><td>Next chapter, Cover, Export</td></tr>
+    <tr><td>Cover</td><td><code>CoverArtifact</code></td><td>Visual direction, image prompt, candidate asset, and final choice</td><td>Export</td></tr>
+    <tr><td>Export</td><td><code>ExportArtifact</code></td><td>Accepted chapter versions, metadata, cover, and format</td><td>Immutable deliverables</td></tr>
   </tbody>
 </table>
 
@@ -139,16 +139,16 @@ flowchart TB
 The official `official-deepseek-balanced` workflow has completed a real long-form production run above 100,000 characters:
 
 <table width="100%">
-  <thead><tr><th width="25%">Metric</th><th width="75%">Result</th></tr></thead>
+  <thead><tr><th width="18%">Metric</th><th width="45%">Result</th><th width="37%">Acceptance meaning</th></tr></thead>
   <tbody>
-    <tr><td>Work</td><td><em>明日来电</em></td></tr>
-    <tr><td>Run / Project</td><td><code>balanced-110k-v1-demo-20260817-040033</code> / <code>proj-e1007717ad</code></td></tr>
-    <tr><td>Stages</td><td>8/8 complete</td></tr>
-    <tr><td>Prose</td><td>44 chapters, 107,613 non-whitespace characters</td></tr>
-    <tr><td>Chapter distribution</td><td>1,710-3,692; average 2,445.75; P90 2,962</td></tr>
-    <tr><td>Volumes</td><td>14 / 14 / 16 chapters; 100% chapter and volume title completeness</td></tr>
-    <tr><td>Provider</td><td>314 calls, 311 successful, 3 failed and recovered, 1,760,252 tokens</td></tr>
-    <tr><td>Export</td><td>Valid ZIP, 44 accepted chapter versions, verified SHA-256</td></tr>
+    <tr><td>Work</td><td><em>明日来电</em></td><td>A fresh urban suspense project, not a recovered historical run</td></tr>
+    <tr><td>Run / Project</td><td><code>balanced-110k-v1-demo-20260817-040033</code> / <code>proj-e1007717ad</code></td><td>The run and project are independently traceable</td></tr>
+    <tr><td>Stages</td><td>8/8 complete</td><td>The complete path from Brief through Export closed</td></tr>
+    <tr><td>Prose</td><td>44 chapters, 107,613 non-whitespace characters</td><td>The frozen 100,000-character delivery target was met</td></tr>
+    <tr><td>Chapter distribution</td><td>1,710-3,692; average 2,445.75; P90 2,962</td><td>Natural variation without 1,000/6,000-character extremes</td></tr>
+    <tr><td>Volumes</td><td>14 / 14 / 16 chapters; 100% chapter and volume title completeness</td><td>Volume titles, chapter titles, and order are complete</td></tr>
+    <tr><td>Provider</td><td>314 calls, 311 successful, 3 failed and recovered, 1,760,252 tokens</td><td>Failures and recovery remain receipted</td></tr>
+    <tr><td>Export</td><td>Valid ZIP, 44 accepted chapter versions, verified SHA-256</td><td>The deliverable can be downloaded and integrity-checked</td></tr>
   </tbody>
 </table>
 
