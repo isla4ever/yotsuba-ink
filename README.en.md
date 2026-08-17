@@ -1,154 +1,209 @@
-# Yotsuba Ink
+<div align="right"><a href="./README.md">简体中文</a></div>
 
-[简体中文](README.md) | [English](README.en.md)
+<div align="center">
+  <img src="docs/assets/branding/yotsuba-ink-logo.png" alt="Yotsuba Ink" width="112" />
+  <h1>Yotsuba Ink</h1>
+  <p><strong>AI-native workbench for long-form fiction</strong></p>
+  <p>Plan, generate, review, recover, and export a complete novel through explicit stage artifacts and continuity-aware execution.</p>
+  <p>
+    <img src="https://img.shields.io/badge/version-v1.0.0-2f9e78" alt="v1.0.0" />
+    <img src="https://img.shields.io/badge/Python-3.12%2B-3776ab" alt="Python 3.12+" />
+    <img src="https://img.shields.io/badge/Node.js-22%2B-43853d" alt="Node.js 22+" />
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache-2.0" /></a>
+  </p>
+</div>
 
 <p align="center">
-  <img src="docs/assets/branding/yotsuba-ink-logo.png" alt="Yotsuba Ink trademark" width="156" />
+  <a href="#production-workflow">Workflow</a> ·
+  <a href="#creation-modes">Modes</a> ·
+  <a href="#verified-v10-run">Verified run</a> ·
+  <a href="#quick-start">Quick start</a>
 </p>
-
-<p align="center"><strong>Turn ideas into a deliverable long-form novel.</strong><br />A staged writing and delivery workbench for long-form fiction</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/CI-passing-3f8f68" alt="CI passing" />
-  <img src="https://img.shields.io/badge/version-1.0.0%20Demo-68717a" alt="version 1.0.0 Demo" />
-  <img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache 2.0 license" />
+  <img src="docs/assets/screenshots/library.png" alt="Yotsuba Ink project library and horizontal bookshelf" width="100%" />
 </p>
 
-<p align="center"><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
+Yotsuba Ink is built for long-form projects that need sustained control over structure, characters, continuity, and versions. It turns model calls into a production workflow with explicit artifacts, author decisions, quality boundaries, and recovery records instead of asking one conversation to generate an entire book.
 
-<p align="center"><img src="docs/assets/branding/yotsuba-ink-banner.png" alt="Yotsuba Ink long-form writing workbench banner" width="100%" /></p>
+## Production workflow
 
-> Brand assets: the trademark is `2048×2048` and the banner is `1600×720`. The local demo does not depend on cover image generation; the Cover stage still preserves the complete visual metadata.
+Each stage owns one core Artifact. Downstream work starts from committed upstream decisions, and prose chapters are generated sequentially from the previous chapter's accepted state.
 
-Yotsuba Ink is an open-source workbench for long-form fiction. Instead of generating an entire book from one prompt, it organizes story information, synopsis, volume outline, chapter blueprint, prose, cover, and export into an editable, reviewable, traceable, and recoverable production pipeline.
+```mermaid
+flowchart LR
+  idea["Story idea"] --> brief["Brief<br/>Title, promise, rules, and voice"]
+  brief --> spine["Spine<br/>Book-level causality and payoff"]
+  spine --> cast["Cast<br/>Character bible and debut boundaries"]
+  cast --> volumes["Volumes<br/>Promise, conflict, climax, and closure"]
+  volumes --> detail["Detail<br/>Chapter purpose, scenes, and handoff"]
+  detail --> text["Text<br/>Sequential chapter generation"]
+  text --> gate{"Contract and quality gate"}
+  gate -->|Pass| cover["Cover<br/>Visual brief and optional asset"]
+  gate -->|One targeted revision| text
+  gate -. Soft issues stay warnings .-> evidence["Evidence<br/>Findings, excerpts, and direction"]
+  cover --> export["Export<br/>Versions, metadata, and ZIP"]
 
-> Current version: `1.0.0 Demo`. This release completes one real balanced-mode long-form run above 100,000 characters and presents completed projects through a static terminal projection instead of replaying historical SSE. Live-model literary quality still requires ongoing human cold reads.
-
-## Highlights
-
-- **Eight-stage Artifact workflow**: Brief, Spine, Cast, Volumes, Detail, Text, Cover metadata, and Export.
-- **Three creation modes**: Fast, Balanced, and Deep, each with a different cost, approval, and automation policy.
-- **Artifact-first semantics**: current drafts, approved artifacts, and formal writeback are separate; candidates never update Story Bible or Canon prematurely.
-- **Long-form continuity**: character relationships, worldbuilding, foreshadowing, Wiki/Canon, and chapter context constrain cross-chapter generation.
-- **Review and revision**: quality reports, fact writeback, selection revisions, version history, and stable checkpoints form a recoverable loop.
-- **Terminal browsing**: completed projects open on the final workbench with all committed artifacts, accepted chapter versions, and immutable export receipts; historical execution is not replayed.
-- **Single-row bookshelf**: the library keeps one horizontal row of book spines with arrow controls, touchpad/touch scrolling, and a selected-book reading desk.
-- **Parallel delivery**: after Detail is approved, Text and Cover can proceed in parallel; Export waits for both branches and validates the package. Cover image generation can be disabled per Run without losing Cover metadata.
-- **Explicit Provider boundary**: production code uses OpenAI-compatible text and image Providers; Fake Providers exist only in tests.
-
-## Workflow
-
-```text
-Planning
-  -> Brief
-  -> Spine
-  -> Cast
-  -> Volumes
-  -> Detail
-  -> [Text || Cover metadata]
-  -> Export
+  classDef planning fill:#102a24,stroke:#2fd68f,color:#f2fff9;
+  classDef writing fill:#172433,stroke:#69a7e8,color:#f4f8ff;
+  classDef decision fill:#302819,stroke:#d8ad54,color:#fff9ec;
+  classDef delivery fill:#26203a,stroke:#9a7ce2,color:#fbf8ff;
+  class brief,spine,cast,volumes,detail planning;
+  class text,evidence writing;
+  class gate decision;
+  class cover,export delivery;
 ```
 
-All modes share the same Artifact and writeback contracts:
-
-| Mode | User control | Default flow |
+| Stage | Core artifact | Author decision |
 | --- | --- | --- |
-| Fast | Minimal intervention | Runs the full pipeline after setup |
-| Balanced | Approve the Brief | Continues automatically after Brief; comparison is user-triggered |
-| Deep | Stage-by-stage review | Regenerate, edit, and approve each text stage before continuing |
+| Brief | `StoryBriefArtifact` | Title, premise, world rules, theme, ending direction, and voice |
+| Spine | `StorySpineArtifact` | Whether major changes form a causal chain and pay off the Brief |
+| Cast | `CharacterBibleArtifact` | Subject roles, drives, arcs, limits, relationships, and debuts |
+| Volumes | `VolumeArchitectureArtifact` | Each volume's promise, conflict, climax, closure, and handoff |
+| Detail | `DetailArtifact` | Chapter purpose, POV, scene sequence, result, and next handoff |
+| Text | `ChapterArtifact` | Accept, edit, or request an evidence-directed revision |
+| Cover | `CoverArtifact` | Visual direction, image prompt, candidate asset, and final choice |
+| Export | `ExportArtifact` | Accepted chapter versions, metadata, cover, and format |
 
-Cover and Export keep their own candidate, approval, and delivery decisions instead of copying the three-column text comparison UI.
+## Why Yotsuba Ink
 
-## Stack
+| Capability | How it works | Why it matters |
+| --- | --- | --- |
+| Structure before prose | Brief, Spine, Cast, Volumes, and Detail are committed in order | A long novel does not depend on improvising from one prompt |
+| Bounded context | Each chapter receives a signed Context Manifest and only required references | Prompt growth and cross-chapter drift stay controlled |
+| Sequential continuity | Chapter N+1 depends on chapter N's accepted prose, handoff, and temporary state | Location, knowledge, and consequences can carry forward coherently |
+| Evidence-based review | Deterministic contracts can block; LLM reviewers provide evidence and warnings by default | Ambiguous literary opinions do not create infinite rewrite loops |
+| One targeted revision | The UI shows the finding, exact evidence, and suggested direction | A clear defect can be corrected without reopening frozen structure |
+| Recoverable execution | LangGraph checkpoints, operation receipts, SSE sequences, and terminal snapshots | Failures are traceable, streams reconnect, and completed runs do not replay history |
+| Verifiable delivery | Export freezes accepted chapter versions, metadata, checksums, and receipts | The delivered manuscript can be traced back to approved work |
 
-- Frontend: React, TypeScript, Vite, GSAP, Motion, Radix UI, Three.js
-- Backend: Python, FastAPI, Pydantic, SSE
-- Model integration: OpenAI-compatible text/image APIs, Provider templates, and fallback routing
-- Persistence: projects, run history, stable snapshots, Provider profiles, Wiki, knowledge base, and export receipts
+## Creation modes
 
-## Repository Layout
+All three modes use the same Artifacts, quality contracts, and export format. They differ only in model selection, author decision density, and review strength.
 
-```text
-apps/web/                    React creation workbench
-src/novel_workflow/          Python domain logic and FastAPI adapters
-runtime/novel_workflow/      Local runtime configuration and data
-tests/                       Backend contract, orchestration, quality, and prompt regression tests
-docs/                        Product, stage contract, and architecture documentation
+| Mode | Model path | Decisions | Quality and revision | Best for |
+| --- | --- | --- | --- | --- |
+| Fast | Primarily DeepSeek Flash | Stage and chapter decisions are accepted automatically | Hard gates remain active; one automatic targeted revision is allowed for a proven hard issue | Testing an idea and producing a complete first draft quickly |
+| Balanced (recommended) | Pro for planning and prose; Flash for cover metadata | Every stage and chapter can be accepted, edited, regenerated, or cancelled | Continuity and character review are required; evidence and revision direction stay visible | Everyday long-form work with practical cost and control |
+| Deep | Pro across Provider-backed stages | Every stage and chapter is finalized by the author | All three review lanes must return; selected structure values can be locked inside the feasible range | High-control drafting and formal revision |
+
+## Quality and continuity boundaries
+
+Yotsuba Ink separates issues that must stop production from issues that deserve attention:
+
+- **Hard gates**: unrecoverable execution, invalid structured output, missing core Artifacts or prose, explicit upstream contract conflicts, subject authority violations, direct physical-state contradictions inside a chapter, a missed frozen book-length target, or an unusable export.
+- **Warnings**: low-confidence reviewer findings, modest rhythm or style variation, detectable AI flavor, lengths near a reasonable boundary, evidence that does not directly name the subject, and identity concealment or delayed revelation that later prose can explain.
+- **Revision limit**: one automatic or author-directed regeneration per stage or chapter. A second hard failure stops explicitly instead of hiding the root problem behind more generation.
+
+```mermaid
+flowchart TB
+  ui["React workbench"] <--> api["FastAPI / SSE adapter"]
+  api <--> graph["LangGraph<br/>single production runtime"]
+  graph --> context["Context Compiler<br/>frozen references and budgets"]
+  context --> gateway["Provider Gateway<br/>OpenAI-compatible"]
+  gateway --> graph
+  graph --> stores["Artifact / Chapter / Decision / Receipt Stores"]
+  stores --> readmodel["Rebuildable Read Model"]
+  readmodel --> api
+  stores --> exportstore["Export files and integrity receipts"]
+
+  classDef surface fill:#121d1a,stroke:#2fd68f,color:#f4fff9;
+  classDef runtime fill:#172433,stroke:#69a7e8,color:#f4f8ff;
+  classDef data fill:#2a2338,stroke:#9a7ce2,color:#fbf8ff;
+  class ui,api surface;
+  class graph,context,gateway runtime;
+  class stores,readmodel,exportstore data;
 ```
 
-The frontend uses one directory system under `features/pipeline`: `layout/`, `planning/`, `brief/`, `running/`, `settings/`, `state/`, `services/`, `contracts/`, and `lib/`. The backend `api/` package is an HTTP/SSE adapter only; orchestration, quality, and persistence rules live in domain packages.
+## Verified v1.0 run
 
-## Local Development
+The official `official-deepseek-balanced` workflow has completed a real long-form production run above 100,000 characters:
 
-### 1. Requirements
+| Metric | Result |
+| --- | --- |
+| Work | *明日来电* |
+| Run / Project | `balanced-110k-v1-demo-20260817-040033` / `proj-e1007717ad` |
+| Stages | 8/8 complete |
+| Prose | 44 chapters, 107,613 non-whitespace characters |
+| Chapter distribution | 1,710-3,692; average 2,445.75; P90 2,962 |
+| Volumes | 14 / 14 / 16 chapters; 100% chapter and volume title completeness |
+| Provider | 314 calls, 311 successful, 3 failed and recovered, 1,760,252 tokens |
+| Export | Valid ZIP, 44 accepted chapter versions, verified SHA-256 |
 
-- Python 3.12 or later
-- Node.js and npm
+<p align="center">
+  <img src="docs/assets/screenshots/export-workbench.png" alt="Yotsuba Ink export workbench" width="100%" />
+</p>
 
-### 2. Install the backend
+Cover image generation was skipped by configuration for this acceptance run; Cover metadata and Export still completed. See the [v1.0 long-form acceptance report](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md) for hard gates, continuity samples, chapter distribution, Provider receipts, and browser evidence.
+
+## Quick start
+
+### Requirements
+
+- Python 3.12+
+- Node.js 22+
+- npm 10+
+
+### 1. Install
 
 ```bash
+git clone https://github.com/isla4ever/yotsuba-ink.git
+cd yotsuba-ink
+
 python3 -m venv .venv
 .venv/bin/python -m pip install -U pip
 .venv/bin/python -m pip install -e ".[dev]"
+
+cd apps/web
+npm ci
 ```
 
-### 3. Start the backend
+### 2. Start the backend
 
 ```bash
+cd yotsuba-ink
 .venv/bin/python -m uvicorn novel_workflow.api.app:app \
   --host 127.0.0.1 \
   --port 8787 \
   --reload
 ```
 
-### 4. Start the frontend
+### 3. Start the frontend
 
 ```bash
-cd apps/web
-npm install
+cd yotsuba-ink/apps/web
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite proxies `/api` to `http://127.0.0.1:8787` by default; set `NOVEL_API_PROXY` to override it.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The development server proxies `/api` to `http://127.0.0.1:8787` by default.
 
-## Provider Configuration
+## Provider configuration
 
-The recommended path is **Settings -> Model Providers** in the application: select a Provider template, enter the API key and default model, then run **Save and check**. Secrets are stored in local runtime storage and must not be committed.
+The recommended path is **Model Settings** in the application. Select an official or custom OpenAI-compatible Provider, enter the API key and model, then run the readiness check. Secrets stay in local runtime data.
 
-Generic OpenAI-compatible Providers can also be supplied through environment variables:
+Environment variables are also supported:
 
 ```bash
-export NOVEL_LLM_BASE_URL="https://your-text-provider.example/v1"
+export NOVEL_LLM_BASE_URL="https://your-provider.example/v1"
 export NOVEL_LLM_API_KEY="your-text-api-key"
 export NOVEL_LLM_MODEL="your-text-model"
 
+# Only required for cover image generation
 export NOVEL_IMAGE_BASE_URL="https://your-image-provider.example/v1"
 export NOVEL_IMAGE_API_KEY="your-image-api-key"
 export NOVEL_IMAGE_MODEL="your-image-model"
 ```
 
-No key is required to inspect setup, projects, or history. Live generation requires the Provider readiness check to pass. Never commit `.env` files, API keys, run history, or user manuscripts to a public repository.
+Never commit `.env` files, API keys, run history, Provider input snapshots, or user manuscripts.
 
-## v1.0 Demo acceptance
-
-The official `official-deepseek-balanced` template completed one real long-form Run:
-
-- Work: `明日来电`; Project `proj-e1007717ad`; Run `balanced-110k-v1-demo-20260817-040033`
-- `8/8` stages complete, 44 chapters, 107,613 non-whitespace characters; chapter range 1,710–3,692, average 2,445.75, P90 2,962
-- Volume distribution: 14/14/16 chapters; 100% title completeness; downloadable ZIP export
-- Provider: 314 operations, 311 successful, 3 failed and recovered; 1,760,252 total tokens
-- Cover image generation was disabled for this Run; Cover metadata and Export still closed successfully
-
-See the [v1.0 balanced long-form acceptance report](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md) for hard gates, continuity sampling, Provider receipts, warnings, and browser screenshots. Historical findings are listed in the [v1.0 follow-up record](docs/engineering/yotsuba-ink-v1-open-findings.md).
-
-## Verification
+## Development and verification
 
 ```bash
-# Full backend suite (use the repository virtual environment)
+# Backend
 .venv/bin/pytest -q
+.venv/bin/python -m compileall -q src tests
 
-# Frontend tests, production build, and CSS gates
+# Frontend
 cd apps/web
 npm test
 npm run build
@@ -156,31 +211,25 @@ npm run audit:css
 npm run check:css-split
 ```
 
-Run the automated suites, production build, CSS gates, and browser checks before publishing. Passing automation proves local contracts and UI projections; live Provider literary quality, AI flavor, and full human cold-read acceptance remain evidence-based release work.
+Current v1.0 baseline: backend `527 passed`; frontend `112` test files and `421 passed`; TypeScript, production build, CSS audit, CSS splitting, and desktop/390px browser checks pass.
 
-## Documentation
+## Repository layout
 
-- [Product and architecture overview](docs/architecture/overview.md)
+```text
+apps/web/                    React creation workbench
+src/novel_workflow/          LangGraph runtime, domain contracts, and FastAPI adapters
+runtime/novel_workflow/      Official workflows, prompts, and local runtime data
+tests/                       Contract, orchestration, Provider, recovery, and quality tests
+docs/                        Architecture contracts and acceptance records
+```
+
+## Essential documentation
+
+- [Architecture overview](docs/architecture/overview.md)
 - [Stage Artifact contract](docs/architecture/stage-artifact-contract.md)
-- [Production workflow](docs/architecture/product-production-workflow.md)
-- [Story Bible, Wiki, and quality boundaries](docs/architecture/story-bible-quality.md)
-- [Human preference calibration protocol](docs/architecture/preference-calibration-protocol.md)
-- [Phase 27 frontend/backend handoff](docs/architecture/phase-27-frontend-backend-handoff.md)
-- [DeepSeek Harness adoption review](docs/architecture/deepseek-harness-adoption-review.md)
+- [Phase 27 adaptive long-form architecture](docs/architecture/phase-27-adaptive-story-planning-reconstruction.md)
 - [v1.0 balanced long-form acceptance](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)
-- [v1.0 follow-up record](docs/engineering/yotsuba-ink-v1-open-findings.md)
-- [Worktree cleanup record](docs/architecture/worktree-cleanup-2026-08-15.md)
-- [Repository contribution rules](AGENTS.md)
-
-## Roadmap
-
-- Validate cross-volume and cross-chapter continuity with an explicitly authorized live text Provider.
-- Validate cover generation, retry, candidate approval, and export packaging with a live image Provider.
-- Complete release security checks, deployment documentation, and observability baselines.
-- Reconsider the open-source/core and hosted/enhanced split at `v1.0`; keep one repository until then.
 
 ## License
 
-Yotsuba Ink is released under the [Apache License 2.0](LICENSE). Third-party dependencies remain subject to their respective licenses.
-
-Repository: [github.com/isla4ever/yotsuba-ink](https://github.com/isla4ever/yotsuba-ink)
+Yotsuba Ink is open source under the [Apache License 2.0](LICENSE).

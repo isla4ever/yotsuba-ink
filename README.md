@@ -1,154 +1,209 @@
-# Yotsuba Ink
+<div align="right"><a href="./README.en.md">English</a></div>
 
-[简体中文](README.md) | [English](README.en.md)
+<div align="center">
+  <img src="docs/assets/branding/yotsuba-ink-logo.png" alt="Yotsuba Ink" width="112" />
+  <h1>Yotsuba Ink</h1>
+  <p><strong>AI 原生长篇小说创作工作台</strong></p>
+  <p>用可审阅的阶段产物、连续性上下文和可恢复运行，完成从故事立项到整书导出的长篇创作流程。</p>
+  <p>
+    <img src="https://img.shields.io/badge/version-v1.0.0-2f9e78" alt="v1.0.0" />
+    <img src="https://img.shields.io/badge/Python-3.12%2B-3776ab" alt="Python 3.12+" />
+    <img src="https://img.shields.io/badge/Node.js-22%2B-43853d" alt="Node.js 22+" />
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache-2.0" /></a>
+  </p>
+</div>
 
 <p align="center">
-  <img src="docs/assets/branding/yotsuba-ink-logo.png" alt="Yotsuba Ink 商标" width="156" />
+  <a href="#产品工作流">产品工作流</a> ·
+  <a href="#三档创作模式">创作模式</a> ·
+  <a href="#v10-实证">v1.0 实证</a> ·
+  <a href="#快速开始">快速开始</a>
 </p>
-
-<p align="center"><strong>把灵感，写成可交付的长篇。</strong><br />面向长篇小说的阶段化创作与交付工作台</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/CI-passing-3f8f68" alt="CI passing" />
-  <img src="https://img.shields.io/badge/version-1.0.0%20Demo-68717a" alt="version 1.0.0 Demo" />
-  <img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache 2.0 license" />
+  <img src="docs/assets/screenshots/library.png" alt="Yotsuba Ink 作品库与单行横向书架" width="100%" />
 </p>
 
-<p align="center"><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
+Yotsuba Ink 面向需要持续控制结构、人物、连续性和版本的长篇创作。它把模型调用组织为一条有明确产物、人工决策、质量边界和恢复记录的生产链路，而不是把整本书交给一次对话生成。
 
-<p align="center"><img src="docs/assets/branding/yotsuba-ink-banner.png" alt="Yotsuba Ink 长篇创作工作台营销横幅" width="100%" /></p>
+## 产品工作流
 
-> 品牌资产：商标为 `2048×2048`，横幅为 `1600×720`。本地演示不依赖封面生图，封面阶段仍会保存完整视觉元数据。
+每个阶段只负责一个核心 Artifact。上游定稿后才进入下游，正文按章节顺序生成并继承上一章的最终状态。
 
-Yotsuba Ink 是一个面向长篇小说的开源创作工作台。它不追求一次提示词生成整本书，而是把小说信息、全书梗概、分卷大纲、章节细纲、正文、封面和导出组织成可编辑、可确认、可追溯、可恢复的生产链路。
+```mermaid
+flowchart LR
+  idea["创作想法"] --> brief["Brief<br/>书名、题材承诺、世界规则、声音"]
+  brief --> spine["Spine<br/>全书因果脊柱与结局兑现"]
+  spine --> cast["Cast<br/>人物圣经、关系与出场边界"]
+  cast --> volumes["Volumes<br/>分卷承诺、冲突、高潮与闭合"]
+  volumes --> detail["Detail<br/>逐章目的、场景、转折与交接"]
+  detail --> text["Text<br/>相邻章节顺序生成"]
+  text --> gate{"合同与质量门"}
+  gate -->|通过| cover["Cover<br/>视觉 Brief 与可选封面资产"]
+  gate -->|一次定向修订| text
+  gate -. 软问题只告警 .-> evidence["Evidence<br/>证据、风险与修订方向"]
+  cover --> export["Export<br/>版本清单、元数据与 ZIP"]
 
-> 当前版本：`1.0.0 Demo`。本版本完成了官方平衡模式的真实 10 万字以上长篇闭环，并以静态终态投影保证作品库打开不会重放历史 SSE。真实模型的文学质量仍需结合人工冷读持续评估。
-
-## 核心能力
-
-- **八阶段 Artifact 工作流**：创作立项、故事脊柱、人物编排、分卷架构、章节施工图、正文、封面元数据、导出交付。
-- **三种创作模式**：极速生产、平衡创作、精细定稿，对应不同的成本、人工确认点和自动化程度。
-- **Artifact 优先**：当前稿、确认定稿和正式写回相互分离，候选稿不会提前污染 Story Bible 或正典事实。
-- **长篇连续性**：人物关系、世界观、伏笔账本、Wiki/Canon 和章节上下文共同约束跨章承接。
-- **审校与修订**：质量报告、事实写回、选区修订、版本历史和稳定检查点形成可恢复闭环。
-- **终态可浏览**：已完成作品直接恢复最终工作台，可查看所有已定稿阶段、44 章正文版本与不可变导出回执，不重新播放历史运行过程。
-- **单行作品库**：书架保持一排书脊，支持左右按钮、触控板和触摸横向浏览，选中作品后在阅读桌查看阶段摘要。
-- **并行交付**：章节施工图确认后，正文与封面可以并行；导出等待两路产物汇合并完成校验。封面生图可按 Run 配置跳过，但不会丢失 Cover 元数据。
-- **真实 Provider 边界**：生产代码使用 OpenAI-compatible 文本/图片 Provider；Fake Provider 只存在于测试中。
-
-## 创作流程
-
-```text
-创作规划
-  -> Brief 创作立项
-  -> Spine 故事脊柱
-  -> Cast 人物编排
-  -> Volumes 分卷架构
-  -> Detail 章节施工图
-  -> [Text 正文 || Cover 封面元数据]
-  -> 导出交付
+  classDef planning fill:#102a24,stroke:#2fd68f,color:#f2fff9;
+  classDef writing fill:#172433,stroke:#69a7e8,color:#f4f8ff;
+  classDef decision fill:#302819,stroke:#d8ad54,color:#fff9ec;
+  classDef delivery fill:#26203a,stroke:#9a7ce2,color:#fbf8ff;
+  class brief,spine,cast,volumes,detail planning;
+  class text,evidence writing;
+  class gate decision;
+  class cover,export delivery;
 ```
 
-三种模式共享同一套阶段产物和写回合同：
-
-| 模式 | 用户控制 | 默认流程 |
+| 阶段 | 核心产物 | 作者在此阶段决定什么 |
 | --- | --- | --- |
-| 极速生产 | 最少干预 | 配置完成后自动推进完整链路 |
-| 平衡创作 | 确认 Brief | Brief 定稿后自动推进，版本对比由用户主动触发 |
-| 精细定稿 | 逐阶段审阅 | 每个文本阶段可换稿、编辑、确认后继续 |
+| Brief | `StoryBriefArtifact` | 书名、故事承诺、规则、主题、结局方向与叙事声音 |
+| Spine | `StorySpineArtifact` | 关键变化是否形成完整因果链，结局是否兑现立项承诺 |
+| Cast | `CharacterBibleArtifact` | 主体职责、欲望、变化、限制、关系与首次出场 |
+| Volumes | `VolumeArchitectureArtifact` | 每卷的承诺、冲突、高潮、闭合和卷间承接 |
+| Detail | `DetailArtifact` | 每章目的、POV、场景序列、结果与下一章交接 |
+| Text | `ChapterArtifact` | 接受正文、人工编辑或按证据定向换稿 |
+| Cover | `CoverArtifact` | 视觉方向、图像提示、候选资产与最终选择 |
+| Export | `ExportArtifact` | 章节版本、书名/作者元数据、封面和交付格式 |
 
-AI 封面和导出拥有各自的候选、确认和交付决策，不强制套用文本阶段的三栏换稿形式。
+## 核心优势
 
-## 技术栈
+| 能力 | 如何工作 | 带来的价值 |
+| --- | --- | --- |
+| 结构先于正文 | Brief、Spine、Cast、Volumes、Detail 逐层冻结 | 长篇不会只靠提示词临场续写 |
+| 有界上下文 | 当前章节只读取签名后的 Context Manifest 和必要引用 | 控制上下文膨胀，降低跨章信息漂移 |
+| 相邻章节连续 | 第 N+1 章依赖第 N 章已接受正文、handoff 与临时状态 | 人物位置、知识状态和行动结果可以顺序承接 |
+| 证据化审校 | 确定性合同可阻断；模型 reviewer 默认提供证据与告警 | 不因模糊文学判断触发无限重写 |
+| 一次定向换稿 | 页面展示问题、正文证据和建议方向；每阶段/章节最多一次 | 修复明确缺陷，同时保护已冻结结构 |
+| 可恢复运行 | LangGraph checkpoint、operation receipt、SSE sequence 和静态终态投影 | 失败可定位、断线可续接、完成作品不会重放历史过程 |
+| 可核验交付 | Export 固定已接受章节版本、元数据、文件哈希和下载回执 | 交付内容与创作过程可追溯 |
 
-- 前端：React、TypeScript、Vite、GSAP、Motion、Radix UI、Three.js
-- 后端：Python、FastAPI、Pydantic、SSE
-- 模型接入：OpenAI-compatible 文本与图片接口、Provider 模板和故障转移
-- 持久化：项目、运行历史、稳定快照、Provider 配置、Wiki、知识库与导出收据
+## 三档创作模式
 
-## 仓库结构
+三档模式共享同一套 Artifact、质量合同和导出格式。区别只在模型配置、人工决策密度与审稿强度，不改变作品数据结构。
 
-```text
-apps/web/                    React 创作工作台
-src/novel_workflow/          Python 领域逻辑与 FastAPI 适配层
-runtime/novel_workflow/      本地运行时配置和数据目录
-tests/                       后端合同、编排、质量与 Prompt 回归
-docs/                        产品、阶段合同和架构文档
+| 模式 | 模型路径 | 决策方式 | 质量与换稿 | 适合场景 |
+| --- | --- | --- | --- | --- |
+| 极速 | DeepSeek Flash 为主 | 阶段与章节自动接受 | 保留硬门；遇到明确硬问题最多自动定向修订一次 | 快速验证创意、得到完整初稿 |
+| 平衡（推荐） | 规划与正文使用 Pro，封面元数据使用 Flash | 每阶段、每章均可接受、编辑、换稿或取消 | 连续性与人物审稿必需；问题和修订方向对作者可见 | 日常中长篇创作，兼顾成本与控制 |
+| 精细 | Provider 阶段统一使用 Pro | 每阶段、每章人工定稿 | 三路审稿全部要求返回；可在可行区间内锁定部分结构参数 | 正式稿精修和高控制度创作 |
+
+## 质量与连续性边界
+
+Yotsuba Ink 把“必须修复”和“值得留意”分开处理：
+
+- **硬门**：流程无法恢复、结构化输出不可解析、关键 Artifact 或正文缺失、明确上游合同冲突、主体越权、章内物理状态直接矛盾、未达到冻结总量目标、导出不可用。
+- **告警**：低置信 reviewer finding、轻微节奏或文风差异、AI 味、篇幅接近合理边界、没有直接命名主体的证据、可由后文解释的身份隐藏或延迟揭示。
+- **换稿上限**：自动或人工定向换稿最多一次；第二次仍触发硬门时明确停止，不用无限生成掩盖底层故障。
+
+```mermaid
+flowchart TB
+  ui["React 工作台"] <--> api["FastAPI / SSE 适配层"]
+  api <--> graph["LangGraph<br/>唯一生产运行时"]
+  graph --> context["Context Compiler<br/>冻结引用与预算"]
+  context --> gateway["Provider Gateway<br/>OpenAI-compatible"]
+  gateway --> graph
+  graph --> stores["Artifact / Chapter / Decision / Receipt Stores"]
+  stores --> readmodel["可重建 Read Model"]
+  readmodel --> api
+  stores --> exportstore["Export 文件与完整性回执"]
+
+  classDef surface fill:#121d1a,stroke:#2fd68f,color:#f4fff9;
+  classDef runtime fill:#172433,stroke:#69a7e8,color:#f4f8ff;
+  classDef data fill:#2a2338,stroke:#9a7ce2,color:#fbf8ff;
+  class ui,api surface;
+  class graph,context,gateway runtime;
+  class stores,readmodel,exportstore data;
 ```
 
-前端 `features/pipeline` 只使用 `layout/`、`planning/`、`brief/`、`running/`、`settings/`、`state/`、`services/`、`contracts/` 和 `lib/` 这一套目录语义。后端 `api/` 只负责 HTTP/SSE 适配，编排、质量和持久化规则位于对应领域包。
+## v1.0 实证
 
-## 本地运行
+`official-deepseek-balanced` 已完成一轮真实 10 万字以上长篇生产：
 
-### 1. 环境要求
+| 指标 | 结果 |
+| --- | --- |
+| 作品 | 《明日来电》 |
+| Run / Project | `balanced-110k-v1-demo-20260817-040033` / `proj-e1007717ad` |
+| 阶段 | 8/8 完成 |
+| 正文 | 44 章，107,613 个非空白字符 |
+| 单章分布 | 1,710-3,692，平均 2,445.75，P90 2,962 |
+| 分卷 | 14 / 14 / 16 章，卷与章标题完整率 100% |
+| Provider | 314 次调用，311 成功，3 次失败后恢复，1,760,252 tokens |
+| Export | ZIP 可用，44 个已接受章节版本，SHA-256 已核验 |
 
-- Python 3.12 或更高版本
-- Node.js 与 npm
+<p align="center">
+  <img src="docs/assets/screenshots/export-workbench.png" alt="Yotsuba Ink 导出工作台" width="100%" />
+</p>
 
-### 2. 安装后端
+本轮按配置跳过封面生图，Cover 元数据和 Export 仍完整闭环。完整硬门、连续性抽检、字数分布、Provider 回执与浏览器证据见 [v1.0 长篇验收报告](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)。
+
+## 快速开始
+
+### 环境要求
+
+- Python 3.12+
+- Node.js 22+
+- npm 10+
+
+### 1. 安装
 
 ```bash
+git clone https://github.com/isla4ever/yotsuba-ink.git
+cd yotsuba-ink
+
 python3 -m venv .venv
 .venv/bin/python -m pip install -U pip
 .venv/bin/python -m pip install -e ".[dev]"
+
+cd apps/web
+npm ci
 ```
 
-### 3. 启动后端
+### 2. 启动后端
 
 ```bash
+cd yotsuba-ink
 .venv/bin/python -m uvicorn novel_workflow.api.app:app \
   --host 127.0.0.1 \
   --port 8787 \
   --reload
 ```
 
-### 4. 启动前端
+### 3. 启动前端
 
 ```bash
-cd apps/web
-npm install
+cd yotsuba-ink/apps/web
 npm run dev
 ```
 
-打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。Vite 默认把 `/api` 代理到 `http://127.0.0.1:8787`；需要修改时设置 `NOVEL_API_PROXY`。
+打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。开发服务器默认把 `/api` 代理到 `http://127.0.0.1:8787`。
 
 ## Provider 配置
 
-推荐在应用的“设置 -> 模型接口”中选择厂商模板，填写 API Key 和默认模型，然后执行“保存并检查”。密钥写入本地运行时存储，不应提交到仓库。
+推荐在应用内进入 **模型与设置**，选择官方或自定义 OpenAI-compatible Provider，填写 API Key 和模型后执行就绪检查。密钥只保存在本地运行时数据中。
 
-也可以使用通用环境变量启动 OpenAI-compatible Provider：
+也可以使用环境变量：
 
 ```bash
-export NOVEL_LLM_BASE_URL="https://your-text-provider.example/v1"
+export NOVEL_LLM_BASE_URL="https://your-provider.example/v1"
 export NOVEL_LLM_API_KEY="your-text-api-key"
 export NOVEL_LLM_MODEL="your-text-model"
 
+# 仅在需要封面生图时配置
 export NOVEL_IMAGE_BASE_URL="https://your-image-provider.example/v1"
 export NOVEL_IMAGE_API_KEY="your-image-api-key"
 export NOVEL_IMAGE_MODEL="your-image-model"
 ```
 
-只浏览配置、项目和历史界面不需要密钥；启动真实生成前必须完成 Provider 就绪检查。不要把 `.env`、API Key、运行历史或用户稿件提交到公开仓库。
+不要提交 `.env`、API Key、运行历史、Provider 输入快照或用户稿件。
 
-## v1.0 Demo 验收
-
-官方 `official-deepseek-balanced` 已完成一次真实长篇 Run：
-
-- 作品：`明日来电`；Project `proj-e1007717ad`；Run `balanced-110k-v1-demo-20260817-040033`
-- `8/8` 阶段完成，44 章，107,613 个非空白字符；章节范围 1,710–3,692，平均 2,445.75，P90 2,962
-- 分卷为 14/14/16 章；标题完整率 100%；Export ZIP 可下载
-- Provider：314 次调用、311 成功、3 失败后恢复；总 tokens 1,760,252
-- 封面生图按配置跳过，Cover 元数据和 Export 仍闭环
-
-详细硬门、连续性抽检、Provider 回执、软告警与浏览器截图见 [v1.0 平衡模式验收报告](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)；历史问题见 [v1.0 后续迭代记录](docs/engineering/yotsuba-ink-v1-open-findings.md)。
-
-## 验证
+## 开发与验证
 
 ```bash
-# 后端全量测试（必须使用仓库虚拟环境）
+# 后端
 .venv/bin/pytest -q
+.venv/bin/python -m compileall -q src tests
 
-# 前端测试、生产构建与样式门禁
+# 前端
 cd apps/web
 npm test
 npm run build
@@ -156,31 +211,25 @@ npm run audit:css
 npm run check:css-split
 ```
 
-自动化测试、生产构建、CSS 审计与浏览器验收应在发布前全部运行。自动化通过证明本地合同与 UI 投影；真实 Provider 的文学质量、AI 味和完整人工冷读仍以验收报告中的证据和后续冷读为准。
+当前 v1.0 基线：后端 `527 passed`；前端 `112` 个测试文件、`421 passed`；TypeScript、生产构建、CSS 审计、CSS 分包检查与浏览器桌面/390px 验收通过。
+
+## 仓库结构
+
+```text
+apps/web/                    React 创作工作台
+src/novel_workflow/          LangGraph 运行时、领域合同与 FastAPI 适配层
+runtime/novel_workflow/      官方工作流、Prompt 与本地运行时数据
+tests/                       合同、编排、Provider、恢复和质量测试
+docs/                        架构合同与验收记录
+```
 
 ## 关键文档
 
-- [产品与架构概览](docs/architecture/overview.md)
+- [架构概览](docs/architecture/overview.md)
 - [阶段 Artifact 合同](docs/architecture/stage-artifact-contract.md)
-- [生产工作流](docs/architecture/product-production-workflow.md)
-- [Story Bible、Wiki 与质量边界](docs/architecture/story-bible-quality.md)
-- [人工偏好校准协议](docs/architecture/preference-calibration-protocol.md)
-- [Phase 27 前后端交接](docs/architecture/phase-27-frontend-backend-handoff.md)
-- [DeepSeek Harness 采纳评审](docs/architecture/deepseek-harness-adoption-review.md)
+- [Phase 27 自适应长篇架构](docs/architecture/phase-27-adaptive-story-planning-reconstruction.md)
 - [v1.0 平衡模式长篇验收](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)
-- [v1.0 历史问题与后续迭代](docs/engineering/yotsuba-ink-v1-open-findings.md)
-- [工作树清理记录](docs/architecture/worktree-cleanup-2026-08-15.md)
-- [仓库协作规则](AGENTS.md)
-
-## 路线图
-
-- 使用明确授权的真实文本 Provider 验证跨卷、跨章承接和文学质量。
-- 使用真实图片 Provider 验证封面生成、失败恢复、候选确认和导出打包。
-- 完成发布安全检查、部署说明和可观测性基线。
-- 到 `v1.0` 再评估开源基础版与线上增强版的代码边界；当前保持单仓演进。
 
 ## 许可证
 
-Yotsuba Ink 使用 [Apache License 2.0](LICENSE) 发布。第三方依赖继续遵循各自许可证。
-
-仓库地址：[github.com/isla4ever/yotsuba-ink](https://github.com/isla4ever/yotsuba-ink)
+Yotsuba Ink 采用 [Apache License 2.0](LICENSE) 开源。
