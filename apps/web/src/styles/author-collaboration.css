@@ -1,0 +1,423 @@
+/* Phase 31 author collaboration, scoped to the Version 20 black-crystal UI. */
+.author-collaboration-trigger {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent-deep) 8%, var(--bg-elev));
+  border: 1px solid color-mix(in srgb, var(--accent-deep) 28%, var(--border-hl));
+  border-radius: 6px;
+  color: color-mix(in srgb, var(--accent-deep) 76%, var(--text-ink));
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  gap: 6px;
+  height: 30px;
+  padding: 0 9px;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+}
+.author-collaboration-trigger:hover,
+.author-collaboration-trigger.active {
+  background: color-mix(in srgb, var(--accent-deep) 14%, var(--bg-elev));
+  border-color: color-mix(in srgb, var(--accent-deep) 52%, var(--border-hl));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-deep) 12%, transparent);
+  color: var(--text-ink);
+}
+.author-collaboration-trigger:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+
+.project-workbench-row.collaboration-open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(408px, 31vw, 486px);
+  min-width: 0;
+  position: relative;
+}
+
+.author-collaboration-panel {
+  --collaboration-accent: var(--accent-deep);
+  animation: collaboration-panel-in 220ms cubic-bezier(.16, 1, .3, 1) both;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, white 5%, transparent), transparent 34%),
+    color-mix(in srgb, var(--bg-surface) 94%, #070809);
+  border-left: 1px solid color-mix(in srgb, var(--collaboration-accent) 24%, var(--border-hl));
+  box-shadow: inset 1px 0 0 color-mix(in srgb, white 5%, transparent), -16px 0 46px rgba(0, 0, 0, .24);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 22;
+}
+.author-collaboration-panel::before {
+  background: radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--collaboration-accent) 15%, transparent), transparent 36%);
+  content: '';
+  height: 180px;
+  left: 0;
+  opacity: .72;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+.collaboration-panel-loading { align-items: center; color: var(--text-fog); gap: 8px; justify-content: center; }
+.collaboration-panel-loading strong { color: var(--text-ash); font-size: 12px; }
+.collaboration-panel-loading span { font-size: 10px; }
+
+.collaboration-panel-header {
+  align-items: center;
+  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--bg-surface) 86%, transparent);
+  border-bottom: 1px solid var(--border-gh);
+  display: flex;
+  flex: none;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 9px 10px 9px 14px;
+  position: relative;
+  z-index: 2;
+}
+.collaboration-panel-identity { display: grid; gap: 2px; min-width: 0; }
+.collaboration-panel-identity > span { align-items: center; color: var(--collaboration-accent); display: flex; font-size: 9px; font-weight: 700; gap: 5px; text-transform: uppercase; }
+.collaboration-panel-identity small { color: var(--text-fog); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-panel-identity input { background: var(--bg-elev); border: 1px solid var(--collaboration-accent); border-radius: 5px; color: var(--text-ink); font: inherit; height: 28px; max-width: 230px; padding: 0 8px; }
+.collaboration-title { align-items: center; background: transparent; border: 0; color: var(--text-ink); cursor: text; display: flex; gap: 6px; max-width: 250px; padding: 0; text-align: left; }
+.collaboration-title strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-title svg { color: var(--text-fog); flex: none; opacity: 0; transition: opacity 150ms ease; }
+.collaboration-title:hover svg,
+.collaboration-title:focus-visible svg { opacity: 1; }
+
+.collaboration-panel-actions { display: flex; gap: 3px; }
+.collaboration-panel-actions button,
+.collaboration-history-drawer > header button,
+.collaboration-context-tools button,
+.collaboration-selection-chip button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-fog);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  width: 30px;
+}
+.collaboration-panel-actions button:hover:not(:disabled),
+.collaboration-context-tools button:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-hl); color: var(--text-ink); }
+.collaboration-panel-actions button:disabled,
+.collaboration-context-tools button:disabled { cursor: default; opacity: .34; }
+
+.collaboration-notice,
+.collaboration-readonly-banner,
+.collaboration-error { align-items: center; border-bottom: 1px solid var(--border-gh); display: flex; font-size: 10px; justify-content: space-between; line-height: 1.45; padding: 7px 12px; position: relative; z-index: 2; }
+.collaboration-notice { background: color-mix(in srgb, var(--collaboration-accent) 9%, var(--bg-surface)); color: var(--text-ash); }
+.collaboration-readonly-banner { background: var(--bg-elev); color: var(--text-fog); }
+.collaboration-error { background: color-mix(in srgb, var(--semantic-danger) 10%, var(--bg-surface)); color: var(--semantic-danger); }
+.collaboration-error button { background: transparent; border: 0; color: inherit; cursor: pointer; }
+
+.collaboration-thread { display: flex; flex: 1; min-height: 0; position: relative; z-index: 1; }
+.collaboration-thread-viewport { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 14px 12px 0; scrollbar-gutter: stable; }
+.collaboration-thread-footer { background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg-surface) 96%, transparent) 24%); bottom: 0; margin-top: auto; padding: 30px 0 12px; position: sticky; z-index: 3; }
+.collaboration-empty-state { align-items: center; color: var(--text-fog); display: flex; flex: 1; flex-direction: column; justify-content: center; min-height: 230px; padding: 28px; text-align: center; }
+.collaboration-empty-state > span { align-items: center; background: color-mix(in srgb, var(--collaboration-accent) 12%, var(--bg-elev)); border: 1px solid color-mix(in srgb, var(--collaboration-accent) 30%, var(--border-hl)); border-radius: 50%; color: var(--collaboration-accent); display: flex; height: 42px; justify-content: center; margin-bottom: 12px; width: 42px; }
+.collaboration-empty-state strong { color: var(--text-ink); font-size: 13px; }
+.collaboration-empty-state p { font-size: 10px; line-height: 1.65; margin: 7px 0 0; max-width: 280px; }
+
+.collaboration-message { animation: collaboration-message-in 180ms ease both; display: grid; gap: 7px; margin: 0 0 14px; }
+.collaboration-message > header { align-items: center; display: flex; justify-content: space-between; }
+.collaboration-message > header span { color: var(--text-ash); font-size: 10px; font-weight: 650; }
+.collaboration-message > header small { color: var(--text-fog); font-size: 9px; }
+.collaboration-message > p { color: var(--text-ink); font-size: 12px; line-height: 1.72; margin: 0; white-space: pre-wrap; }
+.collaboration-message.user { background: color-mix(in srgb, var(--bg-elev) 88%, transparent); border: 1px solid var(--border-hl); border-radius: 7px; margin-left: 34px; padding: 10px 11px; }
+.collaboration-message.assistant { border-left: 2px solid color-mix(in srgb, var(--collaboration-accent) 52%, transparent); padding: 3px 2px 3px 12px; }
+.collaboration-message-selection { align-items: center; color: var(--text-fog); display: flex; font-size: 9px; gap: 5px; min-width: 0; }
+.collaboration-message-selection code { background: var(--bg-hover); border-radius: 3px; color: var(--text-ash); overflow: hidden; padding: 2px 4px; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-message-actions { display: flex; gap: 7px; opacity: 0; transition: opacity 150ms ease; }
+.collaboration-message:hover .collaboration-message-actions,
+.collaboration-message:focus-within .collaboration-message-actions { opacity: 1; }
+.collaboration-message-actions button { align-items: center; background: transparent; border: 0; color: var(--text-fog); cursor: pointer; display: flex; font-size: 9px; gap: 4px; padding: 3px 0; }
+.collaboration-message-actions button:hover { color: var(--text-ink); }
+.collaboration-turn-outcome { align-items: flex-start; border-left: 2px solid var(--border-hl); color: var(--text-ash); display: flex; font-size: 9px; gap: 6px; line-height: 1.5; margin-top: 8px; padding: 6px 8px; }
+.collaboration-turn-outcome svg { flex: none; margin-top: 1px; }
+.collaboration-turn-outcome.cancelled { background: var(--bg-hover); color: var(--text-fog); }
+.collaboration-turn-outcome.failed { background: color-mix(in srgb, var(--semantic-danger) 8%, transparent); border-left-color: var(--semantic-danger); color: var(--semantic-danger); }
+
+.collaboration-plan,
+.collaboration-patch { background: color-mix(in srgb, var(--bg-elev) 80%, transparent); border: 1px solid var(--border-hl); border-radius: 7px; }
+.collaboration-plan { padding: 9px 10px; }
+.collaboration-plan header { align-items: flex-start; color: var(--collaboration-accent); display: flex; gap: 6px; }
+.collaboration-plan header strong { color: var(--text-ink); font-size: 11px; line-height: 1.45; }
+.collaboration-plan ol { color: var(--text-ash); display: grid; font-size: 10px; gap: 5px; line-height: 1.5; margin: 8px 0 0; padding-left: 18px; }
+.collaboration-plan p { color: var(--semantic-warning); font-size: 9px; margin: 8px 0 0; }
+.collaboration-patch { border-color: color-mix(in srgb, var(--collaboration-accent) 28%, var(--border-hl)); overflow: hidden; }
+.collaboration-patch > header { align-items: center; border-bottom: 1px solid var(--border-gh); display: flex; justify-content: space-between; padding: 8px 9px; }
+.collaboration-patch > header div { align-items: center; display: flex; gap: 6px; }
+.collaboration-patch > header strong,
+.collaboration-patch > header span { font-size: 9px; }
+.collaboration-patch > header span { color: var(--text-fog); }
+.collaboration-patch-diff { display: grid; gap: 1px; grid-template-columns: 1fr 1fr; }
+.collaboration-patch-diff > div { background: var(--bg-elev); min-width: 0; padding: 9px; }
+.collaboration-patch-diff > div:first-child { background: color-mix(in srgb, var(--semantic-danger) 6%, var(--bg-elev)); }
+.collaboration-patch-diff > div:last-child { background: color-mix(in srgb, var(--semantic-success) 7%, var(--bg-elev)); }
+.collaboration-patch-diff span { color: var(--text-fog); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.collaboration-patch-diff p { color: var(--text-ash); font-size: 10px; line-height: 1.55; margin: 5px 0 0; white-space: pre-wrap; }
+.collaboration-patch-rationale { color: var(--text-fog); font-size: 9px; line-height: 1.45; margin: 0; padding: 8px 9px; }
+.collaboration-patch footer { display: flex; gap: 6px; justify-content: flex-end; padding: 0 9px 9px; }
+.collaboration-patch footer button,
+.collaboration-receipt-dialog footer button { align-items: center; border-radius: 5px; cursor: pointer; display: inline-flex; font-size: 9px; gap: 5px; height: 30px; padding: 0 10px; }
+.collaboration-patch footer .ghost,
+.collaboration-receipt-dialog footer .ghost { background: transparent; border: 1px solid var(--border-hl); color: var(--text-ash); }
+.collaboration-patch footer .primary,
+.collaboration-receipt-dialog footer .primary { background: var(--collaboration-accent); border: 1px solid var(--collaboration-accent); color: #100c15; font-weight: 700; }
+.collaboration-patch-warning { align-items: center; color: var(--semantic-warning); display: flex; font-size: 9px; gap: 5px; padding: 0 9px 9px; }
+
+/* The prompt's glass composer is reproduced with CSS rather than styled-components. */
+.collaboration-composer {
+  background:
+    linear-gradient(color-mix(in srgb, var(--bg-elev) 93%, #08090a), color-mix(in srgb, var(--bg-surface) 96%, #050607)) padding-box,
+    linear-gradient(145deg, color-mix(in srgb, white 54%, transparent), var(--border-hl) 30%, color-mix(in srgb, var(--collaboration-accent) 44%, var(--border-hl)) 100%) border-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent), 0 14px 30px rgba(0, 0, 0, .24);
+  overflow: hidden;
+  transition: box-shadow 180ms ease;
+}
+.collaboration-composer:focus-within { box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent), 0 0 22px color-mix(in srgb, var(--collaboration-accent) 11%, transparent); }
+.collaboration-composer-input { background: transparent; border: 0; color: var(--text-ink); display: block; font: inherit; font-size: 12px; line-height: 1.55; max-height: 180px; min-height: 78px; outline: 0; padding: 12px 12px 7px; resize: none; width: 100%; }
+.collaboration-composer-input::placeholder { color: var(--text-fog); }
+.collaboration-selection-chip { align-items: center; background: color-mix(in srgb, var(--collaboration-accent) 9%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--collaboration-accent) 18%, transparent); color: var(--text-ash); display: grid; font-size: 9px; gap: 2px 6px; grid-template-columns: auto minmax(0, 1fr) auto; padding: 7px 8px 7px 10px; }
+.collaboration-selection-chip > svg { color: var(--collaboration-accent); grid-row: 1 / span 2; }
+.collaboration-selection-chip span,
+.collaboration-selection-chip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-selection-chip small { color: var(--text-fog); font-size: 8px; }
+.collaboration-selection-chip button { grid-column: 3; grid-row: 1 / span 2; height: 24px; width: 24px; }
+.collaboration-composer-tools { align-items: center; border-top: 1px solid var(--border-gh); display: grid; gap: 7px; grid-template-columns: auto minmax(0, 1fr) auto; padding: 7px; }
+.collaboration-mode-switch { background: var(--bg-surface); border: 1px solid var(--border-gh); border-radius: 6px; display: flex; padding: 2px; }
+.collaboration-mode-switch button { background: transparent; border: 0; border-radius: 4px; color: var(--text-fog); cursor: pointer; font-size: 9px; height: 26px; padding: 0 8px; }
+.collaboration-mode-switch button.active { background: color-mix(in srgb, var(--collaboration-accent) 15%, var(--bg-hover)); color: var(--text-ink); }
+.collaboration-mode-switch button:disabled { cursor: not-allowed; opacity: .34; }
+.collaboration-context-tools { align-items: center; display: flex; justify-content: flex-end; min-width: 0; }
+.collaboration-context-tools button { height: 28px; width: 28px; }
+.collaboration-context-tools > span { color: var(--text-fog); font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-send { align-items: center; background: linear-gradient(180deg, color-mix(in srgb, var(--collaboration-accent) 78%, white 13%), var(--collaboration-accent)); border: 0; border-radius: 7px; box-shadow: inset 0 5px 2px -4px rgba(255,255,255,.5); color: #110d16; cursor: pointer; display: flex; height: 34px; justify-content: center; transition: transform 150ms ease, filter 150ms ease; width: 36px; }
+.collaboration-send:hover { filter: brightness(1.08); }
+.collaboration-send:active { transform: scale(.93); }
+.collaboration-send.stop { background: color-mix(in srgb, var(--semantic-danger) 14%, var(--bg-elev)); border: 1px solid color-mix(in srgb, var(--semantic-danger) 32%, var(--border-hl)); color: var(--semantic-danger); }
+.collaboration-send:disabled { cursor: not-allowed; filter: saturate(.35); opacity: .38; }
+
+.collaboration-context-picker-trigger { position: relative; }
+.collaboration-context-picker-trigger > span { align-items: center; background: var(--collaboration-accent); border: 2px solid var(--bg-surface); border-radius: 50%; color: #110d16; display: flex; font-size: 7px; font-weight: 800; height: 14px; justify-content: center; overflow: visible; position: absolute; right: -4px; top: -4px; width: 14px; }
+.collaboration-context-picker { animation: collaboration-context-picker-in 180ms ease both; background: color-mix(in srgb, var(--bg-surface) 96%, #070809); border: 1px solid var(--border-hl); border-radius: 8px; box-shadow: 0 22px 64px rgba(0, 0, 0, .46); max-height: min(560px, calc(100dvh - 32px)); overflow-y: auto; width: min(360px, calc(100vw - 24px)); z-index: 170; }
+.collaboration-context-picker > header { align-items: center; border-bottom: 1px solid var(--border-gh); display: flex; justify-content: space-between; min-height: 48px; padding: 9px 11px; }
+.collaboration-context-picker > header div,
+.collaboration-source-pack-list > header span { align-items: center; color: var(--collaboration-accent); display: flex; gap: 6px; }
+.collaboration-context-picker > header strong { color: var(--text-ink); font-size: 11px; }
+.collaboration-context-picker > header small { color: var(--text-fog); font-size: 8px; }
+.collaboration-context-option-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px 10px; }
+.collaboration-context-option-list label { align-items: center; color: var(--text-ash); cursor: pointer; display: flex; font-size: 9px; gap: 7px; min-height: 32px; }
+.collaboration-context-option-list input { accent-color: var(--collaboration-accent); height: 13px; margin: 0; width: 13px; }
+.collaboration-source-pack-list { border-top: 1px solid var(--border-gh); }
+.collaboration-source-pack-list > header { align-items: center; display: flex; justify-content: space-between; min-height: 38px; padding: 6px 10px; }
+.collaboration-source-pack-list > header span { color: var(--text-ash); font-size: 9px; font-weight: 650; }
+.collaboration-source-pack-list > header button { align-items: center; background: transparent; border: 0; color: var(--text-fog); cursor: pointer; display: flex; font-size: 8px; gap: 4px; padding: 4px; }
+.collaboration-source-pack-list > div { display: grid; gap: 3px; max-height: 210px; overflow-y: auto; padding: 0 8px 9px; }
+.collaboration-source-pack-list > div > button { align-items: center; background: var(--bg-elev); border: 1px solid transparent; border-radius: 5px; color: inherit; cursor: pointer; display: grid; gap: 2px 7px; grid-template-columns: 20px minmax(0, 1fr); min-height: 42px; padding: 6px 8px; text-align: left; width: 100%; }
+.collaboration-source-pack-list > div > button:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-hl); }
+.collaboration-source-pack-list > div > button.selected { background: color-mix(in srgb, var(--collaboration-accent) 9%, var(--bg-elev)); border-color: color-mix(in srgb, var(--collaboration-accent) 24%, var(--border-hl)); }
+.collaboration-source-pack-list > div > button > span { align-items: center; border: 1px solid var(--border-hl); border-radius: 4px; color: var(--collaboration-accent); display: flex; grid-row: 1 / span 2; height: 18px; justify-content: center; width: 18px; }
+.collaboration-source-pack-list > div > button strong { color: var(--text-ink); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-source-pack-list > div > button small,
+.collaboration-source-pack-list > div > p { color: var(--text-fog); font-size: 8px; }
+.collaboration-source-pack-list > div > p { margin: 0; padding: 18px 8px; text-align: center; }
+.collaboration-source-pack-list > div > button:disabled { cursor: not-allowed; opacity: .42; }
+
+.collaboration-generating-row { align-items: center; animation: collaboration-message-in 180ms ease both; display: flex; justify-content: flex-start; padding: 2px 0 14px 12px; }
+.collaboration-generating { align-items: center; display: flex; height: 68px; justify-content: center; position: relative; width: 68px; }
+.collaboration-generating.compact { height: 34px; width: 34px; }
+.collaboration-generating-ring { animation: collaboration-ring 2s linear infinite; border-radius: 50%; box-shadow: 0 4px 8px #fff inset, 0 10px 14px #ad5fff inset, 0 24px 24px #471eec inset; inset: 0; position: absolute; }
+.collaboration-generating-word { color: white; display: flex; font-size: 7px; font-weight: 400; position: relative; z-index: 1; }
+.collaboration-generating-word i { animation: collaboration-letter 1.8s ease infinite; font-style: normal; opacity: .4; }
+
+.collaboration-history-drawer { animation: collaboration-drawer-in 190ms ease both; background: color-mix(in srgb, var(--bg-surface) 97%, #060708); border-right: 1px solid var(--border-hl); inset: 0 42px 0 0; overflow: hidden; position: absolute; z-index: 8; }
+.collaboration-history-drawer > header { align-items: center; border-bottom: 1px solid var(--border-gh); display: flex; justify-content: space-between; min-height: 60px; padding: 10px 10px 10px 14px; }
+.collaboration-history-drawer > header div { display: grid; gap: 2px; }
+.collaboration-history-drawer > header span { color: var(--text-ink); font-size: 12px; font-weight: 650; }
+.collaboration-history-drawer > header strong { color: var(--text-fog); font-size: 9px; }
+.collaboration-new-thread { align-items: center; background: color-mix(in srgb, var(--collaboration-accent) 10%, var(--bg-elev)); border: 1px solid color-mix(in srgb, var(--collaboration-accent) 25%, var(--border-hl)); border-radius: 5px; color: var(--text-ink); cursor: pointer; display: flex; font-size: 10px; gap: 6px; height: 34px; justify-content: center; margin: 9px 10px; width: calc(100% - 20px); }
+.collaboration-history-list { height: calc(100% - 112px); overflow-y: auto; padding: 0 10px 12px; }
+.collaboration-history-list section { display: grid; gap: 4px; margin-top: 12px; }
+.collaboration-history-list h3 { color: var(--text-fog); font-size: 9px; margin: 0 3px 3px; }
+.collaboration-history-list article { align-items: center; border: 1px solid transparent; border-radius: 6px; display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 3px; }
+.collaboration-history-list article.active { background: color-mix(in srgb, var(--collaboration-accent) 9%, var(--bg-elev)); border-color: color-mix(in srgb, var(--collaboration-accent) 22%, var(--border-hl)); }
+.collaboration-history-list article[data-status="archived"] { opacity: .68; }
+.collaboration-history-main { background: transparent; border: 0; color: inherit; cursor: pointer; display: grid; gap: 2px; min-width: 0; padding: 7px; text-align: left; }
+.collaboration-history-main strong,
+.collaboration-history-main span,
+.collaboration-history-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-history-main strong { color: var(--text-ink); font-size: 10px; }
+.collaboration-history-main span,
+.collaboration-history-main small { color: var(--text-fog); font-size: 8px; }
+.collaboration-history-main small { color: var(--semantic-warning); }
+.collaboration-history-actions { display: flex; gap: 2px; }
+.collaboration-history-actions button { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--text-fog); cursor: pointer; display: flex; height: 26px; justify-content: center; width: 26px; }
+.collaboration-history-actions button:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-ink); }
+.collaboration-history-actions button:disabled { cursor: default; opacity: .25; }
+.collaboration-archived-label,
+.collaboration-history-empty { color: var(--text-fog); font-size: 8px; }
+.collaboration-history-empty { padding: 30px 10px; text-align: center; }
+
+.collaboration-dialog-overlay { animation: collaboration-fade-in 180ms ease both; backdrop-filter: blur(8px); background: rgba(2, 3, 4, .68); inset: 0; position: fixed; z-index: 150; }
+.collaboration-receipt-dialog { animation: collaboration-dialog-in 220ms cubic-bezier(.16, 1, .3, 1) both; background: color-mix(in srgb, var(--bg-surface) 97%, #070809); border: 1px solid var(--border-hl); border-radius: 8px; box-shadow: 0 28px 80px rgba(0, 0, 0, .52), inset 0 1px 0 color-mix(in srgb, white 7%, transparent); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; left: 50%; max-height: min(760px, calc(100vh - 48px)); max-width: calc(100vw - 32px); overflow: hidden; position: fixed; top: 50%; transform: translate(-50%, -50%); width: min(760px, calc(100vw - 32px)); z-index: 151; }
+.collaboration-receipt-dialog > header { align-items: flex-start; border-bottom: 1px solid var(--border-gh); display: flex; justify-content: space-between; padding: 16px 18px; }
+.collaboration-receipt-dialog .eyebrow { color: var(--collaboration-accent); font-size: 9px; margin: 0 0 3px; text-transform: uppercase; }
+.collaboration-receipt-dialog h2 { color: var(--text-ink); font-size: 16px; margin: 0; }
+.collaboration-receipt-dialog [data-radix-dialog-description] { color: var(--text-fog); font-size: 10px; margin-top: 4px; }
+.collaboration-receipt-dialog > header > button { background: transparent; border: 0; color: var(--text-fog); cursor: pointer; }
+.collaboration-receipt-summary { border-bottom: 1px solid var(--border-gh); display: grid; gap: 1px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.collaboration-receipt-summary div { align-items: center; background: var(--bg-elev); display: grid; gap: 3px 6px; grid-template-columns: auto minmax(0, 1fr); padding: 10px 12px; }
+.collaboration-receipt-summary span { color: var(--text-fog); font-size: 8px; }
+.collaboration-receipt-summary strong { color: var(--text-ash); font-size: 9px; grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-receipt-request { background: color-mix(in srgb, var(--collaboration-accent) 7%, var(--bg-elev)); border-bottom: 1px solid var(--border-gh); display: grid; gap: 4px; padding: 10px 12px; }
+.collaboration-receipt-request span { color: var(--collaboration-accent); font-size: 8px; font-weight: 700; }
+.collaboration-receipt-request p { color: var(--text-ash); display: -webkit-box; font-size: 10px; line-height: 1.55; margin: 0; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.collaboration-receipt-body { display: grid; gap: 6px; overflow-y: auto; padding: 12px; }
+.collaboration-receipt-source { background: var(--bg-elev); border: 1px solid var(--border-gh); border-radius: 6px; display: grid; gap: 4px; padding: 9px 10px; }
+.collaboration-receipt-source > div { align-items: center; display: flex; gap: 8px; }
+.collaboration-receipt-source > div span { color: var(--collaboration-accent); font-size: 8px; font-weight: 700; min-width: 72px; }
+.collaboration-receipt-source strong { color: var(--text-ink); font-size: 10px; }
+.collaboration-receipt-source p { color: var(--text-ash); font-size: 9px; margin: 0; }
+.collaboration-receipt-source small { color: var(--text-fog); font-size: 8px; }
+.collaboration-receipt-source[data-disposition="omitted"] { opacity: .55; }
+.collaboration-receipt-dialog > footer { align-items: center; border-top: 1px solid var(--border-gh); display: flex; justify-content: space-between; padding: 10px 12px; }
+.collaboration-receipt-dialog > footer > span { color: var(--text-fog); font-size: 9px; }
+.collaboration-receipt-dialog > footer > div { display: flex; gap: 6px; }
+.collaboration-receipt-empty { color: var(--text-fog); min-height: 180px; padding: 70px 20px; text-align: center; }
+
+/* Global settings tab */
+.collaboration-settings-panel { display: grid; gap: 12px; margin: 0 auto; max-width: 1080px; padding: 2px 0 24px; width: 100%; }
+.collaboration-settings-intro { align-items: end; background: linear-gradient(145deg, color-mix(in srgb, var(--accent-deep) 10%, var(--bg-elev)), var(--bg-surface)); border: 1px solid color-mix(in srgb, var(--accent-deep) 23%, var(--border-hl)); border-radius: 8px; display: flex; gap: 24px; justify-content: space-between; min-height: 132px; overflow: hidden; padding: 20px; position: relative; }
+.collaboration-settings-intro::after { background: radial-gradient(circle, color-mix(in srgb, var(--accent-deep) 22%, transparent), transparent 68%); content: ''; height: 150px; pointer-events: none; position: absolute; right: -34px; top: -70px; width: 220px; }
+.collaboration-settings-intro > div:first-child { max-width: 650px; position: relative; z-index: 1; }
+.collaboration-settings-intro > div:first-child > span { color: var(--accent-deep); font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; }
+.collaboration-settings-intro h1 { color: var(--text-ink); font-size: 21px; margin: 4px 0 3px; }
+.collaboration-settings-intro p { color: var(--text-ash); font-size: 10.5px; line-height: 1.65; margin: 0; }
+.collaboration-settings-seal { align-items: flex-end; color: var(--accent-deep); display: grid; gap: 3px; justify-items: end; position: relative; z-index: 1; }
+.collaboration-settings-seal span { color: var(--text-fog); font-size: 9px; }
+.collaboration-settings-seal strong { color: var(--text-ash); font-size: 10px; }
+.collaboration-settings-block,
+.collaboration-capability-block,
+.collaboration-run-binding { background: var(--bg-surface); border: 1px solid var(--border-hl); border-radius: 8px; overflow: hidden; }
+.collaboration-settings-block > header,
+.collaboration-capability-block > header,
+.collaboration-run-binding > header { align-items: center; border-bottom: 1px solid var(--border-gh); display: flex; justify-content: space-between; min-height: 52px; padding: 10px 14px; }
+.collaboration-settings-block > header > div,
+.collaboration-run-binding > header > div { display: grid; gap: 2px; }
+.collaboration-settings-block > header span,
+.collaboration-capability-block > header span,
+.collaboration-run-binding > header span { color: var(--text-ink); font-size: 11px; font-weight: 650; }
+.collaboration-settings-block > header strong,
+.collaboration-capability-block > header strong,
+.collaboration-run-binding > header strong { color: var(--text-fog); font-size: 9px; font-weight: 500; }
+.collaboration-settings-block > header svg,
+.collaboration-run-binding > header svg { color: var(--accent-deep); }
+.collaboration-settings-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px; }
+.collaboration-settings-grid.compact { border-top: 1px solid var(--border-gh); margin-top: 10px; }
+.collaboration-settings-grid label,
+.collaboration-settings-field,
+.collaboration-settings-wide-fields label,
+.collaboration-retention-field { display: grid; gap: 6px; }
+.collaboration-settings-grid label > span,
+.collaboration-settings-field > span,
+.collaboration-settings-wide-fields label > span,
+.collaboration-retention-field > span { color: var(--text-ash); font-size: 10px; font-weight: 600; }
+.collaboration-provider-warning { color: var(--semantic-danger); font-size: 9px; font-weight: 500; line-height: 1.55; }
+.collaboration-settings-segmented { background: var(--bg-elev); border: 1px solid var(--border-hl); border-radius: 6px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; }
+.collaboration-settings-segmented button { background: transparent; border: 0; border-radius: 4px; color: var(--text-fog); cursor: pointer; font-size: 10px; height: 30px; }
+.collaboration-settings-segmented button.active { background: color-mix(in srgb, var(--accent-deep) 14%, var(--bg-hover)); color: var(--text-ink); }
+.collaboration-policy-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px 14px 0; }
+.collaboration-policy-list label { align-items: center; border-bottom: 1px solid var(--border-gh); color: var(--text-ash); display: flex; font-size: 10px; gap: 8px; min-height: 38px; }
+.collaboration-policy-list input { accent-color: var(--accent-deep); height: 14px; width: 14px; }
+.collaboration-settings-wide-fields { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px 14px 0; }
+.collaboration-settings-wide-fields textarea { min-height: 104px; resize: vertical; }
+.collaboration-retention-field { align-items: center; grid-template-columns: minmax(0, 1fr) 140px; padding: 13px 14px 14px; }
+.collaboration-capability-block > div { display: grid; gap: 1px; }
+.collaboration-capability-block article { align-items: center; background: var(--bg-elev); display: grid; gap: 8px; grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(70px, .6fr)) minmax(130px, 1fr); min-height: 50px; padding: 7px 12px; }
+.collaboration-capability-block article > div { display: grid; gap: 2px; min-width: 0; }
+.collaboration-capability-block article > div strong { color: var(--text-ink); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-capability-block article > div span,
+.collaboration-capability-block article > small { color: var(--text-fog); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collaboration-capability-block article > span { align-items: center; color: var(--text-fog); display: flex; font-size: 9px; gap: 4px; }
+.collaboration-capability-block article > span.ready { color: var(--semantic-success); }
+.collaboration-capability-block article[data-ready="false"] { opacity: .58; }
+.collaboration-settings-error { align-items: center; background: color-mix(in srgb, var(--semantic-danger) 9%, var(--bg-surface)); border: 1px solid color-mix(in srgb, var(--semantic-danger) 24%, var(--border-hl)); border-radius: 6px; color: var(--semantic-danger); display: flex; font-size: 10px; gap: 7px; padding: 9px 11px; }
+.collaboration-settings-savebar { align-items: center; backdrop-filter: blur(16px); background: color-mix(in srgb, var(--bg-surface) 92%, transparent); border: 1px solid var(--border-hl); border-radius: 8px; bottom: 12px; display: flex; gap: 18px; justify-content: space-between; padding: 10px 12px; position: sticky; z-index: 3; }
+.collaboration-settings-savebar > span { color: var(--text-fog); font-size: 9px; line-height: 1.5; }
+.collaboration-settings-state { align-items: center; color: var(--text-fog); display: flex; flex-direction: column; gap: 8px; justify-content: center; min-height: 300px; text-align: center; }
+.collaboration-settings-state strong { color: var(--text-ink); }
+.collaboration-run-binding { margin-top: 12px; }
+.collaboration-run-binding > p { color: var(--text-ash); font-size: 10px; line-height: 1.6; margin: 0; padding: 12px 14px 0; }
+.collaboration-run-binding > div { display: grid; gap: 1px; padding-top: 12px; }
+.collaboration-run-binding article { align-items: center; background: var(--bg-elev); display: grid; gap: 6px; grid-template-columns: minmax(110px, .6fr) minmax(0, 1.4fr); min-height: 44px; padding: 7px 12px; }
+.collaboration-run-binding article span { color: var(--text-ash); font-size: 10px; }
+.collaboration-run-binding article strong { color: var(--text-ink); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Selection-capable fields keep the compact Version 20 workbench rhythm. */
+.cast-dossier-field textarea { background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--text-ink); font: inherit; outline: none; padding: 5px 6px; resize: vertical; transition: background-color 150ms ease, border-color 150ms ease; width: 100%; }
+.cast-dossier-field textarea { font-size: 10px; line-height: 1.58; min-height: 52px; }
+.cast-dossier-field textarea:not([readonly]) { background: var(--bg-elev); border-color: var(--border-hl); }
+.cast-dossier-field textarea:focus { border-color: var(--mode-primary); box-shadow: 0 0 0 2px var(--mode-primary-bg); }
+
+@keyframes collaboration-panel-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes collaboration-drawer-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes collaboration-ring { from { transform: rotate(90deg); } to { transform: rotate(450deg); } }
+@keyframes collaboration-letter { 0%, 100% { opacity: .4; transform: scale(1); } 20% { opacity: 1; transform: scale(1.15); } 40% { opacity: .7; transform: scale(1); } }
+@keyframes collaboration-message-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes collaboration-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes collaboration-dialog-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes collaboration-context-picker-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1180px) {
+  .project-workbench-row.collaboration-open { display: flex; }
+  .project-workbench-row.collaboration-open > .author-collaboration-panel { bottom: 10px; position: absolute; right: 10px; top: 10px; width: min(460px, calc(100% - 28px)); }
+}
+
+@media (max-width: 820px) {
+  .collaboration-settings-intro { align-items: start; flex-direction: column; }
+  .collaboration-settings-seal { align-items: start; justify-items: start; }
+  .collaboration-settings-grid,
+  .collaboration-settings-wide-fields,
+  .collaboration-policy-list { grid-template-columns: 1fr; }
+  .collaboration-capability-block article { align-items: start; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-block: 10px; }
+  .collaboration-capability-block article > div,
+  .collaboration-capability-block article > small { grid-column: 1 / -1; }
+  .collaboration-settings-savebar { align-items: stretch; flex-direction: column; }
+}
+
+@media (max-width: 767px) {
+  .project-workbench-row.collaboration-open > .author-collaboration-panel { border-left: 0; bottom: 0; left: 0; right: 0; top: 0; width: 100%; }
+  .collaboration-panel-header { min-height: 56px; }
+  .collaboration-title { max-width: 170px; }
+  .collaboration-thread-viewport { padding-inline: 10px; }
+  .collaboration-composer-tools { grid-template-columns: minmax(0, 1fr) auto; }
+  .collaboration-mode-switch { grid-column: 1 / -1; }
+  .collaboration-mode-switch button { flex: 1; }
+  .collaboration-context-tools { justify-content: flex-start; }
+  .collaboration-context-tools > span { display: none; }
+  .collaboration-patch-diff,
+  .collaboration-receipt-summary { grid-template-columns: 1fr; }
+  .collaboration-receipt-dialog { border-radius: 0; height: 100dvh; max-height: 100dvh; max-width: 100vw; width: 100vw; }
+  .collaboration-receipt-dialog > footer { align-items: stretch; flex-direction: column; gap: 8px; }
+  .collaboration-receipt-dialog > footer > div { justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .author-collaboration-panel,
+  .collaboration-message,
+  .collaboration-history-drawer,
+  .collaboration-context-picker,
+  .collaboration-dialog-overlay,
+  .collaboration-receipt-dialog { animation: none; }
+  .collaboration-generating-ring,
+  .collaboration-generating-word i { animation: none; }
+}

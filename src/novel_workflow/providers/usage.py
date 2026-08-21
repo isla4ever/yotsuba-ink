@@ -11,7 +11,9 @@ class ProviderUsageSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider_operations: int = Field(default=0, ge=0)
+    returned_operations: int = Field(default=0, ge=0)
     succeeded_operations: int = Field(default=0, ge=0)
+    contract_rejected_operations: int = Field(default=0, ge=0)
     failed_operations: int = Field(default=0, ge=0)
     pending_operations: int = Field(default=0, ge=0)
     prompt_tokens: int = Field(default=0, ge=0)

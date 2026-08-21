@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
 
-from novel_workflow.storage.project_schemas import ProjectCreateRequest, ProjectPatchRequest, ProjectRecord
+from novel_workflow.storage.project_schemas import ProjectCreateRequest, ProjectOrderRequest, ProjectPatchRequest, ProjectRecord
 from novel_workflow.storage.project_store import ProjectStoreError
 from novel_workflow.workflows.executable_contract import WorkflowContractError
 
@@ -31,6 +31,14 @@ async def create_project(request: Request, payload: ProjectCreateRequest) -> Pro
         ) from exc
     except ProjectStoreError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.put("/order")
+async def reorder_projects(request: Request, payload: ProjectOrderRequest) -> list[ProjectRecord]:
+    try:
+        return request.app.state.project_store.reorder(payload.project_ids)
+    except ProjectStoreError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/{project_id}")

@@ -25,6 +25,12 @@ class NarrativeCapacityPolicy(BaseModel):
     volume_chapters_min: int = Field(default=8, ge=1)
     volume_chapters_preferred: int = Field(default=14, ge=1)
     volume_chapters_max: int = Field(default=20, ge=1)
+    part_volumes_min: int = Field(default=3, ge=1)
+    part_volumes_preferred: int = Field(default=5, ge=1)
+    part_volumes_max: int = Field(default=8, ge=1)
+    detail_window_chapters_min: int = Field(default=12, ge=1)
+    detail_window_chapters_preferred: int = Field(default=24, ge=1)
+    detail_window_chapters_max: int = Field(default=40, ge=1)
     scene_characters_min: int = Field(default=500, ge=1)
     scene_characters_max: int = Field(default=2_400, ge=1)
     spine_chapters_per_turn_min: float = Field(default=1.50, gt=0, le=10)
@@ -54,6 +60,18 @@ class NarrativeCapacityPolicy(BaseModel):
             <= self.volume_chapters_max
         ):
             raise ValueError("Preferred volume size must fit the volume chapter range")
+        if not (
+            self.part_volumes_min
+            <= self.part_volumes_preferred
+            <= self.part_volumes_max
+        ):
+            raise ValueError("Preferred Part size must fit the Part volume range")
+        if not (
+            self.detail_window_chapters_min
+            <= self.detail_window_chapters_preferred
+            <= self.detail_window_chapters_max
+        ):
+            raise ValueError("Preferred Detail window size must fit its chapter range")
         if not (
             self.spine_chapters_per_turn_min
             <= self.spine_chapters_per_turn_preferred
@@ -668,8 +686,10 @@ def detail_scene_count_range(
     The editorial chapter band decides the feasible chapter-count range first.
     Once DetailLayout chooses a count inside that range, the resulting book
     budget center narrows scene capacity so every allowed scene count can still
-    carry a balanced chapter. This is a feasibility projection, not a fixed
-    scene quota and not a new chapter-length policy.
+    carry a viable chapter. The lower bound uses the same 50% incomplete-prose
+    floor as the Text gate; it must not turn the preferred chapter length into
+    a hidden Detail blocker. This is a feasibility projection, not a fixed scene
+    quota and not a new chapter-length policy.
     """
 
     policy = profile.capacity_policy
@@ -680,7 +700,11 @@ def detail_scene_count_range(
         chapter_maximum = policy.chapter_characters_max
     else:
         chapter_minimum = chapter_maximum = chapter_center
-    minimum = max(1, math.ceil(chapter_minimum / policy.scene_characters_max))
+    viable_chapter_minimum = math.ceil(chapter_minimum * 50 / 100)
+    minimum = max(
+        1,
+        math.ceil(viable_chapter_minimum / policy.scene_characters_max),
+    )
     maximum = max(
         minimum,
         math.floor(chapter_maximum / policy.scene_characters_min),
@@ -712,7 +736,7 @@ def allocate_chapter_character_targets(
     band = chapter_target_band(profile, chapter_count)
     if band is None:
         return []
-    book_budget = _book_character_budget(profile, chapter_count, band)
+    preferred_book_budget = _book_character_budget(profile, chapter_count, band)
     allocation_minimum, allocation_maximum = _chapter_allocation_bounds(
         profile,
         chapter_count,
@@ -740,14 +764,16 @@ def allocate_chapter_character_targets(
         )
     if any(minimum > maximum for minimum, maximum in zip(minimums, maximums, strict=True)):
         raise ValueError("A Detail chapter scene load cannot fit the chapter length range")
-    if book_budget < sum(minimums):
+    minimum_capacity = sum(minimums)
+    maximum_capacity = sum(maximums)
+    if maximum_capacity < minimum_viable_book_characters(profile):
         raise ValueError(
-            "Detail scene load would fragment the whole-book soft character budget"
+            "Detail scene capacity cannot carry the minimum viable whole-book length"
         )
-    if book_budget > sum(maximums):
-        raise ValueError(
-            "Detail scene capacity cannot carry the whole-book soft character budget"
-        )
+    book_budget = min(
+        maximum_capacity,
+        max(minimum_capacity, preferred_book_budget),
+    )
 
     load_weights = _chapter_load_weights(chapter_loads)
     chapter_center = book_budget / chapter_count
@@ -769,11 +795,6 @@ def allocate_chapter_character_targets(
         maximums=maximums,
         load_weights=load_weights,
     )
-    if any(
-        abs(left - right) > band.max_adjacent_delta + 1
-        for left, right in zip(targets, targets[1:])
-    ):
-        raise ValueError("Adjacent chapter targets exceed the narrative rhythm band")
     return targets
 
 
@@ -827,22 +848,20 @@ def _book_character_budget(
 
 def soft_book_length_bounds(
     profile: NarrativeScaleProfile,
-    *,
-    demo_hard_minimum: int = 100_000,
 ) -> tuple[int, int]:
-    """Return the accepted whole-book character envelope.
-
-    The frozen target is an editorial center, not an exact output equation.
-    Long-form Demo Runs still keep the product's explicit 100k hard floor;
-    shorter test runs use the configured soft tolerance without inheriting it.
-    """
+    """Return the advisory whole-book character envelope."""
 
     target = profile.word_target_soft
     tolerance = profile.capacity_policy.book_target_tolerance_percent
     soft_minimum = math.ceil(target * (100 - tolerance) / 100)
     soft_maximum = math.floor(target * (100 + tolerance) / 100)
-    hard_minimum = demo_hard_minimum if target >= demo_hard_minimum else soft_minimum
-    return max(soft_minimum, hard_minimum), soft_maximum
+    return soft_minimum, soft_maximum
+
+
+def minimum_viable_book_characters(profile: NarrativeScaleProfile) -> int:
+    """Return the non-negotiable floor below the editorial soft band."""
+
+    return max(1, math.ceil(profile.word_target_soft * 70 / 100))
 
 
 def _chapter_allocation_bounds(
@@ -852,18 +871,19 @@ def _chapter_allocation_bounds(
 ) -> tuple[int, int]:
     """Keep every chapter near the book budget center without equalizing it.
 
-    Half the adjacent rhythm allowance on each side guarantees that any two
-    neighboring targets remain inside the frozen delta even when their dramatic
-    loads point in opposite directions. Scene capacity can narrow these bounds
-    further per chapter during allocation.
+    Normal load weights stay near the budget center. The lower allocation bound
+    is the same minimum-viable prose floor used by the Text gate so a lean but
+    complete scene plan is not rejected merely because it cannot reach the
+    preferred center. Scene capacity narrows these bounds per chapter.
     """
 
     center = _chapter_allocation_center(profile, chapter_count, band)
     if center is None:
         return band.min_characters, band.max_characters
     half_rhythm = band.max_adjacent_delta / 2
+    viable_minimum = math.ceil(center * 50 / 100)
     return (
-        max(band.min_characters, math.ceil(center - half_rhythm)),
+        viable_minimum,
         min(band.max_characters, math.floor(center + half_rhythm)),
     )
 
@@ -951,6 +971,15 @@ def chapter_length_contract(
     )
 
 
+def minimum_viable_chapter_characters(contract: ChapterLengthContract) -> int:
+    """Reject only clearly incomplete prose, not ordinary target drift."""
+
+    # Chapter targets guide structure; only content below half the frozen
+    # target is treated as likely incomplete. The whole-book 70% floor still
+    # remains authoritative at the terminal aggregate gate.
+    return max(1, math.ceil(contract.target_characters * 50 / 100))
+
+
 def count_prose_characters(content: str) -> int:
     return sum(1 for character in content if not character.isspace())
 
@@ -974,6 +1003,8 @@ __all__ = [
     "chapter_target_band",
     "count_prose_characters",
     "detail_scene_count_range",
+    "minimum_viable_book_characters",
+    "minimum_viable_chapter_characters",
     "plan_narrative_scale",
     "project_turn_chapter_window",
     "project_volume_scales",

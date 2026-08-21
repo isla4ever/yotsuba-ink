@@ -129,6 +129,14 @@ _VAGUE_IRREDUCIBILITY_VALUES = {
     "为了增加真实感",
 }
 
+_GENRE_ONLY_TITLE = re.compile(
+    r"^(?:(?:悬疑|推理|现实|现实主义|科幻|奇幻|玄幻|言情|爱情|都市|历史|战争|犯罪|惊悚|恐怖|青春|校园|武侠|仙侠)){1,4}"
+    r"(?:小说|文学|题材|类型|风格)?$"
+)
+_UNEXECUTABLE_WORLD_RULE = re.compile(
+    r"(?:每个|每一位|所有|全体)(?:居民|人物|人|市民).{0,18}(?:主线|案件|秘密|真相)(?:相关|有关|相连|有联系)"
+)
+
 _VAGUE_ROLE_TEXT_VALUES = {
     "角色功能",
     "承担职责",
@@ -147,6 +155,118 @@ _AMBIGUOUS_RELATION_MARKERS = (
     "潜在",
     "说不清",
     "尚不明确",
+    # A relation edge records a settled story-state change. These modal or
+    # forward-looking phrases describe a question or a possible consequence,
+    # not evidence that the pressure already exists.
+    "能否",
+    "是否",
+    "会不会",
+    "将会",
+    "未来",
+    "日后",
+    "有望",
+    "可能会",
+    "推动遗产公开",
+    "推动公开",
+)
+
+# A relationship edge is an executable pressure contract, not a label for a
+# future association. Keep the vocabulary broad enough for Chinese prose while
+# requiring both a visible agency signal and a concrete consequence signal.
+_RELATION_ACTION_MARKERS = (
+    "选择",
+    "决定",
+    "公开",
+    "撤回",
+    "拒绝",
+    "承认",
+    "隐瞒",
+    "提供",
+    "删除",
+    "阻止",
+    "威胁",
+    "要挟",
+    "监视",
+    "追查",
+    "保护",
+    "背叛",
+    "和解",
+    "承担",
+    "交出",
+    "销毁",
+    "继续",
+    "停止",
+    "违规",
+    "迫使",
+    "逼迫",
+    "绑架",
+    "拘押",
+    "扣留",
+    "担任",
+    "导致",
+    "造成",
+    "使得",
+    "令",
+    "接受",
+    "共享",
+    "交换",
+    "交付",
+    "保留",
+    "提交",
+    "递交",
+    "泄露",
+    "介入",
+    "引发",
+    "触发",
+)
+_RELATION_OUTCOME_MARKERS = (
+    "失去",
+    "承担",
+    "暴露",
+    "改变",
+    "增加",
+    "降低",
+    "破裂",
+    "恶化",
+    "风险",
+    "责任",
+    "信任",
+    "后果",
+    "机会",
+    "代价",
+    "连累",
+    "担责",
+    "对抗",
+    "冲突",
+    "影响",
+    "转向",
+    "改为",
+    "改换",
+    "被迫",
+    "无法",
+    "面临",
+    "卷入",
+    "牵连",
+    "涉入",
+    "进入",
+)
+_HISTORICAL_PRESENT_ACTION_MARKERS = (
+    "当下行动",
+    "当下说话",
+    "当前行动",
+    "当前说话",
+    "现在行动",
+    "现在说话",
+    "直接行动",
+    "直接互动",
+    "现场行动",
+    "现场说话",
+    "作为活人",
+    "在现实中行动",
+    "主动调查",
+    "主动追查",
+    "主动选择",
+    "拥有pov",
 )
 
 _PURE_COGNITIVE_PREFIXES = (
@@ -226,7 +346,7 @@ def _visible_scene_action(value: str, *, label: str) -> str:
     return cleaned
 
 
-def _resolved_relation_text(value: str, *, label: str) -> str:
+def _resolved_relation_type(value: str, *, label: str) -> str:
     cleaned = _resolved_planning_text(value, label=label)
     normalized = re.sub(r"[\W_]+", "", cleaned.casefold())
     if any(marker in normalized for marker in _AMBIGUOUS_RELATION_MARKERS):
@@ -234,6 +354,30 @@ def _resolved_relation_text(value: str, *, label: str) -> str:
             f"{label} must state an established, concrete relationship pressure"
         )
     return cleaned
+
+
+def _resolved_relation_pressure(value: str, *, label: str) -> str:
+    cleaned = _resolved_relation_type(value, label=label)
+    normalized = re.sub(r"[\W_]+", "", cleaned.casefold())
+    if not any(marker in normalized for marker in _RELATION_ACTION_MARKERS):
+        raise ValueError(
+            f"{label} must state an established, concrete relationship pressure"
+        )
+    if not any(marker in normalized for marker in _RELATION_OUTCOME_MARKERS):
+        raise ValueError(
+            f"{label} must state an established, concrete relationship pressure"
+        )
+    return cleaned
+
+
+def _validate_historical_role_demand_text(value: str, *, label: str) -> str:
+    normalized = re.sub(r"[\W_]+", "", value.casefold())
+    if any(marker in normalized for marker in _HISTORICAL_PRESENT_ACTION_MARKERS):
+        raise ValueError(
+            f"{label} for a historical_record demand must describe a record, legacy, testimony, or absence, "
+            "not present-day action"
+        )
+    return value
 
 
 def _require_distinct_character_dimensions(subject: Any) -> None:
@@ -387,6 +531,8 @@ class StoryBriefArtifact(StrictArtifact):
             "tbd",
         }:
             raise ValueError("Story Brief must generate a real book title")
+        if _GENRE_ONLY_TITLE.fullmatch(cleaned):
+            raise ValueError("Story Brief title must be a book name, not a genre label")
         return cleaned
 
     @field_validator(
@@ -403,7 +549,12 @@ class StoryBriefArtifact(StrictArtifact):
     @field_validator("world_rules")
     @classmethod
     def resolved_world_rules(cls, value: list[str]) -> list[str]:
-        return [_brief_text(item, label="world_rules") for item in value]
+        rules = [_brief_text(item, label="world_rules") for item in value]
+        if any(_UNEXECUTABLE_WORLD_RULE.search(item) for item in rules):
+            raise ValueError(
+                "World rules must be executable constraints, not universal population slogans"
+            )
+        return rules
 
 
 SpineMilestone = Literal[
@@ -576,6 +727,13 @@ class RoleDemandProposal(StrictArtifact):
             raise ValueError("A historical role demand must use historical_record mode")
         if self.narrative_role != "historical_record" and self.subject_mode != "actor":
             raise ValueError("A present role demand must use actor mode")
+        if self.subject_mode == "historical_record":
+            for label, value in (
+                ("function", self.function),
+                ("required_change", self.required_change),
+                ("irreducibility", self.irreducibility),
+            ):
+                _validate_historical_role_demand_text(value, label=label)
         return self
 
 
@@ -929,10 +1087,15 @@ class CharacterRelation(StrictArtifact):
     type: str = Field(min_length=1, max_length=160)
     pressure: str = Field(min_length=1, max_length=500)
 
-    @field_validator("type", "pressure")
+    @field_validator("type")
     @classmethod
-    def validate_relation_text(cls, value: str, info: Any) -> str:
-        return _resolved_relation_text(value, label=info.field_name)
+    def validate_relation_type(cls, value: str, info: Any) -> str:
+        return _resolved_relation_type(value, label=info.field_name)
+
+    @field_validator("pressure")
+    @classmethod
+    def validate_relation_pressure(cls, value: str, info: Any) -> str:
+        return _resolved_relation_pressure(value, label=info.field_name)
 
 
 class CharacterRelationBatch(StrictArtifact):
@@ -942,6 +1105,31 @@ class CharacterRelationBatch(StrictArtifact):
 class CharacterBibleArtifact(StrictArtifact):
     subjects: list[CharacterSubject] = Field(min_length=1, max_length=120)
     relations: list[CharacterRelation] = Field(max_length=360)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_relation_refs_before_nested_parsing(cls, value: Any) -> Any:
+        """Report registry drift before nested relation text diagnostics."""
+
+        if not isinstance(value, dict):
+            return value
+        raw_subjects = value.get("subjects")
+        raw_relations = value.get("relations")
+        if not isinstance(raw_subjects, list) or not isinstance(raw_relations, list):
+            return value
+        known = {
+            str(item.get("id"))
+            for item in raw_subjects
+            if isinstance(item, dict) and item.get("id")
+        }
+        for relation in raw_relations:
+            if not isinstance(relation, dict):
+                continue
+            a = relation.get("a")
+            b = relation.get("b")
+            if a == b or a not in known or b not in known:
+                raise ValueError("Character relations must reference two registered subjects")
+        return value
 
     @model_validator(mode="after")
     def validate_registry(self) -> "CharacterBibleArtifact":
@@ -1155,7 +1343,7 @@ class CoverBrief(StrictArtifact):
     concept: str = Field(min_length=1, max_length=1000)
     image_prompt: str = Field(min_length=1, max_length=3000)
     palette: list[str] = Field(min_length=1, max_length=6)
-    negative_constraints: list[str] = Field(max_length=16)
+    negative_constraints: list[str] = Field(max_length=24)
 
 
 class CoverArtifact(StrictArtifact):

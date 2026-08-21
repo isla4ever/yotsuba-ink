@@ -6,6 +6,7 @@ from uuid import uuid4
 from datetime import datetime, timezone
 
 from novel_workflow.storage.json_store import JsonStore
+from novel_workflow.storage.atomic_json import atomic_write_json, read_json
 from novel_workflow.storage.project_schemas import ProjectRecord, next_accent_hue
 from novel_workflow.storage.run_history_projection import RunHistoryProjection
 from novel_workflow.workflows.seed_policy import materialize_project_workflow
@@ -39,13 +40,27 @@ class ProjectStore:
         run_history: RunHistoryProjection,
     ) -> None:
         self.store = JsonStore(root)
+        self.order_path = root.parent / "project-order.json"
         self.workflow_store = workflow_store
         self.run_history = run_history
 
     def list(self) -> list[ProjectRecord]:
         records = [self._with_generated_title(ProjectRecord.model_validate(item)) for item in self.store.list()]
+        order = self._read_order()
+        position = {project_id: index for index, project_id in enumerate(order)}
         records.sort(key=lambda item: (item.updated_at, item.id), reverse=True)
+        if order:
+            records.sort(key=lambda item: position.get(item.id, len(position)))
         return records
+
+    def reorder(self, project_ids: list[str]) -> list[ProjectRecord]:
+        records = [ProjectRecord.model_validate(item) for item in self.store.list()]
+        known = {record.id for record in records}
+        incoming = [project_id for project_id in project_ids if project_id in known]
+        if len(incoming) != len(set(incoming)) or set(incoming) != known:
+            raise ProjectStoreError("作品排序必须包含每个现有作品且不能重复")
+        self._write_order(incoming)
+        return self.list()
 
     def get(self, project_id: str) -> ProjectRecord:
         return self._with_generated_title(ProjectRecord.model_validate(self.store.read(project_id)))
@@ -151,3 +166,16 @@ class ProjectStore:
         if self.projects_referencing_workflow(record.workflow_id):
             return
         self.workflow_store.delete(record.workflow_id)
+
+    def _read_order(self) -> list[str]:
+        if not self.order_path.exists():
+            return []
+        try:
+            payload = read_json(self.order_path)
+        except (OSError, ValueError):
+            return []
+        value = payload.get("project_ids")
+        return [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
+
+    def _write_order(self, project_ids: list[str]) -> None:
+        atomic_write_json(self.order_path, {"project_ids": project_ids})

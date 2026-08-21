@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
+from novel_workflow.quality.decision_contract import QualityDecision
 from novel_workflow.providers.frozen_contract import (
     FrozenProviderConfig,
     FrozenProviderTemplate,
@@ -18,6 +19,7 @@ from novel_workflow.providers.frozen_contract import (
 )
 from novel_workflow.providers.usage import ProviderUsageSummary
 from novel_workflow.storage.atomic_json import atomic_write_json, read_json, require_safe_id
+from novel_workflow.workflows.hierarchical_scale import HierarchicalNarrativeScalePlan
 from novel_workflow.workflows.narrative_scale import NarrativeScaleProfile
 
 
@@ -177,6 +179,9 @@ class RunDefinition(BaseModel):
     quality_mode: Literal["fast", "balanced", "deep"] = "balanced"
     inputs: dict[str, Any]
     scale_profile: NarrativeScaleProfile
+    # Historical Phase 27 definitions omit this and remain readable only for
+    # the archive surface. Every newly created production Run must freeze it.
+    hierarchical_scale_plan: HierarchicalNarrativeScalePlan | None = None
     provider_bindings: dict[StageId, ProviderBinding]
     cover_asset_binding: CoverAssetBinding
     export_preferences: ExportPreferences
@@ -197,6 +202,7 @@ class RunReadModel(BaseModel):
     stage_status: dict[StageId, StageStatus]
     artifact_refs: dict[StageId, str] = Field(default_factory=dict)
     pending_decisions: list[dict[str, Any]] = Field(default_factory=list)
+    quality_decision: QualityDecision | None = None
     provider_usage: ProviderUsageSummary = Field(default_factory=ProviderUsageSummary)
     failure: dict[str, Any] | None = None
     checkpoint_id: str = ""
@@ -222,6 +228,7 @@ class NarrativeRunRepository:
         quality_mode: Literal["fast", "balanced", "deep"],
         inputs: dict[str, Any],
         scale_profile: NarrativeScaleProfile,
+        hierarchical_scale_plan: HierarchicalNarrativeScalePlan,
         provider_bindings: dict[StageId, ProviderBinding],
         cover_asset_binding: CoverAssetBinding,
         export_preferences: ExportPreferences,
@@ -242,6 +249,7 @@ class NarrativeRunRepository:
                 quality_mode=quality_mode,
                 inputs=inputs,
                 scale_profile=scale_profile,
+                hierarchical_scale_plan=hierarchical_scale_plan,
                 provider_bindings=provider_bindings,
                 cover_asset_binding=cover_asset_binding,
                 export_preferences=export_preferences,
@@ -264,6 +272,14 @@ class NarrativeRunRepository:
 
     def definition(self, run_id: str) -> RunDefinition:
         return RunDefinition.model_validate(read_json(self._path(run_id, "definition.json")))
+
+    def executable_definition(self, run_id: str) -> RunDefinition:
+        definition = self.definition(run_id)
+        if definition.hierarchical_scale_plan is None:
+            raise ValueError(
+                "Archived Run definitions without a hierarchical scale plan are read-only"
+            )
+        return definition
 
     def read(self, run_id: str) -> RunReadModel:
         return RunReadModel.model_validate(read_json(self._path(run_id, "read_model.json")))

@@ -1,181 +1,178 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { RunEvent } from '../contracts';
-import { pendingStageDecision } from '../lib/runDecisionProjection';
-import { getStageArtifactDraft, saveStageArtifactDraft } from '../services/runApi';
-import type { StageArtifactDraft } from '../running/stageArtifactState';
+import { useCallback, useEffect, useState } from "react"
+import type { RunArtifactRecord } from "../contracts/run"
+import type { StageDecision } from "../lib/stageDecision"
+import {
+  getStageArtifactDraft,
+  saveStageArtifactDraft,
+} from "../services/runApi"
+import {
+  STAGE_DRAFT_UPDATED_EVENT,
+  type StageDraftUpdatedDetail,
+} from "./stageDraftEvents"
 
-export const STAGE_DRAFT_AUTOSAVE_MS = 650;
+export type StageDraftStatus = "idle" | "loading" | "clean" | "dirty" | "saving" | "saved" | "error"
 
-export type StageArtifactDraftSaveStatus =
-  | 'idle'
-  | 'loading'
-  | 'clean'
-  | 'dirty'
-  | 'saving'
-  | 'saved'
-  | 'error';
-
-type Options = {
-  events: RunEvent[];
-  runId: string;
-  source: string;
-  stageId: string;
-};
-
-type DraftBinding = {
-  decisionId: string;
-  domainRevision: number;
-  key: string;
-  sourceArtifactId: string;
-};
+type StageArtifactDraftSource = Pick<RunArtifactRecord, "artifact_id" | "payload">
 
 type DraftState = {
-  bindingKey: string;
-  draft?: StageArtifactDraft;
-  error: string;
-  localRevision: number;
-  status: StageArtifactDraftSaveStatus;
-};
+  artifact: Record<string, unknown> | null
+  bindingKey: string
+  error: string
+  localRevision: number
+  status: StageDraftStatus
+}
 
 const idleState: DraftState = {
-  bindingKey: '',
-  error: '',
+  artifact: null,
+  bindingKey: "",
+  error: "",
   localRevision: 0,
-  status: 'idle',
-};
+  status: "idle",
+}
 
-export function useStageArtifactDraft({ events, runId, source, stageId }: Options) {
-  const binding = useMemo(
-    () => draftBinding(events, runId, stageId),
-    [events, runId, stageId],
-  );
-  const [state, setState] = useState<DraftState>(idleState);
+export function useStageArtifactDraft(
+  runId: string,
+  decision: StageDecision | null,
+  source: StageArtifactDraftSource | undefined,
+) {
+  const [externalRevision, setExternalRevision] = useState(0)
+  const decisionId = decision?.decisionId ?? ""
+  const domainRevision = decision?.domainRevision ?? -1
+  const sourceArtifactId = source?.artifact_id ?? ""
+  const bindingKey =
+    decision && source
+      ? `${runId}\u0000${decision.decisionId}\u0000${decision.domainRevision}\u0000${source.artifact_id}`
+      : ""
+  const [state, setState] = useState<DraftState>(idleState)
 
   useEffect(() => {
-    if (!binding) {
-      setState(idleState);
-      return undefined;
+    if (
+      !runId ||
+      !decision ||
+      !source ||
+      source.artifact_id !== decision.artifactRef
+    ) {
+      setState({ ...idleState, artifact: source?.payload ?? null })
+      return undefined
     }
-    const controller = new AbortController();
-    const bindingKey = binding.key;
+    const controller = new AbortController()
     setState({
+      artifact: source.payload,
       bindingKey,
-      error: '',
+      error: "",
       localRevision: 0,
-      status: 'loading',
-    });
-    void getStageArtifactDraft(runId, binding.decisionId, controller.signal)
+      status: "loading",
+    })
+    void getStageArtifactDraft(runId, decision.decisionId, controller.signal)
       .then((record) => {
-        setState((current) => {
-          if (current.bindingKey !== bindingKey || current.localRevision > 0) return current;
-          return {
-            bindingKey,
-            draft: record
-              ? { source, value: JSON.stringify(record.payload, null, 2) }
-              : undefined,
-            error: '',
-            localRevision: 0,
-            status: record ? 'saved' : 'clean',
-          };
-        });
+        setState((current) =>
+          current.bindingKey === bindingKey && current.localRevision === 0
+            ? {
+                artifact: record?.payload ?? source.payload,
+                bindingKey,
+                error: "",
+                localRevision: 0,
+                status: record ? "saved" : "clean",
+              }
+            : current,
+        )
       })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
-        setState((current) => current.bindingKey === bindingKey
-          ? { ...current, error: errorMessage(error), status: 'error' }
-          : current);
-      });
-    return () => controller.abort();
-  }, [binding, runId, source]);
+      .catch((reason) => {
+        if (controller.signal.aborted) return
+        setState((current) =>
+          current.bindingKey === bindingKey
+            ? { ...current, error: errorMessage(reason), status: "error" }
+            : current,
+        )
+      })
+    return () => controller.abort()
+  }, [bindingKey, externalRevision, runId])
 
   useEffect(() => {
-    if (!binding || state.bindingKey !== binding.key || state.status !== 'dirty' || !state.draft) {
-      return undefined;
+    const refresh = (event: Event) => {
+      const detail = (event as CustomEvent<StageDraftUpdatedDetail>).detail
+      if (detail?.runId === runId && detail.stageId === decision?.stageId)
+        setExternalRevision((current) => current + 1)
     }
-    const revision = state.localRevision;
-    const value = state.draft.value;
+    window.addEventListener(STAGE_DRAFT_UPDATED_EVENT, refresh)
+    return () => window.removeEventListener(STAGE_DRAFT_UPDATED_EVENT, refresh)
+  }, [decision?.stageId, runId])
+
+  useEffect(() => {
+    if (
+      !decision ||
+      !source ||
+      !state.artifact ||
+      state.bindingKey !== bindingKey ||
+      state.status !== "dirty"
+    ) {
+      return undefined
+    }
+    const revision = state.localRevision
+    const artifact = state.artifact
     const timer = window.setTimeout(() => {
-      let artifact: Record<string, unknown>;
-      try {
-        const parsed = JSON.parse(value) as unknown;
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          throw new Error('当前稿不是有效的阶段产物');
-        }
-        artifact = parsed as Record<string, unknown>;
-      } catch (error) {
-        setState((current) => current.bindingKey === binding.key
-          ? { ...current, error: errorMessage(error), status: 'error' }
-          : current);
-        return;
-      }
-      setState((current) => current.bindingKey === binding.key && current.localRevision === revision
-        ? { ...current, error: '', status: 'saving' }
-        : current);
+      setState((current) =>
+        current.bindingKey === bindingKey && current.localRevision === revision
+          ? { ...current, error: "", status: "saving" }
+          : current,
+      )
       void saveStageArtifactDraft(
         runId,
-        binding.decisionId,
-        binding.domainRevision,
-        binding.sourceArtifactId,
+        decisionId,
+        domainRevision,
+        sourceArtifactId,
         artifact,
-      ).then(() => {
-        setState((current) => {
-          if (current.bindingKey !== binding.key) return current;
-          return current.localRevision === revision
-            ? { ...current, error: '', status: 'saved' }
-            : { ...current, status: 'dirty' };
-        });
-      }).catch((error: unknown) => {
-        setState((current) => {
-          if (current.bindingKey !== binding.key) return current;
-          return current.localRevision === revision
-            ? { ...current, error: errorMessage(error), status: 'error' }
-            : { ...current, status: 'dirty' };
-        });
-      });
-    }, STAGE_DRAFT_AUTOSAVE_MS);
-    return () => window.clearTimeout(timer);
-  }, [binding, runId, state]);
+      )
+        .then(() => {
+          setState((current) =>
+            current.bindingKey === bindingKey
+              ? {
+                  ...current,
+                  error: "",
+                  status:
+                    current.localRevision === revision ? "saved" : "dirty",
+                }
+              : current,
+          )
+        })
+        .catch((reason) => {
+          setState((current) =>
+            current.bindingKey === bindingKey &&
+            current.localRevision === revision
+              ? { ...current, error: errorMessage(reason), status: "error" }
+              : current,
+          )
+        })
+    }, 650)
+    return () => window.clearTimeout(timer)
+  }, [bindingKey, decisionId, domainRevision, runId, sourceArtifactId, state])
 
-  const change = useCallback((changedStageId: string, changedSource: string, value: string) => {
-    if (!binding || changedStageId !== stageId || changedSource !== source) return;
-    setState((current) => ({
-      bindingKey: binding.key,
-      draft: { source, value },
-      error: '',
-      localRevision: current.bindingKey === binding.key ? current.localRevision + 1 : 1,
-      status: 'dirty',
-    }));
-  }, [binding, source, stageId]);
+  const change = useCallback(
+    (artifact: Record<string, unknown>) => {
+      if (!bindingKey) return
+      setState((current) => ({
+        artifact,
+        bindingKey,
+        error: "",
+        localRevision:
+          current.bindingKey === bindingKey ? current.localRevision + 1 : 1,
+        status: "dirty",
+      }))
+    },
+    [bindingKey],
+  )
 
   return {
+    artifact:
+      state.bindingKey === bindingKey || !bindingKey
+        ? (state.artifact ?? source?.payload ?? null)
+        : (source?.payload ?? null),
     change,
-    draft: state.bindingKey === binding?.key ? state.draft : undefined,
-    error: state.bindingKey === binding?.key ? state.error : '',
-    status: state.bindingKey === binding?.key ? state.status : 'idle',
-  };
-}
-
-function draftBinding(events: RunEvent[], runId: string, stageId: string): DraftBinding | null {
-  if (!runId || !stageId) return null;
-  const pending = pendingStageDecision(events, stageId);
-  const decisionId = textValue(pending?.payload?.decision_id);
-  const sourceArtifactId = textValue(pending?.payload?.artifact_ref);
-  const domainRevision = pending?.payload?.domain_revision;
-  if (!decisionId || !sourceArtifactId || !Number.isInteger(domainRevision) || Number(domainRevision) < 0) {
-    return null;
+    error: state.bindingKey === bindingKey ? state.error : "",
+    status: state.bindingKey === bindingKey ? state.status : "idle",
   }
-  return {
-    decisionId,
-    domainRevision: Number(domainRevision),
-    key: `${runId}\u0000${stageId}\u0000${decisionId}\u0000${domainRevision}\u0000${sourceArtifactId}`,
-    sourceArtifactId,
-  };
 }
 
-function textValue(value: unknown) {
-  return typeof value === 'string' ? value : '';
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '阶段草稿保存失败';
+function errorMessage(reason: unknown) {
+  return reason instanceof Error ? reason.message : "阶段草稿保存失败"
 }

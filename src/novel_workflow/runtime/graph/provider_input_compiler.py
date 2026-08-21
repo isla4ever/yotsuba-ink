@@ -67,6 +67,7 @@ def compile_provider_input(request: ProviderRequest) -> ProviderInputPayload:
         context = {
             "chapter_id": request.chapter_id,
             "chapter_version_id": request.chapter_version_id,
+            "frozen_state": request.context,
             "evidence_candidates": [
                 candidate.prompt_payload()
                 for candidate in build_chapter_evidence_candidates(request.content)
@@ -81,6 +82,15 @@ def compile_provider_input(request: ProviderRequest) -> ProviderInputPayload:
             context=context,
         )
     if isinstance(request, ChapterSceneGenerationRequest):
+        plain_text_contract = (
+            "One bounded replacement passage for the masked rejected scene segment; "
+            "no full-scene rewrite, heading, JSON, Markdown, metadata, analysis, or commentary."
+            if request.mode == "fact_repair"
+            else (
+                "One complete scene segment as plain prose only; no scene heading, JSON, "
+                "Markdown fences, metadata, analysis, commentary, or truncation."
+            )
+        )
         return ProviderInputPayload(
             stage_id="text",
             task_name="text.scene",
@@ -93,10 +103,7 @@ def compile_provider_input(request: ProviderRequest) -> ProviderInputPayload:
             structured_context=request.context,
             output_contract=ProviderOutputContract(
                 kind="plain_text",
-                plain_text_contract=(
-                    "One complete scene segment as plain prose only; no scene heading, JSON, "
-                    "Markdown fences, metadata, analysis, commentary, or truncation."
-                ),
+                plain_text_contract=plain_text_contract,
             ),
         )
     binding = request.binding
@@ -175,6 +182,14 @@ def _secret_free_binding(binding: ProviderBinding | CoverAssetBinding) -> dict[s
     return _without_secret_or_header_config(binding.model_dump(mode="json"))
 
 
+def secret_free_provider_binding(
+    binding: ProviderBinding | CoverAssetBinding,
+) -> dict[str, Any]:
+    """Public compiler boundary for secret-free sidecar Provider snapshots."""
+
+    return _secret_free_binding(binding)
+
+
 def _without_secret_or_header_config(value: Any) -> Any:
     if isinstance(value, dict):
         return {
@@ -204,4 +219,4 @@ def _is_secret_or_header_key(key: str) -> bool:
     )
 
 
-__all__ = ["compile_provider_input"]
+__all__ = ["compile_provider_input", "secret_free_provider_binding"]

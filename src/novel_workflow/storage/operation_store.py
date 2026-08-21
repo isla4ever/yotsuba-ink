@@ -22,11 +22,19 @@ class OperationReceipt(BaseModel):
     operation_key: str
     run_id: str
     kind: str
-    status: Literal["pending", "succeeded", "failed"]
+    status: Literal[
+        "pending",
+        "provider_returned",
+        "succeeded",
+        "contract_rejected",
+        "failed",
+        "cancelled",
+    ]
     provider_profile_id: str = ""
     model: str = ""
     request_signature: str = Field(min_length=64, max_length=64)
     provider_input_ref: str = ""
+    provider_result: Any = None
     result: Any = None
     error: dict[str, Any] | None = None
     usage: dict[str, int] = Field(default_factory=dict)
@@ -156,6 +164,80 @@ class OperationStore:
             diagnostic=diagnostic,
         )
 
+    def record_provider_return(
+        self,
+        run_id: str,
+        operation_key: str,
+        provider_result: Any,
+        *,
+        usage: dict[str, int] | None = None,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        """Persist a parsed Provider response before domain validation."""
+
+        with self._lock:
+            current = self.read(run_id, operation_key)
+            if current.status in {
+                "provider_returned",
+                "succeeded",
+                "contract_rejected",
+            }:
+                if current.provider_result != provider_result:
+                    raise ValueError("Provider return is immutable")
+                return current
+            if current.status != "pending" or not current.provider_profile_id:
+                raise ValueError("Only pending Provider operations can record a return")
+            next_receipt = current.model_copy(
+                update={
+                    "status": "provider_returned",
+                    "provider_result": provider_result,
+                    "usage": normalize_provider_usage(usage),
+                    "diagnostic": dict(diagnostic or {}),
+                    "updated_at": _now(),
+                }
+            )
+            atomic_write_json(
+                self._path(run_id, operation_key),
+                next_receipt.model_dump(mode="json"),
+            )
+            return next_receipt
+
+    def accept_provider_result(
+        self,
+        run_id: str,
+        operation_key: str,
+        result: Any,
+        *,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        """Mark a persisted Provider return as accepted by its domain contract."""
+
+        return self._finish_provider_contract(
+            run_id,
+            operation_key,
+            status="succeeded",
+            result=result,
+            diagnostic=diagnostic,
+        )
+
+    def reject_provider_contract(
+        self,
+        run_id: str,
+        operation_key: str,
+        error: dict[str, Any],
+        *,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        """Persist a deterministic rejection without misreporting transport failure."""
+
+        return self._finish_provider_contract(
+            run_id,
+            operation_key,
+            status="contract_rejected",
+            error=error,
+            diagnostic=diagnostic,
+        )
+
     def fail(
         self,
         run_id: str,
@@ -172,6 +254,19 @@ class OperationStore:
             error=error,
             usage=usage,
             diagnostic=diagnostic,
+        )
+
+    def cancel(
+        self,
+        run_id: str,
+        operation_key: str,
+        error: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        return self._finish(
+            run_id,
+            operation_key,
+            status="cancelled",
+            error=error or {"code": "cancelled", "message": "Cancelled by the author"},
         )
 
     def read(self, run_id: str, operation_key: str) -> OperationReceipt:
@@ -208,8 +303,17 @@ class OperationStore:
         }
         return ProviderUsageSummary(
             provider_operations=len(provider_receipts),
+            returned_operations=sum(
+                receipt.status
+                in {"provider_returned", "succeeded", "contract_rejected"}
+                for receipt in provider_receipts
+            ),
             succeeded_operations=sum(
                 receipt.status == "succeeded" for receipt in provider_receipts
+            ),
+            contract_rejected_operations=sum(
+                receipt.status == "contract_rejected"
+                for receipt in provider_receipts
             ),
             failed_operations=sum(
                 receipt.status == "failed" for receipt in provider_receipts
@@ -263,7 +367,7 @@ class OperationStore:
         run_id: str,
         operation_key: str,
         *,
-        status: Literal["succeeded", "failed"],
+        status: Literal["succeeded", "failed", "cancelled"],
         result: Any = None,
         error: dict[str, Any] | None = None,
         usage: dict[str, int] | None = None,
@@ -284,6 +388,42 @@ class OperationStore:
                 "updated_at": _now(),
             })
             atomic_write_json(self._path(run_id, operation_key), next_receipt.model_dump(mode="json"))
+            return next_receipt
+
+    def _finish_provider_contract(
+        self,
+        run_id: str,
+        operation_key: str,
+        *,
+        status: Literal["succeeded", "contract_rejected"],
+        result: Any = None,
+        error: dict[str, Any] | None = None,
+        diagnostic: dict[str, Any] | None = None,
+    ) -> OperationReceipt:
+        with self._lock:
+            current = self.read(run_id, operation_key)
+            if current.status == status:
+                return current
+            if current.status != "provider_returned":
+                raise ValueError(
+                    "Provider contract outcome requires a persisted Provider return"
+                )
+            next_receipt = current.model_copy(
+                update={
+                    "status": status,
+                    "result": result,
+                    "error": error,
+                    "diagnostic": {
+                        **current.diagnostic,
+                        **dict(diagnostic or {}),
+                    },
+                    "updated_at": _now(),
+                }
+            )
+            atomic_write_json(
+                self._path(run_id, operation_key),
+                next_receipt.model_dump(mode="json"),
+            )
             return next_receipt
 
     def _path(self, run_id: str, operation_key: str) -> Path:

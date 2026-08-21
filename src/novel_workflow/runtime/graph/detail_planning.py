@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Any
 
 from novel_workflow.output_contracts.artifacts_vnext import (
@@ -37,6 +38,34 @@ class DetailLayoutVolumeWindow:
     remaining_volume_min: int
     remaining_volume_target: int
     remaining_volume_max: int
+
+
+@dataclass(frozen=True, slots=True)
+class DetailLayoutTurnWindow:
+    """A deterministic contiguous Spine slice and its chapter slots."""
+
+    volume_ref: str
+    volume_index: int
+    volume_count: int
+    window_index: int
+    window_count: int
+    turn_refs: tuple[str, ...]
+    chapter_offset: int
+    chapter_min: int
+    chapter_target: int
+    chapter_max: int
+    volume_chapter_target: int
+    book_chapter_min: int
+    book_chapter_target: int
+    book_chapter_max: int
+    allocated_chapters: int
+    remaining_volume_min: int
+    remaining_volume_target: int
+    remaining_volume_max: int
+
+    @property
+    def scope_ref(self) -> str:
+        return f"{self.volume_ref}:turn-window-{self.window_index}"
 
 
 def detail_layout_volume_window(
@@ -91,6 +120,93 @@ def detail_layout_volume_window(
     )
 
 
+def detail_layout_turn_windows(
+    *,
+    architecture: VolumeArchitectureArtifact,
+    profile: NarrativeScaleProfile,
+    spine_turn_count: int,
+    volume_index: int,
+    allocated_chapters: int,
+    max_turns: int = 3,
+) -> list[DetailLayoutTurnWindow]:
+    """Partition one frozen volume into ordered, bounded Provider windows.
+
+    The runtime owns both the turn boundaries and the number of chapter slots
+    in each window. A Provider can only dramatize the supplied contiguous slice;
+    it cannot move a chapter to an earlier or later Spine turn.
+    """
+
+    if max_turns < 1:
+        raise ValueError("Detail layout turn window size must be positive")
+    volume_window = detail_layout_volume_window(
+        architecture=architecture,
+        profile=profile,
+        spine_turn_count=spine_turn_count,
+        volume_index=volume_index,
+        allocated_chapters=allocated_chapters,
+    )
+    volume = architecture.volumes[volume_index]
+    turn_refs = list(volume.turn_refs)
+    if not turn_refs:
+        raise ValueError(f"Detail layout volume {volume.id} has no Spine turns")
+    window_count = min(
+        volume_window.chapter_target,
+        max(1, math.ceil(len(turn_refs) / max_turns)),
+    )
+    turn_sizes = _partition_ordered(len(turn_refs), window_count)
+    chapter_sizes = _allocate_window_chapters(
+        volume_window.chapter_target,
+        turn_sizes,
+    )
+    windows: list[DetailLayoutTurnWindow] = []
+    turn_offset = 0
+    chapter_offset = 0
+    for index, (turn_size, chapter_size) in enumerate(
+        zip(turn_sizes, chapter_sizes, strict=True),
+        start=1,
+    ):
+        current_turns = tuple(turn_refs[turn_offset : turn_offset + turn_size])
+        windows.append(
+            DetailLayoutTurnWindow(
+                volume_ref=volume_window.volume_ref,
+                volume_index=volume_window.volume_index,
+                volume_count=volume_window.volume_count,
+                window_index=index,
+                window_count=window_count,
+                turn_refs=current_turns,
+                chapter_offset=chapter_offset,
+                chapter_min=chapter_size,
+                chapter_target=chapter_size,
+                chapter_max=chapter_size,
+                volume_chapter_target=volume_window.chapter_target,
+                book_chapter_min=volume_window.book_chapter_min,
+                book_chapter_target=volume_window.book_chapter_target,
+                book_chapter_max=volume_window.book_chapter_max,
+                allocated_chapters=allocated_chapters + chapter_offset,
+                remaining_volume_min=volume_window.remaining_volume_min,
+                remaining_volume_target=volume_window.remaining_volume_target,
+                remaining_volume_max=volume_window.remaining_volume_max,
+            )
+        )
+        turn_offset += turn_size
+        chapter_offset += chapter_size
+    return windows
+
+
+def _partition_ordered(total: int, parts: int) -> list[int]:
+    if total < 1 or parts < 1 or parts > total:
+        raise ValueError("Ordered partition must contain at least one item per part")
+    base, remainder = divmod(total, parts)
+    return [base + (1 if index < remainder else 0) for index in range(parts)]
+
+
+def _allocate_window_chapters(total: int, turn_sizes: list[int]) -> list[int]:
+    if total < len(turn_sizes):
+        raise ValueError("Detail chapter target cannot cover its turn windows")
+    base, remainder = divmod(total, len(turn_sizes))
+    return [base + (1 if index < remainder else 0) for index in range(len(turn_sizes))]
+
+
 def validate_detail_layout_volume_proposal(
     layout: DetailLayoutProposalBatch,
     *,
@@ -123,6 +239,39 @@ def validate_detail_layout_volume_proposal(
         known_turns={turn.id for turn in spine.turns},
         chapter_min=chapter_min,
         chapter_max=chapter_max,
+    )
+
+
+def validate_detail_layout_turn_window_proposal(
+    layout: DetailLayoutProposalBatch,
+    *,
+    volume: VolumeContract,
+    spine: StorySpineArtifact,
+    window: DetailLayoutTurnWindow,
+) -> None:
+    """Validate one bounded window before the next window is requested."""
+
+    if layout.status != "sufficient":
+        raise ValueError(
+            "Detail narrative capacity is insufficient for the frozen turn window: "
+            f"{layout.diagnosis.strip()}"
+        )
+    if [item.volume_ref for item in layout.volumes] != [volume.id]:
+        raise ValueError(
+            "Detail layout window must return exactly its current volume and no others"
+        )
+    volume_layout = layout.volumes[0]
+    if len(volume_layout.chapters) != window.chapter_target:
+        raise ValueError(
+            f"Detail layout returned {len(volume_layout.chapters)} chapters for "
+            f"{window.scope_ref}; the frozen window requires exactly "
+            f"{window.chapter_target}"
+        )
+    _validate_chapter_sequence(
+        chapters=volume_layout.chapters,
+        expected_turns=list(window.turn_refs),
+        known_turns={turn.id for turn in spine.turns},
+        label=window.scope_ref,
     )
 
 
@@ -200,25 +349,38 @@ def _validate_volume_layout(
         )
 
     expected_turns = list(volume.turn_refs)
+    _validate_chapter_sequence(
+        chapters=volume_layout.chapters,
+        expected_turns=expected_turns,
+        known_turns=known_turns,
+        label=volume.id,
+    )
+
+
+def _validate_chapter_sequence(
+    *,
+    chapters: list[Any],
+    expected_turns: list[str],
+    known_turns: set[str],
+    label: str,
+) -> None:
     expected_positions = {
         turn_ref: index for index, turn_ref in enumerate(expected_turns)
     }
     encountered: list[str] = []
     previous_position = 0
     dramatic_jobs: list[str] = []
-    for chapter in volume_layout.chapters:
+    for chapter in chapters:
         unknown = set(chapter.turn_refs) - known_turns
         outside_volume = set(chapter.turn_refs) - set(expected_turns)
         if unknown or outside_volume:
             raise ValueError(
-                f"Detail layout chapter references turns outside {volume.id}: "
+                f"Detail layout chapter references turns outside {label}: "
                 f"{sorted(unknown | outside_volume)}"
             )
         positions = [expected_positions[turn_ref] for turn_ref in chapter.turn_refs]
         if positions != list(range(positions[0], positions[-1] + 1)):
-            raise ValueError(
-                "Detail layout chapter turn refs must be contiguous and ordered"
-            )
+            raise ValueError("Detail layout chapter turn refs must be contiguous and ordered")
         if encountered and positions[0] < previous_position:
             raise ValueError("Detail layout cannot return to an earlier Spine turn")
         previous_position = positions[-1]
@@ -229,11 +391,11 @@ def _validate_volume_layout(
 
     if encountered != expected_turns:
         raise ValueError(
-            f"Detail layout must cover every {volume.id} turn in causal order"
+            f"Detail layout must cover every {label} turn in causal order"
         )
     if len(dramatic_jobs) != len(set(dramatic_jobs)):
         raise ValueError(
-            f"Detail layout for {volume.id} repeats a dramatic job instead of "
+            f"Detail layout for {label} repeats a dramatic job instead of "
             "adding a chapter change"
         )
 
@@ -294,9 +456,12 @@ def _chapter_narrative_load(
 
 
 __all__ = [
+    "DetailLayoutTurnWindow",
     "DetailLayoutVolumeWindow",
     "bind_detail_artifact",
+    "detail_layout_turn_windows",
     "detail_layout_volume_window",
     "validate_detail_layout_proposal",
+    "validate_detail_layout_turn_window_proposal",
     "validate_detail_layout_volume_proposal",
 ]

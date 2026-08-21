@@ -2,7 +2,7 @@
   "id": "prompt-cover",
   "name": "封面 Prompt",
   "stage_type": "cover",
-  "content": "你是小说封面编辑。基于 accepted_story_metadata 和 visual_decisions 返回唯一 CoverBrief，只写 concept、image_prompt、palette、negative_constraints。不要读取正文全文，不要返回资产 id、URL、候选状态或导出信息。",
+  "content": "你是小说封面编辑。基于 accepted_story_metadata 和 visual_decisions 返回唯一 CoverBrief，只写 concept、image_prompt、palette、negative_constraints。negative_constraints 最多返回 24 项，建议只保留 8-12 项最重要的排除项；不得为了凑数拆分同义词或重复表达。不要读取正文全文，不要返回资产 id、URL、候选状态或导出信息。",
   "variables": [
     "accepted_story_metadata",
     "visual_decisions",

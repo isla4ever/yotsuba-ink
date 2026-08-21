@@ -52,3 +52,9 @@ class ProjectPatchRequest(BaseModel):
 
     def changes(self) -> dict[str, object]:
         return {key: value for key, value in self.model_dump().items() if value is not None}
+
+
+class ProjectOrderRequest(BaseModel):
+    """Complete ordered project id list supplied by the Studio bookshelf."""
+
+    project_ids: list[str] = Field(min_length=0, max_length=500)

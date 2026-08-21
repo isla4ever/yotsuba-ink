@@ -18,6 +18,7 @@ from novel_workflow.storage.provider_input_store import (
     ProviderInputPayload,
     ProviderOutputContract,
 )
+from novel_workflow.workflows.hierarchical_scale import plan_hierarchical_narrative_scale
 from novel_workflow.workflows.narrative_scale import NarrativeScaleProfile
 from tests.phase27_bindings import cover_asset_binding, provider_binding
 
@@ -28,11 +29,27 @@ def bindings() -> dict[str, ProviderBinding]:
 
 def test_run_repository_separates_definition_from_graph_projection(tmp_path) -> None:
     store = NarrativeRunRepository(tmp_path / "runs")
-    definition = store.create(run_id="run-1", project_id="project-1", workflow_id="workflow-1", workflow_revision="phase27-vnext", workflow_digest="a" * 64, quality_mode="balanced", inputs={"genre": "悬疑"}, scale_profile=NarrativeScaleProfile(word_target_soft=4_000), provider_bindings=bindings(), cover_asset_binding=cover_asset_binding(), export_preferences=ExportPreferences(format="zip"))
+    scale_profile = NarrativeScaleProfile(word_target_soft=4_000)
+    definition = store.create(run_id="run-1", project_id="project-1", workflow_id="workflow-1", workflow_revision="phase27-vnext", workflow_digest="a" * 64, quality_mode="balanced", inputs={"genre": "悬疑"}, scale_profile=scale_profile, hierarchical_scale_plan=plan_hierarchical_narrative_scale(scale_profile, quality_mode="balanced"), provider_bindings=bindings(), cover_asset_binding=cover_asset_binding(), export_preferences=ExportPreferences(format="zip"))
     projected = store.project("run-1", RunReadModel(run_id="run-1", project_id="project-1", thread_id="run-1", status="running", active_stage_id="brief", stage_status={"brief": "running", "spine": "locked", "cast": "locked", "volumes": "locked", "detail": "locked", "text": "locked", "cover": "locked", "export": "locked"}, updated_at="ignored"))
     assert definition.scale_profile.word_target_soft == 4_000
+    assert definition.hierarchical_scale_plan is not None
     assert projected.status == "running"
     assert "status" not in store.definition("run-1").model_dump()
+
+
+def test_historical_run_without_hierarchical_scale_is_read_only(tmp_path) -> None:
+    store = NarrativeRunRepository(tmp_path / "runs")
+    scale_profile = NarrativeScaleProfile(word_target_soft=4_000)
+    store.create(run_id="run-history", project_id="project-1", workflow_id="workflow-1", workflow_revision="phase27-vnext", workflow_digest="a" * 64, quality_mode="balanced", inputs={"genre": "悬疑"}, scale_profile=scale_profile, hierarchical_scale_plan=plan_hierarchical_narrative_scale(scale_profile, quality_mode="balanced"), provider_bindings=bindings(), cover_asset_binding=cover_asset_binding(), export_preferences=ExportPreferences(format="zip"))
+    path = tmp_path / "runs" / "run-history" / "definition.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.pop("hierarchical_scale_plan")
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    assert store.definition("run-history").hierarchical_scale_plan is None
+    with pytest.raises(ValueError, match="read-only"):
+        store.executable_definition("run-history")
 
 
 def test_event_projection_is_idempotent(tmp_path) -> None:
@@ -95,6 +112,58 @@ def test_provider_regeneration_preserves_prior_input_and_receipt(tmp_path) -> No
     assert store.provider_inputs.read("run-1", second.provider_input_ref).input == revised_input
     assert succeeded.status == "succeeded"
     assert failed.status == "failed"
+
+
+def test_provider_return_and_contract_outcome_are_receipted_separately(tmp_path) -> None:
+    store = OperationStore(tmp_path / "operations")
+    receipt = store.begin_provider(
+        run_id="run-contract",
+        operation_key="run-contract:evidence:1",
+        kind="chapter_evidence",
+        provider_profile_id="fake",
+        model="fake",
+        provider_input=_provider_input(),
+    )
+
+    returned = store.record_provider_return(
+        "run-contract",
+        receipt.operation_key,
+        {"claims": []},
+        usage={"input_tokens": 11, "output_tokens": 7},
+        diagnostic={"request_id": "redacted"},
+    )
+    rejected = store.reject_provider_contract(
+        "run-contract",
+        receipt.operation_key,
+        {"type": "ValidationError", "message": "claims must not be empty"},
+        diagnostic={"code": "contract_invalid"},
+    )
+
+    assert returned.status == "provider_returned"
+    assert rejected.status == "contract_rejected"
+    assert rejected.provider_result == {"claims": []}
+    assert rejected.result is None
+    assert rejected.usage == {
+        "prompt_tokens": 11,
+        "completion_tokens": 7,
+        "total_tokens": 18,
+    }
+    assert rejected.diagnostic == {
+        "request_id": "redacted",
+        "code": "contract_invalid",
+    }
+    assert store.usage_summary("run-contract").model_dump() == {
+        "provider_operations": 1,
+        "returned_operations": 1,
+        "succeeded_operations": 0,
+        "contract_rejected_operations": 1,
+        "failed_operations": 0,
+        "pending_operations": 0,
+        "prompt_tokens": 11,
+        "completion_tokens": 7,
+        "total_tokens": 18,
+        "reasoning_tokens": 0,
+    }
 
 
 def test_provider_operation_key_rejects_changed_input_and_snapshots_are_content_addressed(tmp_path) -> None:

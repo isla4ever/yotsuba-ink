@@ -162,6 +162,20 @@ def test_project_create_rejects_blank_idea(tmp_path, monkeypatch) -> None:
     assert api.post("/api/projects", json={"idea": "   "}).status_code == 422
 
 
+def test_project_order_persists_and_requires_the_complete_project_set(tmp_path, monkeypatch) -> None:
+    api = client(tmp_path, monkeypatch)
+    first = api.post("/api/projects", json={"idea": "第一部作品。"}).json()
+    second = api.post("/api/projects", json={"idea": "第二部作品。"}).json()
+
+    response = api.put("/api/projects/order", json={"project_ids": [first["id"], second["id"]]})
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [first["id"], second["id"]]
+    assert [item["id"] for item in api.get("/api/projects").json()] == [first["id"], second["id"]]
+
+    invalid = api.put("/api/projects/order", json={"project_ids": [first["id"]]})
+    assert invalid.status_code == 422
+
+
 def test_accent_hue_assignment_is_deterministic() -> None:
     assert next_accent_hue([]) == ACCENT_HUE_SEQUENCE[0]
     assert next_accent_hue(list(ACCENT_HUE_SEQUENCE)) == ACCENT_HUE_SEQUENCE[0]

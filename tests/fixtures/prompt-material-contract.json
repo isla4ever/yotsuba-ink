@@ -1,0 +1,9 @@
+{
+  "brief": ["project_brief", "length_envelope", "source_pack", "revision_request"],
+  "spine": ["story_brief", "source_observations", "scale_plan", "revision_request"],
+  "cast": ["story_brief", "story_spine", "role_demand_proposals", "subject_refs", "scale_plan", "revision_request"],
+  "volumes": ["story_brief", "volume_spine_turns", "character_bible_refs", "volume_boundary", "scale_plan", "closure_policy", "previous_volume_handoff", "reserved_titles", "revision_request"],
+  "detail": ["volume_contract", "volume_spine_turns", "scale_projection", "selected_dossiers", "historical_record_ids", "present_actor_ids", "world_rule_projection", "previous_segment_handoff", "reserved_titles", "revision_request"],
+  "text": ["chapter_context_manifest"],
+  "cover": ["accepted_story_metadata", "visual_decisions", "revision_request"]
+}

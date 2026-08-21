@@ -296,7 +296,6 @@ def brief_input_schema() -> list[InputField]:
         InputField(key="genre", label="题材", type="select", required=False, default="自动判断", options=["自动判断", "悬疑", "玄幻", "都市", "科幻", "言情", "历史", "现实", "轻小说"], hint="默认从创作想法判断；手动选择时作为类型惯例约束。"),
         InputField(key="narrative_profile", label="叙事角色", type="select", required=True, default="故事建筑师", options=["故事建筑师", "现场观察者", "心理戏剧家", "悬念导演", "群像编年者", "意象织造者"], hint="选择贯穿全书的观察与表达策略；角色 Prompt 只读，可在首次准备中查阅。"),
         InputField(key="word_target_soft", label="全书字符目标", type="number", required=False, default=100000, hint="去除空白后统计；细纲定稿后按每章场景负载分配正文目标。"),
-        InputField(key="turn_target_override", label="锁定脊柱转折数", type="number", required=False, default=None, hint="仅精细模式生效，且必须落在本书章长容量动态推导的区间内。"),
         InputField(key="audience", label="目标读者", required=False, default="偏好强情节、悬念推进、人物关系清晰的网文读者", hint="可选；留空时由创作立项根据想法判断。", placeholder="例如：偏好强冲突、快节奏反转的悬疑读者"),
         InputField(key="core_concept", label="核心创意/冲突", type="textarea", required=True, default="旧港多年前的记忆实验留下旧案回声，主角追查真相时发现自己最可信的记忆也被改写。", hint="立项只需要一个能撑起全书的核心冲突；世界规则在本阶段形成，人物职责与关系在下一阶段冻结。", placeholder="一句话说清冲突：谁+想要什么+被什么阻止"),
         InputField(key="keywords", label="关键词", type="tags", required=False, default=["旧港", "记忆实验", "群像", "旧案"], hint="可选；留空时从创作想法提炼，可用于参考检索。", placeholder="例如：孤岛、双时间线、身份互换"),

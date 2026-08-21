@@ -75,7 +75,7 @@ def cast_payload() -> dict[str, object]:
     }
 
 
-def test_run_api_uses_phase27_definition_and_rejects_old_input_shape(tmp_path, monkeypatch) -> None:
+def test_run_api_freezes_hierarchical_scale_and_rejects_old_input_shape(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     client = TestClient(create_app())
     configure_phase27_providers(client)
@@ -84,8 +84,16 @@ def test_run_api_uses_phase27_definition_and_rejects_old_input_shape(tmp_path, m
     assert response.status_code == 200
     stored = client.get("/api/runs/api-run-1").json()
     assert stored["definition"]["architecture_version"] == "phase27-vnext"
-    assert "book_scale_plan" not in json.dumps(stored, ensure_ascii=False)
+    scale_plan = stored["definition"]["hierarchical_scale_plan"]
+    assert scale_plan["chapter_target"] == 5
+    assert scale_plan["part_target"] == 1
+    assert "turn_target" not in scale_plan
     assert stored["read_model"]["active_stage_id"] == "brief"
+
+    retired_override = payload(project["id"], project["workflow_id"])
+    retired_override["run_id"] = "api-run-retired-turn-override"
+    retired_override["inputs"]["scale_overrides"] = {"turn_target": 4}
+    assert client.post("/api/runs", json=retired_override).status_code == 422
 
     old_payload = payload(project["id"], project["workflow_id"])
     old_payload["run_id"] = "api-run-old-shape"

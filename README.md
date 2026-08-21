@@ -6,7 +6,7 @@
   <p><strong>AI 原生长篇小说创作工作台</strong></p>
   <p>用可审阅的阶段产物、连续性上下文和可恢复运行，完成从故事立项到整书导出的长篇创作流程。</p>
   <p>
-    <img src="https://img.shields.io/badge/version-v1.0.0-2f9e78" alt="v1.0.0" />
+    <img src="https://img.shields.io/badge/version-v1.1.0-2f9e78" alt="v1.1.0" />
     <img src="https://img.shields.io/badge/Python-3.12%2B-3776ab" alt="Python 3.12+" />
     <img src="https://img.shields.io/badge/Node.js-22%2B-43853d" alt="Node.js 22+" />
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache-2.0" /></a>
@@ -16,7 +16,8 @@
 <p align="center">
   <a href="#产品工作流">产品工作流</a> ·
   <a href="#三档创作模式">创作模式</a> ·
-  <a href="#v10-实证">v1.0 实证</a> ·
+  <a href="#v11-version-20-创作工作台">v1.1</a> ·
+  <a href="#v10-长篇实证">v1.0 实证</a> ·
   <a href="#快速开始">快速开始</a>
 </p>
 
@@ -25,6 +26,29 @@
 </p>
 
 Yotsuba Ink 面向需要持续控制结构、人物、连续性和版本的长篇创作。它把模型调用组织为一条有明确产物、人工决策、质量边界和恢复记录的生产链路，而不是把整本书交给一次对话生成。
+
+## v1.1： Version 20 创作工作台
+
+v1.1 将 Figma Make Version 20 设计完整迁入唯一生产前端，并继续沿用同一套 FastAPI、LangGraph、Artifact、SSE 与 Provider 合同。仓库内不再保留旧前端入口、双 Router 或第二套主题。
+
+- **连续流水线目录**：八个阶段以单轨生产链展示，模板主体、查看配置和使用流程均连接真实工作流接口。
+- **阶段化创作工作台**：Spine 因果链、Cast 名册、Volumes 卷册、Detail/Text 章节各自保留统一宽度的二级导航；Header 使用克制的实时 ECG 轨迹。
+- **运行监控与 Story Bible**：监控台按阶段切换真实 Artifact、正文、Provider 使用量与事件日志；人物、事实、伏笔和世界规则来自后端读模型。
+- **精细模式作者协作**：在 Spine、Cast、Volumes、Detail、Text 中提供讨论、方案与可审阅改稿；上下文回执、选区绑定、历史线程、SSE 和 patch 写回均由后端合同约束。
+- **统一加载与过渡**：全局和局部加载器互斥，异步内容淡入，Reduced Motion 下停止持续动画。
+
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/v1.1-workflow-pipelines.jpg" alt="v1.1 连续流水线目录" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/v1.1-workflow-config.jpg" alt="v1.1 八阶段稿件栈配置" /></td>
+  </tr>
+  <tr>
+    <td align="center">连续流水线目录</td>
+    <td align="center">八阶段稿件栈配置</td>
+  </tr>
+</table>
+
+本版本的本地合同、fake Provider、前端构建与浏览器门禁独立记录；精细模式作者协作的真实 Provider 质量与成本仍需全新 Deep Run 验收，不由离线测试替代。完整版本记录见 [CHANGELOG](CHANGELOG.md)。
 
 ## 产品工作流
 
@@ -87,6 +111,8 @@ flowchart TB
     <tr><td>有界上下文</td><td>当前章节只读取签名后的 Context Manifest 和必要引用</td><td>控制上下文膨胀，降低跨章信息漂移</td></tr>
     <tr><td>相邻章节连续</td><td>第 N+1 章依赖第 N 章已接受正文、handoff 与临时状态</td><td>人物位置、知识状态和行动结果可以顺序承接</td></tr>
     <tr><td>证据化审校</td><td>确定性合同可阻断；模型 reviewer 默认提供证据与告警</td><td>不因模糊文学判断触发无限重写</td></tr>
+    <tr><td>作者协作</td><td>精细模式以有界上下文回执和 source-bound patch 支持持续讨论、方案与改稿</td><td>模型不能绕过作者确认直接改写权威产物</td></tr>
+    <tr><td>运行监控</td><td>从同一 Run 事件、Artifact、章节和 usage 读模型投影阶段内容与健康日志</td><td>自动运行过程可观察，不依赖计时器或假进度</td></tr>
     <tr><td>一次定向换稿</td><td>页面展示问题、正文证据和建议方向；每阶段/章节最多一次</td><td>修复明确缺陷，同时保护已冻结结构</td></tr>
     <tr><td>可恢复运行</td><td>LangGraph checkpoint、operation receipt、SSE sequence 和静态终态投影</td><td>失败可定位、断线可续接、完成作品不会重放历史过程</td></tr>
     <tr><td>可核验交付</td><td>Export 固定已接受章节版本、元数据、文件哈希和下载回执</td><td>交付内容与创作过程可追溯</td></tr>
@@ -102,7 +128,7 @@ flowchart TB
   <tbody>
     <tr><td>极速</td><td>低延迟、低成本模型优先；内置 DeepSeek 示例配置</td><td>阶段与章节自动接受</td><td>保留硬门；明确硬问题最多自动定向修订一次</td><td>快速验证创意与完整初稿</td></tr>
     <tr><td>平衡（推荐）</td><td>高杠杆规划与正文优先高质量模型，轻量节点可选经济模型</td><td>每阶段、每章可接受、编辑、换稿或取消</td><td>连续性与人物审稿必需；证据和修订方向可见</td><td>日常中长篇创作</td></tr>
-    <tr><td>精细</td><td>Provider 阶段优先高质量模型，并提高人工控制密度</td><td>每阶段、每章人工定稿</td><td>三路审稿全部返回；可锁定可行区间内的结构参数</td><td>正式稿精修与高控制创作</td></tr>
+    <tr><td>精细</td><td>Provider 阶段优先高质量模型，并提高人工控制密度</td><td>每阶段、每章人工定稿；五个核心阶段可开启作者协作</td><td>三路审稿全部返回；改稿必须预览确认并绑定源版本</td><td>正式稿精修与专业作者协作</td></tr>
   </tbody>
 </table>
 
@@ -134,7 +160,7 @@ flowchart TB
   class domainStores,readModel,exportFiles data;
 ```
 
-## v1.0 实证
+## v1.0 长篇实证
 
 `official-deepseek-balanced` 已完成一轮真实 10 万字以上长篇生产：
 
@@ -164,7 +190,7 @@ flowchart TB
 
 - Python 3.12+
 - Node.js 22+
-- npm 10+
+- pnpm 9+
 
 ### 1. 安装
 
@@ -177,7 +203,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
 cd apps/web
-npm ci
+pnpm install --frozen-lockfile
 ```
 
 ### 2. 启动后端
@@ -194,10 +220,10 @@ cd yotsuba-ink
 
 ```bash
 cd yotsuba-ink/apps/web
-npm run dev
+pnpm dev
 ```
 
-打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。开发服务器默认把 `/api` 代理到 `http://127.0.0.1:8787`。
+打开 [http://127.0.0.1:5176](http://127.0.0.1:5176)。开发服务器默认把 `/api` 代理到 `http://127.0.0.1:8787`。
 
 ## Provider 配置
 
@@ -227,13 +253,14 @@ export NOVEL_IMAGE_MODEL="your-image-model"
 
 # 前端
 cd apps/web
-npm test
-npm run build
-npm run audit:css
-npm run check:css-split
+pnpm test
+pnpm build
+pnpm audit:css
+pnpm audit:structure
+pnpm check:css-build
 ```
 
-当前 v1.0 基线：后端 `527 passed`；前端 `114` 个测试文件、`425 passed`；TypeScript、生产构建、CSS 审计、CSS 分包检查与浏览器桌面/390px 验收通过。
+发布前必须通过后端全量测试与 compileall，以及前端测试、TypeScript/Vite 生产构建、CSS/目录审计和桌面/移动端真实浏览器验收。真实 Provider 与文学质量使用独立的新 Run 记录，不能由离线门禁替代。
 
 ## 仓库结构
 
@@ -250,7 +277,12 @@ docs/                        架构合同与验收记录
 - [架构概览](docs/architecture/overview.md)
 - [阶段 Artifact 合同](docs/architecture/stage-artifact-contract.md)
 - [Phase 27 自适应长篇架构](docs/architecture/phase-27-adaptive-story-planning-reconstruction.md)
+- [Phase 28 文学可靠性与作者控制](docs/architecture/phase-28-v1.1-literary-reliability-and-author-control.md)
+- [Phase 29 分层长篇规划](docs/architecture/phase-29-v1.1-million-character-author-led-deep-mode.md)
+- [Phase 30 Version 20 前端迁移](docs/architecture/phase-30-figma-ui-production-migration.md)
+- [Phase 31 精细模式作者协作](docs/architecture/phase-31-deep-mode-author-collaboration.md)
 - [v1.0 平衡模式长篇验收](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)
+- [版本变更记录](CHANGELOG.md)
 
 ## 许可证
 

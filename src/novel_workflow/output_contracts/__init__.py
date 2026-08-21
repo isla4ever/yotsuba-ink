@@ -18,6 +18,24 @@ from novel_workflow.output_contracts.provider_tasks import (
     EvidenceClaimProposal,
     ReviewFinding,
 )
+from novel_workflow.output_contracts.planning_hierarchy import (
+    BookMilestoneBinding,
+    DetailChapterUnitArtifact,
+    DetailPlanIndexArtifact,
+    DetailWindowArtifact,
+    PartArcArtifact,
+    PartTurnArtifact,
+    StorySpineRootArtifact,
+    VolumeArchitectureRootArtifact,
+    VolumeUnitArtifact,
+    mint_stable_ref,
+    validate_stable_ref,
+)
+from novel_workflow.output_contracts.planning_hierarchy_validation import (
+    validate_detail_aggregate,
+    validate_spine_aggregate,
+    validate_volume_aggregate,
+)
 
 __all__ = [
     "ARTIFACT_MODELS",
@@ -32,6 +50,20 @@ __all__ = [
     "ExportArtifact",
     "EvidenceClaimProposal",
     "ReviewFinding",
+    "BookMilestoneBinding",
+    "DetailChapterUnitArtifact",
+    "DetailPlanIndexArtifact",
+    "DetailWindowArtifact",
+    "PartArcArtifact",
+    "PartTurnArtifact",
+    "StorySpineRootArtifact",
+    "VolumeArchitectureRootArtifact",
+    "VolumeUnitArtifact",
+    "mint_stable_ref",
+    "validate_detail_aggregate",
+    "validate_spine_aggregate",
+    "validate_stable_ref",
+    "validate_volume_aggregate",
     "StoryBriefArtifact",
     "StorySpineArtifact",
     "VolumeArchitectureArtifact",

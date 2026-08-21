@@ -1,12 +1,9 @@
 import type {
-  ChapterContextManifestRecord,
+  ChapterVersionRecord,
   GraphRunEnvelope,
-  ProviderStageId,
   RunArtifactRecord,
-  RunInputs,
   StageArtifactDraftRecord,
-  WorkflowDefinition,
-} from '../contracts';
+} from "../contracts/run"
 
 export class RunApiError extends Error {
   constructor(
@@ -14,147 +11,83 @@ export class RunApiError extends Error {
     readonly status: number,
     readonly code?: string,
   ) {
-    super(message);
-    this.name = 'RunApiError';
+    super(message)
+    this.name = "RunApiError"
   }
 }
 
-export async function getRun(runId: string, signal?: AbortSignal): Promise<GraphRunEnvelope> {
-  const response = await fetch(`/api/runs/${runId}`, { signal });
-  if (!response.ok) throw await responseError(response, `run ${runId}`);
-  return response.json();
-}
-
-export type RunPresentationSnapshot = {
-  committedArtifacts: RunArtifactRecord[];
-  acceptedChapters: ChapterVersionRecord[];
-  envelope: GraphRunEnvelope;
-};
-
-export type ChapterVersionRecord = {
-  run_id: string;
-  chapter_id: string;
-  version_id: string;
-  artifact: {
-    chapter_id: string;
-    version_id: string;
-    title: string;
-    content: string;
-    author_status: string;
-    [key: string]: unknown;
-  };
-  signature: string;
-  created_at: string;
-};
-
-export async function getRunPresentationSnapshot(
+export async function getRun(
   runId: string,
   signal?: AbortSignal,
-): Promise<RunPresentationSnapshot> {
-  const envelope = await getRun(runId, signal);
-  const committedArtifacts = await Promise.all(
-    Object.entries(envelope.read_model.artifact_refs).map(async ([stageId, artifactId]) => {
-      const record = await getArtifactRecord(runId, artifactId, signal);
-      if (
-        record.run_id !== runId
-        || record.artifact_id !== artifactId
-        || record.stage_id !== stageId
-        || record.status !== 'committed'
-      ) {
-        throw new RunApiError(`Run ${runId} has an invalid committed artifact snapshot`, 409);
-      }
-      return record;
-    }),
-  );
-  const acceptedChapters = isTerminalRun(envelope.read_model.status)
-    ? (await getRunChapters(runId, signal)).chapters.filter((record) => record.artifact.author_status === 'accepted')
-    : [];
-  return { acceptedChapters, committedArtifacts, envelope };
+): Promise<GraphRunEnvelope> {
+  const url = `/api/runs/${encodeURIComponent(runId)}`
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw await responseError(response, url)
+  return parseRunEnvelope(await response.json(), url)
+}
+
+export async function getArtifactRecord(
+  runId: string,
+  artifactId: string,
+  signal?: AbortSignal,
+): Promise<RunArtifactRecord> {
+  const url = `/api/runs/${encodeURIComponent(runId)}/artifact-records/${encodeURIComponent(artifactId)}`
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw await responseError(response, url)
+  const value: unknown = await response.json()
+  if (!value || typeof value !== "object")
+    throw new RunApiError(`Artifact 接口返回了无法识别的数据：${url}`, 502)
+  return value as RunArtifactRecord
 }
 
 export async function getRunChapters(
   runId: string,
   signal?: AbortSignal,
-): Promise<{ run_id: string; chapters: ChapterVersionRecord[] }> {
-  const response = await fetch(`/api/runs/${runId}/chapters`, { signal });
-  if (!response.ok) throw await responseError(response, 'run chapters');
-  const payload = await response.json() as { run_id?: unknown; chapters?: unknown };
+): Promise<ChapterVersionRecord[]> {
+  const url = `/api/runs/${encodeURIComponent(runId)}/chapters`
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw await responseError(response, url)
+  const payload = (await response.json()) as {
+    run_id?: unknown
+    chapters?: unknown
+  }
   if (payload.run_id !== runId || !Array.isArray(payload.chapters)) {
-    throw new RunApiError(`Run ${runId} has an invalid chapter snapshot`, 409);
+    throw new RunApiError(`章节接口返回了无法识别的数据：${url}`, 502)
   }
-  if (payload.chapters.some((record) => !isChapterVersionRecord(record))) {
-    throw new RunApiError(`Run ${runId} has an invalid chapter version record`, 409);
-  }
-  return {
-    run_id: runId,
-    chapters: payload.chapters as ChapterVersionRecord[],
-  };
+  return payload.chapters as ChapterVersionRecord[]
 }
 
-function isTerminalRun(status: GraphRunEnvelope['read_model']['status']) {
-  return status === 'completed' || status === 'failed' || status === 'cancelled';
-}
-
-function isChapterVersionRecord(value: unknown): value is ChapterVersionRecord {
-  if (!value || typeof value !== 'object') return false;
-  const record = value as Partial<ChapterVersionRecord>;
-  const artifact = record.artifact;
-  return Boolean(
-    typeof record.run_id === 'string'
-    && typeof record.chapter_id === 'string'
-    && typeof record.version_id === 'string'
-    && typeof record.signature === 'string'
-    && typeof record.created_at === 'string'
-    && artifact
-    && typeof artifact === 'object'
-    && typeof artifact.chapter_id === 'string'
-    && typeof artifact.version_id === 'string'
-    && typeof artifact.title === 'string'
-    && typeof artifact.content === 'string'
-    && typeof artifact.author_status === 'string',
-  );
-}
-
-export async function createRunBranch(
-  sourceRunId: string,
-  checkpointId: string,
-  targetRunId = `run-${crypto.randomUUID()}`,
-  bindingOverrideStages: ProviderStageId[] = [],
+export function streamExistingRun(
+  runId: string,
   signal?: AbortSignal,
+  after = 0,
 ) {
-  const response = await postJson(`/api/runs/${sourceRunId}/branches`, {
-    target_run_id: targetRunId,
-    checkpoint_id: checkpointId,
-    ...(bindingOverrideStages.length ? { binding_override_stages: bindingOverrideStages } : {}),
-  }, signal);
-  return response.json() as Promise<{
-    run_id: string;
-    thread_id: string;
-    status: string;
-    source_run_id: string;
-    source_checkpoint_id: string;
-  }>;
-}
-
-export function isRunNotFoundError(error: unknown) {
-  return error instanceof RunApiError
-    && (error.status === 404 || error.code === 'run_contract_retired');
+  return fetch(`/api/runs/${encodeURIComponent(runId)}/events?after=${after}`, {
+    method: "GET",
+    signal,
+  })
 }
 
 export async function resolveRunDecision(
   runId: string,
   decisionId: string,
-  action: 'accept' | 'regenerate' | 'cancel',
+  action: "accept" | "regenerate" | "retry_evidence" | "cancel",
   domainRevision: number,
   artifact?: Record<string, unknown>,
   direction?: string,
 ) {
-  await postJson(`/api/runs/${runId}/decisions/${encodeURIComponent(decisionId)}`, {
-    action,
-    domain_revision: domainRevision,
-    ...(artifact ? { artifact } : {}),
-    ...(direction?.trim() ? { direction: direction.trim() } : {}),
-  });
+  const url = `/api/runs/${encodeURIComponent(runId)}/decisions/${encodeURIComponent(decisionId)}`
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      domain_revision: domainRevision,
+      ...(artifact ? { artifact } : {}),
+      ...(direction?.trim() ? { direction: direction.trim() } : {}),
+    }),
+  })
+  if (!response.ok) throw await responseError(response, url)
 }
 
 export async function getStageArtifactDraft(
@@ -162,12 +95,10 @@ export async function getStageArtifactDraft(
   decisionId: string,
   signal?: AbortSignal,
 ): Promise<StageArtifactDraftRecord | null> {
-  const response = await fetch(
-    `/api/runs/${runId}/stage-drafts/${encodeURIComponent(decisionId)}`,
-    { signal },
-  );
-  if (!response.ok) throw await responseError(response, 'stage Artifact draft');
-  return response.json();
+  const url = `/api/runs/${encodeURIComponent(runId)}/stage-drafts/${encodeURIComponent(decisionId)}`
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw await responseError(response, url)
+  return response.json() as Promise<StageArtifactDraftRecord | null>
 }
 
 export async function saveStageArtifactDraft(
@@ -177,116 +108,102 @@ export async function saveStageArtifactDraft(
   sourceArtifactId: string,
   artifact: Record<string, unknown>,
 ): Promise<StageArtifactDraftRecord> {
-  const response = await putJson(
-    `/api/runs/${runId}/stage-drafts/${encodeURIComponent(decisionId)}`,
-    {
+  const url = `/api/runs/${encodeURIComponent(runId)}/stage-drafts/${encodeURIComponent(decisionId)}`
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
       domain_revision: domainRevision,
       source_artifact_id: sourceArtifactId,
       artifact,
-    },
-  );
-  return response.json();
+    }),
+  })
+  if (!response.ok) throw await responseError(response, url)
+  return response.json() as Promise<StageArtifactDraftRecord>
 }
 
-export async function getArtifactRecord(
-  runId: string,
-  artifactId: string,
-  signal?: AbortSignal,
-): Promise<RunArtifactRecord> {
-  const response = await fetch(`/api/runs/${runId}/artifact-records/${encodeURIComponent(artifactId)}`, { signal });
-  if (!response.ok) throw await responseError(response, 'artifact record');
-  return response.json();
+function parseRunEnvelope(value: unknown, url: string): GraphRunEnvelope {
+  if (!value || typeof value !== "object") throw invalidRunContract(url)
+  const envelope = value as Partial<GraphRunEnvelope>
+  const definition = envelope.definition
+  const readModel = envelope.read_model
+  if (
+    !definition ||
+    definition.architecture_version !== "phase27-vnext" ||
+    typeof definition.run_id !== "string" ||
+    typeof definition.project_id !== "string" ||
+    typeof definition.workflow_id !== "string" ||
+    !isQualityMode(definition.quality_mode) ||
+    !definition.provider_bindings ||
+    typeof definition.provider_bindings !== "object" ||
+    !validCoverBinding(definition.cover_asset_binding) ||
+    !validExportPreferences(definition.export_preferences) ||
+    !readModel ||
+    typeof readModel.run_id !== "string" ||
+    typeof readModel.project_id !== "string" ||
+    typeof readModel.status !== "string" ||
+    typeof readModel.active_stage_id !== "string" ||
+    !readModel.stage_status ||
+    typeof readModel.stage_status !== "object" ||
+    !readModel.artifact_refs ||
+    typeof readModel.artifact_refs !== "object" ||
+    !Array.isArray(readModel.pending_decisions) ||
+    typeof readModel.updated_at !== "string"
+  )
+    throw invalidRunContract(url)
+  return envelope as GraphRunEnvelope
 }
 
-export async function getContextManifest(
-  runId: string,
-  manifestId: string,
-  signal?: AbortSignal,
-) {
-  const response = await fetch(
-    `/api/runs/${runId}/context-manifests/${encodeURIComponent(manifestId)}`,
-    { signal },
-  );
-  if (!response.ok) throw await responseError(response, 'context manifest');
-  return response.json() as Promise<ChapterContextManifestRecord>;
+function isQualityMode(value: unknown) {
+  return value === "fast" || value === "balanced" || value === "deep"
 }
 
-export async function getChapterVersion(runId: string, chapterId: string, versionId: string, signal?: AbortSignal) {
-  const response = await fetch(`/api/runs/${runId}/chapters/${encodeURIComponent(chapterId)}/versions/${encodeURIComponent(versionId)}`, { signal });
-  if (!response.ok) throw await responseError(response, 'chapter version');
-  return response.json() as Promise<{ artifact: Record<string, unknown> }>;
+function validCoverBinding(value: unknown) {
+  if (!value || typeof value !== "object") return false
+  const binding = value as Record<string, unknown>
+  return (
+    typeof binding.provider_profile_id === "string" &&
+    typeof binding.model === "string" &&
+    Number.isInteger(binding.candidate_count) &&
+    typeof binding.size === "string" &&
+    ["low", "medium", "high"].includes(String(binding.quality)) &&
+    typeof binding.timeout_seconds === "number" &&
+    binding.failure_policy === "fail_run"
+  )
 }
 
-export async function createRunStream(workflow: WorkflowDefinition, inputs: RunInputs, signal?: AbortSignal, runId?: string) {
-  if (!inputs.project_id) throw new RunApiError('A Run requires an active project', 422);
-  const { export_preferences: exportPreferences, ...projectInputs } = inputs;
-  if (!['md', 'json', 'zip'].includes(exportPreferences.format)) {
-    throw new RunApiError('Export format must be md, json, or zip', 422);
-  }
-  const id = runId || `run-${crypto.randomUUID()}`;
-  await postJson('/api/runs', {
-    run_id: id,
-    project_id: inputs.project_id,
-    workflow_id: workflow.id,
-    inputs: projectInputs,
-    export_preferences: exportPreferences,
-  }, signal);
-  await postWithoutBody(`/api/runs/${id}/start`, signal);
-  return fetch(`/api/runs/${id}/events?after=0`, { method: 'GET', signal });
+function validExportPreferences(value: unknown) {
+  if (!value || typeof value !== "object") return false
+  const preferences = value as Record<string, unknown>
+  return (
+    ["md", "json", "zip"].includes(String(preferences.format)) &&
+    typeof preferences.author === "string" &&
+    typeof preferences.version_note === "string" &&
+    typeof preferences.include_cover_image === "boolean"
+  )
 }
 
-export async function streamExistingRun(runId: string, signal?: AbortSignal, after = 0) {
-  return fetch(`/api/runs/${runId}/events?after=${after}`, { method: 'GET', signal });
-}
-
-async function postWithoutBody(url: string, signal?: AbortSignal) {
-  const response = await fetch(url, { method: 'POST', signal });
-  if (!response.ok) throw await responseError(response, url);
-  return response;
-}
-
-async function postJson(url: string, body: unknown, signal?: AbortSignal) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  });
-  if (!response.ok) throw await responseError(response, url);
-  return response;
-}
-
-async function putJson(url: string, body: unknown, signal?: AbortSignal) {
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  });
-  if (!response.ok) throw await responseError(response, url);
-  return response;
+function invalidRunContract(url: string) {
+  return new RunApiError(`Run 接口返回了无法识别的数据：${url}`, 502)
 }
 
 async function responseError(response: Response, url: string) {
-  let detail = '';
-  let code: string | undefined;
+  let detail = ""
+  let code: string | undefined
   try {
-    const payload = await response.json() as {
-      detail?: unknown;
-    };
-    if (typeof payload.detail === 'string') {
-      detail = payload.detail;
-    } else if (payload.detail && typeof payload.detail === 'object') {
-      const structured = payload.detail as { code?: unknown; message?: unknown };
-      code = typeof structured.code === 'string' ? structured.code : undefined;
-      detail = typeof structured.message === 'string' ? structured.message : '';
+    const payload = (await response.json()) as { detail?: unknown }
+    if (typeof payload.detail === "string") detail = payload.detail
+    else if (payload.detail && typeof payload.detail === "object") {
+      const structured = payload.detail as { code?: unknown; message?: unknown }
+      code = typeof structured.code === "string" ? structured.code : undefined
+      detail = typeof structured.message === "string" ? structured.message : ""
     }
   } catch {
-    detail = '';
+    detail = ""
   }
   return new RunApiError(
-    detail || `Request failed: ${url} ${response.status}`,
+    detail || `Run 请求失败：${url} (${response.status})`,
     response.status,
     code,
-  );
+  )
 }

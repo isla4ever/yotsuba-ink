@@ -17,12 +17,24 @@ from novel_workflow.runtime.graph.chapter_review import (
     freeze_review_roles,
     send_reviewers_or_failure,
 )
-from novel_workflow.runtime.graph.chapter_length import evaluate_chapter_length
+from novel_workflow.runtime.graph.chapter_length import (
+    evaluate_book_length_budget,
+    evaluate_chapter_length,
+)
+from novel_workflow.runtime.graph.chapter_decision import request_chapter_decision
+from novel_workflow.quality.decision_contract import (
+    build_quality_decision,
+    contract_blocker,
+)
+from novel_workflow.runtime.graph.chapter_evidence import (
+    extract_evidence,
+    request_evidence_recovery,
+)
 from novel_workflow.runtime.graph.chapter_writeback import (
     await_commit_receipt,
     enqueue_domain_commit,
-    extract_evidence,
 )
+from novel_workflow.runtime.graph.manuscript_review import evaluate_manuscript_gate
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.failure import (
     emit_terminal_failure,
@@ -33,8 +45,11 @@ from novel_workflow.runtime.graph.state import (
     NarrativeRunState,
     copy_stage_status,
 )
-from novel_workflow.workflows.narrative_scale import count_prose_characters
-from novel_workflow.workflows.narrative_scale import soft_book_length_bounds
+from novel_workflow.workflows.narrative_scale import (
+    count_prose_characters,
+    minimum_viable_book_characters,
+    soft_book_length_bounds,
+)
 
 
 def build_chapter_graph(
@@ -59,6 +74,10 @@ def build_chapter_graph(
             "context_manifest_ref": "",
             "chapter_gate_action": "generate",
             "chapter_attempts": attempts,
+            "pending_evidence_attempt_ref": "",
+            "pending_evidence_refs": [],
+            "pending_writeback_ref": "",
+            "evidence_gate_action": "",
             "stage_status": copy_stage_status(state, "text", "running"),
             "status": "running",
         }
@@ -178,22 +197,83 @@ def build_chapter_graph(
         ]
         actual_total = sum(count_prose_characters(chapter.content) for chapter in accepted)
         profile = executor.runs.definition(run_id).scale_profile
-        minimum, maximum = soft_book_length_bounds(profile)
-        if actual_total < minimum:
+        soft_minimum, soft_maximum = soft_book_length_bounds(profile)
+        viable_minimum = minimum_viable_book_characters(profile)
+        if actual_total < viable_minimum:
             raise ValueError(
-                "Whole-book prose total is below the accepted minimum of "
-                f"{minimum} characters (frozen target {profile.word_target_soft}, "
-                f"soft maximum {maximum}): {actual_total}"
+                "Whole-book prose total is below the minimum viable length of "
+                f"{viable_minimum} characters (frozen target {profile.word_target_soft}, "
+                f"soft range {soft_minimum}-{soft_maximum}): {actual_total}"
+            )
+        if not soft_minimum <= actual_total <= soft_maximum:
+            executor.events.append(
+                run_id,
+                event_id=f"{run_id}:text:book-length-warning",
+                type="quality.warning",
+                stage_id="text",
+                node_id="text.finish_chapters",
+                chapter_id="",
+                status="warning",
+                payload={
+                    "code": "book_length_soft_band",
+                    "actual_characters": actual_total,
+                    "target_characters": profile.word_target_soft,
+                    "soft_bounds": [soft_minimum, soft_maximum],
+                    "minimum_viable_characters": viable_minimum,
+                },
             )
         return {
-            "stage_status": copy_stage_status(state, "text", "completed"),
+            "stage_status": copy_stage_status(state, "text", "running"),
             "status": "running",
             "active_chapter_id": "",
             "context_manifest_ref": "",
+            "manuscript_gate_action": "",
+        }
+
+    def complete_text_stage(state: NarrativeRunState) -> dict[str, Any]:
+        return {
+            "stage_status": copy_stage_status(state, "text", "completed"),
+            "status": "running",
         }
 
     def fail_chapter(state: NarrativeRunState) -> dict[str, Any]:
         return emit_terminal_failure(executor, state, "text")
+
+    def check_book_budget(state: NarrativeRunState) -> dict[str, Any]:
+        result = evaluate_book_length_budget(executor, state)
+        blocker_payload = result.get("book_budget_blocker") or {}
+        if not blocker_payload:
+            return {"chapter_gate_action": "review"}
+        labels = {
+            subject.id: subject.name
+            for subject in executor.character_bible(state).subjects
+        }
+        blocker = contract_blocker(blocker_payload, subject_labels=labels)
+        quality_decision = build_quality_decision(contract_blockers=[blocker])
+        return request_chapter_decision(
+            executor,
+            state,
+            quality_decision=quality_decision,
+            review_status={"book_budget": blocker_payload},
+        )
+
+    def check_chapter_length(state: NarrativeRunState) -> dict[str, Any]:
+        result = evaluate_chapter_length(executor, state)
+        blocker_payload = result.get("chapter_length_blocker") or {}
+        if not blocker_payload:
+            return {"chapter_gate_action": "review"}
+        labels = {
+            subject.id: subject.name
+            for subject in executor.character_bible(state).subjects
+        }
+        blocker = contract_blocker(blocker_payload, subject_labels=labels)
+        quality_decision = build_quality_decision(contract_blockers=[blocker])
+        return request_chapter_decision(
+            executor,
+            state,
+            quality_decision=quality_decision,
+            review_status={"chapter_length": blocker_payload},
+        )
 
     builder.add_node("prepare_chapter", guarded_node(executor, "text.prepare_chapter", "text", prepare_chapter))
     builder.add_node("prepare_context", guarded_node(executor, "text.prepare_context", "text", prepare_context))
@@ -204,7 +284,16 @@ def build_chapter_graph(
             executor,
             "text.check_length_contract",
             "text",
-            lambda state: evaluate_chapter_length(executor, state),
+            check_chapter_length,
+        ),
+    )
+    builder.add_node(
+        "check_book_budget",
+        guarded_node(
+            executor,
+            "text.check_book_budget",
+            "text",
+            check_book_budget,
         ),
     )
     builder.add_node(
@@ -223,9 +312,28 @@ def build_chapter_graph(
     builder.add_node("evaluate_review_gate", guarded_node(executor, "text.evaluate_review_gate", "text", lambda state: evaluate_review_gate(executor, state)))
     builder.add_node("commit_chapter", guarded_node(executor, "text.commit_chapter", "text", commit_chapter))
     builder.add_node("extract_evidence", guarded_node(executor, "text.extract_evidence", "text", lambda state: extract_evidence(executor, state)))
+    builder.add_node("evidence_recovery", guarded_node(executor, "text.evidence_recovery", "text", lambda state: request_evidence_recovery(executor, state)))
     builder.add_node("enqueue_domain_commit", guarded_node(executor, "text.enqueue_domain_commit", "text", lambda state: enqueue_domain_commit(executor, state)))
     builder.add_node("await_commit_receipt", guarded_node(executor, "text.await_commit_receipt", "text", lambda state: await_commit_receipt(executor, state)))
     builder.add_node("finish_chapters", guarded_node(executor, "text.finish_chapters", "text", finish_chapters))
+    builder.add_node(
+        "evaluate_manuscript",
+        guarded_node(
+            executor,
+            "text.evaluate_manuscript",
+            "text",
+            lambda state: evaluate_manuscript_gate(executor, state),
+        ),
+    )
+    builder.add_node(
+        "complete_text_stage",
+        guarded_node(
+            executor,
+            "text.complete_stage",
+            "text",
+            complete_text_stage,
+        ),
+    )
     builder.add_node("fail_chapter", fail_chapter)
     builder.add_edge(START, "prepare_chapter")
     builder.add_conditional_edges(
@@ -239,9 +347,29 @@ def build_chapter_graph(
     builder.add_conditional_edges("generate_prose", lambda state: failure_route(state, "check_length_contract"), {"failure": "fail_chapter", "check_length_contract": "check_length_contract"})
     builder.add_conditional_edges(
         "check_length_contract",
-        lambda state: "failure" if state.get("failure") is not None else "review",
+        lambda state: (
+            "failure"
+            if state.get("failure") is not None
+            else str(state.get("chapter_gate_action") or "review")
+        ),
+        {
+            "review": "check_book_budget",
+            "regenerate": "prepare_context",
+            "cancel": END,
+            "failure": "fail_chapter",
+        },
+    )
+    builder.add_conditional_edges(
+        "check_book_budget",
+        lambda state: (
+            "failure"
+            if state.get("failure") is not None
+            else str(state.get("chapter_gate_action") or "review")
+        ),
         {
             "review": "plan_review_roles",
+            "regenerate": "prepare_context",
+            "cancel": END,
             "failure": "fail_chapter",
         },
     )
@@ -260,10 +388,53 @@ def build_chapter_graph(
         },
     )
     builder.add_conditional_edges("commit_chapter", lambda state: failure_route(state, "extract_evidence"), {"failure": "fail_chapter", "extract_evidence": "extract_evidence"})
-    builder.add_conditional_edges("extract_evidence", lambda state: failure_route(state, "enqueue_domain_commit"), {"failure": "fail_chapter", "enqueue_domain_commit": "enqueue_domain_commit"})
+    builder.add_conditional_edges(
+        "extract_evidence",
+        lambda state: (
+            "failure"
+            if state.get("failure") is not None
+            else str(state.get("evidence_gate_action") or "needs_action")
+        ),
+        {
+            "failure": "fail_chapter",
+            "succeeded": "enqueue_domain_commit",
+            "needs_action": "evidence_recovery",
+        },
+    )
+    builder.add_conditional_edges(
+        "evidence_recovery",
+        lambda state: (
+            "failure"
+            if state.get("failure") is not None
+            else str(state.get("evidence_gate_action") or "cancel")
+        ),
+        {
+            "failure": "fail_chapter",
+            "retry": "extract_evidence",
+            "cancel": END,
+        },
+    )
     builder.add_conditional_edges("enqueue_domain_commit", lambda state: failure_route(state, "await_commit_receipt"), {"failure": "fail_chapter", "await_commit_receipt": "await_commit_receipt"})
     builder.add_conditional_edges("await_commit_receipt", lambda state: failure_route(state, "prepare_chapter"), {"failure": "fail_chapter", "prepare_chapter": "prepare_chapter"})
-    builder.add_conditional_edges("finish_chapters", lambda state: failure_route(state, "done"), {"failure": "fail_chapter", "done": END})
+    builder.add_conditional_edges(
+        "finish_chapters",
+        lambda state: failure_route(state, "evaluate_manuscript"),
+        {"failure": "fail_chapter", "evaluate_manuscript": "evaluate_manuscript"},
+    )
+    builder.add_conditional_edges(
+        "evaluate_manuscript",
+        lambda state: (
+            "failure"
+            if state.get("failure") is not None
+            else str(state.get("manuscript_gate_action") or "cancel")
+        ),
+        {
+            "accept": "complete_text_stage",
+            "cancel": END,
+            "failure": "fail_chapter",
+        },
+    )
+    builder.add_edge("complete_text_stage", END)
     builder.add_edge("fail_chapter", END)
     return builder.compile(name="yotsuba_chapter_loop")
 def _copy_chapter_ref(

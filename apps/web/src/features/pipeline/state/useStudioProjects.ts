@@ -1,135 +1,66 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ProjectRecord, ProjectSummary, WorkflowDefinition } from '../contracts';
-import { createProject, listProjects, getProjectSummary } from '../services/projectApi';
+import { useCallback, useEffect, useMemo, useState } from "react"
+import type { Project } from "@/features/pipeline/contracts/app"
+import type { ProjectRecord, ProjectSummary } from "../contracts/project"
+import { projectPresentation } from "../lib/projectPresentation"
 import {
-  deleteWorkflowDefinition,
-  duplicateWorkflowDefinition,
-  listWorkflowDefinitions,
-  saveWorkflowDefinition,
-} from '../services/workflowApi';
-import { selectableTemplates } from '../layout/studio/newProjectWizardModel';
-import { defaultWorkflowId, isOneTimeWorkflowId } from '../lib/officialWorkflows';
-import { mapWithConcurrency } from '../layout/studio/studioModel';
+  getProjectSummaries,
+  listProjects,
+  reorderProjects,
+} from "../services/projectApi"
 
-const SUMMARY_CONCURRENCY = 4;
+export function useStudioProjects() {
+  const [records, setRecords] = useState<ProjectRecord[]>([])
+  const [summaries, setSummaries] = useState<Record<string, ProjectSummary>>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-/** Studio Shell data controller: project list + summaries, creation, archiving, template management. */
-export function useStudioProjects(active: boolean) {
-  const [projects, setProjects] = useState<ProjectRecord[]>([]);
-  const [summaries, setSummaries] = useState<Record<string, ProjectSummary>>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [templates, setTemplates] = useState<WorkflowDefinition[]>([]);
-  const [templateError, setTemplateError] = useState('');
-  const requestSeq = useRef(0);
-
-  const refresh = useCallback(async () => {
-    const seq = requestSeq.current + 1;
-    requestSeq.current = seq;
-    setLoading(true);
+  const refresh = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true)
     try {
-      const list = await listProjects();
-      if (requestSeq.current !== seq) return;
-      setProjects(list);
-      setError('');
-      // Summary fan-out is capped at 4 concurrent requests.
-      const loaded = await mapWithConcurrency(list, SUMMARY_CONCURRENCY, (project) => getProjectSummary(project.id));
-      if (requestSeq.current !== seq) return;
-      setSummaries((current) => {
-        const next = { ...current };
-        loaded.forEach((summary, index) => {
-          if (summary) next[list[index].id] = summary;
-        });
-        return next;
-      });
+      const projects = await listProjects(signal)
+      setRecords(projects)
+      setError("")
+      setSummaries(await getProjectSummaries(projects, signal))
     } catch (reason) {
-      if (requestSeq.current !== seq) return;
-      setError(reason instanceof Error ? reason.message : '作品库暂时不可用');
+      if (signal?.aborted) return
+      setError(reason instanceof Error ? reason.message : "作品库暂时不可用")
     } finally {
-      if (requestSeq.current === seq) setLoading(false);
+      if (!signal?.aborted) setLoading(false)
     }
-  }, []);
-
-  const refreshTemplates = useCallback(async () => {
-    try {
-      setTemplates(selectableTemplates(await listWorkflowDefinitions()));
-      setTemplateError('');
-    } catch (reason) {
-      setTemplateError(reason instanceof Error ? reason.message : '工作流模板暂时不可用');
-    }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    if (!active) return;
-    void refresh();
-    void refreshTemplates();
-  }, [active, refresh, refreshTemplates]);
+    const controller = new AbortController()
+    void refresh(controller.signal)
+    return () => controller.abort()
+  }, [refresh])
 
-  const create = useCallback(async (input: { idea: string; templateId: string }) => {
-    const project = await createProject({
-      idea: input.idea.trim(),
-      template_workflow_id: input.templateId || defaultWorkflowId,
-      consume_workflow_draft: isOneTimeWorkflowId(input.templateId),
-    });
-    setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
-    return project;
-  }, []);
+  const projects = useMemo(
+    () =>
+      records.map((project) =>
+        projectPresentation(project, summaries[project.id]),
+      ),
+    [records, summaries],
+  )
 
-  const duplicateTemplate = useCallback(async (workflowId: string, name: string) => {
-    try {
-      await duplicateWorkflowDefinition(workflowId, { name, is_template: true });
-      setTemplateError('');
-      await refreshTemplates();
-    } catch (reason) {
-      setTemplateError(reason instanceof Error ? reason.message : '复制模板失败');
-    }
-  }, [refreshTemplates]);
+  const reorder = useCallback(
+    async (next: Project[]) => {
+      const previous = records
+      setRecords(
+        next
+          .map((item) => records.find((record) => record.id === item.id))
+          .filter(Boolean) as ProjectRecord[],
+      )
+      try {
+        setRecords(await reorderProjects(next.map((item) => item.id)))
+        setError("")
+      } catch (reason) {
+        setRecords(previous)
+        setError(reason instanceof Error ? reason.message : "作品排序保存失败")
+      }
+    },
+    [records],
+  )
 
-  const createOneTimeWorkflow = useCallback(async (workflowId: string) => {
-    return duplicateWorkflowDefinition(workflowId, {
-      name: '本书专用创作流水线',
-      is_template: false,
-    });
-  }, []);
-
-  const renameTemplate = useCallback(async (template: WorkflowDefinition, name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === template.name) return;
-    try {
-      await saveWorkflowDefinition({ ...template, name: trimmed });
-      setTemplateError('');
-      await refreshTemplates();
-    } catch (reason) {
-      setTemplateError(reason instanceof Error ? reason.message : '重命名模板失败');
-    }
-  }, [refreshTemplates]);
-
-  const removeTemplate = useCallback(async (workflowId: string) => {
-    try {
-      await deleteWorkflowDefinition(workflowId);
-      setTemplateError('');
-      await refreshTemplates();
-    } catch (reason) {
-      // 409 carries the referencing project titles from the backend.
-      setTemplateError(reason instanceof Error ? reason.message : '删除模板失败');
-    }
-  }, [refreshTemplates]);
-
-  return {
-    create,
-    createOneTimeWorkflow,
-    duplicateTemplate,
-    error,
-    loading,
-    projects,
-    refresh,
-    refreshTemplates,
-    removeTemplate,
-    renameTemplate,
-    summaries,
-    templateError,
-    templates,
-  };
+  return { error, loading, projects, refresh, reorder }
 }
-
-export type StudioProjectsController = ReturnType<typeof useStudioProjects>;

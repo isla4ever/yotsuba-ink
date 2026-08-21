@@ -22,6 +22,7 @@ from novel_workflow.runtime.graph.provider_gateway import (
     ChapterReviewRequest,
     ChapterReviewResult,
     PlainTextProviderResult,
+    ProviderOperationError,
     StructuredProviderResult,
 )
 from novel_workflow.runtime.graph.branch_service import (
@@ -43,6 +44,7 @@ from novel_workflow.storage.narrative_run_repository import (
     ExportPreferences,
     ProviderBinding,
 )
+from novel_workflow.workflows.hierarchical_scale import plan_hierarchical_narrative_scale
 from novel_workflow.workflows.narrative_scale import (
     NarrativeScaleProfile,
     count_prose_characters,
@@ -103,6 +105,54 @@ class HardConflictReviewProvider(FakeNarrativeProvider):
             ).model_dump(mode="json"),
             usage={"total_tokens": 1},
         )
+
+
+class UnavailableRequiredReviewProvider(FakeNarrativeProvider):
+    async def review_chapter(
+        self,
+        request: ChapterReviewRequest,
+    ) -> StructuredProviderResult:
+        self.review_requests.append(request)
+        if request.role == "continuity":
+            raise ProviderOperationError(
+                "simulated required review failure",
+                operation_key=request.operation_key,
+            )
+        return StructuredProviderResult(
+            payload=ChapterReviewResult(role=request.role).model_dump(mode="json"),
+            usage={"total_tokens": 1},
+        )
+
+
+class DeterministicConflictProvider(FakeNarrativeProvider):
+    async def generate_stage(self, request):
+        response = await super().generate_stage(request)
+        if request.stage_id != "brief":
+            return response
+        payload = dict(response.payload)
+        payload["world_rules"] = [
+            "报警电话来自24小时后的事件，只能提前一天干预。"
+        ]
+        return response.model_copy(update={"payload": payload})
+
+    async def generate_chapter_scene(self, request):
+        response = await super().generate_chapter_scene(request)
+        conflict = (
+            "电话那头喊：马上要出车祸。林远刚放下听筒，"
+            "几分钟后黑车撞向护栏。"
+        )
+        return PlainTextProviderResult(
+            content=conflict + response.content,
+            usage=response.usage,
+        )
+
+
+class UnbalancedQuoteProvider(FakeNarrativeProvider):
+    async def generate_chapter_scene(self, request):
+        response = await super().generate_chapter_scene(request)
+        if request.chapter_id == "chapter-1" and request.scene_index == 1:
+            return response.model_copy(update={"content": "林岚说：“来源不对。" + response.content})
+        return response
 
 
 class SimulatedProcessStop(BaseException):
@@ -265,6 +315,36 @@ class RepairingCastPlanningProvider(FakeNarrativeProvider):
         return await super().generate_proposal(request)
 
 
+class ContractFailingRoleDemandProvider(FakeNarrativeProvider):
+    """Model one parsed Role Demand object that fails its frozen contract once."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.contract_failure_emitted = False
+
+    async def generate_proposal(self, request):
+        if request.proposal_type != "role_demand":
+            return await super().generate_proposal(request)
+        if not self.contract_failure_emitted:
+            self.contract_failure_emitted = True
+            self.proposal_requests.append(request)
+            raise ProviderOperationError(
+                "A present role demand must use actor mode",
+                operation_key=request.operation_key,
+                usage={"total_tokens": 3},
+                diagnostic={
+                    "code": "structured_contract_invalid",
+                    "structured_parse": {
+                        "response_chars": 100,
+                        "candidate_count": 1,
+                        "parsed_object_count": 1,
+                        "schema_match_count": 1,
+                    },
+                },
+            )
+        return await super().generate_proposal(request)
+
+
 def _bindings(*, detail_max_tokens: int = 6_000) -> dict[str, ProviderBinding]:
     return {
         stage: provider_binding(
@@ -286,6 +366,10 @@ def _create_run(
     volume_candidate_cap: int = 12,
     include_cover_image: bool = True,
 ) -> None:
+    scale_profile = NarrativeScaleProfile(
+        word_target_soft=word_target_soft or target_chapter_count * 2_000,
+        volume_candidate_cap=volume_candidate_cap,
+    )
     stores.runs.create(
         run_id=run_id,
         project_id="project-1",
@@ -294,9 +378,10 @@ def _create_run(
         workflow_digest="a" * 64,
         quality_mode=quality_mode,
         inputs={"project_brief": {"genre": "悬疑"}},
-        scale_profile=NarrativeScaleProfile(
-            word_target_soft=word_target_soft or target_chapter_count * 2_000,
-            volume_candidate_cap=volume_candidate_cap,
+        scale_profile=scale_profile,
+        hierarchical_scale_plan=plan_hierarchical_narrative_scale(
+            scale_profile,
+            quality_mode=quality_mode,
         ),
         provider_bindings=_bindings(detail_max_tokens=detail_max_tokens),
         cover_asset_binding=cover_asset_binding(),
@@ -524,6 +609,19 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
         {"slot_index": 1},
         {"slot_index": 2},
     ]
+    assert detail_layout_request.context["material"]["world_rule_projection"][
+        "rules"
+    ][0]["source_text"] == "公开广播会覆盖个人记忆"
+    detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    assert all(
+        request.context["material"]["world_rule_projection"]["rules"][0][
+            "source_text"
+        ]
+        == "公开广播会覆盖个人记忆"
+        for request in detail_requests
+    )
     assert [
         (request.chapter_id, request.scene_index)
         for request in provider.chapter_requests
@@ -547,6 +645,16 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
         in request.context["material"]["chapter_context_manifest"]["required"]
         for request in provider.chapter_requests
     )
+    first_manifest_rules = next(
+        item
+        for item in provider.chapter_requests[0].context["material"][
+            "chapter_context_manifest"
+        ]["snippets"]
+        if item["ref"] == "brief.world_rules"
+    )
+    assert json.loads(first_manifest_rules["text"])["rules"][0]["source_text"] == (
+        "公开广播会覆盖个人记忆"
+    )
     # Sequential chapters must see the previous accepted ending, not only the
     # planned one-line handoff, so prose time/place/knowledge state continues.
     second_manifest = provider.chapter_requests[2].context["material"]["chapter_context_manifest"]
@@ -558,12 +666,26 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
         "run-phase27", "chapter-1", "chapter-1-v1-accepted"
     ).artifact.content
     assert accepted_first.strip().endswith(ending_snippets[0]["text"][-40:])
-    # Canon facts committed from accepted chapters must bind later prose.
-    canon_snippets = [
-        item for item in second_manifest["snippets"] if item["ref"] == "canon.established_facts"
+    # Resolved state derived from accepted chapter evidence must bind later prose.
+    state_snippets = [
+        item for item in second_manifest["snippets"] if item["ref"] == "story.current_state"
     ]
-    assert len(canon_snippets) == 1
-    assert "本章完成施工图目标" in canon_snippets[0]["text"]
+    assert len(state_snippets) == 1
+    state_payload = json.loads(state_snippets[0]["text"])
+    assert [item["value"] for item in state_payload["entries"]] == [
+        "本章完成施工图目标"
+    ]
+    recent_snippet = next(
+        item
+        for item in second_manifest["snippets"]
+        if item["ref"] == "continuity.recent_window"
+    )
+    recent_payload = json.loads(recent_snippet["text"])
+    assert recent_payload["window_size"] == 4
+    assert [item["chapter_id"] for item in recent_payload["chapters"]] == [
+        "chapter-1"
+    ]
+    assert recent_payload["chapters"][0]["dramatic_job"] == "取得母带副本"
     assert sorted(
         (request.chapter_id, request.role) for request in provider.review_requests
     ) == sorted(
@@ -578,15 +700,36 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
     }
     assert continuity["chapter-1"]["opening_chapter"] is True
     assert continuity["chapter-1"]["current_detail_chapter"]["ref"] == "chapter-1"
-    assert continuity["chapter-1"]["world_rules"] == ["公开广播会覆盖个人记忆"]
+    assert continuity["chapter-1"]["world_rule_projection"]["rules"][0][
+        "source_text"
+    ] == "公开广播会覆盖个人记忆"
     assert {
         subject["id"] for subject in continuity["chapter-1"]["character_bible"]
     } == {"subject-1", "subject-2"}
     assert "spine" not in continuity["chapter-1"]
     assert "volume_contract" not in continuity["chapter-1"]
     assert continuity["chapter-2"]["previous_accepted_chapter"]["handoff"] == "追查签名来源"
-    assert continuity["chapter-2"]["canon_facts"] == ["本章完成施工图目标"]
+    assert [
+        item["chapter_id"]
+        for item in continuity["chapter-2"]["recent_chapter_window"]["chapters"]
+    ] == ["chapter-1"]
+    assert "evidence_provenance" in continuity["chapter-2"]["continuity_state"]
+    assert [
+        item["value"] for item in continuity["chapter-2"]["story_state"]["entries"]
+    ] == ["本章完成施工图目标"]
+    assert continuity["chapter-2"]["story_state"]["conflicts"] == []
     assert [request.chapter_id for request in provider.evidence_requests] == ["chapter-1", "chapter-2"]
+    first_evidence_context = provider.evidence_requests[0].context
+    second_evidence_context = provider.evidence_requests[1].context
+    assert {
+        subject["id"] for subject in first_evidence_context["frozen_subjects"]
+    } == {"subject-1", "subject-2"}
+    assert first_evidence_context["story_state"]["entries"] == []
+    first_fact = stores.canon.facts("run-phase27")[0]
+    assert [
+        item["source_fact_id"]
+        for item in second_evidence_context["story_state"]["entries"]
+    ] == [first_fact.fact_id]
     assert [request.candidate_index for request in provider.cover_requests] == [1]
     detail = stores.artifacts.latest("run-phase27", "detail").payload
     assert [item["ref"] for item in detail["chapters"]] == ["chapter-1", "chapter-2"]
@@ -615,8 +758,28 @@ async def test_langgraph_phase27_fast_run_uses_proposals_and_plaintext_chapters(
         "cover",
         "export",
     }
-    assert len(stores.evidence.list("run-phase27")) == 2
-    assert len(stores.canon.facts("run-phase27")) == 2
+    evidence = stores.evidence.list("run-phase27")
+    committed_facts = stores.canon.facts("run-phase27")
+    assert len(evidence) == 2
+    assert len(committed_facts) == 2
+    assert sorted(
+        (item.property_key, item.effective_from_chapter) for item in evidence
+    ) == [
+        ("chapter-1.completion", 1),
+        ("chapter-2.completion", 2),
+    ]
+    assert [
+        (
+            item.subject_id,
+            item.property_key,
+            item.value,
+            item.effective_from_chapter,
+        )
+        for item in committed_facts
+    ] == [
+        ("story", "chapter-1.completion", "本章完成施工图目标", 1),
+        ("story", "chapter-2.completion", "本章完成施工图目标", 2),
+    ]
     assert len(stores.wiki.list("run-phase27")) == 2
     assert stores.outbox.read(
         "run-phase27", "outbox-chapter-1-chapter-1-v1-accepted"
@@ -677,6 +840,8 @@ async def test_detail_capacity_segments_carry_a_strict_bounded_handoff(tmp_path)
     first_material = detail_requests[0].context["material"]
     second_material = detail_requests[1].context["material"]
     third_material = detail_requests[2].context["material"]
+    assert first_material["historical_record_ids"] == []
+    assert first_material["present_actor_ids"] == ["subject-1", "subject-2"]
     assert first_material["volume_contract"] == {
         "id": "volume-1",
         "title": "雾港1卷",
@@ -716,7 +881,7 @@ async def test_detail_capacity_segments_carry_a_strict_bounded_handoff(tmp_path)
                 "title": "母带残响1",
                 "turn_refs": ["turn-1"],
                 "purpose": "取得母带副本",
-                "final_result": "确认播放路径",
+                "final_result": "从档案室取得母带并核验内容",
             },
         ],
         "unresolved": ["追查签名来源"],
@@ -731,19 +896,112 @@ async def test_detail_capacity_segments_carry_a_strict_bounded_handoff(tmp_path)
                 "title": "母带残响1",
                 "turn_refs": ["turn-1"],
                 "purpose": "取得母带副本",
-                "final_result": "确认播放路径",
+                "final_result": "从档案室取得母带并核验内容",
             },
             {
                 "chapter_ref": "chapter-2",
                 "title": "母带残响2",
                 "turn_refs": ["turn-2"],
-                "purpose": "取得母带副本",
-                "final_result": "确认播放路径",
+                "purpose": "公开母带并锁定删除责任",
+                "final_result": "公开母带并说明档案室来源",
             },
         ],
-        "unresolved": ["追查签名来源"],
+        "unresolved": ["追问删除命令责任"],
         "next_ref": "volume-1.segment-3",
     }
+
+
+@pytest.mark.asyncio
+async def test_detail_allows_single_scene_chapters_that_can_carry_viable_prose(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+
+    async def generate_single_scene_detail(request):
+        result = await original_generate_stage(request)
+        if request.stage_id != "detail":
+            return result
+        payload = json.loads(json.dumps(result.payload))
+        for chapter in payload["chapters"]:
+            chapter["scenes"] = chapter["scenes"][:1]
+        return result.model_copy(update={"payload": payload})
+
+    provider.generate_stage = generate_single_scene_detail
+    _create_run(
+        stores,
+        "run-single-scene-detail",
+        word_target_soft=7_500,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-single-scene-detail")
+
+    assert projection.status == "completed", projection.failure
+    detail = stores.artifacts.latest("run-single-scene-detail", "detail").payload
+    assert [len(chapter["scenes"]) for chapter in detail["chapters"]] == [1, 1, 1]
+    assert sum(chapter["target_characters"] for chapter in detail["chapters"]) == 7_200
+    assert stores.operations.usage_summary("run-single-scene-detail").failed_operations == 0
+
+
+@pytest.mark.asyncio
+async def test_stage_recovery_reuses_a_persisted_provider_return(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(
+        stores,
+        "run-stage-provider-return-replay",
+        word_target_soft=7_500,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    original_record = stores.operations.record_provider_return
+    stopped = False
+
+    def stop_after_detail_return(run_id, operation_key, *args, **kwargs):
+        nonlocal stopped
+        receipt = original_record(run_id, operation_key, *args, **kwargs)
+        if ":detail:generate:1:" in operation_key and not stopped:
+            stopped = True
+            raise SimulatedProcessStop("process stopped after the Detail Provider return")
+        return receipt
+
+    monkeypatch.setattr(stores.operations, "record_provider_return", stop_after_detail_return)
+    with pytest.raises(SimulatedProcessStop, match="Detail Provider return"):
+        await runtime.start("run-stage-provider-return-replay")
+
+    detail_requests_before_recovery = [
+        request.operation_key
+        for request in provider.stage_requests
+        if request.stage_id == "detail"
+    ]
+    assert len(detail_requests_before_recovery) == 1
+    interrupted = stores.operations.read(
+        "run-stage-provider-return-replay",
+        detail_requests_before_recovery[0],
+    )
+    assert interrupted.status == "provider_returned"
+    assert interrupted.provider_result is not None
+
+    monkeypatch.setattr(stores.operations, "record_provider_return", original_record)
+    completed = await runtime.recover("run-stage-provider-return-replay")
+
+    assert completed.status == "completed", completed.failure
+    assert [
+        request.operation_key
+        for request in provider.stage_requests
+        if request.stage_id == "detail"
+    ].count(detail_requests_before_recovery[0]) == 1
+    accepted = stores.operations.read(
+        "run-stage-provider-return-replay",
+        detail_requests_before_recovery[0],
+    )
+    assert accepted.status == "succeeded"
 
 
 @pytest.mark.asyncio
@@ -853,7 +1111,7 @@ async def test_scene_lengths_can_vary_while_the_rolling_budget_hits_the_chapter_
 
 
 @pytest.mark.asyncio
-async def test_new_quantified_facts_trigger_a_bounded_scene_rewrite(tmp_path) -> None:
+async def test_new_quantified_facts_trigger_one_masked_local_scene_repair(tmp_path) -> None:
     stores = filesystem_stores(tmp_path / "runtime")
     provider = FakeNarrativeProvider()
     original_generate = provider.generate_chapter_scene
@@ -894,16 +1152,32 @@ async def test_new_quantified_facts_trigger_a_bounded_scene_rewrite(tmp_path) ->
         "第三枚",
         "百分之六十七",
     ]
+    assert drift_receipt.status == "contract_rejected"
+    assert drift_receipt.usage["total_tokens"] == 1
+    assert drift_receipt.result is None
     retry_manifest = chapter_one_requests[1].context["material"][
         "chapter_context_manifest"
     ]
-    revision = next(
-        snippet["text"]
+    local_repair = next(
+        json.loads(snippet["text"])
         for snippet in retry_manifest["snippets"]
-        if snippet["ref"] == "revision.request"
+        if snippet["ref"] == "revision.local_segment"
     )
-    assert "精确违规 token 为：第三枚、百分之六十七" in revision
-    assert "逐一删除包含这些 token 的句子" in revision
+    assert local_repair["scope"] == "single_bounded_scene_segment"
+    assert "[未授权量化事实]" in local_repair["masked_rejected_segment"]
+    assert "revision.source_draft" not in {
+        snippet["ref"] for snippet in retry_manifest["snippets"]
+    }
+    serialized_repair = json.dumps(retry_manifest, ensure_ascii=False)
+    assert "第三枚" not in serialized_repair
+    assert "百分之六十七" not in serialized_repair
+    assert chapter_one_requests[1].mode == "fact_repair"
+    repair_receipt = stores.operations.read(
+        "run-quantified-fact-rewrite",
+        "run-quantified-fact-rewrite:chapter-1:scene-1:generate:1.2",
+    )
+    assert repair_receipt.status == "succeeded"
+    assert repair_receipt.provider_result != repair_receipt.result
     accepted = stores.chapters.read(
         "run-quantified-fact-rewrite", "chapter-1", "chapter-1-v1-accepted"
     ).artifact
@@ -912,7 +1186,108 @@ async def test_new_quantified_facts_trigger_a_bounded_scene_rewrite(tmp_path) ->
 
 
 @pytest.mark.asyncio
-async def test_scene_length_drift_only_blocks_at_the_whole_book_target(tmp_path) -> None:
+async def test_new_persistent_fact_rejects_without_hidden_scene_repair(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate = provider.generate_chapter_scene
+
+    async def generate_persistent_drift(request):
+        if request.chapter_id == "chapter-1" and request.scene_index == 1:
+            provider.chapter_requests.append(request)
+            seed = "周宁说她已经拿到主控室钥匙，并出示了一份尸检报告。"
+            return PlainTextProviderResult(
+                content=seed + "文" * (1_000 - len(seed)),
+                usage={"total_tokens": 17},
+            )
+        return await original_generate(request)
+
+    provider.generate_chapter_scene = generate_persistent_drift
+    run_id = "run-persistent-fact-hard-stop"
+    _create_run(stores, run_id)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start(run_id)
+
+    assert projection.status == "failed"
+    assert projection.failure["code"] == "SceneProseContractError"
+    assert "durable facts absent from frozen context" in projection.failure["message"]
+    requests = [
+        request
+        for request in provider.chapter_requests
+        if request.chapter_id == "chapter-1" and request.scene_index == 1
+    ]
+    assert [(request.scene_attempt, request.mode) for request in requests] == [
+        (1, "generate"),
+    ]
+    receipt = stores.operations.read(
+        run_id,
+        f"{run_id}:chapter-1:scene-1:generate:1.1",
+    )
+    assert receipt.status == "contract_rejected"
+    assert {item["code"] for item in receipt.diagnostic["introduced_persistent_facts"]} >= {
+        "unregistered_scene_subject",
+        "unfrozen_access_or_key",
+        "unfrozen_document_or_evidence",
+    }
+    assert stores.operations.find(
+        run_id,
+        f"{run_id}:chapter-1:scene-1:generate:1.2",
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_repeated_scene_fact_violation_stops_after_one_local_repair(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate = provider.generate_chapter_scene
+
+    async def generate_same_drift(request):
+        if request.chapter_id == "chapter-1" and request.scene_index == 1:
+            provider.chapter_requests.append(request)
+            return PlainTextProviderResult(
+                content="她复核第三枚晶片。",
+                usage={"total_tokens": 13},
+            )
+        return await original_generate(request)
+
+    provider.generate_chapter_scene = generate_same_drift
+    run_id = "run-scene-fact-no-progress"
+    _create_run(stores, run_id)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start(run_id)
+
+    assert projection.status == "failed"
+    assert projection.failure == {
+        "node_id": "text.generate_prose",
+        "code": "SceneProseContractError",
+        "retryable": False,
+        "evidence_ref": f"{run_id}:chapter-1:scene-1:generate:1.2",
+        "message": "The same quantified fact violation survived the bounded repair",
+    }
+    requests = [
+        request
+        for request in provider.chapter_requests
+        if request.chapter_id == "chapter-1" and request.scene_index == 1
+    ]
+    assert [(request.scene_attempt, request.mode) for request in requests] == [
+        (1, "generate"),
+        (2, "fact_repair"),
+    ]
+    repair_receipt = stores.operations.read(
+        run_id,
+        f"{run_id}:chapter-1:scene-1:generate:1.2",
+    )
+    assert repair_receipt.status == "contract_rejected"
+    assert repair_receipt.diagnostic["no_progress"] is True
+    assert stores.operations.usage_summary(run_id).contract_rejected_operations == 2
+    assert stores.operations.usage_summary(run_id).total_tokens >= 26
+
+
+@pytest.mark.asyncio
+async def test_severely_short_chapter_requires_explicit_chapter_decision(tmp_path) -> None:
     stores = filesystem_stores(tmp_path / "runtime")
     provider = FakeNarrativeProvider()
 
@@ -926,15 +1301,172 @@ async def test_scene_length_drift_only_blocks_at_the_whole_book_target(tmp_path)
 
     projection = await runtime.start("run-length-failure")
 
+    assert projection.status == "awaiting_decision"
+    decision = projection.pending_decisions[0]
+    assert decision["type"] == "chapter_author_decision"
+    assert decision["allowed_actions"] == ["cancel"]
+    assert decision["quality_decision"]["contract_blockers"][0]["code"] == (
+        "chapter_severely_underlength"
+    )
+    assert [request.chapter_attempt for request in provider.chapter_requests] == [
+        1,
+        1,
+        2,
+        2,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_short_chapter_does_not_block_while_future_budget_can_recover(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate = provider.generate_chapter_scene
+
+    async def generate_recoverable_short_chapter(request):
+        if request.chapter_id == "chapter-1":
+            provider.chapter_requests.append(request)
+            prefix = (
+                "短章在档案室缓慢推进。"
+                if request.scene_index == 1
+                else "短章转入旧潮道继续推进。"
+            )
+            return PlainTextProviderResult(
+                content=prefix + "短" * (800 - len(prefix)),
+                usage={"total_tokens": 1},
+            )
+        return await original_generate(request)
+
+    provider.generate_chapter_scene = generate_recoverable_short_chapter
+    _create_run(stores, "run-recoverable-book-budget")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-recoverable-book-budget")
+
+    assert projection.status == "completed", projection.failure
+    warning_codes = [
+        event.payload["code"]
+        for event in stores.events.read("run-recoverable-book-budget")
+        if event.type == "quality.warning"
+    ]
+    assert "chapter_length_soft_band" in warning_codes
+    assert "book_length_budget_unreachable" not in warning_codes
+
+
+@pytest.mark.asyncio
+async def test_final_whole_book_length_gate_remains_authoritative(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+
+    async def generate_individually_viable_but_collectively_short(request):
+        provider.chapter_requests.append(request)
+        return PlainTextProviderResult(content="短" * 675, usage={"total_tokens": 1})
+
+    provider.generate_chapter_scene = generate_individually_viable_but_collectively_short
+    _create_run(stores, "run-final-book-length-gate")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-final-book-length-gate")
+
     assert projection.status == "failed"
     assert projection.failure["node_id"] == "text.finish_chapters"
-    assert "Whole-book prose total is below the accepted minimum" in projection.failure["message"]
-    assert [request.scene_attempt for request in provider.chapter_requests] == [
-        1,
-        1,
-        1,
-        1,
+    assert "Whole-book prose total is below the minimum viable length" in projection.failure[
+        "message"
     ]
+    assert not any(
+        event.type == "quality.warning"
+        and event.payload.get("code") == "book_length_budget_unreachable"
+        for event in stores.events.read("run-final-book-length-gate")
+    )
+
+
+@pytest.mark.asyncio
+async def test_live_5701_character_fixture_completes_with_soft_length_warnings(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_proposal = provider.generate_proposal
+    scene_lengths = {
+        "chapter-1": (702, 1_026),
+        "chapter-2": (854, 1_196),
+        "chapter-3": (841, 1_082),
+    }
+
+    async def generate_live_layout(request):
+        response = await original_generate_proposal(request)
+        if request.proposal_type != "detail_layout":
+            return response
+        payload = dict(response.payload)
+        volumes = [dict(item) for item in payload["volumes"]]
+        chapters = [dict(item) for item in volumes[0]["chapters"]]
+        for chapter, length_hint in zip(
+            chapters,
+            ("compact", "standard", "expansive"),
+            strict=True,
+        ):
+            chapter["length_hint"] = length_hint
+        volumes[0]["chapters"] = chapters
+        payload["volumes"] = volumes
+        return response.model_copy(update={"payload": payload})
+
+    async def generate_live_shortfall(request):
+        provider.chapter_requests.append(request)
+        character_count = scene_lengths[request.chapter_id][request.scene_index - 1]
+        return PlainTextProviderResult(
+            content="文" * character_count,
+            usage={"total_tokens": 1},
+        )
+
+    provider.generate_proposal = generate_live_layout
+    provider.generate_chapter_scene = generate_live_shortfall
+    run_id = "run-soft-length-guidance"
+    _create_run(
+        stores,
+        run_id,
+        word_target_soft=7_500,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start(run_id)
+
+    assert projection.status == "completed", projection.failure
+    chapter_three_requests = [
+        request
+        for request in provider.chapter_requests
+        if request.chapter_id == "chapter-3"
+    ]
+    assert [request.chapter_attempt for request in chapter_three_requests] == [1, 1]
+    assert [request.chapter_id for request in provider.evidence_requests] == [
+        "chapter-1",
+        "chapter-2",
+        "chapter-3",
+    ]
+    assert (
+        stores.outbox.root
+        / run_id
+        / "outbox-chapter-3-chapter-3-v1-accepted.json"
+    ).exists()
+    accepted = [
+        record.artifact
+        for record in stores.chapters.list(run_id)
+        if record.artifact.author_status == "accepted"
+    ]
+    assert sum(count_prose_characters(chapter.content) for chapter in accepted) == 5_701
+    assert any(
+        record.chapter_id == "chapter-3"
+        and record.artifact.author_status == "accepted"
+        for record in stores.chapters.list(run_id)
+    )
+    warning_codes = [
+        event.payload["code"]
+        for event in stores.events.read(run_id)
+        if event.type == "quality.warning"
+    ]
+    assert "book_length_soft_band" in warning_codes
+    assert "chapter_severely_underlength" not in warning_codes
 
 
 @pytest.mark.asyncio
@@ -997,7 +1529,15 @@ async def test_stage_unit_contract_violation_requires_explicit_regeneration(tmp_
     ]
     assert len(cast_keys) == 1
     assert ":repair-" not in cast_keys[0]
-    assert stores.operations.read("run-contract-repair", cast_keys[0]).status == "failed"
+    rejected = stores.operations.read("run-contract-repair", cast_keys[0])
+    assert rejected.status == "contract_rejected"
+    assert rejected.provider_result is not None
+    assert rejected.result is None
+    assert rejected.usage["total_tokens"] == 3
+    usage = stores.operations.usage_summary("run-contract-repair")
+    assert usage.returned_operations >= 1
+    assert usage.contract_rejected_operations == 1
+    assert usage.failed_operations == 0
 
     decision = dict(projection.pending_decisions[0])
     completed = await runtime.resume(
@@ -1162,6 +1702,60 @@ async def test_guarded_failure_appends_terminal_run_failed_event(tmp_path) -> No
 
 
 @pytest.mark.asyncio
+async def test_role_demand_contract_failure_uses_one_private_repair_operation(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = ContractFailingRoleDemandProvider()
+    run_id = "run-role-demand-contract-repair"
+    _create_run(stores, run_id, quality_mode="balanced", word_target_soft=4_000)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+    for expected_stage in ("brief", "spine"):
+        assert paused.active_stage_id == expected_stage
+        decision = dict(paused.pending_decisions[0])
+        paused = await runtime.resume(
+            run_id,
+            {
+                "decision_id": decision["decision_id"],
+                "domain_revision": decision["domain_revision"],
+                "action": "accept",
+            },
+        )
+
+    assert paused.status == "awaiting_decision", paused.failure
+    assert paused.active_stage_id == "cast"
+    role_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "role_demand"
+    ]
+    assert [request.operation_key for request in role_requests] == [
+        f"{run_id}:role_demand:proposal:1",
+        f"{run_id}:role_demand:proposal:1:contract-repair-1",
+    ]
+    assert "revision_request" not in role_requests[0].context["material"]
+    assert role_requests[1].context["material"]["revision_request"]["direction"].startswith(
+        "上一份 Role Demand 候选未通过冻结合同"
+    )
+
+    first = stores.operations.read(run_id, role_requests[0].operation_key)
+    second = stores.operations.read(run_id, role_requests[1].operation_key)
+    assert first.status == "failed"
+    assert first.diagnostic["code"] == "structured_contract_invalid"
+    assert second.status == "succeeded"
+    snapshots = stores.operations.provider_inputs.list(run_id)
+    first_snapshot = next(
+        item for item in snapshots if item.operation_key == role_requests[0].operation_key
+    )
+    second_snapshot = next(
+        item for item in snapshots if item.operation_key == role_requests[1].operation_key
+    )
+    assert first_snapshot.request_signature != second_snapshot.request_signature
+    assert "revision_request" not in first_snapshot.input.structured_context["material"]
+    assert "revision_request" in second_snapshot.input.structured_context["material"]
+
+
+@pytest.mark.asyncio
 async def test_stage_unit_transient_network_error_retries_and_completes(tmp_path) -> None:
     stores = filesystem_stores(tmp_path / "runtime")
     provider = FakeNarrativeProvider()
@@ -1304,7 +1898,11 @@ async def test_detail_layout_receipt_replays_without_a_second_provider_call(
     def stop_after_layout_receipt(run_id, operation_key, *args, **kwargs):
         nonlocal stopped
         result = original_succeed(run_id, operation_key, *args, **kwargs)
-        if operation_key == "run-detail-layout-replay:detail_layout:proposal:1:volume-1" and not stopped:
+        if (
+            operation_key
+            == "run-detail-layout-replay:detail_layout:proposal:1:volume-1:turn-window-1"
+            and not stopped
+        ):
             stopped = True
             raise SimulatedProcessStop("process stopped after Detail layout receipt")
         return result
@@ -1315,7 +1913,7 @@ async def test_detail_layout_receipt_replays_without_a_second_provider_call(
 
     receipt = stores.operations.read(
         "run-detail-layout-replay",
-        "run-detail-layout-replay:detail_layout:proposal:1:volume-1",
+        "run-detail-layout-replay:detail_layout:proposal:1:volume-1:turn-window-1",
     )
     assert receipt.status == "succeeded"
     assert [
@@ -1456,6 +2054,28 @@ async def test_cast_batches_keep_every_preallocated_subject(tmp_path) -> None:
         if request.proposal_type == "cast_relation"
     )
     assert len(relation_request.context["material"]["subjects"]) == 6
+
+
+@pytest.mark.asyncio
+async def test_large_fake_flow_stays_distinct_after_detail_catalog_cycle(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    _create_run(
+        stores,
+        "run-large-fake-detail-cycle",
+        word_target_soft=65_000,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-large-fake-detail-cycle")
+
+    assert projection.status == "completed", projection.failure
+    detail = stores.artifacts.latest("run-large-fake-detail-cycle", "detail").payload
+    assert len(detail["chapters"]) == 26
+    assert stores.operations.usage_summary(
+        "run-large-fake-detail-cycle"
+    ).failed_operations == 0
 
 
 @pytest.mark.asyncio
@@ -2361,6 +2981,74 @@ async def test_chapter_candidate_allows_only_one_targeted_regeneration(tmp_path)
 
 
 @pytest.mark.asyncio
+async def test_fast_mode_stops_visibly_after_one_failed_hard_gate_regeneration(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = DeterministicConflictProvider()
+    run_id = "run-fast-hard-blocker-exhausted"
+    _create_run(stores, run_id, quality_mode="fast")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    decision = paused.pending_decisions[0]
+    assert decision["type"] == "chapter_author_decision"
+    assert decision["allowed_actions"] == ["cancel"]
+    assert decision["quality_decision"]["structure_contract"] == "blocked"
+    assert decision["quality_decision"]["regeneration_used"] == 1
+    assert decision["quality_decision"]["contract_blockers"][0]["code"] == "time_rule_conflict"
+    state = await runtime.state(run_id)
+    assert state["chapter_attempts"]["chapter-1"] == 2
+
+
+@pytest.mark.asyncio
+async def test_fast_mode_stops_when_a_required_review_is_unavailable(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = UnavailableRequiredReviewProvider()
+    run_id = "run-fast-required-review-unavailable"
+    _create_run(stores, run_id, quality_mode="fast")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    decision = paused.pending_decisions[0]
+    assert decision["type"] == "chapter_author_decision"
+    assert decision["allowed_actions"] == ["cancel"]
+    assert decision["review_status"]["required_review_unavailable"] == ["continuity"]
+    blocker = decision["quality_decision"]["contract_blockers"][0]
+    assert blocker["code"] == "required_review_unavailable"
+    assert blocker["resolution"] == "manual"
+    assert len(
+        [request for request in provider.review_requests if request.role == "continuity"]
+    ) == 1
+
+
+@pytest.mark.asyncio
+async def test_fast_mode_stops_before_cover_on_a_manuscript_contract_blocker(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = UnbalancedQuoteProvider()
+    run_id = "run-fast-manuscript-blocker"
+    _create_run(stores, run_id, quality_mode="fast")
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    decision = paused.pending_decisions[0]
+    assert decision["type"] == "manuscript_quality_decision"
+    assert decision["allowed_actions"] == ["cancel"]
+    assert decision["quality_report"]["blockers"][0]["code"] == (
+        "punctuation_quote_unbalanced"
+    )
+    assert provider.cover_requests == []
+
+
+@pytest.mark.asyncio
 async def test_llm_chapter_finding_warns_and_projects_revision_evidence(tmp_path) -> None:
     stores = filesystem_stores(tmp_path / "runtime")
     provider = HardConflictReviewProvider()
@@ -2372,6 +3060,18 @@ async def test_llm_chapter_finding_warns_and_projects_revision_evidence(tmp_path
     decision = paused.pending_decisions[0]
 
     assert decision["allowed_actions"] == ["accept", "regenerate", "cancel"]
-    assert decision["reason"]["blocking_findings"] == []
-    assert decision["reason"]["warning_findings"][0]["code"] == "time_rule_conflict"
-    assert "只修复以下审校问题" in decision["reason"]["recommended_revision_direction"]
+    quality_decision = decision["quality_decision"]
+    assert paused.quality_decision is not None
+    assert paused.quality_decision.model_dump(mode="json") == quality_decision
+    assert quality_decision["contract_blockers"] == []
+    assert quality_decision["review_warnings"][0]["code"] == "time_rule_conflict"
+    assert quality_decision["review_warnings"][0]["source_severity"] == "blocking"
+    assert "只修复以下审校问题" in quality_decision["regeneration_recommendation"]["direction"]
+    required = next(
+        event
+        for event in stores.events.read(run_id)
+        if event.type == "decision.required"
+        and event.payload
+        and event.payload.get("decision_id") == decision["decision_id"]
+    )
+    assert required.payload["quality_decision"] == quality_decision

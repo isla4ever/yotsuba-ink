@@ -7,6 +7,8 @@ from novel_workflow.runtime.graph.chapter_review import (
     review_warning_findings,
 )
 from novel_workflow.runtime.graph.provider_gateway import ChapterReviewResult
+from novel_workflow.output_contracts.artifacts_vnext import StoryBriefArtifact
+from novel_workflow.quality.planning_contracts import project_world_rules
 
 
 def result(*claims: str) -> ChapterReviewResult:
@@ -17,6 +19,23 @@ def result(*claims: str) -> ChapterReviewResult:
             {"code": "voice_person_mismatch", "severity": "blocking", "claim": claim, "evidence": "林晚坐下", "subject_ids": []}
             for claim in claims
         ],
+    )
+
+
+def projected_rules(*rules: str):
+    return project_world_rules(
+        StoryBriefArtifact.model_validate(
+            {
+                "title": "明日来电",
+                "premise": "调度员追查未来报警。",
+                "promise": "每次干预都会改变旧案。",
+                "world_rules": list(rules),
+                "theme": "职业伦理",
+                "ending_promise": "旧案真相公开。",
+                "voice": "第三人称有限视角",
+                "length_envelope": {"word_target_soft": 10_000},
+            }
+        )
     )
 
 
@@ -80,7 +99,9 @@ def test_llm_time_rule_conflict_remains_advisory() -> None:
 
 def test_deterministic_future_call_rule_conflict_remains_a_hard_gate() -> None:
     findings = deterministic_world_rule_findings(
-        world_rules=["每晚固定时间会接到来自24小时后的报警电话，内容真实且可干预。"],
+        world_rule_projection=projected_rules(
+            "每晚固定时间会接到来自24小时后的报警电话，内容真实且可干预。"
+        ),
         content="电话不是提前二十四小时打来的。事情已经发生，电话才响。",
         subject_ids=["subject-1"],
     )
@@ -92,7 +113,9 @@ def test_deterministic_future_call_rule_conflict_remains_a_hard_gate() -> None:
 
 def test_future_call_rule_affirmation_is_not_misread_as_a_negation() -> None:
     findings = deterministic_world_rule_findings(
-        world_rules=["每晚固定时间会接到来自24小时后的报警电话，内容真实且可干预。"],
+        world_rule_projection=projected_rules(
+            "每晚固定时间会接到来自24小时后的报警电话，内容真实且可干预。"
+        ),
         content="不是今晚，是二十四小时之后。林远把来电时间重新记了一遍。",
         subject_ids=["subject-1"],
     )
@@ -102,7 +125,9 @@ def test_future_call_rule_affirmation_is_not_misread_as_a_negation() -> None:
 
 def test_immediate_realization_of_a_24_hour_prediction_is_blocked() -> None:
     findings = deterministic_world_rule_findings(
-        world_rules=["报警电话来自24小时后的事件，只能提前一天干预。"],
+        world_rule_projection=projected_rules(
+            "报警电话来自24小时后的事件，只能提前一天干预。"
+        ),
         content=(
             "电话那头喊：马上要出车祸。林远立刻派出救护车。"
             "他盯着同一个路口，几分钟后撞击声响起，黑车撞向护栏。"
@@ -115,7 +140,9 @@ def test_immediate_realization_of_a_24_hour_prediction_is_blocked() -> None:
 
 def test_next_day_transition_keeps_the_24_hour_prediction_valid() -> None:
     findings = deterministic_world_rule_findings(
-        world_rules=["报警电话来自24小时后的事件，只能提前一天干预。"],
+        world_rule_projection=projected_rules(
+            "报警电话来自24小时后的事件，只能提前一天干预。"
+        ),
         content=(
             "电话那头喊：马上要出车祸。林远记下路口，没有立即派车。"
             "第二天傍晚，他提前联系交警疏导。车祸最终没有发生。"

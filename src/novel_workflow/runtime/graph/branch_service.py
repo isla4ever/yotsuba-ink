@@ -102,6 +102,10 @@ class NarrativeBranchService:
             target_run_id,
             values,
         )
+        if source.hierarchical_scale_plan is None:
+            raise BranchConflictError(
+                "Archived Runs without a hierarchical scale plan cannot create an executable branch"
+            )
 
         stores.runs.create(
             run_id=target_run_id,
@@ -112,6 +116,7 @@ class NarrativeBranchService:
             quality_mode=source.quality_mode,
             inputs=source.inputs,
             scale_profile=source.scale_profile,
+            hierarchical_scale_plan=source.hierarchical_scale_plan,
             provider_bindings=provider_bindings,
             cover_asset_binding=cover_asset_binding,
             export_preferences=source.export_preferences,
@@ -420,6 +425,15 @@ class NarrativeBranchService:
                 kind=record.kind,
                 claim=record.claim,
                 spans=record.spans,
+                subject_id=record.subject_id,
+                property_key=record.property_key,
+                value=record.value,
+                epistemic_status=record.epistemic_status,
+                lifecycle=record.lifecycle,
+                effective_from_chapter=record.effective_from_chapter,
+                effective_to_chapter=record.effective_to_chapter,
+                supersedes_fact_ids=record.supersedes_fact_ids,
+                resolves_fact_ids=record.resolves_fact_ids,
             )
             mapping[record.evidence_id] = cloned.evidence_id
         return mapping
@@ -443,6 +457,15 @@ class NarrativeBranchService:
                     claim=fact.claim,
                     evidence_refs=remapped_refs,
                     chapter_version_id=fact.chapter_version_id,
+                    subject_id=fact.subject_id,
+                    property_key=fact.property_key,
+                    value=fact.value,
+                    epistemic_status=fact.epistemic_status,
+                    lifecycle=fact.lifecycle,
+                    effective_from_chapter=fact.effective_from_chapter,
+                    effective_to_chapter=fact.effective_to_chapter,
+                    supersedes_fact_ids=fact.supersedes_fact_ids,
+                    resolves_fact_ids=fact.resolves_fact_ids,
                 )
             )
         if not facts:
@@ -497,6 +520,8 @@ def _has_unresolved_domain_writeback(
     run_id: str,
     value: dict[str, Any],
 ) -> bool:
+    if value.get("pending_evidence_attempt_ref"):
+        return True
     evidence_refs = set(value.get("pending_evidence_refs") or [])
     operation_id = str(value.get("pending_writeback_ref") or "")
     if not operation_id:

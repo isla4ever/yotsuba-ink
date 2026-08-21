@@ -123,10 +123,10 @@ async def test_stage_gateway_uses_exact_frozen_binding_and_current_contract() ->
 
 
 @pytest.mark.asyncio
-async def test_stage_gateway_rejects_invalid_json_shape_without_repair() -> None:
+async def test_stage_gateway_returns_parsed_payload_for_stage_executor_contract_check() -> None:
     provider = CapturingTextProvider(structured={"title": "missing"})
-    with pytest.raises(ProviderOperationError):
-        await gateway(provider).generate_stage(StageGenerationRequest(operation_key="run:brief:1", run_id="run", stage_id="brief", attempt=1, binding=binding(), context={"target": "brief", "material": {"project_brief": {}, "length_envelope": {}}}))
+    result = await gateway(provider).generate_stage(StageGenerationRequest(operation_key="run:brief:1", run_id="run", stage_id="brief", attempt=1, binding=binding(), context={"target": "brief", "material": {"project_brief": {}, "length_envelope": {}}}))
+    assert result.payload == {"title": "missing"}
 
 
 @pytest.mark.asyncio
@@ -233,6 +233,45 @@ async def test_proposal_gateway_validates_narrow_json_contract() -> None:
 
 
 @pytest.mark.asyncio
+async def test_proposal_gateway_marks_parsed_but_contract_invalid_output() -> None:
+    provider = CapturingTextProvider(
+        structured={
+            "proposals": [
+                {
+                    "demand_key": "demand-a",
+                    "subject_mode": "historical_record",
+                    "narrative_role": "opposition",
+                    "function": "留下证词",
+                    "required_change": "迫使主角面对旧案",
+                    "irreducibility": "必须保留这份证词造成的不可逆后果。",
+                    "active_turn_refs": ["turn-1"],
+                }
+            ]
+        }
+    )
+    with pytest.raises(ProviderOperationError) as captured:
+        await gateway(provider).generate_proposal(
+            ProposalGenerationRequest(
+                operation_key="run:proposal:invalid",
+                run_id="run",
+                stage_id="cast",
+                proposal_type="role_demand",
+                attempt=1,
+                binding=binding("cast"),
+                context={
+                    "target": "cast",
+                    "material": {
+                        "scale_plan": {"cast_recommended_range": [1, 11], "cast_hard_max": 11}
+                    },
+                },
+            )
+        )
+
+    assert captured.value.diagnostic["code"] == "structured_contract_invalid"
+    assert captured.value.provider_result["proposals"][0]["demand_key"] == "demand-a"
+
+
+@pytest.mark.asyncio
 async def test_detail_layout_gateway_uses_its_frozen_strict_contract() -> None:
     provider = CapturingTextProvider(
         structured={
@@ -313,6 +352,12 @@ def test_provider_input_compiler_covers_every_provider_operation_without_secrets
             attempt=2,
             content="第一段证据。第二段证据。",
             binding=text,
+            context={
+                "frozen_subjects": [
+                    {"id": "subject-1", "name": "林默", "kind": "major"}
+                ],
+                "story_state": {"entries": [], "conflicts": []},
+            },
         ),
         CoverImageRequest(
             operation_key="run:cover:image:1",
@@ -338,6 +383,12 @@ def test_provider_input_compiler_covers_every_provider_operation_without_secrets
     assert snapshots[4].attempt == 1
     assert snapshots[5].chapter_version_id == "chapter-1-v2"
     assert snapshots[6].structured_context["evidence_candidates"]
+    assert snapshots[6].structured_context["frozen_state"] == {
+        "frozen_subjects": [
+            {"id": "subject-1", "name": "林默", "kind": "major"}
+        ],
+        "story_state": {"entries": [], "conflicts": []},
+    }
     encoded = json.dumps(
         [snapshot.model_dump(mode="json") for snapshot in snapshots],
         ensure_ascii=False,

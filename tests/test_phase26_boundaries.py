@@ -54,9 +54,9 @@ def test_phase27_has_one_eight_stage_production_order() -> None:
     assert build_narrative_graph
 
 
-def test_prompt_metadata_and_frontend_fixture_match_graph_context_materials() -> None:
+def test_prompt_metadata_matches_graph_context_materials() -> None:
     fixture = json.loads(
-        (ROOT / "apps" / "web" / "test-fixtures" / "prompt-material-contract.json")
+        (ROOT / "tests" / "fixtures" / "prompt-material-contract.json")
         .read_text(encoding="utf-8")
     )
     backend_contract = {
@@ -123,6 +123,9 @@ def test_api_and_graph_do_not_import_deleted_production_paths() -> None:
     }
     assert orchestration_files == {
         "__init__.py",
+        "author_collaboration.py",
+        "collaboration_settings.py",
+        "planning_aggregate_commit.py",
         "run_preflight.py",
         "stage_artifact_editing.py",
     }
@@ -256,15 +259,15 @@ def test_deleted_frontend_quality_and_revision_contracts_cannot_return() -> None
 
 def test_deleted_frontend_compatibility_helpers_cannot_return() -> None:
     running = ROOT / "apps" / "web" / "src" / "features" / "pipeline" / "running"
+    state = ROOT / "apps" / "web" / "src" / "features" / "pipeline" / "state"
     deleted = (
         running / "artifactParsing.ts",
         running / "infoWorldbuildingDigest.ts",
         running / "stageViewData.ts",
+        state / "projectScope.ts",
     )
     assert all(not path.exists() for path in deleted)
 
-    project_scope = (
-        ROOT / "apps" / "web" / "src" / "features" / "pipeline" / "state" / "projectScope.ts"
-    ).read_text(encoding="utf-8")
-    assert "Project-scoped storage requires an active project" in project_scope
-    assert "return projectId ?" not in project_scope
+    app_provider = (state / "PipelineAppProvider.tsx").read_text(encoding="utf-8")
+    assert "getProjectSummary" in app_provider
+    assert "loadActiveProjectLocally" not in app_provider

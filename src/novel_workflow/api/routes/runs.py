@@ -28,6 +28,7 @@ from novel_workflow.storage.narrative_run_repository import (
     BranchBindingOverride,
     ExportPreferences,
 )
+from novel_workflow.workflows.hierarchical_scale import hierarchical_scale_plan_from_inputs
 from novel_workflow.workflows.narrative_scale import scale_profile_from_inputs
 from novel_workflow.workflows.executable_contract import (
     WorkflowContractError,
@@ -51,7 +52,7 @@ class CreateNarrativeRunRequest(BaseModel):
 class DecisionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    action: str = Field(pattern=r"^(accept|regenerate|cancel)$")
+    action: str = Field(pattern=r"^(accept|regenerate|retry_evidence|cancel)$")
     domain_revision: int = Field(ge=0)
     artifact: dict[str, Any] | None = None
     direction: str = Field(default="", max_length=1000)
@@ -113,6 +114,13 @@ async def create_run(request: Request, payload: CreateNarrativeRunRequest) -> di
             request.app.state.workflow_store.read(payload.workflow_id)
         )
         bindings = request.app.state.run_preflight.freeze_workflow(workflow)
+        scale_input = {
+            "length_envelope": payload.inputs.get("length_envelope"),
+            "scale_overrides": payload.inputs.get("scale_overrides"),
+        }
+        scale_profile = scale_profile_from_inputs(
+            {"length_envelope": scale_input["length_envelope"]}
+        )
         definition = _stores(request).runs.create(
             run_id=payload.run_id,
             project_id=payload.project_id,
@@ -121,11 +129,10 @@ async def create_run(request: Request, payload: CreateNarrativeRunRequest) -> di
             workflow_digest=workflow_execution_digest(workflow),
             quality_mode=workflow.quality_mode,
             inputs=payload.inputs,
-            scale_profile=scale_profile_from_inputs(
-                {
-                    "length_envelope": payload.inputs.get("length_envelope"),
-                    "scale_overrides": payload.inputs.get("scale_overrides"),
-                }
+            scale_profile=scale_profile,
+            hierarchical_scale_plan=hierarchical_scale_plan_from_inputs(
+                scale_input,
+                quality_mode=workflow.quality_mode,
             ),
             provider_bindings=bindings.provider_bindings,
             cover_asset_binding=bindings.cover_asset_binding,
@@ -173,6 +180,16 @@ async def start_run(request: Request, run_id: str) -> dict[str, Any]:
     current = stores.runs.read(run_id)
     if current.status not in {"created"}:
         raise HTTPException(status_code=409, detail=f"Run cannot start from status {current.status}")
+    try:
+        stores.runs.executable_definition(run_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "run_contract_retired",
+                "message": "该运行仅保留为历史只读记录，不能恢复执行。",
+            },
+        ) from exc
     try:
         request.app.state.narrative_execution.dispatch_start(run_id)
     except RunExecutionConflict as exc:

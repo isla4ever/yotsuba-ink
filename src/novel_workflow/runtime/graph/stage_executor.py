@@ -18,6 +18,7 @@ from novel_workflow.output_contracts.artifacts_vnext import (
     DetailArtifact,
     DetailChapter,
     DetailLayoutProposalBatch,
+    DetailLayoutVolumeProposal,
     DetailSegmentArtifact,
     ExportArtifact,
     ExportMetadata,
@@ -56,16 +57,23 @@ from novel_workflow.runtime.graph.provider_gateway import (
     compile_provider_input,
 )
 from novel_workflow.runtime.graph.context_compiler import NarrativeContextCompiler
+from novel_workflow.quality.narrative_contracts import build_cast_identity_findings
+from novel_workflow.runtime.graph.detail_preflight import (
+    build_detail_preflight,
+    require_detail_preflight,
+)
 from novel_workflow.runtime.graph.detail_planning import (
+    DetailLayoutTurnWindow,
     bind_detail_artifact,
-    detail_layout_volume_window,
+    detail_layout_turn_windows,
     validate_detail_layout_proposal,
-    validate_detail_layout_volume_proposal,
+    validate_detail_layout_turn_window_proposal,
 )
 from novel_workflow.runtime.graph.output_budget import (
     OutputBudgetPlanner,
     spine_turn_plan,
 )
+from novel_workflow.runtime.graph.planning_authority import HierarchicalPlanningAuthority
 from novel_workflow.runtime.graph.state import NarrativeRunState
 from novel_workflow.runtime.graph.spine_preflight import (
     build_spine_repair_material,
@@ -306,6 +314,7 @@ def _relationship_turn_ids(spine: StorySpineArtifact) -> set[str]:
 class StageExecutor:
     runs: NarrativeRunRepository
     artifacts: ArtifactStore
+    planning: HierarchicalPlanningAuthority
     chapters: ChapterStore
     operations: OperationStore
     events: EventProjection
@@ -734,13 +743,26 @@ class StageExecutor:
                         },
                     },
                 }
-            result = await self._generate_proposal(
-                state,
-                proposal_type="role_demand",
-                binding_stage="cast",
-                context=context,
-                scope_ref=scope_ref,
-            )
+            try:
+                result = await self._generate_proposal(
+                    state,
+                    proposal_type="role_demand",
+                    binding_stage="cast",
+                    context=context,
+                    scope_ref=scope_ref,
+                )
+            except ProviderOperationError as exc:
+                # The gateway has already persisted this Provider receipt. A
+                # parsed object that fails the frozen proposal schema gets one
+                # private replacement request; operational failures remain
+                # terminal and are never hidden as content repair.
+                if (
+                    scope_ref
+                    or exc.diagnostic.get("code") != "structured_contract_invalid"
+                ):
+                    raise
+                repair_error = ValueError(str(exc))
+                continue
             generation_key = proposal_operation_key(
                 state,
                 proposal_type="role_demand",
@@ -961,45 +983,54 @@ class StageExecutor:
             self.artifacts.read(state["run_id"], spine_ref).payload
         )
         allocated_chapters = 0
-        volume_layouts = []
+        volume_layouts: list[DetailLayoutVolumeProposal] = []
         last_operation_key = ""
         for volume_index, volume in enumerate(architecture.volumes):
-            window = detail_layout_volume_window(
+            windows = detail_layout_turn_windows(
                 architecture=architecture,
                 profile=definition.scale_profile,
                 spine_turn_count=len(spine.turns),
                 volume_index=volume_index,
                 allocated_chapters=allocated_chapters,
             )
-            last_operation_key = proposal_operation_key(
-                state,
-                proposal_type="detail_layout",
-                binding_stage="detail",
-                scope_ref=volume.id,
-            )
-            context = self.context_compiler().detail_layout_volume(state, window)
-            result = await self._generate_proposal(
-                state,
-                proposal_type="detail_layout",
-                binding_stage="detail",
-                context=context,
-                scope_ref=volume.id,
-            )
-            try:
-                batch = DetailLayoutProposalBatch.model_validate(result)
-                validate_detail_layout_volume_proposal(
-                    batch,
-                    volume=volume,
-                    spine=spine,
-                    chapter_min=window.chapter_min,
-                    chapter_target=window.chapter_target,
-                    chapter_max=window.chapter_max,
+            volume_chapters = []
+            for window in windows:
+                last_operation_key = proposal_operation_key(
+                    state,
+                    proposal_type="detail_layout",
+                    binding_stage="detail",
+                    scope_ref=window.scope_ref,
                 )
-            except (TypeError, ValueError) as exc:
-                raise StageArtifactValidationError(last_operation_key, exc) from exc
-            volume_layout = batch.volumes[0]
-            volume_layouts.append(volume_layout)
-            allocated_chapters += len(volume_layout.chapters)
+                context = self.context_compiler().detail_layout_turn_window(
+                    state,
+                    window,
+                    previous_chapters=volume_chapters,
+                )
+                result = await self._generate_proposal(
+                    state,
+                    proposal_type="detail_layout",
+                    binding_stage="detail",
+                    context=context,
+                    scope_ref=window.scope_ref,
+                )
+                try:
+                    window_batch = DetailLayoutProposalBatch.model_validate(result)
+                    validate_detail_layout_turn_window_proposal(
+                        window_batch,
+                        volume=volume,
+                        spine=spine,
+                        window=window,
+                    )
+                except (TypeError, ValueError) as exc:
+                    raise StageArtifactValidationError(last_operation_key, exc) from exc
+                volume_chapters.extend(window_batch.volumes[0].chapters)
+            volume_layouts.append(
+                DetailLayoutVolumeProposal(
+                    volume_ref=volume.id,
+                    chapters=volume_chapters,
+                )
+            )
+            allocated_chapters += sum(window.chapter_target for window in windows)
 
         batch = DetailLayoutProposalBatch(
             status="sufficient",
@@ -1303,6 +1334,29 @@ class StageExecutor:
                         raise
                     await asyncio.sleep(2 * (round_index + 1))
         except Exception as exc:
+            # A parsed JSON object that fails the frozen proposal model is a
+            # Provider return with a domain-contract rejection, not a transport
+            # failure. Preserve the paid response and usage for the monitor.
+            returned = getattr(exc, "provider_result", None)
+            if (
+                isinstance(exc, ProviderOperationError)
+                and isinstance(returned, dict)
+                and exc.diagnostic.get("code") == "structured_contract_invalid"
+            ):
+                self.operations.record_provider_return(
+                    run_id,
+                    operation_key,
+                    returned,
+                    usage=exc.usage,
+                    diagnostic={**exc.diagnostic, "transport_attempts": transport_attempts},
+                )
+                self.operations.reject_provider_contract(
+                    run_id,
+                    operation_key,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                    diagnostic=exc.diagnostic,
+                )
+                raise ProviderOperationError.for_operation(operation_key, exc) from exc
             self.operations.fail(
                 run_id,
                 operation_key,
@@ -1342,18 +1396,47 @@ class StageExecutor:
         architecture_ref = (state.get("artifact_refs") or {}).get("volumes")
         if not architecture_ref:
             return []
-        architecture = VolumeArchitectureArtifact.model_validate(
-            self.artifacts.read(state["run_id"], architecture_ref).payload
-        )
+        windows = self.detail_layout_windows(state)
         return [
             proposal_operation_key(
                 state,
                 proposal_type="detail_layout",
                 binding_stage="detail",
-                scope_ref=volume.id,
+                scope_ref=window.scope_ref,
             )
-            for volume in architecture.volumes
+            for window in windows
         ]
+
+    def detail_layout_windows(
+        self,
+        state: NarrativeRunState,
+    ) -> list[DetailLayoutTurnWindow]:
+        architecture_ref = (state.get("artifact_refs") or {}).get("volumes")
+        spine_ref = (state.get("artifact_refs") or {}).get("spine")
+        if not architecture_ref or not spine_ref:
+            return []
+        architecture = VolumeArchitectureArtifact.model_validate(
+            self.artifacts.read(state["run_id"], architecture_ref).payload
+        )
+        spine = StorySpineArtifact.model_validate(
+            self.artifacts.read(state["run_id"], spine_ref).payload
+        )
+        profile = self.runs.definition(state["run_id"]).scale_profile
+        windows: list[DetailLayoutTurnWindow] = []
+        allocated_chapters = 0
+        for volume_index in range(len(architecture.volumes)):
+            volume_windows = detail_layout_turn_windows(
+                architecture=architecture,
+                profile=profile,
+                spine_turn_count=len(spine.turns),
+                volume_index=volume_index,
+                allocated_chapters=allocated_chapters,
+            )
+            windows.extend(volume_windows)
+            allocated_chapters += sum(
+                window.chapter_target for window in volume_windows
+            )
+        return windows
 
     def stage_operation_keys(
         self,
@@ -1365,10 +1448,23 @@ class StageExecutor:
         detail_layout: DetailLayoutProposalBatch | None = None
         layout_operation_keys: list[str] = []
         if stage_id == "detail":
-            layout_operation_keys = self.detail_layout_operation_keys(state)
+            layout_windows = self.detail_layout_windows(state)
+            layout_operation_keys = [
+                proposal_operation_key(
+                    state,
+                    proposal_type="detail_layout",
+                    binding_stage="detail",
+                    scope_ref=window.scope_ref,
+                )
+                for window in layout_windows
+            ]
             completed_layout_keys: list[str] = []
-            volume_layouts = []
-            for operation_key in layout_operation_keys:
+            chapters_by_volume: dict[str, list[Any]] = {}
+            for window, operation_key in zip(
+                layout_windows,
+                layout_operation_keys,
+                strict=True,
+            ):
                 receipt = self.operations.find(state["run_id"], operation_key)
                 if receipt is None or receipt.status != "succeeded":
                     return [*completed_layout_keys, operation_key]
@@ -1376,7 +1472,24 @@ class StageExecutor:
                 completed_layout_keys.append(operation_key)
                 if batch.status != "sufficient" or len(batch.volumes) != 1:
                     return completed_layout_keys
-                volume_layouts.append(batch.volumes[0])
+                if batch.volumes[0].volume_ref != window.volume_ref:
+                    return completed_layout_keys
+                chapters_by_volume.setdefault(window.volume_ref, []).extend(
+                    batch.volumes[0].chapters
+                )
+            architecture_ref = (state.get("artifact_refs") or {}).get("volumes")
+            if not architecture_ref:
+                return completed_layout_keys
+            architecture = VolumeArchitectureArtifact.model_validate(
+                self.artifacts.read(state["run_id"], architecture_ref).payload
+            )
+            volume_layouts = [
+                DetailLayoutVolumeProposal(
+                    volume_ref=volume.id,
+                    chapters=chapters_by_volume.get(volume.id, []),
+                )
+                for volume in architecture.volumes
+            ]
             detail_layout = DetailLayoutProposalBatch(
                 status="sufficient",
                 diagnosis="",
@@ -1506,11 +1619,37 @@ class StageExecutor:
                 "Provider operation already failed: "
                 f"{stored.get('type', '')}: {stored.get('message', operation_key)}",
             )
+        if receipt.status == "contract_rejected":
+            stored = receipt.error or {}
+            raise ProviderOperationError.for_operation(
+                operation_key,
+                "Provider return was already rejected by the stage contract: "
+                f"{stored.get('type', '')}: {stored.get('message', operation_key)}",
+            )
         if receipt.status == "succeeded":
             payload = receipt.result
             _validate_stage_unit(stage_id, unit_id, context, payload)
             if stage_id == "detail":
                 payload = _bind_detail_segment_turn_refs(payload, context)
+            return payload
+        if receipt.status == "provider_returned":
+            payload = receipt.provider_result
+            try:
+                _validate_stage_unit(stage_id, unit_id, context, payload)
+                if stage_id == "detail":
+                    payload = _bind_detail_segment_turn_refs(payload, context)
+            except Exception as exc:
+                self.operations.reject_provider_contract(
+                    run_id,
+                    operation_key,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                )
+                raise ProviderOperationError.for_operation(operation_key, exc) from exc
+            self.operations.accept_provider_result(
+                run_id,
+                operation_key,
+                receipt.provider_result,
+            )
             return payload
         response = None
         transport_attempts = 0
@@ -1519,10 +1658,6 @@ class StageExecutor:
                 transport_attempts = round_index + 1
                 try:
                     response = await self.provider.generate_stage(request)
-                    payload = response.payload
-                    _validate_stage_unit(stage_id, unit_id, context, payload)
-                    if stage_id == "detail":
-                        payload = _bind_detail_segment_turn_refs(payload, context)
                     break
                 except Exception as exc:
                     if (
@@ -1552,7 +1687,7 @@ class StageExecutor:
                 operation_key,
                 "Stage unit generation ended without a Provider response",
             )
-        self.operations.succeed(
+        self.operations.record_provider_return(
             run_id,
             operation_key,
             response.payload,
@@ -1561,6 +1696,23 @@ class StageExecutor:
                 **response.diagnostic,
                 "transport_attempts": transport_attempts,
             },
+        )
+        payload = response.payload
+        try:
+            _validate_stage_unit(stage_id, unit_id, context, payload)
+            if stage_id == "detail":
+                payload = _bind_detail_segment_turn_refs(payload, context)
+        except Exception as exc:
+            self.operations.reject_provider_contract(
+                run_id,
+                operation_key,
+                {"type": type(exc).__name__, "message": str(exc)},
+            )
+            raise ProviderOperationError.for_operation(operation_key, exc) from exc
+        self.operations.accept_provider_result(
+            run_id,
+            operation_key,
+            response.payload,
         )
         return payload
 
@@ -1681,7 +1833,45 @@ class StageExecutor:
         candidate_id = (state.get("candidate_artifact_refs") or {}).get(stage_id)
         if not candidate_id:
             raise ValueError(f"Missing {stage_id} candidate reference")
-        return self.artifacts.read(state["run_id"], candidate_id)
+        candidate = self.artifacts.read(state["run_id"], candidate_id)
+        if stage_id == "cast":
+            artifact_refs = state.get("artifact_refs") or {}
+            spine_ref = artifact_refs.get("spine")
+            if not spine_ref:
+                raise ValueError("Cast preflight requires the committed Spine Artifact")
+            findings = build_cast_identity_findings(
+                spine=StorySpineArtifact.model_validate(
+                    self.artifacts.read(state["run_id"], spine_ref).payload
+                ),
+                cast=CharacterBibleArtifact.model_validate(candidate.payload),
+            )
+            if findings:
+                summary = "; ".join(
+                    f"{finding.code}: {finding.evidence}" for finding in findings
+                )
+                raise ValueError(f"Cast identity preflight blocked the candidate: {summary}")
+        if stage_id == "detail":
+            artifact_refs = state.get("artifact_refs") or {}
+
+            def committed_payload(source_stage: StageId) -> dict[str, Any]:
+                artifact_id = artifact_refs.get(source_stage)
+                if not artifact_id:
+                    raise ValueError(
+                        f"Detail preflight requires committed {source_stage} Artifact"
+                    )
+                return self.artifacts.read(state["run_id"], artifact_id).payload
+
+            report = build_detail_preflight(
+                brief=StoryBriefArtifact.model_validate(committed_payload("brief")),
+                spine=StorySpineArtifact.model_validate(committed_payload("spine")),
+                cast=CharacterBibleArtifact.model_validate(committed_payload("cast")),
+                volumes=VolumeArchitectureArtifact.model_validate(
+                    committed_payload("volumes")
+                ),
+                detail=DetailArtifact.model_validate(candidate.payload),
+            )
+            require_detail_preflight(report)
+        return candidate
 
     def commit_candidate(
         self,
@@ -1742,19 +1932,23 @@ class StageExecutor:
             spine = StorySpineArtifact.model_validate(
                 self.artifacts.read(state["run_id"], spine_ref).payload
             )
-            window = detail_layout_volume_window(
+            window = detail_layout_turn_windows(
                 architecture=architecture,
                 profile=self.runs.definition(state["run_id"]).scale_profile,
                 spine_turn_count=len(spine.turns),
                 volume_index=0,
                 allocated_chapters=0,
-            )
-            return self.context_compiler().detail_layout_volume(state, window)
+            )[0]
+            return self.context_compiler().detail_layout_turn_window(state, window)
         return self.context_compiler().stage(state, stage_id)
 
     def context_compiler(self) -> NarrativeContextCompiler:
         return NarrativeContextCompiler(
-            self.runs, self.artifacts, self.chapters, canon=self.outbox.canon
+            self.runs,
+            self.artifacts,
+            self.chapters,
+            canon=self.outbox.canon,
+            planning=self.planning,
         )
 
     def output_budget_planner(
@@ -1957,6 +2151,12 @@ def _validate_stage_unit(
         # otherwise an invalid first draft would be persisted and fail only
         # during later candidate aggregation.
         _bind_story_spine(normalized_payload)
+        return
+    if stage_id == "brief":
+        StoryBriefArtifact.model_validate(payload)
+        return
+    if stage_id == "cover":
+        CoverBrief.model_validate(payload)
         return
     if not unit_id:
         return

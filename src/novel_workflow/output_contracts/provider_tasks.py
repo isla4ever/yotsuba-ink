@@ -172,12 +172,53 @@ class ChapterReviewResult(BaseModel):
     findings: list[ReviewFinding] = Field(default_factory=list)
 
 
+class EvidenceStoryScopeProposal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["story"]
+    epistemic_status: Literal[
+        "fact", "rumour", "belief", "reveal", "refutation"
+    ]
+
+
+class EvidenceStateAssertionProposal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["assertion"]
+    subject_id: str = Field(min_length=1, max_length=160)
+    property_key: str = Field(min_length=1, max_length=240)
+    value: str = Field(min_length=1, max_length=2000)
+    epistemic_status: Literal[
+        "fact", "rumour", "belief", "reveal", "refutation"
+    ]
+
+
+class EvidenceStateTransitionProposal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["transition"]
+    source_fact_id: str = Field(min_length=1, max_length=240)
+    action: Literal["supersedes", "resolves"]
+    value: str = Field(min_length=1, max_length=2000)
+    epistemic_status: Literal[
+        "fact", "rumour", "belief", "reveal", "refutation"
+    ]
+
+
+EvidenceStateProposal = (
+    EvidenceStoryScopeProposal
+    | EvidenceStateAssertionProposal
+    | EvidenceStateTransitionProposal
+)
+
+
 class EvidenceClaimProposal(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["fact", "character", "relationship", "foreshadow", "spine"]
     claim: str = Field(min_length=1, max_length=2000)
     span_ids: list[str] = Field(min_length=1, max_length=3)
+    state: EvidenceStateProposal
 
 
 class ChapterEvidenceResult(BaseModel):
@@ -192,6 +233,9 @@ __all__ = [
     "ChapterEvidenceResult",
     "ChapterReviewResult",
     "EvidenceClaimProposal",
+    "EvidenceStateAssertionProposal",
+    "EvidenceStateTransitionProposal",
+    "EvidenceStoryScopeProposal",
     "ReviewFinding",
     "RoleDemandSemanticFinding",
     "RoleDemandSemanticReviewResult",

@@ -49,6 +49,7 @@ class NarrativeRunState(TypedDict, total=False):
     chapter_version_refs: dict[str, str]
     chapter_attempts: dict[str, int]
     chapter_revision_directions: dict[str, str]
+    book_budget_blocker: dict[str, Any]
     context_manifest_ref: str
     active_stage_id: StageId
     active_chapter_number: int
@@ -65,12 +66,15 @@ class NarrativeRunState(TypedDict, total=False):
     role_demand_proposals: list[dict[str, Any]]
     subject_refs: list[dict[str, str]]
     volume_boundary_proposal: dict[str, Any]
+    pending_evidence_attempt_ref: str
     pending_evidence_refs: list[str]
     pending_writeback_ref: str
+    evidence_gate_action: Literal["", "succeeded", "needs_action", "retry", "cancel"]
     active_review_roles: list[dict[str, Any]]
     review_role: str
     review_required: bool
     chapter_gate_action: str
+    manuscript_gate_action: Literal["", "accept", "cancel"]
     failure: Annotated[GraphFailure | None, keep_first_failure]
 
 

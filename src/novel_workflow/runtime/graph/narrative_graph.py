@@ -55,6 +55,11 @@ def build_narrative_graph(
             "decision_ids": {},
             "pending_operation_refs": [],
             "review_operation_refs": [],
+            "manuscript_gate_action": "",
+            "pending_evidence_attempt_ref": "",
+            "pending_evidence_refs": [],
+            "pending_writeback_ref": "",
+            "evidence_gate_action": "",
             "failure": None,
         }
 

@@ -15,6 +15,7 @@ from novel_workflow.archive import LegacyRunViewer
 from novel_workflow.references import ReferenceStore, TavilySearchClient
 from novel_workflow.storage.json_store import JsonStore
 from novel_workflow.storage.project_store import ProjectStore
+from novel_workflow.storage.collaboration_settings_store import CollaborationSettingsStore
 from novel_workflow.storage.provider_profile_store import ProviderProfileStore
 from novel_workflow.storage.provider_secret_store import ProviderSecretStore
 from novel_workflow.storage.run_history_projection import RunHistoryProjection
@@ -34,6 +35,9 @@ def init_app_state(app: FastAPI, data_dir: Path | None = None) -> None:
     app.state.reference_store = ReferenceStore(root / "references")
     app.state.reference_search = TavilySearchClient()
     app.state.knowledge_base = KnowledgeBase(root / "knowledge")
+    app.state.collaboration_settings_store = CollaborationSettingsStore(
+        root / "collaboration_settings"
+    )
     app.state.providers = ProviderRegistry.from_env()
     seed_defaults(app)
     app.state.run_preflight = RunPreflightService(

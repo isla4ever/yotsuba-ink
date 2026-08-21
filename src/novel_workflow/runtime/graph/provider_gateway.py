@@ -5,13 +5,6 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from novel_workflow.output_contracts.artifacts_vnext import (
-    CharacterDossierBatch,
-    CoverBrief,
-    DetailSegmentArtifact,
-    StorySpineDraftArtifact,
-    VolumeArchitectureUnitArtifact,
-)
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
 from novel_workflow.providers.openai_compat import OpenAICompatibleTextProvider
 from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
@@ -33,10 +26,18 @@ from novel_workflow.runtime.graph.provider_requests import (
     ProviderOperationError,
     StageGenerationRequest,
 )
+from novel_workflow.runtime.graph.author_collaboration_requests import (
+    CollaborationGenerationRequest,
+    CollaborationProviderResult,
+    compile_collaboration_provider_input,
+)
+from novel_workflow.output_contracts.author_collaboration import (
+    ProviderCollaborationPatchResult,
+    ProviderCollaborationPlanResult,
+)
 from novel_workflow.output_contracts.provider_tasks import (
     ChapterEvidenceResult,
     ChapterReviewResult,
-    EvidenceClaimProposal,
     ReviewFinding,
 )
 
@@ -77,6 +78,11 @@ class NarrativeProviderGateway(Protocol):
 
     async def extract_chapter_evidence(self, request: ChapterEvidenceRequest) -> StructuredProviderResult: ...
 
+    async def generate_collaboration_turn(
+        self,
+        request: CollaborationGenerationRequest,
+    ) -> CollaborationProviderResult: ...
+
 
 class FrozenNarrativeProviderGateway:
     """Strict vNext adapter built only from a Run's executable Provider snapshots.
@@ -107,15 +113,6 @@ class FrozenNarrativeProviderGateway:
             schema,
             rendered_prompt=compiled.rendered_prompt,
         )
-        try:
-            _validate_stage_payload(request.stage_id, response.payload)
-        except Exception as exc:
-            raise ProviderOperationError(
-                str(exc),
-                operation_key=request.operation_key,
-                usage=response.usage,
-                diagnostic=response.diagnostic,
-            ) from exc
         return response
 
     async def generate_chapter_scene(
@@ -170,7 +167,15 @@ class FrozenNarrativeProviderGateway:
                 str(exc),
                 operation_key=request.operation_key,
                 usage=response.usage,
-                diagnostic=response.diagnostic,
+                provider_result=response.payload,
+                diagnostic={
+                    **response.diagnostic,
+                    # The Provider returned one parsed object, but it did not
+                    # satisfy this proposal's frozen Pydantic contract. This
+                    # is distinct from transport, auth, balance, or JSON
+                    # parsing failures and may be repaired once by the caller.
+                    "code": "structured_contract_invalid",
+                },
             ) from exc
         return response
 
@@ -221,8 +226,57 @@ class FrozenNarrativeProviderGateway:
             compiled.output_contract.json_schema_contract or {},
             rendered_prompt=compiled.rendered_prompt,
         )
-        ChapterEvidenceResult.model_validate(response.payload)
         return response
+
+    async def generate_collaboration_turn(
+        self,
+        request: CollaborationGenerationRequest,
+    ) -> CollaborationProviderResult:
+        provider = self._text_provider(request.binding)
+        compiled = compile_collaboration_provider_input(request)
+        try:
+            if request.mode == "discuss":
+                content = await provider.generate_text(
+                    compiled.rendered_prompt,
+                    task_name=compiled.task_name,
+                    context={"idempotency_key": request.operation_key},
+                )
+                return CollaborationProviderResult(
+                    content=content,
+                    usage=provider_usage_snapshot(provider),
+                    diagnostic=_provider_diagnostic(provider),
+                )
+            schema = compiled.output_contract.json_schema_contract or {}
+            payload = await provider.generate_strict_structured(
+                compiled.rendered_prompt,
+                task_name=compiled.task_name,
+                context={"idempotency_key": request.operation_key},
+                schema=schema,
+            )
+            if request.mode == "plan":
+                result = ProviderCollaborationPlanResult.model_validate(payload)
+                return CollaborationProviderResult(
+                    content=result.response,
+                    plan=result.plan,
+                    usage=provider_usage_snapshot(provider),
+                    diagnostic=_provider_diagnostic(provider),
+                )
+            result = ProviderCollaborationPatchResult.model_validate(payload)
+            return CollaborationProviderResult(
+                content=result.response,
+                replacement=result.replacement,
+                rationale=result.rationale,
+                usage=provider_usage_snapshot(provider),
+                diagnostic=_provider_diagnostic(provider),
+            )
+        except Exception as exc:
+            raise ProviderOperationError(
+                str(exc),
+                operation_key=request.operation_key,
+                usage=provider_usage_snapshot(provider),
+                diagnostic=_provider_diagnostic(provider),
+                provider_result=(payload if "payload" in locals() else None),
+            ) from exc
 
     async def _structured(
         self,
@@ -314,27 +368,6 @@ def _provider_diagnostic(provider: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
-def _validate_stage_payload(stage_id: str, payload: dict[str, Any]) -> None:
-    from novel_workflow.output_contracts.artifacts_vnext import ARTIFACT_MODELS
-
-    if stage_id == "cover":
-        CoverBrief.model_validate(payload)
-        return
-    if stage_id == "cast":
-        CharacterDossierBatch.model_validate(payload)
-        return
-    if stage_id == "spine":
-        StorySpineDraftArtifact.model_validate(payload)
-        return
-    if stage_id == "volumes":
-        VolumeArchitectureUnitArtifact.model_validate(payload)
-        return
-    if stage_id == "detail":
-        DetailSegmentArtifact.model_validate(payload)
-        return
-    ARTIFACT_MODELS[stage_id].model_validate(payload)
-
-
 def validate_review_result_contract(
     request: ChapterReviewRequest,
     result: ChapterReviewResult,
@@ -384,6 +417,8 @@ def validate_review_result_contract(
 
 __all__ = [
     "ChapterSceneGenerationRequest",
+    "CollaborationGenerationRequest",
+    "CollaborationProviderResult",
     "ChapterEvidenceRequest",
     "ChapterEvidenceResult",
     "ChapterReviewRequest",

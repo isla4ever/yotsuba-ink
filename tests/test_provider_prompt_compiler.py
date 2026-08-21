@@ -52,6 +52,8 @@ def test_role_demand_prompt_uses_dynamic_capacity_without_padding_the_cast() -> 
     assert "Set subject_mode to actor" in prompt
     assert "historical_record only" in prompt
     assert "never invent present action" in prompt
+    assert "closed decision table" in prompt
+    assert "不得把历史主体放进 present actor demand" in prompt
     assert "apply a removal test to every demand" in prompt
 
 
@@ -116,6 +118,8 @@ def test_spine_review_distinguishes_liability_collateral_harm_and_institutional_
     assert "do not invent a legal or procedural rule" in prompt
     assert "direct physical-state contradictions for the same subject" in prompt
     assert "at most four highest-leverage root findings" in prompt
+    assert "within the schema's 800-character maximum" in prompt
+    assert "smallest contiguous turn window" in prompt
 
 
 def test_auxiliary_structured_prompts_do_not_inherit_stage_artifact_templates() -> None:
@@ -152,6 +156,11 @@ def test_cast_prompt_requires_all_five_performable_dossier_dimensions_on_first_d
 
     assert "Resolve those five dimensions in the first response" in prompt
     assert "conflict_history merely repeats function" in prompt
+    assert "person-level identity, workplace, position" in prompt
+    assert "腐败势力的代理人" in prompt
+    assert "do not invent a personal identity" in prompt
+    assert "never write '不适用'" in prompt
+    assert "record's wording, omissions" in prompt
 
 
 def test_cast_planning_reviews_warn_about_padding_and_ambiguous_dossiers() -> None:
@@ -170,6 +179,8 @@ def test_cast_planning_reviews_warn_about_padding_and_ambiguous_dossiers() -> No
 
     assert "capacity rather than permission to invent duties" in role_review
     assert "require an upstream Spine repair rather than fabricated characters" in role_review
+    assert "Each finding may cite at most 8 unique turn refs" in role_review
+    assert "smallest contiguous evidence window" in role_review
     assert "before the current Cast dossier group enters the visible" in cast_review
     assert "do not by themselves block or trigger regeneration" in cast_review
     assert "specific loss owned by that subject" in cast_review
@@ -220,11 +231,15 @@ def test_detail_layout_prompt_requires_dynamic_surplus_to_be_dramatized() -> Non
     assert "local dramatic invention that only bridges the frozen endpoints" in prompt
     assert "return exactly one chapter proposal for every supplied slot" in prompt
     assert "return status=insufficient instead of shortening the array" in prompt
-    assert "runtime has already selected the current volume's exact chapter-slot count" in prompt
+    assert "runtime has already selected the current turn window's exact chapter-slot count" in prompt
+    assert "completed_dramatic_jobs list is a hard exclusion set" in prompt
+    assert "near-paraphrase" in prompt
     assert "range is diagnostic context, not permission for the Provider" in prompt
     assert "Choose each current volume's chapter-slot count" not in prompt
     assert "never invent a new clue, decision, actor, procedure result" not in prompt
     assert "repeat suitable turn_refs across adjacent chapters" in prompt
+    assert "Do not traverse the Spine slice more than once" in prompt
+    assert "first referenced turn position never decreases" in prompt
     assert "attempt and counteraction" in prompt
     assert "return status=insufficient instead of a numerically invalid" in prompt
 
@@ -251,6 +266,19 @@ def test_cast_relation_prompt_rejects_speculative_complete_graphs() -> None:
     assert "Omit speculative" in prompt
     assert "do not connect every subject" in prompt
     assert "must describe an already established relationship" in prompt
+    assert "visible agency signal" in prompt
+    assert "双方形成对抗" in prompt
+    assert "主体 A 已经做了具体动作 X" in prompt
+    assert "能否" in prompt
+    assert "推动公开" in prompt
+    assert "omit the edge" in prompt
+    assert "权衡是否继续" in prompt
+    assert "调查发现某人的职位" in prompt
+    assert "迫使 B 转向媒体公开" in prompt
+    assert "A 已深夜潜入取证" in prompt
+    assert "可能的报复" in prompt
+    assert "do not optimize global graph connectivity" in prompt
+    assert "An empty relations array is valid" in prompt
     assert "vague, possible, potential" in prompt
     assert "item_cap is a ceiling, not a target" in prompt
 

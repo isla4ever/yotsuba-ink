@@ -263,7 +263,15 @@ def test_disk_runtime_workflows_match_phase27_authority(workflow) -> None:
     python_detail = next(item for item in workflow["prompt_templates"] if item["id"] == "prompt-detail")
     disk_detail = next(item for item in disk["prompt_templates"] if item["id"] == "prompt-detail")
     assert disk_detail["variables"] == python_detail["variables"]
-    assert {"volume_spine_turns", "scale_projection"} <= set(disk_detail["variables"])
+    assert {
+        "volume_spine_turns",
+        "scale_projection",
+        "world_rule_projection",
+    } <= set(disk_detail["variables"])
+    python_cover = next(item for item in workflow["prompt_templates"] if item["id"] == "prompt-cover")
+    disk_cover = next(item for item in disk["prompt_templates"] if item["id"] == "prompt-cover")
+    assert disk_cover["content"] == python_cover["content"]
+    assert "negative_constraints 最多返回 24 项" in disk_cover["content"]
     brief_keys = [
         field["key"]
         for field in next(node for node in disk["nodes"] if node["id"] == "brief")["input_schema"]

@@ -18,11 +18,13 @@ class ProviderOperationError(RuntimeError):
         operation_key: str = "",
         usage: dict[str, int] | None = None,
         diagnostic: dict[str, Any] | None = None,
+        provider_result: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.operation_key = operation_key
         self.usage = usage or {}
         self.diagnostic = diagnostic or {}
+        self.provider_result = provider_result
 
     @classmethod
     def for_operation(
@@ -35,6 +37,7 @@ class ProviderOperationError(RuntimeError):
             operation_key=operation_key,
             usage=getattr(error, "usage", {}),
             diagnostic=getattr(error, "diagnostic", {}),
+            provider_result=getattr(error, "provider_result", None),
         )
 
 
@@ -78,7 +81,8 @@ class ChapterSceneGenerationRequest(BaseModel):
     chapter_number: int = Field(ge=1)
     chapter_attempt: int = Field(ge=1)
     scene_index: int = Field(ge=1)
-    scene_attempt: int = Field(ge=1, le=3)
+    scene_attempt: int = Field(ge=1, le=2)
+    mode: Literal["generate", "fact_repair"] = "generate"
     binding: ProviderBinding
     context: dict[str, Any]
 
@@ -107,6 +111,7 @@ class ChapterEvidenceRequest(BaseModel):
     attempt: int = Field(ge=1)
     content: str = Field(min_length=1)
     binding: ProviderBinding
+    context: dict[str, Any] = Field(default_factory=dict)
 
 
 class CoverImageRequest(BaseModel):

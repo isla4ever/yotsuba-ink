@@ -173,7 +173,25 @@ def overlap_score(query_keywords: list[str], chunk_keywords: list[str], text: st
         return 0.0
     chunk_set = set(chunk_keywords)
     hits = sum(1 for token in query_keywords if token in chunk_set or token in text)
-    return min(1.0, hits / max(1, len(query_keywords)))
+    token_score = min(1.0, hits / max(1, len(query_keywords)))
+    query_cjk = _cjk_ngrams("".join(query_keywords))
+    text_cjk = _cjk_ngrams(text)
+    cjk_score = (
+        len(query_cjk & text_cjk) / len(query_cjk)
+        if query_cjk
+        else 0.0
+    )
+    return max(token_score, cjk_score)
+
+
+def _cjk_ngrams(value: str, size: int = 2) -> set[str]:
+    compact = "".join(character for character in value if "\u4e00" <= character <= "\u9fff")
+    if len(compact) < size:
+        return {compact} if compact else set()
+    return {
+        compact[index : index + size]
+        for index in range(len(compact) - size + 1)
+    }
 
 
 def _preview(content: str, limit: int = 180) -> str:

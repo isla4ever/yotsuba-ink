@@ -7,6 +7,10 @@ from typing import Any, Literal
 from langgraph.types import interrupt
 
 from novel_workflow.output_contracts.artifacts_vnext import ChapterArtifact
+from novel_workflow.quality.decision_contract import (
+    QualityDecision,
+    quality_revision_direction,
+)
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.state import NarrativeRunState
 from novel_workflow.storage.chapter_store import ChapterRecord, ChapterStore
@@ -21,27 +25,23 @@ def request_chapter_decision(
     executor: StageExecutor,
     state: NarrativeRunState,
     *,
-    reason: dict[str, Any],
+    quality_decision: QualityDecision,
+    review_status: dict[str, Any],
 ) -> dict[str, Any]:
     run_id = state["run_id"]
     chapter_id = state["active_chapter_id"]
     candidate_ref = (state.get("chapter_version_refs") or {})[chapter_id]
     decision_id = f"{run_id}:{chapter_id}:{candidate_ref}:author-decision"
-    reason = dict(reason)
-    blocking_findings = _finding_records(reason.get("blocking_findings"))
-    warning_findings = _finding_records(reason.get("warning_findings"))
-    recommended_direction = chapter_revision_direction(
-        blocking_findings or warning_findings
-    )
-    if recommended_direction:
-        reason["recommended_revision_direction"] = recommended_direction
     regeneration_count = _chapter_regeneration_count(executor, run_id, chapter_id)
-    allowed_actions: list[ChapterDecisionAction] = []
-    if not blocking_findings:
-        allowed_actions.append("accept")
-    if regeneration_count < MAX_CANDIDATE_REGENERATIONS:
-        allowed_actions.append("regenerate")
-    allowed_actions.append("cancel")
+    quality_decision = quality_decision.model_copy(
+        update={"regeneration_used": regeneration_count}
+    )
+    recommended_direction = (
+        quality_decision.regeneration_recommendation.direction
+        if quality_decision.regeneration_recommendation is not None
+        else ""
+    )
+    allowed_actions = quality_decision.allowed_actions()
     payload = {
         "type": "chapter_author_decision",
         "decision_id": decision_id,
@@ -53,14 +53,14 @@ def request_chapter_decision(
         "allowed_actions": allowed_actions,
         "regeneration_limit": MAX_CANDIDATE_REGENERATIONS,
         "regeneration_used": regeneration_count,
-        "reason": reason,
+        "quality_decision": quality_decision.model_dump(mode="json"),
+        "review_status": review_status,
     }
-    if state.get("quality_mode") == "fast":
-        if blocking_findings:
-            if "regenerate" not in allowed_actions:
-                raise ValueError(
-                    "Chapter still violates a hard quality gate after its single automatic regeneration"
-                )
+    exhausted_hard_blocker = bool(quality_decision.contract_blockers) and (
+        "regenerate" not in allowed_actions
+    )
+    if state.get("quality_mode") == "fast" and not exhausted_hard_blocker:
+        if quality_decision.contract_blockers:
             action = "regenerate"
             value = {"direction": recommended_direction}
         else:
@@ -121,6 +121,10 @@ def request_chapter_decision(
             "decision_id": decision_id,
             "action": action,
             "artifact_ref": replacement_ref or candidate_ref,
+            "quality_decision": _resolved_quality_decision(
+                quality_decision,
+                action,
+            ).model_dump(mode="json"),
             **({"direction": direction} if direction else {}),
         },
     )
@@ -206,27 +210,20 @@ def _validate_resume(
 
 
 def chapter_revision_direction(findings: list[dict[str, Any]]) -> str:
-    """Turn reviewer evidence into one bounded prose revision instruction."""
+    return quality_revision_direction(findings)
 
-    items: list[str] = []
-    for index, finding in enumerate(findings[:3], start=1):
-        claim = str(finding.get("claim") or finding.get("code") or "审校问题").strip()
-        evidence = str(finding.get("evidence") or "").strip()
-        excerpt = evidence[:80]
-        items.append(f"{index}. {claim}" + (f"；证据：{excerpt}" if excerpt else ""))
-    if not items:
-        return ""
-    return (
-        "只修复以下审校问题，不改变冻结章名、细纲场景顺序、主体职责或未点名情节："
-        + " ".join(items)
-        + "。修改后核对本章结尾与下一章 handoff。"
+
+def _resolved_quality_decision(
+    decision: QualityDecision,
+    action: ChapterDecisionAction,
+) -> QualityDecision:
+    regeneration_used = decision.regeneration_used + (1 if action == "regenerate" else 0)
+    return decision.model_copy(
+        update={
+            "accepted": action == "accept",
+            "regeneration_used": regeneration_used,
+        }
     )
-
-
-def _finding_records(value: Any) -> list[dict[str, Any]]:
-    if not isinstance(value, list):
-        return []
-    return [dict(item) for item in value if isinstance(item, dict)]
 
 
 def _chapter_regeneration_count(
@@ -239,7 +236,9 @@ def _chapter_regeneration_count(
         for event in executor.events.read(run_id)
         if event.type == "decision.resolved"
         and event.node_id == "text.author_decision"
-        and event.chapter_id == chapter_id
+        and str((event.payload or {}).get("decision_id") or "").startswith(
+            f"{run_id}:{chapter_id}:"
+        )
         and (event.payload or {}).get("action") == "regenerate"
     )
 

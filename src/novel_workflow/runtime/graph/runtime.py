@@ -11,7 +11,9 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 
 from novel_workflow.output_contracts.artifacts_vnext import DetailArtifact, StageId
+from novel_workflow.quality.decision_contract import QualityDecision
 from novel_workflow.runtime.graph.narrative_graph import build_narrative_graph
+from novel_workflow.runtime.graph.planning_authority import HierarchicalPlanningAuthority
 from novel_workflow.runtime.graph.provider_gateway import NarrativeProviderGateway
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.state import NarrativeRunState
@@ -24,13 +26,23 @@ from novel_workflow.storage.evidence_store import EvidenceStore
 from novel_workflow.storage.export_store import ExportStore
 from novel_workflow.memory.canon_store import CanonStore
 from novel_workflow.memory.wiki_projection import WikiProjectionStore
+from novel_workflow.memory.story_bible_read_model import StoryBibleReadModelStore
 from novel_workflow.storage.domain_outbox import DomainOutbox
 from novel_workflow.storage.narrative_run_repository import (
     NarrativeRunRepository,
     RunReadModel,
 )
 from novel_workflow.storage.operation_store import OperationStore
+from novel_workflow.storage.planning_aggregate_store import PlanningAggregateStore
 from novel_workflow.storage.stage_artifact_draft_store import StageArtifactDraftStore
+from novel_workflow.storage.collaboration_store import CollaborationStore
+from novel_workflow.storage.collaboration_context_store import (
+    CollaborationContextReceiptStore,
+)
+from novel_workflow.runtime.graph.author_collaboration_graph import (
+    AuthorCollaborationExecutor,
+    build_author_collaboration_graph,
+)
 
 
 class DecisionReplayConflict(ValueError):
@@ -46,6 +58,7 @@ def has_active_graph_interrupt(snapshot: Any) -> bool:
 class NarrativeRuntimeStores:
     runs: NarrativeRunRepository
     artifacts: ArtifactStore
+    planning_aggregates: PlanningAggregateStore
     stage_drafts: StageArtifactDraftStore
     chapters: ChapterStore
     evidence: EvidenceStore
@@ -54,9 +67,12 @@ class NarrativeRuntimeStores:
     context_manifests: ContextManifestStore
     canon: CanonStore
     wiki: WikiProjectionStore
+    story_bible: StoryBibleReadModelStore
     outbox: DomainOutbox
     operations: OperationStore
     events: EventProjection
+    collaboration: CollaborationStore
+    collaboration_contexts: CollaborationContextReceiptStore
 
 
 @dataclass(slots=True)
@@ -67,6 +83,8 @@ class NarrativeRuntime:
     provider: NarrativeProviderGateway
     checkpointer: Any
     graph: Any
+    planning: HierarchicalPlanningAuthority
+    collaboration_graph: Any
 
     @classmethod
     def create(
@@ -76,9 +94,14 @@ class NarrativeRuntime:
         *,
         checkpointer: Any,
     ) -> "NarrativeRuntime":
+        planning = HierarchicalPlanningAuthority(
+            runs=stores.runs,
+            store=stores.planning_aggregates,
+        )
         executor = StageExecutor(
             runs=stores.runs,
             artifacts=stores.artifacts,
+            planning=planning,
             chapters=stores.chapters,
             operations=stores.operations,
             events=stores.events,
@@ -94,13 +117,42 @@ class NarrativeRuntime:
             provider=provider,
             checkpointer=checkpointer,
             graph=build_narrative_graph(executor, checkpointer=checkpointer),
+            planning=planning,
+            collaboration_graph=build_author_collaboration_graph(
+                AuthorCollaborationExecutor(stores, provider),
+                checkpointer=checkpointer,
+            ),
         )
 
+    async def collaborate(
+        self,
+        run_id: str,
+        collaboration_thread_id: str,
+        turn_id: str,
+    ) -> dict[str, Any]:
+        self.stores.runs.executable_definition(run_id)
+        value = await self.collaboration_graph.ainvoke(
+            {
+                "run_id": run_id,
+                "collaboration_thread_id": collaboration_thread_id,
+                "active_turn_id": turn_id,
+                "status_revision": 0,
+            },
+            config={
+                "configurable": {
+                    "thread_id": f"{run_id}:collab:{collaboration_thread_id}",
+                }
+            },
+        )
+        return dict(value or {})
+
     async def start(self, run_id: str) -> RunReadModel:
+        self.stores.runs.executable_definition(run_id)
         await self._execute(run_id, {"run_id": run_id})
         return self.stores.runs.read(run_id)
 
     async def resume(self, run_id: str, decision: dict[str, Any]) -> RunReadModel:
+        self.stores.runs.executable_definition(run_id)
         command = dict(decision)
         receipt_signature = str(command.pop("_receipt_signature", "")) or decision_signature(command)
         decision_id = str(command.get("decision_id") or "")
@@ -376,6 +428,15 @@ class NarrativeRuntime:
                     chapter_id,
                 )
         definition = self.stores.runs.definition(run_id)
+        quality_decision = _latest_quality_decision(
+            self.stores.events,
+            run_id,
+            chapter_id=(
+                str(pending[0].get("chapter_id") or "")
+                if pending and isinstance(pending[0], dict)
+                else str(values.get("active_chapter_id") or "")
+            ),
+        )
         projection = RunReadModel(
             run_id=run_id,
             project_id=str(values.get("project_id") or definition.project_id),
@@ -387,6 +448,7 @@ class NarrativeRuntime:
             stage_status=stage_status,
             artifact_refs=dict(values.get("artifact_refs") or {}),
             pending_decisions=pending,
+            quality_decision=quality_decision,
             provider_usage=self.stores.operations.usage_summary(run_id),
             failure=values.get("failure"),
             checkpoint_id=str(snapshot.config.get("configurable", {}).get("checkpoint_id") or ""),
@@ -417,22 +479,35 @@ class NarrativeRuntime:
 
 
 def filesystem_stores(root: Path) -> NarrativeRuntimeStores:
+    evidence = EvidenceStore(root / "evidence")
     canon = CanonStore(root / "canon")
     wiki = WikiProjectionStore(root / "wiki")
+    story_bible = StoryBibleReadModelStore(
+        root / "story_bible",
+        evidence=evidence,
+        canon=canon,
+        wiki=wiki,
+    )
     return NarrativeRuntimeStores(
         runs=NarrativeRunRepository(root / "runs"),
         artifacts=ArtifactStore(root / "artifacts"),
+        planning_aggregates=PlanningAggregateStore(root / "planning_aggregates"),
         stage_drafts=StageArtifactDraftStore(root / "stage_drafts"),
         chapters=ChapterStore(root / "chapters"),
-        evidence=EvidenceStore(root / "evidence"),
+        evidence=evidence,
         exports=ExportStore(root / "exports"),
         cover_assets=CoverAssetStore(root / "cover_assets"),
         context_manifests=ContextManifestStore(root / "context_manifests"),
         canon=canon,
         wiki=wiki,
+        story_bible=story_bible,
         outbox=DomainOutbox(root / "outbox", canon=canon, wiki=wiki),
         operations=OperationStore(root / "operations"),
         events=EventProjection(root / "events"),
+        collaboration=CollaborationStore(root / "collaboration"),
+        collaboration_contexts=CollaborationContextReceiptStore(
+            root / "collaboration_contexts"
+        ),
     )
 
 
@@ -446,6 +521,23 @@ def _projection_values(snapshot: Any) -> NarrativeRunState:
     if frontiers:
         values.update(dict(frontiers[0].values or {}))
     return values
+
+
+def _latest_quality_decision(
+    events: EventProjection,
+    run_id: str,
+    *,
+    chapter_id: str,
+) -> QualityDecision | None:
+    for event in reversed(events.read(run_id)):
+        if chapter_id and event.chapter_id and event.chapter_id != chapter_id:
+            continue
+        if not isinstance(event.payload, dict):
+            continue
+        payload = event.payload.get("quality_decision")
+        if isinstance(payload, dict):
+            return QualityDecision.model_validate(payload)
+    return None
 
 
 def _interrupted_frontiers(snapshot: Any) -> list[Any]:

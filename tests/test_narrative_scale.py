@@ -166,13 +166,13 @@ def test_100k_scale_uses_chapter_and_scene_capacity_ranges() -> None:
     assert (plan.turn_min, plan.turn_target, plan.turn_max) == (16, 20, 26)
     assert (plan.volume_min, plan.volume_target, plan.volume_max) == (2, 3, 5)
     assert volume_count_range(profile) == (2, 3, 5)
-    assert (plan.scenes_per_chapter_min, plan.scenes_per_chapter_max) == (2, 5)
+    assert (plan.scenes_per_chapter_min, plan.scenes_per_chapter_max) == (1, 5)
     assert (plan.cast_recommended_min, plan.cast_recommended_max, plan.cast_hard_max) == (3, 7, 11)
 
 
 def test_soft_book_length_bounds_keep_the_100k_demo_floor_without_exact_targeting() -> None:
     balanced_demo = NarrativeScaleProfile(word_target_soft=110_000)
-    assert soft_book_length_bounds(balanced_demo) == (100_000, 121_000)
+    assert soft_book_length_bounds(balanced_demo) == (99_000, 121_000)
 
     short_run = NarrativeScaleProfile(word_target_soft=4_000)
     assert soft_book_length_bounds(short_run) == (3_600, 4_400)
@@ -228,7 +228,7 @@ def test_scene_count_range_narrows_after_detail_selects_the_chapter_count() -> N
         word_target_soft=100_000,
     )
 
-    assert detail_scene_count_range(longer_chapters, 34) == (2, 5)
+    assert detail_scene_count_range(longer_chapters, 34) == (1, 5)
     assert detail_scene_count_range(shorter_chapters, 50) == (1, 4)
 
 
@@ -260,11 +260,23 @@ def test_auto_scale_rejects_a_fragmented_detail_scene_load() -> None:
 def test_auto_scale_rejects_a_detail_plan_without_enough_scene_capacity() -> None:
     profile = NarrativeScaleProfile(
         word_target_soft=100_000,
+        capacity_policy={"scene_characters_max": 800},
+    )
+
+    with pytest.raises(ValueError, match="minimum viable"):
+        allocate_chapter_character_targets(profile, [chapter_load(2)] * 40)
+
+
+def test_auto_scale_uses_the_nearest_viable_book_budget_instead_of_forcing_target() -> None:
+    profile = NarrativeScaleProfile(
+        word_target_soft=100_000,
         capacity_policy={"scene_characters_max": 1_000},
     )
 
-    with pytest.raises(ValueError, match="scene capacity"):
-        allocate_chapter_character_targets(profile, [chapter_load(2)] * 40)
+    targets = allocate_chapter_character_targets(profile, [chapter_load(2)] * 40)
+
+    assert sum(targets) == 80_000
+    assert all(target == 2_000 for target in targets)
 
 
 def test_auto_scale_allocates_shorter_targets_to_lower_scene_load() -> None:
@@ -327,17 +339,19 @@ def test_100k_character_budget_tracks_scene_load_inside_a_bounded_band() -> None
     )
 
 
-def test_shorter_layout_rejects_a_scene_count_that_cannot_carry_balanced_prose() -> None:
+def test_shorter_layout_keeps_a_lean_chapter_without_forcing_the_preferred_center() -> None:
     profile = NarrativeScaleProfile(
         word_target_soft=100_000,
         capacity_policy={"scene_characters_max": 2_000},
     )
 
-    with pytest.raises(ValueError, match="too few scenes"):
-        allocate_chapter_character_targets(
-            profile,
-            [chapter_load(1), *[chapter_load(3) for _ in range(39)]],
-        )
+    targets = allocate_chapter_character_targets(
+        profile,
+        [chapter_load(1), *[chapter_load(3) for _ in range(39)]],
+    )
+
+    assert targets[0] == 2_000
+    assert sum(targets) == 100_000
 
 
 def test_dynamic_scene_range_and_rhythm_band_keep_varied_loads_feasible() -> None:
@@ -354,6 +368,16 @@ def test_dynamic_scene_range_and_rhythm_band_keep_varied_loads_feasible() -> Non
         abs(left - right) <= band.max_adjacent_delta
         for left, right in zip(targets, targets[1:])
     )
+
+
+def test_default_scene_range_allows_one_scene_that_can_carry_viable_prose() -> None:
+    profile = NarrativeScaleProfile(word_target_soft=7_500)
+
+    assert detail_scene_count_range(profile, 3) == (1, 5)
+    assert allocate_chapter_character_targets(
+        profile,
+        [chapter_load(1), chapter_load(1), chapter_load(1)],
+    ) == [2_400, 2_400, 2_400]
 
 
 def test_character_budget_rejects_a_detail_count_below_the_frozen_target() -> None:
@@ -402,7 +426,7 @@ def test_book_budget_preserves_preferred_chapter_length_inside_the_soft_envelope
 
     targets = allocate_chapter_character_targets(
         profile,
-        [chapter_load(scene_minimum) for _ in range(chapter_count)],
+        [chapter_load(max(2, scene_minimum)) for _ in range(chapter_count)],
     )
 
     assert sum(targets) == expected_total

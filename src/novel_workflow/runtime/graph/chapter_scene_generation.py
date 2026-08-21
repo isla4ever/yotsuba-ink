@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -9,26 +8,28 @@ from novel_workflow.output_contracts.artifacts_vnext import (
     ContextManifest,
     DetailChapter,
 )
-from novel_workflow.runtime.graph.chapter_scene_facts import (
-    introduced_quantified_fact_tokens,
+from novel_workflow.runtime.graph.chapter_scene_contract_execution import (
+    SceneProseContractError,
+    execute_scene_contract,
+    read_scene_receipt,
+    scene_operation_key,
 )
 from novel_workflow.runtime.graph.chapter_scene_length import (
     SceneLengthContract,
     next_scene_length_contract,
 )
+from novel_workflow.runtime.graph.chapter_length import (
+    recover_chapter_length_contract_for_state,
+)
 from novel_workflow.runtime.graph.context_compiler import (
     _context_snippet,
     _manifest_hash,
 )
-from novel_workflow.runtime.graph.provider_gateway import compile_provider_input
 from novel_workflow.runtime.graph.provider_requests import (
     ChapterSceneGenerationRequest,
-    ProviderOperationError,
 )
-from novel_workflow.runtime.graph.stage_executor import _is_transient_network_error
 from novel_workflow.storage.narrative_run_repository import ProviderBinding
 from novel_workflow.workflows.narrative_scale import (
-    ChapterLengthContract,
     chapter_length_contract,
     count_prose_characters,
 )
@@ -39,8 +40,7 @@ if TYPE_CHECKING:
     from novel_workflow.runtime.graph.state import NarrativeRunState
 
 
-_MAX_SCENE_ATTEMPTS = 3
-_SCENE_NETWORK_ATTEMPTS = 3
+_MAX_SCENE_ATTEMPTS = 2
 _SCENE_OUTPUT_TOKEN_CAP = 2_400
 # Keep the prior scene bounded while preserving enough of its final physical
 # and knowledge state for the next scene to continue without replaying it.
@@ -51,12 +51,6 @@ _PREVIOUS_SCENE_EXCERPT_CHARS = 900
 class ChapterSceneGenerationResult:
     content: str
     operation_keys: tuple[str, ...]
-
-
-class SceneProseContractError(ValueError):
-    def __init__(self, message: str, *, operation_key: str) -> None:
-        super().__init__(message)
-        self.operation_key = operation_key
 
 
 async def generate_chapter_scenes(
@@ -79,6 +73,11 @@ async def generate_chapter_scenes(
     )
     if chapter_contract is None:
         raise ValueError("Chapter scene generation requires a frozen character target")
+    chapter_contract = recover_chapter_length_contract_for_state(
+        executor,
+        state,
+        chapter_contract,
+    )
 
     scene_binding = _scene_binding(budget.bind(binding), chapter_contract)
     chapter_revision = _snippet_text(base_manifest, "revision.request")
@@ -98,131 +97,71 @@ async def generate_chapter_scenes(
             chapter_attempt=chapter_attempt,
             scene_index=contract.scene_index,
         )
-        accepted_scene = ""
-        final_fact_drift: tuple[str, ...] = ()
-        for scene_attempt in range(1, _MAX_SCENE_ATTEMPTS + 1):
-            operation_key = scene_operation_key(
-                run_id,
-                chapter_id,
-                chapter_attempt=chapter_attempt,
-                scene_index=contract.scene_index,
-                scene_attempt=scene_attempt,
-            )
-            revision = _scene_revision_direction(
-                contract,
-                source,
-                chapter_revision=chapter_revision,
-                rejected_fact_tokens=source_fact_drift,
-            )
-            manifest = build_scene_manifest(
-                base_manifest,
-                detail_chapter=detail_chapter,
-                scene_index=contract.scene_index,
-                contract=contract,
-                output_tokens=scene_binding.max_tokens,
-                previous_scene=generated[-1] if generated else "",
-                source_scene=source,
-                revision_direction=revision,
-            )
-            request = ChapterSceneGenerationRequest(
-                operation_key=operation_key,
-                run_id=run_id,
-                chapter_id=chapter_id,
-                chapter_number=chapter_number,
-                chapter_attempt=chapter_attempt,
-                scene_index=contract.scene_index,
-                scene_attempt=scene_attempt,
-                binding=scene_binding,
-                context={
-                    "target": "text.scene",
-                    "sources": {},
-                    "material": {
-                        "chapter_context_manifest": manifest.model_dump(mode="json")
-                    },
-                    "output_budget": {"max_tokens": scene_binding.max_tokens},
+        operation_key = scene_operation_key(
+            run_id,
+            chapter_id,
+            chapter_attempt=chapter_attempt,
+            scene_index=contract.scene_index,
+            scene_attempt=1,
+        )
+        revision = _scene_revision_direction(
+            contract,
+            source,
+            chapter_revision=chapter_revision,
+            rejected_fact_tokens=source_fact_drift,
+        )
+        manifest = build_scene_manifest(
+            base_manifest,
+            detail_chapter=detail_chapter,
+            scene_index=contract.scene_index,
+            contract=contract,
+            output_tokens=scene_binding.max_tokens,
+            previous_scene=generated[-1] if generated else "",
+            source_scene=source,
+            revision_direction=revision,
+        )
+        request = ChapterSceneGenerationRequest(
+            operation_key=operation_key,
+            run_id=run_id,
+            chapter_id=chapter_id,
+            chapter_number=chapter_number,
+            chapter_attempt=chapter_attempt,
+            scene_index=contract.scene_index,
+            scene_attempt=1,
+            binding=scene_binding,
+            mode="generate",
+            context={
+                "target": "text.scene",
+                "sources": {},
+                "material": {
+                    "chapter_context_manifest": manifest.model_dump(mode="json")
                 },
-            )
-            receipt = executor.operations.begin_provider(
-                run_id=run_id,
-                operation_key=operation_key,
-                kind="chapter_scene_generation",
-                provider_profile_id=binding.provider_profile_id,
-                model=scene_binding.model,
-                provider_input=compile_provider_input(request),
-            )
-            operation_keys.append(operation_key)
-            if receipt.status == "failed":
-                raise ProviderOperationError.for_operation(
-                    operation_key,
-                    f"Provider operation already failed: {operation_key}",
-                )
-            if receipt.status == "succeeded":
-                content = _read_scene_receipt(receipt.result)
-            else:
-                response = None
-                try:
-                    response = await _generate_scene_with_network_retry(executor, request)
-                    content = response.content.strip()
-                    if not content:
-                        raise ValueError("Chapter scene Provider returned empty prose")
-                except Exception as exc:
-                    executor.operations.fail(
-                        run_id,
-                        operation_key,
-                        {"type": type(exc).__name__, "message": str(exc)},
-                        usage=(response.usage if response is not None else getattr(exc, "usage", {})),
-                        diagnostic=(
-                            response.diagnostic
-                            if response is not None
-                            else getattr(exc, "diagnostic", {})
-                        ),
-                    )
-                    raise ProviderOperationError.for_operation(operation_key, exc) from exc
-                measured = count_prose_characters(content)
-                fact_drift = introduced_quantified_fact_tokens(content, manifest)
-                executor.operations.succeed(
-                    run_id,
-                    operation_key,
-                    {"content": content},
-                    usage=response.usage,
-                    diagnostic={
-                        **response.diagnostic,
-                        "measured_non_whitespace_characters": measured,
-                        "scene_length_bounds": [
-                            contract.min_characters,
-                            contract.max_characters,
-                        ],
-                        "introduced_quantified_facts": list(fact_drift),
-                    },
-                )
+                "output_budget": {"max_tokens": scene_binding.max_tokens},
+            },
+        )
+        execution = await execute_scene_contract(
+            executor,
+            request=request,
+            source_manifest=manifest,
+            contract=contract,
+        )
+        operation_keys.extend(execution.operation_keys)
+        accepted_scene = execution.content
+        accepted_operation_key = execution.accepted_operation_key
 
-            actual = count_prose_characters(content)
-            final_fact_drift = introduced_quantified_fact_tokens(content, manifest)
-            if not final_fact_drift:
-                accepted_scene = content.strip()
-                warning = scene_length_warning_payload(contract, actual)
-                if warning is not None:
-                    executor.events.append(
-                        run_id,
-                        event_id=f"{operation_key}:length-warning",
-                        type="quality.warning",
-                        stage_id="text",
-                        node_id="text.generate_prose",
-                        chapter_id=chapter_id,
-                        status="warning",
-                        payload=warning,
-                        payload_ref=operation_key,
-                    )
-                break
-            source = content.strip()
-            source_fact_drift = final_fact_drift
-
-        if not accepted_scene:
-            raise SceneProseContractError(
-                "introduced quantified facts absent from frozen context: "
-                + ", ".join(final_fact_drift)
-                + f" after {_MAX_SCENE_ATTEMPTS} attempts",
-                operation_key=operation_keys[-1],
+        actual = count_prose_characters(accepted_scene)
+        warning = scene_length_warning_payload(contract, actual)
+        if warning is not None:
+            executor.events.append(
+                run_id,
+                event_id=f"{accepted_operation_key}:length-warning",
+                type="quality.warning",
+                stage_id="text",
+                node_id="text.generate_prose",
+                chapter_id=chapter_id,
+                status="warning",
+                payload=warning,
+                payload_ref=accepted_operation_key,
             )
         generated.append(accepted_scene)
         accepted_character_counts.append(count_prose_characters(accepted_scene))
@@ -325,7 +264,8 @@ def build_scene_manifest(
         "previous.handoff",
         "previous.ending_excerpt",
         "previous.staged_beats",
-        "canon.established_facts",
+        "story.current_state",
+        "continuity.recent_window",
     ):
         if ref in by_ref:
             optional.append(ref)
@@ -385,19 +325,6 @@ def build_scene_manifest(
     manifest_body["manifest_hash"] = _manifest_hash(manifest_body)
     return ContextManifest.model_validate(manifest_body)
 
-
-def scene_operation_key(
-    run_id: str,
-    chapter_id: str,
-    *,
-    chapter_attempt: int,
-    scene_index: int,
-    scene_attempt: int,
-) -> str:
-    return (
-        f"{run_id}:{chapter_id}:scene-{scene_index}:"
-        f"generate:{chapter_attempt}.{scene_attempt}"
-    )
 
 
 def _scene_execution_scaffold(scene_index: int, scene: Any) -> dict[str, Any]:
@@ -486,7 +413,7 @@ def _previous_attempt_scene(
         receipt = executor.operations.find(run_id, operation_key)
         if receipt is not None and receipt.status == "succeeded":
             rejected = receipt.diagnostic.get("introduced_quantified_facts") or []
-            return _read_scene_receipt(receipt.result), tuple(
+            return read_scene_receipt(receipt.result), tuple(
                 dict.fromkeys(
                     str(token).strip()
                     for token in rejected
@@ -506,32 +433,6 @@ def _scene_binding(
         max(1_800, round(chapter.max_characters * 1.5)),
     )
     return binding.model_copy(update={"max_tokens": max_tokens})
-
-
-async def _generate_scene_with_network_retry(
-    executor: StageExecutor,
-    request: ChapterSceneGenerationRequest,
-) -> Any:
-    for round_index in range(_SCENE_NETWORK_ATTEMPTS):
-        try:
-            return await executor.provider.generate_chapter_scene(request)
-        except Exception as exc:
-            if (
-                round_index >= _SCENE_NETWORK_ATTEMPTS - 1
-                or not _is_transient_network_error(exc)
-            ):
-                raise
-            await asyncio.sleep(2 * (round_index + 1))
-    raise RuntimeError("unreachable")
-
-
-def _read_scene_receipt(payload: Any) -> str:
-    if not isinstance(payload, dict):
-        raise ValueError("Chapter scene receipt must be an object")
-    content = payload.get("content")
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError("Chapter scene receipt must contain non-empty text")
-    return content.strip()
 
 
 def _snippet_text(manifest: ContextManifest, ref: str) -> str:

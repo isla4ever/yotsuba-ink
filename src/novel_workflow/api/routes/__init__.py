@@ -7,7 +7,10 @@ from novel_workflow.api.routes.providers import router as providers_router
 from novel_workflow.api.routes.references import router as references_router
 from novel_workflow.api.routes.run_history import router as run_history_router
 from novel_workflow.api.routes.runs import router as runs_router
+from novel_workflow.api.routes.story_bible import router as story_bible_router
 from novel_workflow.api.routes.workflow import router as workflow_router
+from novel_workflow.api.routes.author_collaboration import router as author_collaboration_router
+from novel_workflow.api.routes.collaboration_settings import router as collaboration_settings_router
 
 __all__ = [
     "archive_runs_router",
@@ -20,6 +23,9 @@ __all__ = [
     "references_router",
     "run_history_router",
     "runs_router",
+    "story_bible_router",
     "workflow_router",
+    "author_collaboration_router",
+    "collaboration_settings_router",
 ]
 from novel_workflow.api.routes.archive_runs import router as archive_runs_router

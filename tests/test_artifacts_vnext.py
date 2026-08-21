@@ -80,6 +80,62 @@ def test_role_demand_requires_an_explicit_subject_mode() -> None:
     assert historical.proposals[1].subject_mode == "historical_record"
 
 
+def test_role_demand_rejects_historical_mode_for_a_present_role() -> None:
+    with pytest.raises(ValidationError, match="present role demand must use actor mode"):
+        RoleDemandProposalBatch.model_validate(
+            {
+                "proposals": [
+                    {
+                        "demand_key": "demand-protagonist",
+                        "subject_mode": "actor",
+                        "narrative_role": "protagonist",
+                        "function": "公开追查旧案",
+                        "required_change": "从回避转向公开承担后果",
+                        "irreducibility": "主角必须亲自作出终局选择并承担职业代价。",
+                        "active_turn_refs": ["turn-1", "turn-3"],
+                    },
+                    {
+                        "demand_key": "demand-record",
+                        "subject_mode": "historical_record",
+                        "narrative_role": "relationship",
+                        "function": "以遗留证词改变当代责任判断",
+                        "required_change": "记录从私人记忆变为可核验的公开证据",
+                        "irreducibility": "同一份历史证词必须保持归属，才能追溯责任后果。",
+                        "active_turn_refs": ["turn-2"],
+                    },
+                ]
+            }
+        )
+
+
+def test_historical_role_demand_rejects_present_action_language() -> None:
+    with pytest.raises(ValidationError, match="historical_record demand must describe"):
+        RoleDemandProposalBatch.model_validate(
+            {
+                "proposals": [
+                    {
+                        "demand_key": "demand-protagonist",
+                        "subject_mode": "actor",
+                        "narrative_role": "protagonist",
+                        "function": "公开追查旧案",
+                        "required_change": "从回避转向公开承担后果",
+                        "irreducibility": "主角必须亲自作出终局选择并承担职业代价。",
+                        "active_turn_refs": ["turn-1", "turn-3"],
+                    },
+                    {
+                        "demand_key": "demand-record",
+                        "subject_mode": "historical_record",
+                        "narrative_role": "historical_record",
+                        "function": "在当下主动调查并施压相关者",
+                        "required_change": "记录从私人记忆变为可核验的公开证据",
+                        "irreducibility": "同一份历史证词必须保持归属，才能追溯责任后果。",
+                        "active_turn_refs": ["turn-2"],
+                    },
+                ]
+            }
+        )
+
+
 @pytest.mark.parametrize(
     "irreducibility",
     [
@@ -339,6 +395,38 @@ def test_story_brief_rejects_placeholder_book_titles(title: str) -> None:
         validate_artifact_vnext("brief", payload)
 
 
+def test_story_brief_rejects_a_genre_label_as_the_book_title() -> None:
+    payload = {
+        "title": "悬疑现实主义",
+        "premise": "记者追查一封预告旧案的匿名信。",
+        "promise": "证据来源会逐层改变嫌疑关系。",
+        "world_rules": ["警方材料公开前必须完成来源核验"],
+        "theme": "公开真相与保护证人的责任冲突",
+        "ending_promise": "旧案真相与记者的公开责任同时落地。",
+        "voice": "克制的第三人称限知",
+        "length_envelope": {"word_target_soft": 50_000},
+    }
+
+    with pytest.raises(ValidationError, match="genre label"):
+        validate_artifact_vnext("brief", payload)
+
+
+def test_story_brief_rejects_an_unexecutable_universal_world_rule() -> None:
+    payload = {
+        "title": "旧信无声",
+        "premise": "记者追查一封预告旧案的匿名信。",
+        "promise": "证据来源会逐层改变嫌疑关系。",
+        "world_rules": ["小城每个居民过去都与主线有关"],
+        "theme": "公开真相与保护证人的责任冲突",
+        "ending_promise": "旧案真相与记者的公开责任同时落地。",
+        "voice": "克制的第三人称限知",
+        "length_envelope": {"word_target_soft": 50_000},
+    }
+
+    with pytest.raises(ValidationError, match="executable constraints"):
+        validate_artifact_vnext("brief", payload)
+
+
 @pytest.mark.parametrize("stage_id", STAGE_ORDER)
 def test_every_artifact_schema_forbids_unknown_keys(stage_id: str) -> None:
     schema = ARTIFACT_MODELS[stage_id].model_json_schema()  # type: ignore[index]
@@ -405,6 +493,8 @@ def test_character_bible_freezes_subject_registry_and_rejects_unknown_relation()
     [
         ("type", "潜在盟友"),
         ("pressure", "两人可能在公开听证前建立信任"),
+        ("pressure", "沈岚目睹林国强死亡，内心挣扎是否推动自己承担风险"),
+        ("pressure", "林国强的牺牲将会推动遗产公开"),
     ],
 )
 def test_character_relation_rejects_ambiguous_pressure(field: str, value: str) -> None:
@@ -418,6 +508,70 @@ def test_character_relation_rejects_ambiguous_pressure(field: str, value: str) -
 
     with pytest.raises(ValidationError, match="established, concrete relationship pressure"):
         CharacterRelation.model_validate(relation)
+
+
+@pytest.mark.parametrize(
+    "pressure",
+    [
+        "赵启明作为调度组长，双方形成对抗。",
+        "双方存在联系。",
+        "陈建国已暴露于厂方可能的报复之下。",
+    ],
+)
+def test_character_relation_requires_choice_and_consequence(pressure: str) -> None:
+    with pytest.raises(ValidationError, match="established, concrete relationship pressure"):
+        CharacterRelation.model_validate(
+            {
+                "a": "subject-lin",
+                "b": "subject-witness",
+                "type": "调查关系",
+                "pressure": pressure,
+            }
+        )
+
+
+def test_character_relation_accepts_concrete_choice_and_consequence() -> None:
+    relation = CharacterRelation.model_validate(
+        {
+            "a": "subject-lin",
+            "b": "subject-witness",
+            "type": "相互制衡",
+            "pressure": "赵启明以违规记录要挟林默停止调查，林默继续追查会失去调度资格。",
+        }
+    )
+    assert relation.pressure.startswith("赵启明以违规记录")
+
+
+@pytest.mark.parametrize(
+    "pressure",
+    [
+        "赵启受组织指令绑架林默，导致林默面临法律追责。",
+        "赵启曾作为警方线人提供情报，导致林默无法确认他的真实动机。",
+        "林默私下提交样本，导致顾海生卷入内部审查。",
+    ],
+)
+def test_character_relation_accepts_natural_completed_causal_actions(pressure: str) -> None:
+    relation = CharacterRelation.model_validate(
+        {
+            "a": "subject-lin",
+            "b": "subject-witness",
+            "type": "已成立的责任压力",
+            "pressure": pressure,
+        }
+    )
+    assert relation.pressure == pressure
+
+
+def test_character_relation_accepts_completed_coercion_with_changed_option() -> None:
+    relation = CharacterRelation.model_validate(
+        {
+            "a": "subject-lin",
+            "b": "subject-witness",
+            "type": "已成立的责任压力",
+            "pressure": "郑立群通过主管向林晚施压，迫使林晚转向媒体公开。",
+        }
+    )
+    assert "转向媒体公开" in relation.pressure
 
 
 def test_character_bible_requires_protagonist_and_covers_role_demands() -> None:

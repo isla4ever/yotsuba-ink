@@ -6,6 +6,12 @@ from typing import Any, Iterable
 
 from langgraph.types import Send
 
+from novel_workflow.quality.decision_contract import (
+    build_quality_decision,
+    contract_blocker,
+    review_warning,
+)
+from novel_workflow.quality.planning_contracts import WorldRuleSet
 from novel_workflow.runtime.graph.chapter_decision import request_chapter_decision
 from novel_workflow.runtime.graph.provider_gateway import (
     ChapterReviewRequest,
@@ -33,7 +39,7 @@ DEFAULT_REVIEWERS: tuple[ReviewerSpec, ...] = (
 
 def deterministic_world_rule_findings(
     *,
-    world_rules: Iterable[str],
+    world_rule_projection: WorldRuleSet,
     content: str,
     subject_ids: Iterable[str],
 ) -> tuple[ReviewFinding, ...]:
@@ -44,17 +50,17 @@ def deterministic_world_rule_findings(
     negations in a prose sentence are reported. Literary interpretation remains
     in the reviewer lane.
     """
-    rules = "\n".join(str(rule) for rule in world_rules)
-    if not content.strip() or not rules.strip():
+    if not content.strip():
         return ()
-    has_call_rule = any(term in rules for term in ("电话", "来电", "报警"))
-    promises_future_call = (
-        has_call_rule
-        and bool(re.search(r"(?:24小时|二十四小时).{0,12}(?:后|之后)", rules))
+    call_rules = [
+        rule
+        for rule in world_rule_projection.rules
+        if any(term in rule.source_text for term in ("电话", "来电", "报警"))
+    ]
+    promises_future_call = any(
+        rule.future_offset_hours == 24 for rule in call_rules
     )
-    promises_fixed_time = has_call_rule and bool(
-        re.search(r"固定(?:的)?(?:时间|时段)", rules)
-    )
+    promises_fixed_time = any(rule.fixed_time for rule in call_rules)
     if not promises_future_call and not promises_fixed_time:
         return ()
 
@@ -172,33 +178,19 @@ def freeze_review_roles(
     }
 
 
-async def _review_with_contract_retry(
+async def _review_once(
     executor: StageExecutor,
     request: ChapterReviewRequest,
 ) -> tuple[Any, ChapterReviewResult]:
-    """One retry that tells the reviewer how its last answer broke the contract.
+    """Execute one receipted review call; malformed output stays unavailable.
 
-    A required lane that returns a malformed finding — an unquoted excerpt, a
-    finding with no frozen subject — is discarded whole, and a discarded
-    required lane stops the author decision on a chapter that may be fine. The
-    reviewer usually repairs the shape when the exact rejection is quoted back,
-    so retrying once here is cheaper than making the author regenerate prose.
+    Review availability is a provider-contract boundary. Retrying a malformed
+    result inside this node hides the failure and spends more tokens without an
+    author decision, so the caller records it once as ``review.unavailable``.
     """
-    last: ProviderOperationError | None = None
-    for attempt in range(2):
-        candidate = request if last is None else _with_contract_note(request, str(last))
-        try:
-            response = await executor.provider.review_chapter(candidate)
-        except ProviderOperationError as exc:
-            if attempt or not isinstance(exc.__cause__, ValueError):
-                raise
-            last = exc
-            continue
-        return response, drop_compliance_findings(
-            ChapterReviewResult.model_validate(response.payload)
-        )
-    raise last if last is not None else ProviderOperationError(
-        "Chapter review exhausted its contract retry", operation_key=request.operation_key
+    response = await executor.provider.review_chapter(request)
+    return response, drop_compliance_findings(
+        ChapterReviewResult.model_validate(response.payload)
     )
 
 
@@ -237,19 +229,13 @@ def review_warning_findings(results: Iterable[ChapterReviewResult]) -> list[dict
     """Return reviewer evidence that should remain advisory in v1."""
 
     return [
-        finding.model_dump(mode="json")
+        {
+            **finding.model_dump(mode="json"),
+            "reviewer_role": result.role,
+        }
         for result in results
         for finding in result.findings
     ]
-
-
-def _with_contract_note(request: ChapterReviewRequest, reason: str) -> ChapterReviewRequest:
-    context = dict(request.context)
-    context["contract_violation"] = (
-        f"Your previous answer was rejected: {reason}. Return only findings that satisfy the contract, "
-        "or an empty findings list."
-    )
-    return request.model_copy(update={"context": context})
 
 
 async def execute_review(
@@ -305,7 +291,7 @@ async def execute_review(
     else:
         response = None
         try:
-            response, result = await _review_with_contract_retry(executor, request)
+            response, result = await _review_once(executor, request)
         except Exception as exc:
             executor.operations.fail(
                 run_id,
@@ -370,7 +356,9 @@ def evaluate_review_gate(
     if continuity is not None or "continuity" in role_specs:
         material = executor.context_compiler().review(state, "continuity")["material"]
         deterministic_blocking = deterministic_world_rule_findings(
-            world_rules=material.get("world_rules") or (),
+            world_rule_projection=WorldRuleSet.model_validate(
+                material["world_rule_projection"]
+            ),
             content=(material.get("chapter") or {}).get("content") or "",
             subject_ids=(material.get("current_detail_chapter") or {}).get("cast_ids") or (),
         )
@@ -384,16 +372,49 @@ def evaluate_review_gate(
         for role, required in role_specs.items()
         if not required and (role not in results or not results[role].available)
     ]
-    blocking = [finding.model_dump(mode="json") for finding in deterministic_blocking]
-    warnings = review_warning_findings(results.values())
+    subject_labels = {
+        subject.id: subject.name
+        for subject in executor.character_bible(state).subjects
+    }
+    blocking = [
+        contract_blocker(
+            finding.model_dump(mode="json"),
+            subject_labels=subject_labels,
+        )
+        for finding in deterministic_blocking
+    ]
+    if unavailable_required:
+        blocking.append(
+            contract_blocker(
+                {
+                    "code": "required_review_unavailable",
+                    "claim": "必需审稿角色不可用，系统不能把未完成的审稿当作通过。",
+                    "evidence": f"Unavailable required reviewers: {', '.join(sorted(unavailable_required))}",
+                    "subject_ids": [],
+                },
+                subject_labels=subject_labels,
+            )
+        )
+    warnings = [
+        review_warning(
+            finding.model_dump(mode="json"),
+            reviewer_role=result.role,
+            subject_labels=subject_labels,
+        )
+        for result in results.values()
+        for finding in result.findings
+    ]
+    quality_decision = build_quality_decision(
+        contract_blockers=blocking,
+        review_warnings=warnings,
+    )
     return request_chapter_decision(
         executor,
         state,
-        reason={
+        quality_decision=quality_decision,
+        review_status={
             "required_review_unavailable": unavailable_required,
             "optional_review_unavailable": unavailable_optional,
-            "blocking_findings": blocking,
-            "warning_findings": warnings,
             "reviewed_roles": sorted(results),
         },
     )

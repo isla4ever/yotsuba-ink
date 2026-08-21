@@ -54,6 +54,7 @@ runtime/novel_workflow/preference_calibration_runs/
 runtime/novel_workflow/preference_calibration_wiki/
 runtime/novel_workflow/workflows/wf-*.json
 runtime/novel_workflow/*.sqlite*
+runtime/novel_workflow/project-order.json
 
 # Frontend
 apps/web/node_modules/

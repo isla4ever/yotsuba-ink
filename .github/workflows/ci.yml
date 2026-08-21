@@ -35,18 +35,23 @@ jobs:
         working-directory: apps/web
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: Install
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Test
-        run: npm test
+        run: pnpm test
       - name: Build
-        run: npm run build
+        run: pnpm build
       - name: Audit CSS
-        run: npm run audit:css
-      - name: Check CSS split
-        run: npm run check:css-split
+        run: pnpm audit:css
+      - name: Audit structure
+        run: pnpm audit:structure
+      - name: Check built CSS
+        run: pnpm check:css-build

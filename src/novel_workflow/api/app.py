@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from novel_workflow.api.bootstrap import init_app_state
-from novel_workflow.api.routes import archive_runs_router, cover_assets_router, knowledge_router, projects_router, prompts_router, provider_models_router, providers_router, references_router, run_history_router, runs_router, workflow_router
+from novel_workflow.api.routes import archive_runs_router, author_collaboration_router, collaboration_settings_router, cover_assets_router, knowledge_router, projects_router, prompts_router, provider_models_router, providers_router, references_router, run_history_router, runs_router, story_bible_router, workflow_router
 from novel_workflow.workflows.executable_contract import executable_workflows
 
 
@@ -48,7 +48,10 @@ def create_app() -> FastAPI:
     app.include_router(archive_runs_router)
     app.include_router(run_history_router)
     app.include_router(cover_assets_router)
+    app.include_router(story_bible_router)
     app.include_router(runs_router)
+    app.include_router(author_collaboration_router)
+    app.include_router(collaboration_settings_router)
     return app
 
 

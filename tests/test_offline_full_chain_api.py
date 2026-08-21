@@ -113,9 +113,15 @@ def test_offline_full_chain_completes_through_the_api(tmp_path, monkeypatch) -> 
             resolved.add(str(decision["decision_id"]))
 
         assert state["status"] == "completed", state.get("failure")
-        # Balanced mode pauses once per stage artifact and once per chapter.
+        # Balanced mode pauses once per stage artifact, once per chapter, and
+        # once for the deterministic whole-manuscript gate before Cover.
         assert decision_types.count("chapter_author_decision") == 2
-        assert set(decision_types) == {"stage_artifact_decision", "chapter_author_decision"}
+        assert decision_types.count("manuscript_quality_decision") == 1
+        assert set(decision_types) == {
+            "stage_artifact_decision",
+            "chapter_author_decision",
+            "manuscript_quality_decision",
+        }
 
         # Provider calls stay exactly-once across separate API resume dispatches.
         assert [request.stage_id for request in provider.stage_requests] == [

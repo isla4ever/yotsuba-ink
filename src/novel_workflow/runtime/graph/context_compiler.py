@@ -21,9 +21,11 @@ from novel_workflow.output_contracts.artifacts_vnext import (
 )
 from novel_workflow.memory.canon_store import CanonStore
 from novel_workflow.output_contracts.prompt_materials import validate_prompt_material
-from novel_workflow.runtime.graph.detail_planning import DetailLayoutVolumeWindow
+from novel_workflow.quality.planning_contracts import project_world_rules
+from novel_workflow.runtime.graph.detail_planning import DetailLayoutTurnWindow
 from novel_workflow.runtime.graph.state import NarrativeRunState
 from novel_workflow.runtime.graph.output_budget import OutputBudgetPlanner
+from novel_workflow.runtime.graph.planning_authority import HierarchicalPlanningAuthority
 from novel_workflow.storage.artifact_store import ArtifactStore
 from novel_workflow.storage.chapter_store import ChapterStore
 from novel_workflow.storage.narrative_run_repository import NarrativeRunRepository
@@ -46,7 +48,7 @@ PLANNING_INPUTS: dict[StageId, tuple[StageId, ...]] = {
     "spine": ("brief",),
     "cast": ("brief", "spine"),
     "volumes": ("brief", "spine", "cast"),
-    "detail": ("spine", "cast", "volumes"),
+    "detail": ("brief", "spine", "cast", "volumes"),
     "text": ("brief", "cast", "volumes", "detail"),
     "cover": ("brief",),
     "export": (),
@@ -55,9 +57,10 @@ PLANNING_INPUTS: dict[StageId, tuple[StageId, ...]] = {
 DETAIL_BATCH_SIZE = 12
 
 _TAIL_EXCERPT_CHARS = 800
-
-_CANON_CLAIM_LIMIT = 30
-
+_CONTEXT_STATE_CHAR_BUDGET = 9_000
+_EPHEMERAL_STATE_PROPERTIES = frozenset(
+    {"action", "finding", "source", "inference", "belief"}
+)
 
 @dataclass(frozen=True, slots=True)
 class NarrativeContextCompiler:
@@ -67,6 +70,37 @@ class NarrativeContextCompiler:
     artifacts: ArtifactStore
     chapters: ChapterStore
     canon: CanonStore | None = None
+    planning: HierarchicalPlanningAuthority | None = None
+
+    def hierarchical_spine_part(
+        self,
+        state: NarrativeRunState,
+        part_ref: str,
+    ) -> dict[str, Any]:
+        authority = self._planning_authority()
+        version_id = self._planning_version_ref(state, "spine")
+        context = authority.spine_part_context(state["run_id"], version_id, part_ref)
+        return _hierarchical_context_packet(state, "spine.part", context)
+
+    def hierarchical_volume_part(
+        self,
+        state: NarrativeRunState,
+        part_ref: str,
+    ) -> dict[str, Any]:
+        authority = self._planning_authority()
+        version_id = self._planning_version_ref(state, "volumes")
+        context = authority.volume_part_context(state["run_id"], version_id, part_ref)
+        return _hierarchical_context_packet(state, "volumes.part", context)
+
+    def hierarchical_detail_window(
+        self,
+        state: NarrativeRunState,
+        window_ref: str,
+    ) -> dict[str, Any]:
+        authority = self._planning_authority()
+        version_id = self._planning_version_ref(state, "detail")
+        context = authority.detail_window_context(state["run_id"], version_id, window_ref)
+        return _hierarchical_context_packet(state, "detail.window", context)
 
     def stage(self, state: NarrativeRunState, stage_id: StageId) -> dict[str, Any]:
         if stage_id == "export":
@@ -153,17 +187,22 @@ class NarrativeContextCompiler:
             return _volume_contexts(base)
         return [("", base)]
 
-    def detail_layout_volume(
+    def detail_layout_turn_window(
         self,
         state: NarrativeRunState,
-        window: DetailLayoutVolumeWindow,
+        window: DetailLayoutTurnWindow,
+        *,
+        previous_chapters: list[DetailLayoutChapterProposal] | None = None,
     ) -> dict[str, Any]:
-        """Compile one volume and its dynamically remaining book capacity."""
+        """Compile one deterministic turn slice and its exact chapter slots."""
 
         payloads, refs = self._planning_material(state, PLANNING_INPUTS["detail"])
         cast = CharacterBibleArtifact.model_validate(payloads["cast"])
         architecture = VolumeArchitectureArtifact.model_validate(payloads["volumes"])
         spine = StorySpineArtifact.model_validate(payloads["spine"])
+        world_rule_projection = project_world_rules(
+            StoryBriefArtifact.model_validate(payloads["brief"])
+        ).model_dump(mode="json")
         try:
             volume = architecture.volumes[window.volume_index]
         except IndexError as exc:
@@ -171,25 +210,28 @@ class NarrativeContextCompiler:
         if volume.id != window.volume_ref:
             raise ValueError("Detail layout window does not match the committed volume order")
 
-        turn_ids = set(volume.turn_refs)
-        volume_turns = [
+        turn_ids = set(window.turn_refs)
+        window_turns = [
             turn.model_dump(mode="json")
             for turn in spine.turns
             if turn.id in turn_ids
         ]
-        if [turn["id"] for turn in volume_turns] != list(volume.turn_refs):
-            raise ValueError("Detail layout volume turns are not a complete Spine slice")
+        if [turn["id"] for turn in window_turns] != list(window.turn_refs):
+            raise ValueError("Detail layout turn window is not a complete Spine slice")
         selected_subjects = set(volume.cast_ids)
+        volume_contract = volume.model_dump(mode="json")
+        volume_contract["turn_refs"] = list(window.turn_refs)
         material = {
-            "story_spine": {"turns": volume_turns},
-            "volume_contracts": [volume.model_dump(mode="json")],
+            "story_spine": {"turns": window_turns},
+            "volume_contracts": [volume_contract],
             "selected_dossiers": [
                 _detail_dossier_projection(subject)
                 for subject in cast.subjects
                 if subject.id in selected_subjects
             ],
+            "world_rule_projection": world_rule_projection,
             "chapter_slots": [
-                {"slot_index": index}
+                {"slot_index": window.chapter_offset + index}
                 for index in range(1, window.chapter_target + 1)
             ],
             "scale_plan": {
@@ -206,18 +248,43 @@ class NarrativeContextCompiler:
                 "remaining_volume_target": window.remaining_volume_target,
                 "chapter_target": window.chapter_target,
                 "chapter_range": [window.chapter_min, window.chapter_max],
+                "chapter_offset": window.chapter_offset,
+                "volume_chapter_target": window.volume_chapter_target,
                 "volume_index": window.volume_index + 1,
                 "volume_count": window.volume_count,
-                "turn_count": len(volume.turn_refs),
+                "turn_window_index": window.window_index,
+                "turn_window_count": window.window_count,
+                "turn_count": len(window.turn_refs),
                 "minimum_chapter_surplus_over_turns": max(
-                    0, window.chapter_min - len(volume.turn_refs)
+                    0, window.chapter_min - len(window.turn_refs)
                 ),
                 "target_chapter_surplus_over_turns": max(
-                    0, window.chapter_target - len(volume.turn_refs)
+                    0, window.chapter_target - len(window.turn_refs)
                 ),
                 "counting_rule": "non_whitespace_characters",
             },
         }
+        if previous_chapters:
+            completed_jobs = list(
+                dict.fromkeys(
+                    chapter.dramatic_job.strip()
+                    for chapter in previous_chapters
+                    if chapter.dramatic_job.strip()
+                )
+            )
+            material["previous_window_layout"] = {
+                "completed_turn_refs": list(
+                    dict.fromkeys(
+                        turn_ref
+                        for chapter in previous_chapters
+                        for turn_ref in chapter.turn_refs
+                    )
+                ),
+                "chapters": [
+                    chapter.model_dump(mode="json") for chapter in previous_chapters
+                ],
+                "completed_dramatic_jobs": completed_jobs,
+            }
         return self._with_revision(
             state,
             "detail",
@@ -236,6 +303,7 @@ class NarrativeContextCompiler:
         chapter_number = int(state["active_chapter_number"])
         detail = DetailArtifact.model_validate(payloads["detail"])
         brief = StoryBriefArtifact.model_validate(payloads["brief"])
+        world_rule_projection = project_world_rules(brief)
         chapter = detail.chapters[chapter_number - 1]
         previous = self._previous_chapter(state)
         snippets = [
@@ -257,7 +325,7 @@ class NarrativeContextCompiler:
             _context_snippet(
                 "brief.world_rules",
                 "frozen_world_and_professional_rules",
-                brief.world_rules,
+                world_rule_projection.model_dump(mode="json"),
             ),
         ]
         optional: list[str] = []
@@ -333,14 +401,30 @@ class NarrativeContextCompiler:
             # to canon from earlier chapters (object states, established
             # events, what characters know) must also bind later prose so
             # props and knowledge do not silently drift between chapters.
-            claims = self._canon_claims(state["run_id"])
-            if claims:
-                optional.append("canon.established_facts")
+            story_state = _context_story_state(
+                self._resolved_story_state(
+                    state["run_id"],
+                    as_of_chapter=chapter_number - 1,
+                    subject_ids=set(chapter.cast_ids),
+                )
+            )
+            if story_state["entries"] or story_state["conflicts"]:
+                optional.append("story.current_state")
                 snippets.append(
                     _context_snippet(
-                        "canon.established_facts",
-                        "immutable_story_state",
-                        claims,
+                        "story.current_state",
+                        "resolved_story_state",
+                        story_state,
+                    )
+                )
+            recent_window = self._recent_chapter_window(state, detail)
+            if recent_window["chapters"]:
+                optional.append("continuity.recent_window")
+                snippets.append(
+                    _context_snippet(
+                        "continuity.recent_window",
+                        "bounded_multi_chapter_continuity",
+                        recent_window,
                     )
                 )
         attempt = int((state.get("chapter_attempts") or {}).get(chapter.ref) or 1)
@@ -425,6 +509,9 @@ class NarrativeContextCompiler:
         cast = CharacterBibleArtifact.model_validate(payloads["cast"])
         architecture = VolumeArchitectureArtifact.model_validate(payloads["volumes"])
         spine = StorySpineArtifact.model_validate(payloads["spine"])
+        world_rule_projection = project_world_rules(
+            StoryBriefArtifact.model_validate(payloads["brief"])
+        ).model_dump(mode="json")
         definition = self.runs.definition(state["run_id"])
         detail_binding = definition.provider_bindings.get("detail")
         if detail_binding is None:
@@ -459,6 +546,16 @@ class NarrativeContextCompiler:
                 _detail_dossier_projection(dossiers[subject_id])
                 for subject_id in volume.cast_ids
                 if subject_id in dossiers
+            ]
+            historical_record_ids = [
+                str(subject.get("id") or "")
+                for subject in selected
+                if subject.get("kind") == "historical_record"
+            ]
+            present_actor_ids = [
+                str(subject.get("id") or "")
+                for subject in selected
+                if subject.get("kind") != "historical_record"
             ]
             for index, layout_group in enumerate(slot_groups, start=1):
                 turn_group = _ordered_unique(
@@ -503,6 +600,9 @@ class NarrativeContextCompiler:
                     ],
                     "scale_projection": scale_projection.model_dump(mode="json"),
                     "selected_dossiers": selected,
+                    "historical_record_ids": historical_record_ids,
+                    "present_actor_ids": present_actor_ids,
+                    "world_rule_projection": world_rule_projection,
                 }
                 packet = self._with_revision(state, "detail", material, refs)
                 packet["budget_basis"] = {"expected_chapters": len(layout_group)}
@@ -530,9 +630,9 @@ class NarrativeContextCompiler:
         cast = CharacterBibleArtifact.model_validate(payloads["cast"])
         detail = DetailArtifact.model_validate(payloads["detail"])
         chapter_detail = next(item for item in detail.chapters if item.ref == chapter_id)
+        chapter_number = int(state.get("active_chapter_number") or 0)
         if role == "character":
             material["spine"] = _spine_excerpt(payloads["spine"])
-            chapter_number = int(state.get("active_chapter_number") or 0)
             eligible = {
                 subject.id
                 for subject in cast.subjects
@@ -562,7 +662,9 @@ class NarrativeContextCompiler:
             }
         elif role == "continuity":
             material["current_detail_chapter"] = chapter_detail.model_dump(mode="json")
-            material["world_rules"] = list(brief.world_rules)
+            material["world_rule_projection"] = project_world_rules(brief).model_dump(
+                mode="json"
+            )
             material["character_bible"] = _chapter_subjects(
                 payloads["cast"], chapter_detail
             )
@@ -573,12 +675,45 @@ class NarrativeContextCompiler:
                 material["opening_chapter"] = True
             else:
                 material["previous_accepted_chapter"] = previous
-            claims = self._canon_claims(state["run_id"])
-            if claims:
-                material["canon_facts"] = claims
+                material["recent_chapter_window"] = self._recent_chapter_window(
+                    state,
+                    detail,
+                )
+            story_state = self._resolved_story_state(
+                state["run_id"],
+                as_of_chapter=chapter_number - 1,
+                subject_ids=set(),
+            )
+            if story_state["entries"] or story_state["conflicts"]:
+                material["story_state"] = story_state
+                material["continuity_state"] = _continuity_state_projection(
+                    story_state
+                )
         elif role == "prose":
             material["voice"] = brief.voice
         return {"target": "text.review", "sources": refs, "material": material}
+
+    def evidence(self, state: NarrativeRunState) -> dict[str, Any]:
+        """Bind Evidence extraction to frozen subjects and prior current state."""
+        payloads, _ = self._planning_material(state, ("cast", "detail"))
+        detail = DetailArtifact.model_validate(payloads["detail"])
+        chapter_number = int(state.get("active_chapter_number") or 0)
+        chapter_id = str(state.get("active_chapter_id") or "")
+        chapter = next((item for item in detail.chapters if item.ref == chapter_id), None)
+        if chapter is None or chapter_number < 1:
+            raise ValueError("Evidence context requires the active frozen Detail chapter")
+        subjects = _chapter_subjects(payloads["cast"], chapter)
+        return {
+            "frozen_subjects": [
+                {"id": subject["id"], "name": subject["name"], "kind": subject["kind"]}
+                for subject in subjects
+            ],
+            "story_state": self._resolved_story_state(
+                state["run_id"],
+                as_of_chapter=chapter_number - 1,
+                subject_ids={subject["id"] for subject in subjects},
+            ),
+        }
 
     def _planning_material(
         self,
@@ -597,15 +732,36 @@ class NarrativeContextCompiler:
             refs[stage_id] = {"artifact_id": record.artifact_id, "signature": record.signature}
         return payloads, refs
 
-    def _canon_claims(self, run_id: str, limit: int = _CANON_CLAIM_LIMIT) -> list[str]:
-        """Most recent committed canon claims, bounded, oldest first."""
+    def _planning_authority(self) -> HierarchicalPlanningAuthority:
+        if self.planning is None:
+            raise ValueError("Hierarchical planning authority is not mounted")
+        return self.planning
+
+    @staticmethod
+    def _planning_version_ref(
+        state: NarrativeRunState,
+        stage_id: StageId,
+    ) -> str:
+        version_id = str((state.get("artifact_refs") or {}).get(stage_id) or "")
+        if not version_id:
+            raise ValueError(f"Missing committed {stage_id} aggregate ref for Context compilation")
+        return version_id
+
+    def _resolved_story_state(
+        self,
+        run_id: str,
+        *,
+        as_of_chapter: int,
+        subject_ids: set[str],
+    ) -> dict[str, Any]:
+        """Return relevant current state, never a recent-claim authority window."""
         if self.canon is None:
-            return []
-        facts = self.canon.facts(run_id)
-        if not facts:
-            return []
-        ordered = sorted(facts, key=lambda fact: _chapter_number_of(fact.chapter_version_id))
-        return [fact.claim for fact in ordered[-limit:]]
+            return {"as_of_chapter": as_of_chapter, "entries": [], "conflicts": []}
+        return self.canon.resolved_state(
+            run_id,
+            as_of_chapter=max(0, as_of_chapter),
+            subject_ids=subject_ids,
+        ).model_dump(mode="json")
 
     def _previous_chapter(self, state: NarrativeRunState) -> dict[str, Any] | None:
         number = int(state["active_chapter_number"]) - 1
@@ -626,6 +782,60 @@ class NarrativeContextCompiler:
             if previous_detail is not None:
                 previous["handoff"] = previous_detail.handoff
         return previous
+
+    def _recent_chapter_window(
+        self,
+        state: NarrativeRunState,
+        detail: DetailArtifact,
+        *,
+        window_size: int = 4,
+    ) -> dict[str, Any]:
+        current_number = int(state.get("active_chapter_number") or 0)
+        if current_number <= 1:
+            return {"window_size": window_size, "chapters": [], "state_projection": {}}
+        start = max(1, current_number - window_size)
+        refs = state.get("chapter_version_refs") or {}
+        resolved = self._resolved_story_state(
+            state["run_id"],
+            as_of_chapter=current_number - 1,
+            subject_ids=set(),
+        )
+        entries_by_chapter: dict[int, list[dict[str, Any]]] = {}
+        for entry in resolved.get("entries") or []:
+            entries_by_chapter.setdefault(int(entry.get("source_chapter") or 0), []).append(
+                entry
+            )
+        chapters: list[dict[str, Any]] = []
+        for number in range(start, current_number):
+            planned = detail.chapters[number - 1]
+            version_id = str(refs.get(planned.ref) or "")
+            if not version_id:
+                continue
+            accepted = self.chapters.read(
+                state["run_id"],
+                planned.ref,
+                version_id,
+            ).artifact
+            if accepted.author_status != "accepted":
+                continue
+            chapters.append(
+                {
+                    "chapter_id": planned.ref,
+                    "title": planned.title,
+                    "dramatic_job": planned.purpose,
+                    "pov": planned.pov,
+                    "cast_ids": list(planned.cast_ids),
+                    "scene_results": [scene.result for scene in planned.scenes],
+                    "handoff": planned.handoff,
+                    "accepted_ending": _tail_excerpt(accepted.content, limit=320),
+                    "state_changes": entries_by_chapter.get(number, []),
+                }
+            )
+        return {
+            "window_size": window_size,
+            "chapters": chapters,
+            "state_projection": _continuity_state_projection(resolved),
+        }
 
     def _with_revision(
         self,
@@ -947,13 +1157,6 @@ def _volume_scale_plan(
     }
 
 
-def _chapter_number_of(chapter_version_id: str) -> int:
-    for part in chapter_version_id.split("-"):
-        if part.isdigit():
-            return int(part)
-    return 0
-
-
 def _tail_excerpt(content: str, limit: int = _TAIL_EXCERPT_CHARS) -> str:
     """Last paragraphs of accepted prose, bounded and cut on a paragraph edge."""
     text = content.strip()
@@ -981,6 +1184,133 @@ def _context_snippet(ref: str, purpose: str, value: Any) -> dict[str, str]:
         text=text,
         source_hash=hashlib.sha256(text.encode("utf-8")).hexdigest(),
     ).model_dump(mode="json")
+
+
+def _hierarchical_context_packet(
+    state: NarrativeRunState,
+    target: str,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    source = dict(context["source"])
+    material = {key: value for key, value in context.items() if key != "source"}
+    return {
+        "target": target,
+        "sources": {source["stage_id"]: source},
+        "material": material,
+        "domain_revision": int(state.get("domain_revision") or 0),
+    }
+
+
+def _context_story_state(state: Any) -> dict[str, Any]:
+    """Project durable current state into a bounded prose-context packet.
+
+    Canon remains the complete immutable authority. Evidence also receives
+    that complete projection so source ids and conflicts stay auditable. The
+    prose prompt needs the smaller, stable slice: unbound claims and one-off
+    event labels are not current properties, while duplicate observations of
+    the same value do not need to be repeated on every chapter.
+    """
+    payload = (
+        state.model_dump(mode="json")
+        if hasattr(state, "model_dump")
+        else dict(state)
+    )
+    entries: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for entry in payload.get("entries", []):
+        subject_id = str(entry.get("subject_id") or "")
+        property_key = str(entry.get("property_key") or "")
+        if property_key in _EPHEMERAL_STATE_PROPERTIES:
+            continue
+        if subject_id == "story" and property_key.startswith("claim:"):
+            continue
+        key = (
+            subject_id,
+            property_key,
+            str(entry.get("value") or ""),
+            str(entry.get("epistemic_status") or ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append(entry)
+
+    conflicts = [
+        conflict
+        for conflict in payload.get("conflicts", [])
+        if conflict.get("property_key") not in _EPHEMERAL_STATE_PROPERTIES
+        and not (
+            conflict.get("subject_id") == "story"
+            and str(conflict.get("property_key") or "").startswith("claim:")
+        )
+    ]
+    projected = {
+        "as_of_chapter": payload.get("as_of_chapter"),
+        "entries": entries,
+        "conflicts": conflicts,
+    }
+    encoded = json.dumps(projected, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    if len(encoded) <= _CONTEXT_STATE_CHAR_BUDGET:
+        return projected
+
+    # Keep explicit conflict evidence and the newest durable entries first.
+    # This is a prompt-size projection only; the resolver above remains the
+    # complete source of truth and is still used by Evidence and review lanes.
+    ranked = sorted(
+        entries,
+        key=lambda item: (
+            str(item.get("epistemic_status") or "") in {"reveal", "refutation"},
+            int(item.get("source_chapter") or 0),
+            str(item.get("source_fact_id") or ""),
+        ),
+        reverse=True,
+    )
+    compact: list[dict[str, Any]] = []
+    for entry in ranked:
+        trial = {
+            "as_of_chapter": projected["as_of_chapter"],
+            "entries": [*compact, entry],
+            "conflicts": conflicts,
+        }
+        if len(json.dumps(trial, ensure_ascii=False, sort_keys=True, separators=(",", ":"))) > _CONTEXT_STATE_CHAR_BUDGET:
+            continue
+        compact.append(entry)
+    return {
+        "as_of_chapter": projected["as_of_chapter"],
+        "entries": compact,
+        "conflicts": conflicts,
+        "omitted_entry_count": len(entries) - len(compact),
+    }
+
+
+def _continuity_state_projection(state: Any) -> dict[str, Any]:
+    payload = state.model_dump(mode="json") if hasattr(state, "model_dump") else dict(state)
+    categories: dict[str, list[dict[str, Any]]] = {
+        "evidence_provenance": [],
+        "character_knowledge": [],
+        "object_states": [],
+        "unresolved_clues": [],
+    }
+    for entry in payload.get("entries") or []:
+        property_key = str(entry.get("property_key") or "").casefold()
+        epistemic = str(entry.get("epistemic_status") or "")
+        if property_key.startswith("evidence.") and property_key.endswith(
+            (".source", ".owner", ".custody")
+        ):
+            categories["evidence_provenance"].append(entry)
+        if property_key.startswith("knowledge."):
+            categories["character_knowledge"].append(entry)
+        if property_key.startswith("object.") and property_key.endswith(".state"):
+            categories["object_states"].append(entry)
+        if property_key.startswith("clue.") and property_key.endswith(".status") and epistemic in {
+            "rumour",
+            "belief",
+        }:
+            categories["unresolved_clues"].append(entry)
+    return {
+        **categories,
+        "conflicts": list(payload.get("conflicts") or []),
+    }
 
 
 def _manifest_hash(value: dict[str, Any]) -> str:

@@ -1,207 +1,269 @@
-import { Search } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { memo, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect, useRef } from "react"
 import {
-  bibleSectionFromCommandId,
-  buildPaletteCommands,
-  filterPaletteCommands,
-  firstEnabledCommandId,
-  groupPaletteCommands,
-  isEditableEventTarget,
-  isPaletteShortcut,
-  movePaletteHighlight,
-  paletteBibleCommandPrefix,
-  paletteStageCommandPrefix,
-  type PaletteCommand,
-  type PaletteContext,
-} from './commandPaletteModel';
-import { backdropMotionVariants, dialogMotionVariants, overlayExitDurationMs } from '../lib/motion';
-import { useRunStateContext, useUICommandContext, useWorkflowConfigContext } from '../state/pipelineShellContext';
-import { hasOpenOverlay, useOverlayDialog } from '../state/useOverlayDialog';
+  Search,
+  BookOpen,
+  Layers,
+  Users,
+  BarChart3,
+  FileText,
+  Image,
+  Download,
+  BookMarked,
+  Activity,
+  Database,
+  Settings,
+  Clock,
+  Sun,
+  Moon,
+  Home,
+  Pencil,
+} from "lucide-react"
+import { useApp } from "../state/PipelineAppProvider"
+import type { Route } from "../contracts/app"
 
-function anotherOverlayIsOpen(): boolean {
-  if (hasOpenOverlay()) return true;
-  return Boolean(document.querySelector('[role="dialog"], [role="alertdialog"], .knowledge-blocker-backdrop'));
+interface Cmd {
+  id: string
+  label: string
+  sublabel?: string
+  icon: React.ReactNode
+  action: () => void
+  group: string
+  keywords: string
 }
 
-/** Memoized (Phase 12 F5): only low-frequency shell slices are consumed. */
-export const CommandPalette = memo(function CommandPalette() {
-  const run = useRunStateContext();
-  const { qualityMode, routePolicy, workflow } = useWorkflowConfigContext();
-  const actions = useUICommandContext();
-  const open = actions.commandPaletteOpen;
-  const onOpen = actions.openCommandPalette;
-  const onClose = actions.closeCommandPalette;
-  const context: PaletteContext = {
-    policy: routePolicy,
-    qualityMode,
-    runHasStarted: run.activeRunId !== '',
-    sidebarExpanded: actions.sidebarExpanded,
-    stageRuntimes: run.stageRuntimes,
-    stages: workflow.nodes,
-    theme: actions.theme,
-  };
-  const baseId = useId();
-  const listId = `${baseId}-list`;
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const onOpenRef = useRef(onOpen);
-  const [query, setQuery] = useState('');
-  const [highlightedId, setHighlightedId] = useState('');
-  const dialogRef = useOverlayDialog<HTMLElement>({ exitDurationMs: overlayExitDurationMs.dialog, onClose, open });
+export default function CommandPalette() {
+  const { setCmdOpen, setRoute, toggleTheme, theme } = useApp()
+  const [query, setQuery] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    onOpenRef.current = onOpen;
-  }, [onOpen]);
+    inputRef.current?.focus()
+  }, [])
 
-  useEffect(() => {
-    const handleShortcut = (event: KeyboardEvent) => {
-      if (!isPaletteShortcut(event)) return;
-      if (isEditableEventTarget(event.target instanceof HTMLElement ? event.target : null)) return;
-      if (open || anotherOverlayIsOpen()) return;
-      event.preventDefault();
-      onOpenRef.current();
-    };
-    window.addEventListener('keydown', handleShortcut);
-    return () => window.removeEventListener('keydown', handleShortcut);
-  }, [open]);
+  const goto = (r: Route) => {
+    setRoute(r)
+    setCmdOpen(false)
+  }
 
-  useEffect(() => {
-    if (!open) return;
-    setQuery('');
-    setHighlightedId('');
-    // Double RAF runs after the overlay hook's own focus frame so the input keeps focus.
-    const frame = window.requestAnimationFrame(() => window.requestAnimationFrame(() => inputRef.current?.focus()));
-    return () => window.cancelAnimationFrame(frame);
-  }, [open]);
+  const commands: Cmd[] = [
+    {
+      id: "studio",
+      label: "创作台",
+      sublabel: "项目库",
+      icon: <Home size={15} />,
+      action: () => goto("studio"),
+      group: "导航",
+      keywords: "创作台 项目库 studio",
+    },
+    {
+      id: "brief",
+      label: "简报",
+      sublabel: "冻结前提・承诺・规则・语气・篇幅",
+      icon: <Pencil size={15} />,
+      action: () => goto("brief"),
+      group: "制作流程",
+      keywords: "简报 brief 前提 承诺",
+    },
+    {
+      id: "spine",
+      label: "脊柱",
+      sublabel: "因果转折链与结局",
+      icon: <Layers size={15} />,
+      action: () => goto("spine"),
+      group: "制作流程",
+      keywords: "脊柱 spine 因果 转折",
+    },
+    {
+      id: "cast",
+      label: "角色",
+      sublabel: "命名角色权威来源",
+      icon: <Users size={15} />,
+      action: () => goto("cast"),
+      group: "制作流程",
+      keywords: "角色 cast 人物 人设",
+    },
+    {
+      id: "volumes",
+      label: "卷册",
+      sublabel: "卷合同与边界",
+      icon: <BarChart3 size={15} />,
+      action: () => goto("volumes"),
+      group: "制作流程",
+      keywords: "卷册 volumes 分卷 卷合同",
+    },
+    {
+      id: "detail",
+      label: "细纲",
+      sublabel: "章节场景建构台账",
+      icon: <BookOpen size={15} />,
+      action: () => goto("detail"),
+      group: "制作流程",
+      keywords: "细纲 detail 章节 场景",
+    },
+    {
+      id: "text",
+      label: "正文",
+      sublabel: "稿件阅读器与编辑器",
+      icon: <FileText size={15} />,
+      action: () => goto("text"),
+      group: "制作流程",
+      keywords: "正文 text 稿件 编辑",
+    },
+    {
+      id: "cover",
+      label: "封面",
+      sublabel: "封面视觉简报与候选",
+      icon: <Image size={15} />,
+      action: () => goto("cover"),
+      group: "制作流程",
+      keywords: "封面 cover 图片",
+    },
+    {
+      id: "export",
+      label: "导出",
+      sublabel: "清单验证与下载",
+      icon: <Download size={15} />,
+      action: () => goto("export"),
+      group: "制作流程",
+      keywords: "导出 export 下载",
+    },
+    {
+      id: "story-bible",
+      label: "故事圣经",
+      sublabel: "人物・世界规则・伏笔・事实",
+      icon: <BookMarked size={15} />,
+      action: () => goto("story-bible"),
+      group: "工具",
+      keywords: "圣经 bible 世界 伏笔",
+    },
+    {
+      id: "run-monitor",
+      label: "运行监控",
+      sublabel: "生成进度与日志",
+      icon: <Activity size={15} />,
+      action: () => goto("run-monitor"),
+      group: "工具",
+      keywords: "运行 监控 monitor 日志",
+    },
+    {
+      id: "knowledge",
+      label: "知识库",
+      sublabel: "项目参考资料",
+      icon: <Database size={15} />,
+      action: () => goto("knowledge"),
+      group: "工具",
+      keywords: "知识库 knowledge 资料 参考",
+    },
+    {
+      id: "history",
+      label: "历史",
+      sublabel: "创作记录",
+      icon: <Clock size={15} />,
+      action: () => goto("history"),
+      group: "工具",
+      keywords: "历史 history 记录",
+    },
+    {
+      id: "settings",
+      label: "设置",
+      sublabel: "AI提供商与全局偏好",
+      icon: <Settings size={15} />,
+      action: () => goto("settings"),
+      group: "工具",
+      keywords: "设置 settings AI 提供商",
+    },
+    {
+      id: "theme",
+      label: `切换到${theme === "dark" ? "浅色" : "深色"}主题`,
+      icon: theme === "dark" ? <Sun size={15} /> : <Moon size={15} />,
+      action: () => {
+        toggleTheme()
+        setCmdOpen(false)
+      },
+      group: "界面",
+      keywords: "主题 theme 深色 浅色",
+    },
+  ]
 
-  const filtered = filterPaletteCommands(buildPaletteCommands(context), query);
-  const groups = groupPaletteCommands(filtered);
-  const highlightId = filtered.some((item) => item.id === highlightedId && !item.disabled)
-    ? highlightedId
-    : firstEnabledCommandId(filtered);
-  const optionDomId = (commandId: string) => `${baseId}-${commandId.replace(':', '-')}`;
+  const filtered =
+    query.trim() === ""
+      ? commands
+      : commands.filter(
+          (c) =>
+            c.label.includes(query) ||
+            c.sublabel?.includes(query) ||
+            c.keywords.includes(query.toLowerCase()),
+        )
 
-  useEffect(() => {
-    if (!open || !highlightId) return;
-    document.getElementById(`${baseId}-${highlightId.replace(':', '-')}`)?.scrollIntoView({ block: 'nearest' });
-  }, [baseId, highlightId, open]);
+  const groups = [...new Set(filtered.map((c) => c.group))]
 
-  const runCommand = (item: PaletteCommand) => {
-    if (item.disabled) return;
-    if (item.closesPalette) onClose();
-    if (item.id.startsWith(paletteStageCommandPrefix)) {
-      actions.navigateStage(item.id.slice(paletteStageCommandPrefix.length));
-      return;
-    }
-    if (item.id.startsWith(paletteBibleCommandPrefix)) {
-      const section = bibleSectionFromCommandId(item.id);
-      if (section) actions.navigateBible(section);
-      return;
-    }
-    if (item.id === 'nav:planning') actions.navigatePlanning();
-    else if (item.id === 'nav:studio') actions.navigateStudio();
-    else if (item.id === 'studio:new-project') actions.requestNewProject();
-    else if (item.id === 'open:knowledge') actions.openKnowledge();
-    else if (item.id === 'open:history') actions.openHistory();
-    else if (item.id === 'open:settings') actions.openSettings();
-    else if (item.id === 'appearance:theme') actions.toggleTheme();
-    else if (item.id === 'appearance:sidebar') actions.toggleSidebar();
-  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 md:pt-32 px-4">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={() => setCmdOpen(false)}
+      />
+      <div className="relative w-full max-w-xl bg-elev border border-hairline rounded-lg shadow-2xl overflow-hidden animate-fade-in">
+        <div className="flex items-center gap-3 px-4 h-12 border-b border-hairline">
+          <Search size={16} className="text-fog shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索命令、路由、模式…"
+            className="flex-1 bg-transparent text-ink text-sm outline-none placeholder:text-fog"
+          />
+          <kbd className="text-[10px] text-fog font-mono bg-hover px-1.5 py-0.5 rounded">
+            Esc
+          </kbd>
+        </div>
 
-  const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const next = movePaletteHighlight(filtered, highlightId, event.key === 'ArrowDown' ? 1 : -1);
-      if (next) setHighlightedId(next);
-      return;
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const item = filtered.find((candidate) => candidate.id === highlightId);
-      if (item) runCommand(item);
-    }
-  };
-
-  const content = (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          animate="animate"
-          className="app-overlay-backdrop command-palette-backdrop"
-          exit="exit"
-          initial="initial"
-          onClick={(event) => {
-            if (event.currentTarget === event.target) onClose();
-          }}
-          role="presentation"
-          variants={backdropMotionVariants}
-        >
-          <motion.section
-            animate="animate"
-            aria-label="全局命令面板"
-            aria-modal="true"
-            className="app-dialog-surface command-palette"
-            exit="exit"
-            initial="initial"
-            onClick={(event) => event.stopPropagation()}
-            ref={dialogRef}
-            role="dialog"
-            tabIndex={-1}
-            variants={dialogMotionVariants}
-          >
-            <div className="command-palette-input-row">
-              <span aria-hidden="true" className="command-palette-input-icon"><Search size={14} /></span>
-              <input
-                aria-activedescendant={highlightId ? optionDomId(highlightId) : undefined}
-                aria-autocomplete="list"
-                aria-controls={listId}
-                aria-expanded="true"
-                className="command-palette-input"
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="搜索命令，如：正文 / 设置 / 主题"
-                ref={inputRef}
-                role="combobox"
-                type="text"
-                value={query}
-              />
-              <kbd aria-hidden="true" className="command-palette-kbd">Esc</kbd>
+        <div className="max-h-80 overflow-y-auto py-1">
+          {filtered.length === 0 && (
+            <div className="px-4 py-8 text-center text-fog text-sm">
+              无匹配结果
             </div>
-            <div aria-label="命令列表" className="command-palette-list" id={listId} role="listbox">
-              {groups.length === 0 ? (
-                <p className="command-palette-empty">没有匹配「{query.trim()}」的命令</p>
-              ) : (
-                groups.map((group) => (
-                  <div aria-label={group.label} className="command-palette-group" key={group.id} role="group">
-                    <p aria-hidden="true" className="command-palette-group-label">{group.label}</p>
-                    {group.commands.map((item) => (
-                      <div
-                        aria-disabled={item.disabled || undefined}
-                        aria-selected={item.id === highlightId}
-                        className={`command-palette-option${item.disabled ? ' disabled' : ''}`}
-                        id={optionDomId(item.id)}
-                        key={item.id}
-                        onClick={() => runCommand(item)}
-                        onMouseEnter={() => {
-                          if (!item.disabled) setHighlightedId(item.id);
-                        }}
-                        role="option"
-                      >
-                        <span className="command-palette-option-title">{item.title}</span>
-                        <span className="command-palette-option-detail">{item.disabled ? item.disabledReason : item.detail}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))
-              )}
+          )}
+          {groups.map((group) => (
+            <div key={group}>
+              <div className="px-4 py-1.5 text-[10px] text-fog uppercase tracking-wider">
+                {group}
+              </div>
+              {filtered
+                .filter((c) => c.group === group)
+                .map((cmd) => (
+                  <button
+                    key={cmd.id}
+                    onClick={cmd.action}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-hover transition-colors text-left"
+                  >
+                    <span className="text-fog shrink-0">{cmd.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-ink">{cmd.label}</div>
+                      {cmd.sublabel && (
+                        <div className="text-xs text-fog truncate">
+                          {cmd.sublabel}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
             </div>
-          </motion.section>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  );
+          ))}
+        </div>
 
-  if (typeof document === 'undefined') return content;
-  return createPortal(content, document.body);
-});
+        <div className="px-4 py-2 border-t border-hairline flex items-center gap-4 text-[10px] text-fog">
+          <span>
+            <kbd className="font-mono bg-hover px-1 rounded">↑↓</kbd> 选择
+          </span>
+          <span>
+            <kbd className="font-mono bg-hover px-1 rounded">↵</kbd> 执行
+          </span>
+          <span>
+            <kbd className="font-mono bg-hover px-1 rounded">Esc</kbd> 关闭
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}

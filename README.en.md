@@ -6,7 +6,7 @@
   <p><strong>AI-native workbench for long-form fiction</strong></p>
   <p>Plan, generate, review, recover, and export a complete novel through explicit stage artifacts and continuity-aware execution.</p>
   <p>
-    <img src="https://img.shields.io/badge/version-v1.0.0-2f9e78" alt="v1.0.0" />
+    <img src="https://img.shields.io/badge/version-v1.1.0-2f9e78" alt="v1.1.0" />
     <img src="https://img.shields.io/badge/Python-3.12%2B-3776ab" alt="Python 3.12+" />
     <img src="https://img.shields.io/badge/Node.js-22%2B-43853d" alt="Node.js 22+" />
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-68717a" alt="Apache-2.0" /></a>
@@ -16,7 +16,8 @@
 <p align="center">
   <a href="#production-workflow">Workflow</a> ·
   <a href="#creation-modes">Modes</a> ·
-  <a href="#verified-v10-run">Verified run</a> ·
+  <a href="#v11-version-20-workbench">v1.1</a> ·
+  <a href="#verified-v10-long-form-run">Verified run</a> ·
   <a href="#quick-start">Quick start</a>
 </p>
 
@@ -25,6 +26,29 @@
 </p>
 
 Yotsuba Ink is built for long-form projects that need sustained control over structure, characters, continuity, and versions. It turns model calls into a production workflow with explicit artifacts, author decisions, quality boundaries, and recovery records instead of asking one conversation to generate an entire book.
+
+## v1.1: Version 20 workbench
+
+v1.1 migrates the Figma Make Version 20 design into the only production frontend while keeping the same FastAPI, LangGraph, Artifact, SSE, and Provider contracts. The repository no longer contains a legacy frontend entry, dual router, or second theme.
+
+- **Continuous pipeline catalog**: all eight stages appear as one production line; template bodies, configuration actions, and create-project actions use the real workflow API.
+- **Stage-specific workbenches**: Spine turns, Cast roster, Volumes, and Detail/Text chapters retain a consistent secondary navigation rail; the header uses a restrained live ECG trace.
+- **Run monitor and Story Bible**: the monitor switches between real stage Artifacts, prose, Provider usage, and event logs; characters, facts, foreshadowing, and world rules come from backend read models.
+- **Deep-mode author collaboration**: Spine, Cast, Volumes, Detail, and Text support discussion, planning, and reviewable patches backed by context receipts, source-bound selections, thread history, SSE, and server-side writeback rules.
+- **Unified loading and motion**: global and local loaders are mutually exclusive, async content fades in, and continuous motion stops under Reduced Motion.
+
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/v1.1-workflow-pipelines.jpg" alt="v1.1 continuous workflow pipelines" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/v1.1-workflow-config.jpg" alt="v1.1 eight-stage workflow configuration" /></td>
+  </tr>
+  <tr>
+    <td align="center">Continuous pipeline catalog</td>
+    <td align="center">Eight-stage workflow configuration</td>
+  </tr>
+</table>
+
+Local contracts, fake Provider behavior, frontend builds, and browser gates are recorded separately. Real-Provider quality and cost for Deep-mode collaboration still require a fresh Deep Run and are not implied by offline tests. See the [changelog](CHANGELOG.md) for the complete release record.
 
 ## Production workflow
 
@@ -87,6 +111,8 @@ flowchart TB
     <tr><td>Bounded context</td><td>Each chapter receives a signed Context Manifest and only required references</td><td>Prompt growth and cross-chapter drift stay controlled</td></tr>
     <tr><td>Sequential continuity</td><td>Chapter N+1 depends on chapter N's accepted prose, handoff, and temporary state</td><td>Location, knowledge, and consequences can carry forward coherently</td></tr>
     <tr><td>Evidence-based review</td><td>Deterministic contracts can block; LLM reviewers provide evidence and warnings by default</td><td>Ambiguous literary opinions do not create infinite rewrite loops</td></tr>
+    <tr><td>Author collaboration</td><td>Deep mode uses bounded context receipts and source-bound patches for discussion, plans, and revision</td><td>A model cannot change an authoritative Artifact without author confirmation</td></tr>
+    <tr><td>Run monitoring</td><td>Stage content and health logs are projected from the same Run events, Artifacts, chapters, and usage read models</td><td>Automatic execution stays observable without timers or fake progress</td></tr>
     <tr><td>One targeted revision</td><td>The UI shows the finding, exact evidence, and suggested direction</td><td>A clear defect can be corrected without reopening frozen structure</td></tr>
     <tr><td>Recoverable execution</td><td>LangGraph checkpoints, operation receipts, SSE sequences, and terminal snapshots</td><td>Failures are traceable, streams reconnect, and completed runs do not replay history</td></tr>
     <tr><td>Verifiable delivery</td><td>Export freezes accepted chapter versions, metadata, checksums, and receipts</td><td>The delivered manuscript can be traced back to approved work</td></tr>
@@ -102,7 +128,7 @@ The repository includes `official-deepseek-fast`, `official-deepseek-balanced`, 
   <tbody>
     <tr><td>Fast</td><td>Favor low-latency, economical models; a DeepSeek example is included</td><td>Stage and chapter decisions are accepted automatically</td><td>Hard gates remain active; a proven hard issue gets at most one targeted revision</td><td>Testing an idea and completing a first draft</td></tr>
     <tr><td>Balanced (recommended)</td><td>Use stronger models for high-leverage planning and prose, economical models for lighter nodes</td><td>Each stage and chapter can be accepted, edited, regenerated, or cancelled</td><td>Continuity and character review are required; evidence and direction remain visible</td><td>Everyday long-form creation</td></tr>
-    <tr><td>Deep</td><td>Favor high-quality models across Provider-backed stages with denser author control</td><td>Every stage and chapter is finalized by the author</td><td>All three review lanes return; feasible structure values can be locked</td><td>Formal revision and high-control drafting</td></tr>
+    <tr><td>Deep</td><td>Favor high-quality models across Provider-backed stages with denser author control</td><td>Every stage and chapter is finalized by the author; five core stages can open author collaboration</td><td>All three review lanes return; patches require preview confirmation and source binding</td><td>Formal revision and professional author collaboration</td></tr>
   </tbody>
 </table>
 
@@ -134,7 +160,7 @@ flowchart TB
   class domainStores,readModel,exportFiles data;
 ```
 
-## Verified v1.0 run
+## Verified v1.0 long-form run
 
 The official `official-deepseek-balanced` workflow has completed a real long-form production run above 100,000 characters:
 
@@ -164,7 +190,7 @@ Cover image generation was skipped by configuration for this acceptance run; Cov
 
 - Python 3.12+
 - Node.js 22+
-- npm 10+
+- pnpm 9+
 
 ### 1. Install
 
@@ -177,7 +203,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
 cd apps/web
-npm ci
+pnpm install --frozen-lockfile
 ```
 
 ### 2. Start the backend
@@ -194,10 +220,10 @@ cd yotsuba-ink
 
 ```bash
 cd yotsuba-ink/apps/web
-npm run dev
+pnpm dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The development server proxies `/api` to `http://127.0.0.1:8787` by default.
+Open [http://127.0.0.1:5176](http://127.0.0.1:5176). The development server proxies `/api` to `http://127.0.0.1:8787` by default.
 
 ## Provider configuration
 
@@ -227,13 +253,14 @@ Never commit `.env` files, API keys, run history, Provider input snapshots, or u
 
 # Frontend
 cd apps/web
-npm test
-npm run build
-npm run audit:css
-npm run check:css-split
+pnpm test
+pnpm build
+pnpm audit:css
+pnpm audit:structure
+pnpm check:css-build
 ```
 
-Current v1.0 baseline: backend `527 passed`; frontend `114` test files and `425 passed`; TypeScript, production build, CSS audit, CSS splitting, and desktop/390px browser checks pass.
+Before release, run the full backend suite and compileall, plus frontend tests, the TypeScript/Vite production build, CSS/structure audits, and real desktop/mobile browser checks. Real Provider and literary quality acceptance use a separate fresh Run and are not implied by offline gates.
 
 ## Repository layout
 
@@ -250,7 +277,12 @@ docs/                        Architecture contracts and acceptance records
 - [Architecture overview](docs/architecture/overview.md)
 - [Stage Artifact contract](docs/architecture/stage-artifact-contract.md)
 - [Phase 27 adaptive long-form architecture](docs/architecture/phase-27-adaptive-story-planning-reconstruction.md)
+- [Phase 28 literary reliability and author control](docs/architecture/phase-28-v1.1-literary-reliability-and-author-control.md)
+- [Phase 29 hierarchical long-form planning](docs/architecture/phase-29-v1.1-million-character-author-led-deep-mode.md)
+- [Phase 30 Version 20 frontend migration](docs/architecture/phase-30-figma-ui-production-migration.md)
+- [Phase 31 Deep-mode author collaboration](docs/architecture/phase-31-deep-mode-author-collaboration.md)
 - [v1.0 balanced long-form acceptance](docs/engineering/yotsuba-ink-v1-balanced-110k-acceptance.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
