@@ -17,7 +17,11 @@ import type { ReactNode } from "react"
 import type { Route } from "../contracts/app"
 import { useApp } from "../state/PipelineAppProvider"
 
-const STUDIO_NAV: Array<{ id: Route; label: string; icon: ReactNode }> = [
+const STUDIO_NAV: Array<{
+  id: Route
+  label: string
+  icon: ReactNode
+}> = [
   { id: "studio", label: "创作台 · 作品库", icon: <Home size={14} /> },
   { id: "workflow-templates", label: "工作流模板", icon: <Layout size={14} /> },
   { id: "knowledge", label: "知识总览", icon: <Globe size={14} /> },
@@ -32,6 +36,8 @@ export function StudioShell({ children }: { children: ReactNode }) {
     theme,
     toggleTheme,
     setCmdOpen,
+    setCreationWizardDraft,
+    setSelectedTemplateId,
     sidebarCollapsed,
     toggleSidebar,
     mobileDrawerOpen,
@@ -74,8 +80,12 @@ export function StudioShell({ children }: { children: ReactNode }) {
         </div>
         {!sidebarCollapsed && (
           <div>
-            <div className="text-sm font-semibold text-ink leading-tight">四叶墨</div>
-            <div className="text-[10px] text-fog leading-tight">Yotsuba Ink</div>
+            <div className="text-sm font-semibold text-ink leading-tight">
+              四叶墨
+            </div>
+            <div className="text-[10px] text-fog leading-tight">
+              Yotsuba Ink
+            </div>
           </div>
         )}
       </div>
@@ -90,23 +100,27 @@ export function StudioShell({ children }: { children: ReactNode }) {
         {sidebarCollapsed ? (
           <button
             onClick={() => {
+              setSelectedTemplateId(null)
+              setCreationWizardDraft(null)
               setRoute("planning")
               setMobileDrawerOpen(false)
             }}
             className="nav-item w-full justify-center"
-            title="新建小说"
+            title="新建作品"
           >
             <Plus size={15} className="text-action" />
           </button>
         ) : (
           <button
             onClick={() => {
+              setSelectedTemplateId(null)
+              setCreationWizardDraft(null)
               setRoute("planning")
               setMobileDrawerOpen(false)
             }}
             className="btn btn-action w-full text-xs"
           >
-            <Plus size={13} /> 新建小说
+            <Plus size={13} /> 新建作品
           </button>
         )}
       </div>
@@ -114,7 +128,11 @@ export function StudioShell({ children }: { children: ReactNode }) {
       <div className="px-2 pb-2 border-t border-hairline pt-2 shrink-0">
         <button onClick={toggleSidebar} className="nav-item w-full">
           <span className="text-fog">
-            {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            {sidebarCollapsed ? (
+              <ChevronRight size={15} />
+            ) : (
+              <ChevronLeft size={15} />
+            )}
           </span>
           {!sidebarCollapsed && <span className="text-xs">收起侧栏</span>}
         </button>
@@ -137,7 +155,9 @@ export function StudioShell({ children }: { children: ReactNode }) {
         {sidebarCollapsed && (
           <div className="hidden md:flex items-center gap-2">
             <div className="w-6 h-6 rounded flex items-center justify-center bg-elev border border-hairline">
-              <span className="text-ink font-bold text-xs leading-none">四</span>
+              <span className="text-ink font-bold text-xs leading-none">
+                四
+              </span>
             </div>
             <span className="text-sm font-semibold text-ink">四叶墨</span>
           </div>
@@ -197,12 +217,14 @@ export function StudioShell({ children }: { children: ReactNode }) {
       <div className="md:hidden flex items-center gap-3 px-4 py-2.5 border-t border-hairline bg-surface shrink-0 z-20">
         <button
           onClick={() => {
+            setSelectedTemplateId(null)
+            setCreationWizardDraft(null)
             setRoute("planning")
             setMobileDrawerOpen(false)
           }}
           className="btn btn-action text-xs flex-1"
         >
-          <Plus size={12} /> 新建小说
+          <Plus size={12} /> 新建作品
         </button>
         <button
           onClick={() => setCmdOpen(true)}

@@ -239,6 +239,28 @@ def test_detail_budget_uses_the_run_specific_scene_range() -> None:
     assert expanded.max_tokens > compact.max_tokens
 
 
+def test_detail_recovery_budget_only_counts_editable_chapters() -> None:
+    planner = OutputBudgetPlanner(NarrativeScaleProfile(word_target_soft=100_000))
+    context = {
+        "target": "detail",
+        "budget_basis": {"expected_chapters": 3},
+        "material": {
+            "scale_projection": {
+                "scenes_per_chapter_min": 2,
+                "scenes_per_chapter_max": 5,
+            },
+            "recovery_source": {
+                "editable_chapter_refs": ["chapter-6"],
+            },
+        },
+    }
+
+    plan = planner.for_stage("detail", _binding(), context)
+
+    assert plan.expected_items == 1
+    assert plan.scene_cap == 5
+
+
 def test_budget_sidecar_is_strict_and_does_not_change_artifact_context() -> None:
     planner = OutputBudgetPlanner(NarrativeScaleProfile(word_target_soft=100_000))
     context = {"target": "cover", "material": {"accepted_story_metadata": {}}}

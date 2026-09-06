@@ -54,7 +54,9 @@ export function DeliveryStageBar({
           <Icon size={13} className="text-action shrink-0" />
         )}
         <span
-          className={`text-xs font-medium ${completed ? "text-mint" : "text-action"}`}
+          className={`text-xs font-medium ${
+            completed ? "text-mint" : "text-action"
+          }`}
         >
           {label}
         </span>

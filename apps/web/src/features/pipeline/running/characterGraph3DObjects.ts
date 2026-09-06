@@ -3,7 +3,7 @@ import type {
   CharacterGraphEdge,
   CharacterGraphNode,
 } from "../lib/characterGraph"
-import { CHARACTER_KIND_META, graphEndpointId } from "../lib/characterGraph"
+import { graphEndpointId } from "../lib/characterGraph"
 
 export function createCharacterNodeObject(
   node: CharacterGraphNode,
@@ -71,7 +71,11 @@ export function createCharacterNodeObject(
 
 export function createRelationLabel(
   edge: CharacterGraphEdge,
-  options: { compact: boolean; dimmed: boolean; visible: boolean },
+  options: {
+    compact: boolean
+    dimmed: boolean
+    visible: boolean
+  },
 ) {
   if (!options.visible) return new THREE.Group()
   const canvas = document.createElement("canvas")
@@ -107,9 +111,7 @@ export function createRelationLabel(
   )
   sprite.scale.set(options.compact ? 55 : 50, options.compact ? 10.3 : 9.4, 1)
   sprite.renderOrder = 8
-  const hash = stableHash(
-    `${graphEndpointId(edge.source)}-${graphEndpointId(edge.target)}-${edge.type}`,
-  )
+  const hash = stableHash(edge.edgeId)
   const lane = (hash % 5) - 2
   sprite.userData.labelOffset =
     (lane === 0 ? 1 : Math.sign(lane)) * (15 + Math.abs(lane) * 7)
@@ -120,8 +122,16 @@ export function createRelationLabel(
 
 export function positionRelationLabel(
   object: THREE.Object3D,
-  start: { x: number; y: number; z: number },
-  end: { x: number; y: number; z: number },
+  start: {
+    x: number
+    y: number
+    z: number
+  },
+  end: {
+    x: number
+    y: number
+    z: number
+  },
 ) {
   const progress = Number(object.userData.labelProgress ?? 0.5)
   const deltaX = end.x - start.x
@@ -137,25 +147,11 @@ export function positionRelationLabel(
 }
 
 export function relationCurve(edge: CharacterGraphEdge) {
-  return (
-    0.06 +
-    (stableHash(
-      `${graphEndpointId(edge.source)}-${graphEndpointId(edge.target)}-${edge.type}`,
-    ) %
-      3) *
-      0.035
-  )
+  return 0.06 + (stableHash(edge.edgeId) % 3) * 0.035
 }
 
 export function relationCurveRotation(edge: CharacterGraphEdge) {
-  return (
-    ((stableHash(
-      `${graphEndpointId(edge.source)}-${graphEndpointId(edge.target)}-${edge.type}`,
-    ) %
-      360) *
-      Math.PI) /
-    180
-  )
+  return ((stableHash(edge.edgeId) % 360) * Math.PI) / 180
 }
 
 export function createStaticStarfield(count: number) {
@@ -232,12 +228,7 @@ function createNodeLabel(
   context.fillText(node.name, 28, 43, 440)
   context.fillStyle = "rgba(201, 204, 197, 0.7)"
   context.font = '500 20px Inter, "Noto Sans SC", sans-serif'
-  context.fillText(
-    `${CHARACTER_KIND_META[node.kind].label} · ${node.debut.replace("chapter:", "第 ").replace("-", "–")} 章`,
-    28,
-    78,
-    440,
-  )
+  context.fillText(node.role, 28, 78, 440)
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.minFilter = THREE.LinearFilter
@@ -277,10 +268,9 @@ function nodeGeometry(
   node: CharacterGraphNode,
   radius: number,
 ): THREE.BufferGeometry {
-  if (node.kind === "protagonist")
-    return new THREE.DodecahedronGeometry(radius, 1)
-  if (node.kind === "major") return new THREE.OctahedronGeometry(radius, 1)
-  if (node.kind === "functional")
+  if (node.tier === "anchor") return new THREE.DodecahedronGeometry(radius, 1)
+  if (node.tier === "hub") return new THREE.OctahedronGeometry(radius, 1)
+  if (node.tier === "linked")
     return new THREE.BoxGeometry(
       radius * 1.45,
       radius * 1.45,
@@ -289,8 +279,6 @@ function nodeGeometry(
       2,
       2,
     )
-  if (node.kind === "historical_record")
-    return new THREE.CylinderGeometry(radius * 0.7, radius, radius * 1.65, 6, 1)
   return new THREE.TetrahedronGeometry(radius, 1)
 }
 

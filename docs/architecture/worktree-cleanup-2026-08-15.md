@@ -24,7 +24,7 @@
 - 保留：Phase 26/27 合同、DeepSeek Harness 评审、LangGraph runtime、三套 `official-deepseek-{fast,balanced,deep}.json`、当前测试和正式产品资源。
 - 保留：`runtime/novel_workflow/native_runtime`、项目 JSON、Provider profile/secret 数据库等本地创作状态；这些不是源码，禁止按旧代码清理。
 - 移出：Phase 9–25 历史方案、旧 roadmap、无关 Vue/SpringBoot 映射、Playwright/验收输出、偏好校准缓存和编译缓存。
-- 隔离保留：`src/novel_workflow/archive/LegacyRunViewer` 仍是只读历史 Run 边界，不参与生产图，也没有执行、写回或恢复能力；删除它会破坏当前归档 API 合同。
+- 隔离保留：`src/novel_workflow/archive/phase27_archive_reader.py` 是只读历史 Run 边界，不参与生产图，也没有执行、写回或恢复能力；生产切换完成前不得把 `native_runtime/runs` 当作 archive 根。
 
 ## 复核入口
 

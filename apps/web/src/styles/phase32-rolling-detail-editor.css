@@ -1,0 +1,691 @@
+.phase32-detail-window-handoff,
+.phase32-detail-blueprint {
+  border-block: 1px solid var(--border-hl);
+}
+
+.phase32-detail-window-handoff {
+  margin-bottom: 15px;
+  padding: 12px 0 15px;
+}
+
+.phase32-detail-window-handoff > header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.phase32-detail-window-handoff > header > div {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+}
+
+.phase32-detail-window-handoff > header svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-window-handoff > header strong {
+  color: var(--text-ash);
+  font-size: 9.5px;
+}
+
+.phase32-detail-window-handoff > header code,
+.phase32-detail-window-handoff > header > span {
+  color: var(--text-fog);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+}
+
+.phase32-detail-window-handoff > header code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phase32-detail-window-handoff > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.phase32-detail-window-handoff label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding-right: 10px;
+}
+
+.phase32-detail-window-handoff label + label {
+  border-left: 1px solid var(--border-gh);
+  padding-left: 10px;
+}
+
+.phase32-detail-window-handoff label:last-child {
+  padding-right: 0;
+}
+
+.phase32-detail-window-handoff label span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8.5px;
+  gap: 4px;
+}
+
+.phase32-detail-window-handoff label svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-window-handoff textarea,
+.phase32-detail-field textarea,
+.phase32-detail-blueprint input,
+.phase32-detail-scene-meta input {
+  background: color-mix(in srgb, var(--bg-surface) 86%, var(--bg-base));
+  border: 1px solid var(--border-gh);
+  border-radius: 4px;
+  color: var(--text-ash);
+  font-family: var(--font-sans);
+  outline: none;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+.phase32-detail-window-handoff textarea,
+.phase32-detail-field textarea {
+  font-size: 10px;
+  line-height: 1.6;
+  min-width: 0;
+  padding: 7px 8px;
+  resize: vertical;
+  width: 100%;
+}
+
+.phase32-detail-window-handoff textarea {
+  min-height: 69px;
+}
+
+.phase32-detail-window-handoff textarea:focus,
+.phase32-detail-field textarea:focus,
+.phase32-detail-blueprint input:focus,
+.phase32-detail-scene-meta input:focus {
+  background: var(--bg-surface);
+  border-color: color-mix(in srgb, var(--action-primary) 48%, var(--border-hl));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--action-primary) 8%, transparent);
+  color: var(--text-ink);
+}
+
+.phase32-detail-ledger {
+  border-bottom: 1px solid var(--border-hl);
+  margin-bottom: 17px;
+  overflow-x: auto;
+}
+
+.phase32-detail-ledger > header,
+.phase32-detail-ledger > div > button {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(120px, .85fr) minmax(180px, 1.3fr) minmax(94px, .62fr) minmax(150px, 1fr) 54px;
+  min-width: 710px;
+}
+
+.phase32-detail-ledger > header {
+  border-bottom: 1px solid var(--border-gh);
+  color: var(--text-fog);
+  font-size: 8px;
+  padding: 0 8px 7px;
+}
+
+.phase32-detail-ledger > div > button {
+  align-items: center;
+  border-bottom: 1px solid var(--border-gh);
+  color: var(--text-fog);
+  padding: 9px 8px;
+  text-align: left;
+  transition: background-color 150ms ease, color 150ms ease;
+  width: 100%;
+}
+
+.phase32-detail-ledger > div > button:last-child {
+  border-bottom: 0;
+}
+
+.phase32-detail-ledger > div > button:hover,
+.phase32-detail-ledger > div > button:focus-visible,
+.phase32-detail-ledger > div > button.is-active {
+  background: color-mix(in srgb, var(--action-primary) 7%, var(--bg-surface));
+  color: var(--text-ash);
+  outline: none;
+}
+
+.phase32-detail-ledger button > span {
+  font-size: 8.5px;
+  line-height: 1.45;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phase32-detail-ledger button > span:first-child {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.phase32-detail-ledger button > span:first-child i {
+  color: var(--action-primary);
+  font-family: var(--font-mono);
+  font-style: normal;
+}
+
+.phase32-detail-ledger button > span:first-child strong {
+  color: inherit;
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phase32-detail-ledger button > span:nth-child(2),
+.phase32-detail-ledger button > span:nth-child(4) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.phase32-detail-ledger button > span:nth-child(3) {
+  display: grid;
+  gap: 2px;
+}
+
+.phase32-detail-ledger button small {
+  color: var(--text-fog);
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+}
+
+.phase32-detail-blueprint {
+  display: grid;
+  gap: 13px;
+  padding: 16px 0 24px;
+}
+
+.phase32-detail-blueprint-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.phase32-detail-blueprint-header > div:first-child {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.phase32-detail-blueprint-header > div:first-child > span {
+  color: var(--action-primary);
+  font-family: var(--font-mono);
+  font-size: 18px;
+}
+
+.phase32-detail-blueprint-header > div:first-child > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.phase32-detail-blueprint-header label {
+  display: grid;
+  gap: 2px;
+}
+
+.phase32-detail-blueprint-header label > span {
+  color: var(--text-fog);
+  font-size: 7.5px;
+}
+
+.phase32-detail-blueprint-header label > input {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-ink);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 0;
+  padding: 2px 0;
+  width: min(340px, 42vw);
+}
+
+.phase32-detail-blueprint-header code {
+  color: var(--text-fog);
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+
+.phase32-detail-blueprint-controls,
+.phase32-detail-blueprint-controls > label,
+.phase32-detail-blueprint-controls > div {
+  align-items: center;
+  display: flex;
+}
+
+.phase32-detail-blueprint-controls {
+  gap: 8px;
+}
+
+.phase32-detail-blueprint-controls > label {
+  border: 1px solid var(--border-gh);
+  border-radius: 4px;
+  color: var(--text-fog);
+  gap: 5px;
+  height: 29px;
+  padding: 0 7px;
+}
+
+.phase32-detail-blueprint-controls > label svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-blueprint-controls > label span,
+.phase32-detail-blueprint-controls > label i {
+  font-size: 8.5px;
+  font-style: normal;
+}
+
+.phase32-detail-blueprint-controls > label input {
+  background: transparent;
+  border: 0;
+  color: var(--text-ash);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  padding: 0;
+  text-align: right;
+  width: 62px;
+}
+
+.phase32-detail-blueprint-controls > div,
+.phase32-detail-scene-ledger article > header > div {
+  gap: 3px;
+}
+
+.phase32-detail-blueprint-controls button,
+.phase32-detail-scene-ledger article > header button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-fog);
+  display: inline-flex;
+  height: 27px;
+  justify-content: center;
+  width: 27px;
+}
+
+.phase32-detail-blueprint-controls button:hover:not(:disabled),
+.phase32-detail-blueprint-controls button:focus-visible,
+.phase32-detail-scene-ledger article > header button:hover:not(:disabled),
+.phase32-detail-scene-ledger article > header button:focus-visible {
+  background: var(--bg-hover);
+  border-color: var(--border-hl);
+  color: var(--action-primary);
+  outline: none;
+}
+
+.phase32-detail-blueprint-controls button:disabled,
+.phase32-detail-scene-ledger article > header button:disabled {
+  cursor: not-allowed;
+  opacity: .28;
+}
+
+.phase32-detail-scope-strip {
+  border-block: 1px solid var(--border-gh);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.phase32-detail-scope-strip > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.phase32-detail-scope-strip > div + div {
+  border-left: 1px solid var(--border-gh);
+}
+
+.phase32-detail-scope-strip span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8px;
+  gap: 4px;
+}
+
+.phase32-detail-scope-strip span svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-scope-strip strong {
+  color: var(--text-ash);
+  font-size: 8.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phase32-detail-cast-repair,
+.phase32-detail-scene-cast-repair {
+  border: 1px solid color-mix(in srgb, var(--semantic-warning) 26%, var(--border-gh));
+  min-width: 0;
+  padding: 8px 10px 10px;
+}
+
+.phase32-detail-cast-repair {
+  background: color-mix(in srgb, var(--semantic-warning) 4%, var(--bg-surface));
+}
+
+.phase32-detail-cast-repair legend,
+.phase32-detail-scene-cast-repair legend {
+  color: var(--semantic-warning);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 0 5px;
+}
+
+.phase32-detail-cast-repair > p {
+  color: var(--text-fog);
+  font-size: 8px;
+  margin: 0 0 7px;
+}
+
+.phase32-detail-cast-repair > div,
+.phase32-detail-scene-cast-repair > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.phase32-detail-cast-repair label,
+.phase32-detail-scene-cast-repair label {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-elev) 86%, transparent);
+  border: 1px solid var(--border-gh);
+  border-radius: 4px;
+  color: var(--text-ash);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 8.5px;
+  gap: 5px;
+  min-height: 28px;
+  padding: 4px 7px;
+}
+
+.phase32-detail-cast-repair label:has(input:checked),
+.phase32-detail-scene-cast-repair label:has(input:checked) {
+  background: color-mix(in srgb, var(--action-primary) 9%, var(--bg-elev));
+  border-color: color-mix(in srgb, var(--action-primary) 32%, var(--border-hl));
+}
+
+.phase32-detail-cast-repair input,
+.phase32-detail-scene-cast-repair input {
+  accent-color: var(--action-primary);
+}
+
+.phase32-detail-cast-repair label:has(input:disabled) {
+  cursor: default;
+}
+
+.phase32-detail-cast-repair small {
+  color: var(--action-primary);
+  font-family: var(--font-mono);
+  font-size: 7px;
+}
+
+.phase32-detail-cast-repair small.is-risk {
+  color: var(--semantic-danger);
+}
+
+.phase32-detail-scene-cast-repair {
+  border-color: var(--border-gh);
+  padding: 6px 8px 8px;
+}
+
+.phase32-detail-engine-grid,
+.phase32-detail-exit-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.phase32-detail-engine-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.phase32-detail-exit-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.phase32-detail-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.phase32-detail-field > span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8.5px;
+  gap: 5px;
+}
+
+.phase32-detail-field > span svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-field textarea {
+  min-height: 79px;
+}
+
+.phase32-detail-window-handoff textarea[readonly],
+.phase32-detail-field textarea[readonly],
+.phase32-detail-blueprint input[readonly],
+.phase32-detail-scene-meta input[readonly] {
+  background: color-mix(in srgb, var(--bg-surface) 62%, transparent);
+  cursor: default;
+}
+
+@media (max-width: 767px) {
+  .phase32-detail-window-handoff > div,
+  .phase32-detail-engine-grid,
+  .phase32-detail-exit-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .phase32-detail-window-handoff label,
+  .phase32-detail-window-handoff label:last-child {
+    padding: 8px 0;
+  }
+
+  .phase32-detail-window-handoff label + label {
+    border-left: 0;
+    border-top: 1px solid var(--border-gh);
+    padding-left: 0;
+  }
+
+  .phase32-detail-blueprint-header {
+    align-items: flex-start;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .phase32-detail-blueprint-header > div:first-child,
+  .phase32-detail-blueprint-header > div:first-child > div {
+    width: 100%;
+  }
+
+  .phase32-detail-blueprint-header label > input {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .phase32-detail-blueprint-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .phase32-detail-scope-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .phase32-detail-scope-strip > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--border-gh);
+  }
+
+  .phase32-detail-blueprint,
+  .phase32-detail-scene-ledger,
+  .phase32-detail-scene-ledger article {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 440px) {
+  .phase32-detail-blueprint-controls > label span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase32-detail-window-handoff textarea,
+  .phase32-detail-field textarea,
+  .phase32-detail-blueprint input,
+  .phase32-detail-scene-meta input,
+  .phase32-detail-ledger > div > button {
+    transition: none;
+  }
+}
+
+.phase32-detail-scene-ledger {
+  border-block: 1px solid var(--border-gh);
+  padding: 10px 0 13px;
+}
+
+.phase32-detail-scene-ledger > header,
+.phase32-detail-scene-ledger > header > div,
+.phase32-detail-scene-ledger article > header,
+.phase32-detail-scene-ledger article > header > div {
+  align-items: center;
+  display: flex;
+}
+
+.phase32-detail-scene-ledger > header {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.phase32-detail-scene-ledger > header > div {
+  color: var(--text-ash);
+  font-size: 9px;
+  gap: 6px;
+}
+
+.phase32-detail-scene-ledger > header svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-scene-ledger > header strong {
+  color: var(--text-fog);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 400;
+}
+
+.phase32-detail-scene-ledger > div {
+  display: grid;
+  gap: 7px;
+}
+
+.phase32-detail-scene-ledger article {
+  background: color-mix(in srgb, var(--bg-surface) 64%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--action-primary) 34%, var(--border-gh));
+  display: grid;
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.phase32-detail-scene-ledger article > header {
+  gap: 7px;
+}
+
+.phase32-detail-scene-ledger article > header > span {
+  color: var(--action-primary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.phase32-detail-scene-ledger article > header code {
+  color: var(--text-fog);
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+}
+
+.phase32-detail-scene-ledger article > header button {
+  height: 23px;
+  width: 23px;
+}
+
+.phase32-detail-scene-meta,
+.phase32-detail-scene-flow {
+  display: grid;
+  gap: 8px;
+}
+
+.phase32-detail-scene-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.phase32-detail-scene-meta label {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.phase32-detail-scene-meta span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8px;
+  gap: 4px;
+}
+
+.phase32-detail-scene-meta span svg {
+  color: var(--action-primary);
+}
+
+.phase32-detail-scene-meta input {
+  font-size: 9px;
+  height: 27px;
+  min-width: 0;
+  padding: 0 7px;
+}
+
+.phase32-detail-scene-flow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.phase32-detail-scene-flow .phase32-detail-field textarea {
+  min-height: 67px;
+}
+
+@media (max-width: 767px) {
+  .phase32-detail-scene-meta,
+  .phase32-detail-scene-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

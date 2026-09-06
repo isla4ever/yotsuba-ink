@@ -146,6 +146,26 @@ def test_auxiliary_structured_prompts_do_not_inherit_stage_artifact_templates() 
         assert "ignore stage-output instructions above" not in prompt
 
 
+def test_evidence_prompt_separates_claim_kind_from_state_type() -> None:
+    prompt = render_structured_prompt(
+        provider_binding("text"),
+        "text.evidence",
+        {
+            "frozen_state": {
+                "contract_correction": {
+                    "previous_error": "claims.0.kind must be one of the frozen values",
+                    "required_action": "Return a complete replacement.",
+                }
+            }
+        },
+        {"type": "object"},
+    )
+
+    assert "claim.kind must be exactly one of fact, character, relationship, foreshadow, or spine" in prompt
+    assert "must never be used as claim.kind" in prompt
+    assert "single bounded contract-correction attempt" in prompt
+
+
 def test_cast_prompt_requires_all_five_performable_dossier_dimensions_on_first_draft() -> None:
     prompt = render_structured_prompt(
         provider_binding("cast"),
@@ -179,12 +199,13 @@ def test_cast_planning_reviews_warn_about_padding_and_ambiguous_dossiers() -> No
 
     assert "capacity rather than permission to invent duties" in role_review
     assert "require an upstream Spine repair rather than fabricated characters" in role_review
-    assert "Each finding may cite at most 8 unique turn refs" in role_review
     assert "smallest contiguous evidence window" in role_review
+    assert "complete supplied Spine" in role_review
     assert "before the current Cast dossier group enters the visible" in cast_review
     assert "do not by themselves block or trigger regeneration" in cast_review
     assert "specific loss owned by that subject" in cast_review
     assert "repeatable behavior that Text can perform" in cast_review
+    assert "complete supplied Spine" in cast_review
 
 
 def test_detail_layout_prompt_requires_dynamic_surplus_to_be_dramatized() -> None:
@@ -233,6 +254,7 @@ def test_detail_layout_prompt_requires_dynamic_surplus_to_be_dramatized() -> Non
     assert "return status=insufficient instead of shortening the array" in prompt
     assert "runtime has already selected the current turn window's exact chapter-slot count" in prompt
     assert "completed_dramatic_jobs list is a hard exclusion set" in prompt
+    assert "exact specific label" in prompt
     assert "near-paraphrase" in prompt
     assert "range is diagnostic context, not permission for the Provider" in prompt
     assert "Choose each current volume's chapter-slot count" not in prompt
@@ -253,6 +275,105 @@ def test_stage_artifact_prompt_keeps_its_frozen_stage_template() -> None:
     )
 
     assert prompt.startswith("Phase 27 detail prompt")
+
+
+def test_detail_preflight_feedback_requires_a_source_bound_segment_repair() -> None:
+    feedback = {
+        "source_candidate_ref": "detail-candidate-rejected",
+        "source_attempt": 1,
+        "unique_blocker_count": 2,
+        "omitted_blocker_count": 0,
+        "blockers": [
+            {
+                "code": "detail_duplicate_job",
+                "chapter_refs": ["chapter-13", "chapter-14"],
+                "evidence": "Both chapters reconfirm the same location.",
+                "required_fix": "Give each chapter a distinct state change.",
+            },
+            {
+                "code": "premature_main_resolution",
+                "chapter_refs": ["chapter-15", "chapter-19"],
+                "evidence": "The evidence is fully published before the climax.",
+                "required_fix": "Reserve final publication for the climax.",
+            },
+            {
+                "code": "custody_handoff_conflict",
+                "chapter_refs": ["chapter-12", "chapter-13"],
+                "evidence": "The subject returns to custody without a transition.",
+                "required_fix": "Continue from the frozen custody state.",
+            },
+            {
+                "code": "clue_source_missing",
+                "chapter_refs": ["chapter-16", "chapter-20"],
+                "evidence": "The diary recording has no frozen source.",
+                "required_fix": "Use the established diary copy instead.",
+            },
+            {
+                "code": "clue_lifecycle_incomplete",
+                "chapter_refs": ["chapter-16", "chapter-20"],
+                "evidence": "The diary recording is never verified.",
+                "required_fix": "Remove the invalid clue label.",
+            },
+        ],
+    }
+    context = _context()
+    context["material"] = {
+        "preflight_feedback": feedback,
+        "recovery_source": {
+            "editable_chapter_refs": ["chapter-13", "chapter-14"],
+            "preserved_chapter_refs": ["chapter-15"],
+            "required_removed_endpoints": {
+                "chapter-13": ["authority_refusal", "public_decision"]
+            },
+            "source_segment": {"chapters": []},
+        },
+    }
+
+    prompt = render_structured_prompt(
+        provider_binding("detail"),
+        "detail",
+        context,
+        {"type": "object"},
+    )
+
+    assert "immediately preceding Detail candidate" in prompt
+    assert "sole revision source" in prompt
+    assert not prompt.startswith("Phase 27 detail prompt")
+    assert "本段负责全书" not in prompt
+    assert "Return only the chapters named by recovery_source.editable_chapter_refs" in prompt
+    assert "do not return any preserved_chapter_refs" in prompt
+    assert "runtime deterministically restores every preserved chapter" in prompt
+    assert "contain only purpose, scenes, and handoff" in prompt
+    assert "never return title, POV, cast_ids" in prompt
+    assert "instead of resampling unrelated story material" in prompt
+    assert "byte-for-byte identical to its source is a contract failure" in prompt
+    assert "whole contiguous sequence completes that turn once" in prompt
+    assert "whose dramatic_job does not own them" in prompt
+    assert "required_removed_endpoints is the deterministic per-chapter removal contract" in prompt
+    assert "instead of making a cosmetic wording change" in prompt
+    assert "custody_repair_contracts is the deterministic state boundary" in prompt
+    assert "an on-page scene must execute a re-arrest or surrender" in prompt
+    assert "never invent a named officer" in prompt
+    assert "preserved_dramatic_task is the custody-safe form" in prompt
+    assert "lawyer-mediated information transfer" in prompt
+    assert "Never reset custody between chapter boundaries" in prompt
+    assert "except for the one explicit custody transition" in prompt
+    assert "Remove that invalid label or replace it with the exact already-established clue" in prompt
+    assert "only add source or verification actions already entailed" in prompt
+    assert "Keep every valid, source-grounded clue label stable" in prompt
+    assert "Never consume a later turn's climax" in prompt
+    assert "whose status remains unresolved must stay unresolved" in prompt
+    assert "source chapter's frozen POV and cast_ids" in prompt
+    assert "selected_dossiers and present_actor_ids are exhaustive for this repair" in prompt
+    assert "marked reference_only" in prompt
+
+    layout_prompt = render_structured_prompt(
+        provider_binding("detail"),
+        "detail_layout.proposal",
+        context,
+        {"type": "object"},
+    )
+    assert "sole revision source" not in layout_prompt
 
 
 def test_cast_relation_prompt_rejects_speculative_complete_graphs() -> None:
@@ -418,7 +539,7 @@ def test_detail_prompt_treats_turns_handoffs_and_character_limits_as_hard_bounda
         {"type": "object"},
     )
 
-    assert "exclusive executable story boundary" in prompt
+    assert "exclusive macro story boundary" in prompt
     assert "never enact an event" in prompt
     assert "runtime execution projection" in prompt
     assert "future climax" not in prompt
@@ -430,6 +551,8 @@ def test_detail_prompt_treats_turns_handoffs_and_character_limits_as_hard_bounda
     assert "dramatic_job" in prompt
     assert "repeating a procedural submission" in prompt
     assert "selected_dossiers[].limits is a hard invariant" in prompt
+    assert "debut_requirements" in prompt
+    assert "mandatory appearance deadline" in prompt
     assert "historical_record may never act" in prompt
     assert "cast_ids contains only subjects physically present" in prompt
     assert "compare every proposed title against reserved_titles" in prompt

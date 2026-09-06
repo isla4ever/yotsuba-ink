@@ -586,6 +586,30 @@ class NarrativeContextCompiler:
                     chapter_number_start=chapter_number_start,
                 )
                 chapter_number_start += len(layout_group)
+                segment_chapter_end = chapter_number_start - 1
+                debut_requirements = [
+                    {
+                        "subject_id": subject.id,
+                        "name": subject.name,
+                        "debut": subject.debut,
+                        "latest_chapter": _chapter_end(subject.debut),
+                    }
+                    for subject in cast.subjects
+                    if subject.kind != "historical_record"
+                    and scale_projection.chapter_number_start
+                    <= _chapter_end(subject.debut)
+                    <= segment_chapter_end
+                ]
+                missing_debut_subjects = sorted(
+                    requirement["subject_id"]
+                    for requirement in debut_requirements
+                    if requirement["subject_id"] not in present_actor_ids
+                )
+                if missing_debut_subjects:
+                    raise ValueError(
+                        "Volume cast omits subjects whose frozen debut deadline falls "
+                        f"inside this segment: {missing_debut_subjects}"
+                    )
                 volume_context: dict[str, Any] = {
                     "id": volume.id,
                     "title": volume.title,
@@ -600,6 +624,7 @@ class NarrativeContextCompiler:
                     ],
                     "scale_projection": scale_projection.model_dump(mode="json"),
                     "selected_dossiers": selected,
+                    "debut_requirements": debut_requirements,
                     "historical_record_ids": historical_record_ids,
                     "present_actor_ids": present_actor_ids,
                     "world_rule_projection": world_rule_projection,
@@ -861,10 +886,10 @@ class NarrativeContextCompiler:
 
 
 def _project_brief(inputs: dict[str, Any]) -> dict[str, Any]:
-    intent = inputs.get("run_intent")
-    if isinstance(intent, dict) and isinstance(intent.get("project_brief"), dict):
-        return dict(intent["project_brief"])
-    return dict(inputs)
+    value = inputs.get("project_brief")
+    if not isinstance(value, dict):
+        raise ValueError("Frozen Run inputs are missing project_brief")
+    return dict(value)
 
 
 def _group_cast_context(
@@ -966,8 +991,7 @@ def _length_envelope(plan: NarrativeScaleProfile) -> dict[str, Any]:
 
 
 def _source_pack(inputs: dict[str, Any]) -> dict[str, Any]:
-    intent = inputs.get("run_intent")
-    strategy = intent.get("knowledge_strategy") if isinstance(intent, dict) else None
+    strategy = inputs.get("knowledge_strategy")
     if not isinstance(strategy, dict):
         return {}
     ids = [str(item) for item in strategy.get("knowledge_base_doc_ids") or [] if item]
@@ -1104,8 +1128,7 @@ def _accepted_story_metadata(
 
 
 def _visual_decisions(inputs: dict[str, Any]) -> dict[str, Any]:
-    intent = inputs.get("run_intent")
-    value = intent.get("visual_decisions") if isinstance(intent, dict) else None
+    value = inputs.get("visual_decisions")
     return dict(value) if isinstance(value, dict) else {}
 
 

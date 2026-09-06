@@ -27,6 +27,8 @@ def test_cover_asset_store_persists_verified_content_and_attempt_projection(tmp_
     assert content == fake_png_bytes()
     assert store.list("run-cover", generation_attempt=1) == []
     assert store.list("run-cover", generation_attempt=2) == [record]
+    assert store.find_by_operation("run-cover", record.operation_key) == record
+    assert store.find_by_operation("run-cover", "run-cover:cover:image:missing") is None
 
 
 def test_cover_asset_store_rejects_invalid_bytes_and_wrong_ratio(tmp_path) -> None:

@@ -19,6 +19,10 @@ from novel_workflow.providers.readiness import provider_connection_ready
 from novel_workflow.providers.templates import require_provider_template
 from novel_workflow.storage.collaboration_settings_store import CollaborationSettingsStore
 from novel_workflow.storage.narrative_run_repository import ProviderBinding
+from novel_workflow.providers.phase32_contract import Phase32ProviderExecutionSnapshot
+from novel_workflow.workflows.phase32_provider_binding import (
+    build_phase32_collaboration_execution_snapshot,
+)
 from novel_workflow.workflows.schemas import ProviderProfile
 
 
@@ -132,6 +136,43 @@ class CollaborationSettingsService:
             prompt_template=prompt,
             prompt_digest=prompt_digest(prompt),
             structured_tasks={},
+        )
+
+    def freeze_phase32_new_thread_execution(
+        self,
+        run_stage_execution: Phase32ProviderExecutionSnapshot,
+    ) -> Phase32ProviderExecutionSnapshot:
+        """Freeze the selected text Provider into a new Phase 32 thread."""
+
+        if not self.store.exists():
+            return run_stage_execution
+        settings = self.store.read()
+        if not settings.default_provider_profile_id:
+            return run_stage_execution
+        profile = next(
+            (
+                item
+                for item in self.providers()
+                if item.id == settings.default_provider_profile_id
+            ),
+            None,
+        )
+        if profile is None or profile.kind != "openai-compatible":
+            raise CollaborationSettingsError(
+                "The saved collaboration Provider is no longer configured"
+            )
+        capability = self._capability(
+            profile,
+            datetime.now(timezone.utc).isoformat(),
+        )
+        if profile.default_model != settings.default_model or not capability.ready:
+            raise CollaborationSettingsError(
+                "The saved collaboration Provider/model is no longer ready"
+            )
+        return build_phase32_collaboration_execution_snapshot(
+            profile,
+            model=settings.default_model,
+            base=run_stage_execution,
         )
 
     def _capability(

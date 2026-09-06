@@ -8,8 +8,8 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
-from novel_workflow.storage.event_projection import EventProjection, RunEventEnvelope
 from novel_workflow.storage.collaboration_store import CollaborationStore
+from novel_workflow.storage.phase32_event_projection import Phase32EventProjection
 
 
 def sse_payload(event: dict[str, Any]) -> str:
@@ -18,7 +18,7 @@ def sse_payload(event: dict[str, Any]) -> str:
 
 def observe_run_events(
     request: Request,
-    events: EventProjection,
+    events: Phase32EventProjection,
     run_id: str,
     *,
     after: int,
@@ -53,18 +53,18 @@ def observe_collaboration_events(
 
 async def _event_stream(
     request: Request,
-    events: EventProjection,
+    events: Phase32EventProjection,
     run_id: str,
     *,
     after: int,
 ) -> AsyncIterator[str]:
     sequence = after
     while not await request.is_disconnected():
-        batch = events.read(run_id, after=sequence)
-        for event in batch:
+        page = events.page(run_id, after=sequence, limit=100)
+        for event in page.events:
             sequence = event.sequence
             yield sse_payload(event.model_dump(mode="json"))
-        if _batch_reaches_terminal(batch):
+        if page.terminal:
             return
         await asyncio.sleep(0.25)
 
@@ -100,16 +100,6 @@ async def _collaboration_event_stream(
             if idle_ticks % 80 == 0:
                 yield ": keep-alive\n\n"
         await asyncio.sleep(0.25)
-
-
-def _batch_reaches_terminal(batch: list[RunEventEnvelope]) -> bool:
-    terminal = False
-    for event in batch:
-        if event.type in {"run.completed", "run.failed", "decision.required"}:
-            terminal = True
-        elif event.type == "decision.resolved":
-            terminal = False
-    return terminal
 
 
 __all__ = ["observe_collaboration_events", "observe_run_events", "sse_payload"]

@@ -35,9 +35,8 @@ export async function verifyExportBlob(
     "SHA-256",
     await blob.arrayBuffer(),
   )
-  const actual = Array.from(
-    new Uint8Array(digest),
-    (byte) => byte.toString(16).padStart(2, "0"),
+  const actual = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
   ).join("")
   if (actual !== target)
     throw new Error("交付文件 SHA-256 校验失败，已阻止下载。")
@@ -45,6 +44,8 @@ export async function verifyExportBlob(
 }
 
 function normalizeDigest(value?: string) {
-  const digest = String(value || "").trim().toLowerCase()
+  const digest = String(value || "")
+    .trim()
+    .toLowerCase()
   return /^[a-f0-9]{64}$/.test(digest) ? digest : ""
 }

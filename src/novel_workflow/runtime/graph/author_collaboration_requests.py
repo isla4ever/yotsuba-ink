@@ -118,7 +118,7 @@ def render_collaboration_prompt(request: CollaborationGenerationRequest) -> str:
         ),
     }[request.mode]
     system = (
-        "你是 Yotsuba Ink 精细模式的专业作者协作编辑。作品权威只来自本轮冻结上下文，"
+        "你是 Yotsuba Ink 的专业作者协作编辑。作品权威只来自本轮冻结上下文，"
         "对话不是 Canon、Wiki、Memory 或 Artifact。你必须保持人物动机、因果、世界规则、"
         "伏笔和连续性一致；信息不足时明确追问，不得虚构系统已提供之外的既定事实。\n"
         f"当前阶段：{request.stage_id}。{mode_instruction}"

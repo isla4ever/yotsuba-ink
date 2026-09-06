@@ -1,0 +1,30 @@
+{
+  "source": {
+    "run_id": "p32-screenplay-brief-cast-beat-live-20260823-105907",
+    "brief_payload_sha256": "85b683469ab5d87e0bf8278fc528d8003133093e55ef68205e2ab24f2164287f",
+    "cast_payload_sha256": "2b8f100f575356fddba4887f47243d672a059cb7be3ce0a6cecd9c7f9e5de155"
+  },
+  "inputs": {
+    "creative_intent": "当代城市悬疑剧本样片。失踪证人在封锁区间内求救，主管要求女信号员维持封锁；结尾必须让她作出可见且不可逆的选择。"
+  },
+  "brief": {
+    "sample_type": "当代城市调查悬疑样片",
+    "target_minutes": 12,
+    "premise": "女信号员发现无编号检修车倒行，失踪证人在通话中求救。",
+    "audience_promise": "观众与主角共享倒计时信息并判断她是否应违规救人。",
+    "visible_conflict": "若区间断电，证人可能死亡；若违规开启通道，主角可能面临解职或法律责任。",
+    "ending_effect": "主角计划按下紧急解锁键；开放问题是证人是否掌握证据、主管是否掩盖旧事故。",
+    "tone": "冷峻、写实、克制，无旁白。"
+  },
+  "observed_unsafe_promotions": [
+    "主管掩盖旧事故真相",
+    "断电后证人必死",
+    "主角必然面临刑事诉讼"
+  ],
+  "expected_status_by_path": {
+    "inputs.creative_intent": "author_constraint",
+    "upstream_artifacts.brief.payload.premise": "accepted_plan",
+    "upstream_artifacts.brief.payload.visible_conflict": "projected_risk",
+    "upstream_artifacts.brief.payload.ending_effect": "planned_outcome"
+  }
+}

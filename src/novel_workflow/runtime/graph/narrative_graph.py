@@ -7,7 +7,10 @@ from langgraph.graph import END, START, StateGraph
 from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
 from novel_workflow.runtime.graph.chapter_graph import ReviewerSpec, build_chapter_graph
 from novel_workflow.runtime.graph.stage_executor import StageExecutor
-from novel_workflow.runtime.graph.failure import emit_terminal_failure, guarded_node
+from novel_workflow.runtime.graph.failure import emit_terminal_failure
+from novel_workflow.runtime.graph.planning_proposal_graph import (
+    build_planning_proposal_graph,
+)
 from novel_workflow.runtime.graph.stage_graph import build_stage_graph
 from novel_workflow.runtime.graph.state import NarrativeRunState
 
@@ -78,8 +81,8 @@ def build_narrative_graph(
         # A guarded-node failure ends the graph cleanly, so SSE observers only
         # learn the run died if a terminal event reaches the log. Stage
         # subgraphs already announce their own failures with the same event
-        # ids, so this replays as a no-op for them; top-level guarded nodes
-        # (derive_cast_demand, derive_volume_boundary) rely on this net.
+        # ids, so this replays as a no-op for them. Planning proposal subgraphs
+        # use this net only after their one explicit retry has been exhausted.
         # Cancellation is user-initiated and needs no announcement.
         if state.get("failure") is None:
             return {}
@@ -104,11 +107,21 @@ def build_narrative_graph(
 
     builder.add_node(
         "derive_cast_demand",
-        guarded_node(executor, "cast.derive_role_demand", "cast", derive_role_demands),
+        build_planning_proposal_graph(
+            executor,
+            stage_id="cast",
+            node_id="cast.derive_role_demand",
+            generate=derive_role_demands,
+        ),
     )
     builder.add_node(
         "derive_volume_boundary",
-        guarded_node(executor, "cast.derive_volume_boundary", "volumes", derive_volume_boundaries),
+        build_planning_proposal_graph(
+            executor,
+            stage_id="volumes",
+            node_id="cast.derive_volume_boundary",
+            generate=derive_volume_boundaries,
+        ),
     )
     builder.add_node("finalize_run", finalize_run)
     builder.add_node("halt_run", halt_run)

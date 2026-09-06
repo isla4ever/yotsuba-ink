@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url"
 import postcss from "postcss"
 
 const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const sourceRoot = path.join(webRoot, "src")
 const entryPath = path.join(webRoot, "src/index.css")
 const stylesRoot = path.join(webRoot, "src/styles")
 const baselinePath = path.join(webRoot, "scripts/css-audit-baseline.json")
@@ -21,21 +22,37 @@ entryRoot.walkAtRules("import", (rule) => {
   importedFiles.push(path.basename(match[2]))
 })
 
+const moduleImportedFiles = []
+for (const file of await collectFiles(sourceRoot, /\.(?:ts|tsx)$/)) {
+  const source = await readFile(file, "utf8")
+  for (const match of source.matchAll(/import\s+["']([^"']+\.css)["']/g)) {
+    const resolved = path.resolve(path.dirname(file), match[1])
+    if (path.dirname(resolved) === stylesRoot) {
+      moduleImportedFiles.push(path.basename(resolved))
+    }
+  }
+}
+const ownedFiles = [...importedFiles, ...moduleImportedFiles].sort()
+
 const failures = []
 for (const file of styleFiles) {
-  const count = importedFiles.filter((candidate) => candidate === file).length
-  if (count !== 1) failures.push(`${file} must be imported exactly once; found ${count}`)
+  const count = ownedFiles.filter((candidate) => candidate === file).length
+  if (count !== 1)
+    failures.push(`${file} must be imported exactly once; found ${count}`)
 }
-for (const file of importedFiles) {
-  if (!styleFiles.includes(file)) failures.push(`missing imported stylesheet: ${file}`)
+for (const file of ownedFiles) {
+  if (!styleFiles.includes(file))
+    failures.push(`missing imported stylesheet: ${file}`)
 }
 
 const sources = [
   { name: "src/index.css", source: entrySource },
-  ...await Promise.all(styleFiles.map(async (file) => ({
-    name: `src/styles/${file}`,
-    source: await readFile(path.join(stylesRoot, file), "utf8"),
-  }))),
+  ...(await Promise.all(
+    styleFiles.map(async (file) => ({
+      name: `src/styles/${file}`,
+      source: await readFile(path.join(stylesRoot, file), "utf8"),
+    })),
+  )),
 ]
 const selectors = new Map()
 const keyframes = new Map()
@@ -52,12 +69,18 @@ for (const { name, source } of sources) {
       owners.push(name)
       keyframes.set(rule.params, owners)
     }
-    if (rule.name === "media" && /prefers-reduced-motion\s*:\s*reduce/i.test(rule.params)) {
+    if (
+      rule.name === "media" &&
+      /prefers-reduced-motion\s*:\s*reduce/i.test(rule.params)
+    ) {
       reducedMotionGuardCount += 1
     }
   })
   root.walkDecls((declaration) => {
-    if (/^animation(?:-|$)/.test(declaration.prop) && /\binfinite\b/i.test(declaration.value)) {
+    if (
+      /^animation(?:-|$)/.test(declaration.prop) &&
+      /\binfinite\b/i.test(declaration.value)
+    ) {
       infiniteAnimationCount += 1
     }
   })
@@ -81,8 +104,14 @@ const duplicateKeyframes = [...keyframes]
   .filter(([, owners]) => new Set(owners).size > 1)
   .map(([name, owners]) => ({ name, files: [...new Set(owners)] }))
 const metrics = {
-  cssBytes: sources.reduce((total, file) => total + Buffer.byteLength(file.source), 0),
-  sourceLineCount: sources.reduce((total, file) => total + file.source.split(/\r?\n/).length, 0),
+  cssBytes: sources.reduce(
+    (total, file) => total + Buffer.byteLength(file.source),
+    0,
+  ),
+  sourceLineCount: sources.reduce(
+    (total, file) => total + file.source.split(/\r?\n/).length,
+    0,
+  ),
   ruleCount,
   selectorCount,
   uniqueSelectorCount: selectors.size,
@@ -92,14 +121,15 @@ const metrics = {
   reducedMotionGuardCount,
 }
 
-if (reducedMotionGuardCount < 1) failures.push("a prefers-reduced-motion guard is required")
+if (reducedMotionGuardCount < 1)
+  failures.push("a prefers-reduced-motion guard is required")
 
 if (updateBaseline) {
   if (failures.length) fail(failures)
   const baseline = {
     schemaVersion: 1,
     generatedOn: new Date().toISOString().slice(0, 10),
-    importedFiles,
+    importedFiles: ownedFiles,
     budgets: metrics,
   }
   await writeFile(baselinePath, `${JSON.stringify(baseline, null, 2)}\n`)
@@ -109,20 +139,27 @@ if (updateBaseline) {
   try {
     baseline = JSON.parse(await readFile(baselinePath, "utf8"))
   } catch {
-    failures.push("CSS baseline is missing; review and run pnpm audit:css -- --update-baseline")
+    failures.push(
+      "CSS baseline is missing; review and run pnpm audit:css -- --update-baseline",
+    )
   }
   if (baseline) {
-    if (JSON.stringify(baseline.importedFiles) !== JSON.stringify(importedFiles)) {
-      failures.push("stylesheet import ownership changed; review and update the baseline")
+    if (JSON.stringify(baseline.importedFiles) !== JSON.stringify(ownedFiles)) {
+      failures.push(
+        "stylesheet import ownership changed; review and update the baseline",
+      )
     }
     for (const [metric, value] of Object.entries(metrics)) {
       if (value > baseline.budgets[metric]) {
-        failures.push(`${metric} ${value} exceeds baseline ${baseline.budgets[metric]}`)
+        failures.push(
+          `${metric} ${value} exceeds baseline ${baseline.budgets[metric]}`,
+        )
       }
     }
   }
   console.log("CSS audit")
-  for (const [metric, value] of Object.entries(metrics)) console.log(`  ${metric}: ${value}`)
+  for (const [metric, value] of Object.entries(metrics))
+    console.log(`  ${metric}: ${value}`)
   if (duplicateSelectors.length) {
     console.log("Cross-file duplicate selectors")
     for (const record of duplicateSelectors.slice(0, 12)) {
@@ -138,6 +175,17 @@ function insideKeyframes(node) {
     if (parent.type === "atrule" && /keyframes$/i.test(parent.name)) return true
   }
   return false
+}
+
+async function collectFiles(root, pattern) {
+  const files = []
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const absolute = path.join(root, entry.name)
+    if (entry.isDirectory())
+      files.push(...(await collectFiles(absolute, pattern)))
+    else if (pattern.test(entry.name)) files.push(absolute)
+  }
+  return files
 }
 
 function fail(items) {

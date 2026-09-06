@@ -277,6 +277,33 @@ def test_persistent_fact_gate_rejects_new_access_document_and_custody() -> None:
     }
 
 
+def test_persistent_fact_gate_does_not_treat_access_term_as_person() -> None:
+    manifest = _persistent_fact_manifest()
+
+    findings = introduced_persistent_fact_violations(
+        "我看了下，权限是下午降的，说是例行清理。",
+        manifest,
+    )
+
+    assert not any(
+        finding.code == "unregistered_scene_subject" for finding in findings
+    )
+
+
+def test_persistent_fact_gate_still_rejects_person_holding_access() -> None:
+    manifest = _persistent_fact_manifest()
+
+    findings = introduced_persistent_fact_violations(
+        "王强拿到权限。",
+        manifest,
+    )
+
+    assert {finding.code for finding in findings} == {
+        "unregistered_scene_subject",
+        "unfrozen_access_or_key",
+    }
+
+
 def test_persistent_fact_gate_accepts_frozen_key_document_and_holder() -> None:
     manifest = _persistent_fact_manifest()
 

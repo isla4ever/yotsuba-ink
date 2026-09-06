@@ -1,4 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react"
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import {
   ArrowLeft,
   BookMarked,
@@ -15,29 +22,32 @@ import {
 } from "lucide-react"
 import { useApp } from "../state/PipelineAppProvider"
 import type { Route, StageStatus } from "../contracts/app"
+import { runStageStatuses } from "../lib/runPresentation"
+import { RouteLockBadge, RunConnectionStatus, StatusDot } from "./ShellStatus"
 import {
-  activeRunModel,
-  runStageStatuses,
-} from "../lib/runPresentation"
-import { isCollaborationStageId } from "../lib/authorCollaborationProjection"
-import { ModeLockBadge, RunConnectionStatus, StatusDot } from "./ShellStatus"
-import { STAGES, StageProgressTrace } from "./StageProgressTrace"
+  projectStageNavigation,
+  runStageNavigation,
+  StageProgressTrace,
+} from "./StageProgressTrace"
 import { StudioShell } from "./StudioShell"
+import { isCollaborationStageId } from "../lib/authorCollaborationProjection"
 
-const AuthorCollaborationDock = lazy(async () => {
-  const module = await import(
-    "../running/collaboration/AuthorCollaborationDock"
-  )
-  return { default: module.AuthorCollaborationDock }
-})
+const AuthorCollaborationDock = lazy(() =>
+  import("../running/collaboration/AuthorCollaborationDock").then((module) => ({
+    default: module.AuthorCollaborationDock,
+  })),
+)
 
 /* Project navigation */
-const PROJECT_TOOLS: Array<{ id: Route; label: string; icon: ReactNode }> = [
+const PROJECT_TOOLS: Array<{
+  id: Route
+  label: string
+  icon: ReactNode
+}> = [
   { id: "story-bible", label: "故事圣经", icon: <BookMarked size={14} /> },
   { id: "knowledge", label: "本书知识库", icon: <Database size={14} /> },
   { id: "book-settings", label: "本书设置", icon: <Settings size={14} /> },
 ]
-
 
 /* ─── Project shell ────────────────────────────────────────────────────────── */
 function ProjectShell({ children }: { children: ReactNode }) {
@@ -46,7 +56,6 @@ function ProjectShell({ children }: { children: ReactNode }) {
     setRoute,
     theme,
     toggleTheme,
-    mode,
     setCmdOpen,
     activeRun,
     sidebarCollapsed,
@@ -56,34 +65,36 @@ function ProjectShell({ children }: { children: ReactNode }) {
     closeProject,
     activeProject,
   } = useApp()
-  const [collaborationOpen, setCollaborationOpen] = useState(false)
-  const collaborationTriggerRef = useRef<HTMLButtonElement>(null)
-  const collaborationWasOpenRef = useRef(false)
-  const workbenchRef = useRef<HTMLElement>(null)
-
   const isMonitoring = route === "run-monitor"
-  const collaborationEligible =
-    activeRun?.definition.quality_mode === "deep" &&
-    isCollaborationStageId(route)
+  const workbenchRef = useRef<HTMLElement | null>(null)
+  const [collaborationOpen, setCollaborationOpen] = useState(false)
+  const collaborationStage = isCollaborationStageId(route)
+    ? activeRun?.read_model.stage_manifest.find(
+        (stage) => stage.stage_id === route,
+      )
+    : undefined
+  const collaborationAvailable = Boolean(
+    activeRun &&
+      collaborationStage?.collaboration_enabled &&
+      activeRun.read_model.stage_status[route] !== "locked",
+  )
   const isLive = activeRun?.read_model.status === "running"
-  const model = activeRunModel(activeRun)
+  const stages = activeRun
+    ? runStageNavigation(activeRun)
+    : activeProject
+      ? projectStageNavigation(activeProject)
+      : []
   const statuses = runStageStatuses(
     activeRun,
     activeProject?.stageStatuses ?? {},
   )
 
   useEffect(() => {
-    if (!collaborationEligible) setCollaborationOpen(false)
-  }, [collaborationEligible])
-
-  useEffect(() => {
-    if (!collaborationOpen && collaborationWasOpenRef.current)
-      window.requestAnimationFrame(() => collaborationTriggerRef.current?.focus())
-    collaborationWasOpenRef.current = collaborationOpen
-  }, [collaborationOpen])
+    setCollaborationOpen(false)
+  }, [activeRun?.definition.run_id, route, collaborationAvailable])
 
   const currentLabel =
-    STAGES.find((s) => s.id === route)?.label ??
+    stages.find((s) => s.id === route)?.label ??
     PROJECT_TOOLS.find((s) => s.id === route)?.label ??
     (route === "run-monitor" ? "实时监控" : route)
 
@@ -100,6 +111,7 @@ function ProjectShell({ children }: { children: ReactNode }) {
   }) {
     const isActive = route === id
     const st = statuses[id] as StageStatus | undefined
+    const disabled = st === "pending"
     return (
       <button
         onClick={() => {
@@ -107,6 +119,8 @@ function ProjectShell({ children }: { children: ReactNode }) {
           setMobileDrawerOpen(false)
         }}
         className={`nav-item w-full text-left ${isActive ? "active" : ""}`}
+        disabled={disabled}
+        aria-disabled={disabled}
       >
         {sidebarCollapsed ? (
           <span
@@ -181,7 +195,7 @@ function ProjectShell({ children }: { children: ReactNode }) {
           <div className="text-[10px] text-fog mb-2.5 truncate">
             {activeProject?.subtitle || "正在同步真实项目数据"}
           </div>
-          <ModeLockBadge mode={mode} />
+          <RouteLockBadge label={activeProject?.routeLabel ?? "路线读取中"} />
         </div>
       )}
 
@@ -194,7 +208,7 @@ function ProjectShell({ children }: { children: ReactNode }) {
             </div>
           )}
           <div className="space-y-0.5">
-            {STAGES.map((s) => (
+            {stages.map((s) => (
               <StageLink key={s.id} {...s} />
             ))}
           </div>
@@ -254,26 +268,6 @@ function ProjectShell({ children }: { children: ReactNode }) {
           <span className="text-sm font-medium text-ink">{currentLabel}</span>
         </div>
 
-        {/* Live Monitor tab — always action-colored, always visible */}
-        {collaborationEligible && (
-          <button
-            ref={collaborationTriggerRef}
-            type="button"
-            aria-expanded={collaborationOpen}
-            aria-label={collaborationOpen ? "关闭作者协作" : "打开作者协作"}
-            className={`author-collaboration-trigger ${collaborationOpen ? "active" : ""}`}
-            onClick={() => {
-              setMobileDrawerOpen(false)
-              setCollaborationOpen((open) => !open)
-            }}
-            title="作者协作"
-          >
-            <Sparkles size={14} />
-            <span className="hidden xl:inline">作者协作</span>
-          </button>
-        )}
-
-        {/* Live Monitor tab — always action-colored, always visible */}
         <button
           onClick={() => setRoute("run-monitor")}
           className={`hidden md:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium shrink-0 transition-all duration-160 ${
@@ -281,6 +275,7 @@ function ProjectShell({ children }: { children: ReactNode }) {
               ? "bg-action text-white shadow-sm"
               : "bg-action-bg border border-action/35 text-action hover:bg-action hover:text-white"
           }`}
+          aria-current={isMonitoring ? "page" : undefined}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -296,13 +291,31 @@ function ProjectShell({ children }: { children: ReactNode }) {
           实时监控
         </button>
 
+        {collaborationAvailable && (
+          <button
+            aria-expanded={collaborationOpen}
+            aria-label={collaborationOpen ? "关闭作者协作" : "打开作者协作"}
+            className={`author-collaboration-trigger hidden md:inline-flex ${
+              collaborationOpen ? "active" : ""
+            }`}
+            onClick={() => {
+              setMobileDrawerOpen(false)
+              setCollaborationOpen((open) => !open)
+            }}
+            type="button"
+          >
+            <Sparkles size={14} />
+            作者协作
+          </button>
+        )}
+
         {/* Right controls */}
         <div className="flex items-center gap-1.5 shrink-0">
           <div className="hidden md:block">
             <RunConnectionStatus />
           </div>
           <div className="hidden lg:block">
-            <ModeLockBadge mode={mode} model={model} />
+            <RouteLockBadge label={activeProject?.routeLabel ?? "路线读取中"} />
           </div>
           <button
             onClick={toggleTheme}
@@ -325,7 +338,11 @@ function ProjectShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className={`project-workbench-row flex flex-1 overflow-hidden ${collaborationOpen ? "collaboration-open" : ""}`}>
+      <div
+        className={`project-workbench-row flex flex-1 overflow-hidden ${
+          collaborationOpen ? "collaboration-open" : ""
+        }`}
+      >
         {/* Project sidebar — hidden while monitoring to give monitor full width */}
         {!isMonitoring && !collaborationOpen && (
           <aside
@@ -353,7 +370,10 @@ function ProjectShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <main ref={workbenchRef} className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <main
+          className="flex-1 overflow-hidden flex flex-col min-h-0"
+          ref={workbenchRef}
+        >
           <div
             key={route}
             className="route-content-enter flex flex-1 min-h-0 flex-col"
@@ -361,12 +381,11 @@ function ProjectShell({ children }: { children: ReactNode }) {
             {children}
           </div>
         </main>
-        {collaborationOpen && collaborationEligible && (
+        {collaborationOpen && (
           <Suspense
             fallback={
-              <aside aria-label="作者协作" className="author-collaboration-panel collaboration-panel-loading">
-                <Sparkles size={18} />
-                <span>正在恢复协作现场...</span>
+              <aside className="author-collaboration-dock" role="status">
+                正在打开作者协作…
               </aside>
             }
           >
@@ -390,6 +409,7 @@ function ProjectShell({ children }: { children: ReactNode }) {
               ? "bg-action border-action text-white"
               : "bg-action-bg border-action/30 text-action"
           }`}
+          aria-current={isMonitoring ? "page" : undefined}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
@@ -398,10 +418,26 @@ function ProjectShell({ children }: { children: ReactNode }) {
           />
           监控
         </button>
-        <ModeLockBadge mode={mode} model={model} />
+        <RouteLockBadge label={activeProject?.routeLabel ?? "路线读取中"} />
+        {collaborationAvailable && (
+          <button
+            aria-expanded={collaborationOpen}
+            aria-label={collaborationOpen ? "关闭作者协作" : "打开作者协作"}
+            className={`author-collaboration-trigger ${
+              collaborationOpen ? "active" : ""
+            }`}
+            onClick={() => setCollaborationOpen((open) => !open)}
+            type="button"
+          >
+            <Sparkles size={14} />
+            协作
+          </button>
+        )}
         <button
           onClick={() => setCmdOpen(true)}
           className="btn btn-secondary px-3 py-2 text-xs"
+          aria-label="打开命令面板"
+          title="打开命令面板"
         >
           <Command size={13} />
         </button>

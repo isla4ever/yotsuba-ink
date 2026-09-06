@@ -2,7 +2,7 @@ import { Scan, ZoomIn, ZoomOut } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import ForceGraph3D, { type ForceGraphMethods } from "react-force-graph-3d"
 import * as THREE from "three"
-import type { CharacterBibleArtifact } from "../contracts/artifacts"
+import type { CharacterBibleDraft } from "../lib/phase32Cast"
 import {
   connectedSubjectIds,
   projectCharacterGraph,
@@ -28,7 +28,7 @@ import {
 } from "./characterGraph3DObjects"
 
 type Props = {
-  artifact: CharacterBibleArtifact
+  artifact: CharacterBibleDraft
   onSelect: (subjectId: string | null) => void
   selectedId: string | null
 }
@@ -47,7 +47,7 @@ export default function CharacterGraph3D({
   const settledRef = useRef(false)
   const tickRef = useRef(0)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [size, setSize] = useState({ height: 480, width: 720 })
+  const [size, setSize] = useState({ height: 430, width: 300 })
   const graph = useMemo(() => projectCharacterGraph(artifact), [artifact])
   const portrait = size.width / Math.max(1, size.height) < 1.14
   const compact = size.width < 560
@@ -286,7 +286,7 @@ export default function CharacterGraph3D({
   return (
     <div
       aria-label="人物关系 3D 星图"
-      className="cast-graph-canvas"
+      className="phase32-cast-graph-canvas"
       onPointerEnter={() =>
         readyRef.current && graphRef.current?.resumeAnimation?.()
       }
@@ -297,7 +297,7 @@ export default function CharacterGraph3D({
       role="region"
     >
       <div
-        className="cast-camera-controls"
+        className="phase32-cast-camera-controls"
         aria-label="3D 星图视角"
         role="group"
       >
@@ -371,7 +371,7 @@ export default function CharacterGraph3D({
         }}
         nodeLabel={(node) =>
           escapeHtml(
-            `${(node as CharacterGraphNode).name} · ${(node as CharacterGraphNode).function}`,
+            `${(node as CharacterGraphNode).name} · ${(node as CharacterGraphNode).role}`,
           )
         }
         nodeOpacity={0}
@@ -434,24 +434,25 @@ function CharacterGraphFallback({
   onSelect,
 }: Pick<Props, "artifact" | "onSelect">) {
   return (
-    <div className="cast-graph-fallback" role="status">
+    <div className="phase32-cast-graph-fallback" role="status">
       <strong>当前设备无法启用 3D 图谱</strong>
       <span>仍可通过关系目录查看人物连接。</span>
       <div>
-        {artifact.relations.map((relation) => {
-          const source = artifact.subjects.find(
-            (subject) => subject.id === relation.a,
+        {artifact.relationships.map((relation) => {
+          const source = artifact.characters.find(
+            (subject) => subject.subject_ref === relation.from_subject_ref,
           )
-          const target = artifact.subjects.find(
-            (subject) => subject.id === relation.b,
+          const target = artifact.characters.find(
+            (subject) => subject.subject_ref === relation.to_subject_ref,
           )
           return (
             <button
-              key={`${relation.a}-${relation.b}`}
+              key={`${relation.from_subject_ref}-${relation.to_subject_ref}`}
               type="button"
-              onClick={() => onSelect(relation.a)}
+              onClick={() => onSelect(relation.from_subject_ref)}
             >
-              {source?.name ?? relation.a} · {target?.name ?? relation.b}
+              {source?.display_name ?? relation.from_subject_ref} ·{" "}
+              {target?.display_name ?? relation.to_subject_ref}
             </button>
           )
         })}

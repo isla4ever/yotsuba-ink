@@ -17,24 +17,27 @@ export function BookSettingsPanel() {
     )
   }
 
-  const providerProfiles = activeRun
-    ? [
-        ...new Set(
-          Object.values(activeRun.definition.provider_bindings).map(
-            (binding) => binding.provider_profile_id,
-          ),
-        ),
-      ]
+  const providerBindings = activeRun
+    ? activeRun.definition.provider_bindings_by_stage.map((binding) => {
+        const execution = binding.binding.payload.execution
+        if (!execution || typeof execution !== "object") return null
+        const values = execution as Record<string, unknown>
+        return {
+          model:
+            typeof values.model_id === "string" ? values.model_id : "未冻结",
+          provider:
+            typeof values.provider_profile_id === "string"
+              ? values.provider_profile_id
+              : "未冻结",
+        }
+      })
     : []
-  const models = activeRun
-    ? [
-        ...new Set(
-          Object.values(activeRun.definition.provider_bindings).map(
-            (binding) => binding.model,
-          ),
-        ),
-      ]
-    : []
+  const providerProfiles = [
+    ...new Set(providerBindings.flatMap((binding) => binding?.provider ?? [])),
+  ]
+  const models = [
+    ...new Set(providerBindings.flatMap((binding) => binding?.model ?? [])),
+  ]
   const openWorkflow = () => {
     setSelectedTemplateId(activeProject.workflowId)
     setRoute("workflow-template-detail")
@@ -51,10 +54,8 @@ export function BookSettingsPanel() {
     { label: "创建时间", value: formatDate(activeProject.createdAt) },
     { label: "最后同步", value: formatDate(activeProject.updatedAt) },
     {
-      label: "品质模式",
-      value: activeRun
-        ? modeLabel(activeRun.definition.quality_mode)
-        : "将在 Run 创建时冻结",
+      label: "创作路线",
+      value: activeProject.routeLabel,
     },
     { label: "文本模型", value: models.join(" / ") || "尚未冻结" },
     {
@@ -89,7 +90,7 @@ export function BookSettingsPanel() {
             <div>
               <h2 className="text-xs font-semibold text-ink">生产配置</h2>
               <p className="text-[10px] text-fog mt-0.5">
-                以下内容直接来自 Project 和当前 Run，不在创作过程中切换模式。
+                以下内容直接来自 Project 和当前 Run，不在创作过程中切换路线。
               </p>
             </div>
             <button
@@ -126,11 +127,12 @@ export function BookSettingsPanel() {
         <section className="bg-action-bg border border-action/25 rounded-lg p-4 flex items-start gap-3">
           <Lock size={14} className="text-action mt-0.5 shrink-0" />
           <div>
-            <strong className="text-xs text-ink">为何不能在这里修改模式</strong>
+            <strong className="text-xs text-ink">为何不能在这里修改路线</strong>
             <p className="text-xs text-ash leading-relaxed mt-1">
-              Fast、Balanced、Deep 和每个阶段的 Provider 绑定属于 Run
-              的冻结生产合同。需要更换时，应从创作台复制或编辑工作流，再创建新的作品或
-              Run，避免历史 Artifact 与生成条件失配。
+              创作路线、Route revision、ReviewPolicy 和每个阶段的 Provider
+              绑定属于 Run
+              的冻结生产合同。需要更换交付目标时，应创建新的作品，避免历史
+              Artifact 与生成条件失配。
             </p>
           </div>
         </section>
@@ -141,14 +143,6 @@ export function BookSettingsPanel() {
       </div>
     </div>
   )
-}
-
-function modeLabel(mode: "fast" | "balanced" | "deep") {
-  return ({
-    fast: "极速 Fast",
-    balanced: "均衡 Balanced",
-    deep: "精细 Deep",
-  } as const)[mode]
 }
 
 function formatDate(value: string) {

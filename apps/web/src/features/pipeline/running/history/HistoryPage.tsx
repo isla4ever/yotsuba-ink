@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
   AlertTriangle,
-  Brain,
   CheckCircle,
+  Clapperboard,
   Clock,
   FolderOpen,
+  LibraryBig,
   RefreshCw,
-  Scale,
+  ScrollText,
   XCircle,
-  Zap,
 } from "lucide-react"
 import { useApp } from "../../state/PipelineAppProvider"
 import type {
@@ -22,10 +22,10 @@ import { projectPresentation } from "@/features/pipeline/lib/projectPresentation
 import { getProjectSummary } from "@/features/pipeline/services/projectApi"
 import { listRunHistory } from "@/features/pipeline/services/runHistoryApi"
 
-const MODE_ICONS = {
-  fast: <Zap size={12} className="text-fast" />,
-  balanced: <Scale size={12} className="text-balanced" />,
-  deep: <Brain size={12} className="text-deep" />,
+const ROUTE_ICONS = {
+  screenplay_sample: <Clapperboard size={13} className="text-action" />,
+  short_novel: <ScrollText size={13} className="text-action" />,
+  long_novel: <LibraryBig size={13} className="text-action" />,
 }
 
 const STATUS_CONFIG: Record<RunHistoryStatus, {
@@ -38,6 +38,16 @@ const STATUS_CONFIG: Record<RunHistoryStatus, {
   awaiting_decision: {
     icon: AlertTriangle,
     label: "等待决策",
+    color: "text-amber",
+  },
+  image_deferred: {
+    icon: AlertTriangle,
+    label: "图片验收暂缓",
+    color: "text-amber",
+  },
+  needs_action: {
+    icon: AlertTriangle,
+    label: "待处理",
     color: "text-amber",
   },
   failed: { icon: XCircle, label: "失败", color: "text-risk" },
@@ -53,8 +63,14 @@ export default function HistoryPage() {
   const [openingId, setOpeningId] = useState("")
   const totals = useMemo(
     () => ({
-      tokens: items.reduce((sum, item) => sum + item.total_tokens, 0),
-      words: items.reduce((sum, item) => sum + item.words, 0),
+      tokens: items.reduce(
+        (sum, item) => sum + item.provider_usage.total_tokens,
+        0,
+      ),
+      operations: items.reduce(
+        (sum, item) => sum + item.provider_usage.provider_operations,
+        0,
+      ),
       completed: items.filter((item) => item.status === "completed").length,
     }),
     [items],
@@ -100,7 +116,7 @@ export default function HistoryPage() {
         phase={initialLoad.exiting ? "exit" : "enter"}
         variant="panel"
         label="正在整理创作历史"
-        detail="同步 Run、阶段状态、Token 与导出回执"
+        detail="同步路线、动态阶段、Provider 用量与恢复状态"
       />
     )
   }
@@ -139,9 +155,9 @@ export default function HistoryPage() {
               sub={`${totals.completed} 个已完成`}
             />
             <HistoryStat
-              label="累计正文"
-              value={formatCompact(totals.words)}
-              sub="已接受章节字符投影"
+              label="Provider 操作"
+              value={formatCompact(totals.operations)}
+              sub="正式 operation receipt 投影"
             />
             <HistoryStat
               label="累计用量"
@@ -163,11 +179,11 @@ export default function HistoryPage() {
           ) : (
             <div className="bg-surface border border-hairline rounded-lg overflow-hidden">
               <div className="hidden md:grid grid-cols-12 px-4 py-2 bg-hover text-[10px] text-fog uppercase tracking-wider">
-                <span className="col-span-3">作品 / Run</span>
+                <span className="col-span-3">路线 / Run</span>
                 <span className="col-span-2">更新时间</span>
                 <span className="col-span-2">阶段</span>
-                <span className="col-span-2">产出</span>
-                <span className="col-span-1">模式</span>
+                <span className="col-span-2">进度</span>
+                <span className="col-span-1">用量</span>
                 <span className="col-span-1">状态</span>
                 <span className="col-span-1" />
               </div>
@@ -221,8 +237,9 @@ function HistoryRow({
   return (
     <article className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-0 items-center px-4 py-3 border-t border-ghost hover:bg-hover transition-colors">
       <div className="md:col-span-3 min-w-0">
-        <strong className="block text-xs text-ink truncate">
-          《{item.title}》
+        <strong className="flex items-center gap-1.5 text-xs text-ink">
+          {ROUTE_ICONS[item.creation_route_id]}
+          <span className="truncate">{item.route_label}</span>
         </strong>
         <span className="block font-mono text-[10px] text-fog truncate">
           {item.run_id}
@@ -233,17 +250,19 @@ function HistoryRow({
       </span>
       <div className="md:col-span-2 min-w-0">
         <span className="text-xs text-ash">
-          {item.current_stage.label || "尚未开始"}
+          {item.active_stage.label || "尚未开始"}
         </span>
         <span className="block text-[10px] text-fog truncate">
-          {item.summary}
+          {item.active_unit_ref || item.deliverable_kind}
         </span>
       </div>
       <div className="md:col-span-2 text-[10px] text-fog font-mono">
-        {item.words.toLocaleString("zh-CN")} 字 ·{" "}
-        {formatCompact(item.total_tokens)} T
+        {item.progress.completed}/{item.progress.total} 阶段 ·{" "}
+        {Math.round(item.progress.ratio * 100)}%
       </div>
-      <span className="md:col-span-1">{MODE_ICONS[item.quality_mode]}</span>
+      <span className="md:col-span-1 font-mono text-[10px] text-fog">
+        {formatCompact(item.provider_usage.total_tokens)} T
+      </span>
       <span
         className={`md:col-span-1 flex items-center gap-1 ${status.color}`}
         title={status.label}
@@ -256,7 +275,7 @@ function HistoryRow({
         className="md:col-span-1 btn btn-ghost p-1.5 justify-self-start md:justify-self-end"
         onClick={onOpen}
         disabled={opening}
-        aria-label={`打开${item.title}`}
+        aria-label={`打开${item.route_label}作品`}
       >
         {opening ? (
           <RefreshCw size={13} className="animate-spin" />

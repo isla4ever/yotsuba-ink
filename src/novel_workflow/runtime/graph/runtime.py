@@ -43,6 +43,10 @@ from novel_workflow.runtime.graph.author_collaboration_graph import (
     AuthorCollaborationExecutor,
     build_author_collaboration_graph,
 )
+from novel_workflow.runtime.graph.checkpoint_lifecycle import (
+    open_async_sqlite_checkpointer,
+    prepare_async_sqlite_checkpointer,
+)
 
 
 class DecisionReplayConflict(ValueError):
@@ -578,9 +582,14 @@ async def open_sqlite_runtime(
 ) -> AsyncIterator[NarrativeRuntime]:
     stores = filesystem_stores(root)
     checkpoint_path = root / "checkpoints.sqlite"
-    async with AsyncSqliteSaver.from_conn_string(str(checkpoint_path)) as checkpointer:
-        await checkpointer.setup()
+    async with open_async_sqlite_checkpointer(checkpoint_path) as checkpointer:
         yield NarrativeRuntime.create(stores, provider, checkpointer=checkpointer)
+
+
+async def _prepare_checkpointer(checkpointer: AsyncSqliteSaver) -> None:
+    """Preserve the existing private setup hook while sharing its authority."""
+
+    await prepare_async_sqlite_checkpointer(checkpointer)
 
 
 __all__ = [

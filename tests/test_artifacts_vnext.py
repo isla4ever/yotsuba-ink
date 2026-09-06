@@ -493,6 +493,7 @@ def test_character_bible_freezes_subject_registry_and_rejects_unknown_relation()
     [
         ("type", "潜在盟友"),
         ("pressure", "两人可能在公开听证前建立信任"),
+        ("pressure", "双方可能公开真相，因此面临风险"),
         ("pressure", "沈岚目睹林国强死亡，内心挣扎是否推动自己承担风险"),
         ("pressure", "林国强的牺牲将会推动遗产公开"),
     ],
@@ -516,6 +517,7 @@ def test_character_relation_rejects_ambiguous_pressure(field: str, value: str) -
         "赵启明作为调度组长，双方形成对抗。",
         "双方存在联系。",
         "陈建国已暴露于厂方可能的报复之下。",
+        "顾行舟准备说明情况，因此双方保持联系。",
     ],
 )
 def test_character_relation_requires_choice_and_consequence(pressure: str) -> None:
@@ -548,6 +550,11 @@ def test_character_relation_accepts_concrete_choice_and_consequence() -> None:
         "赵启受组织指令绑架林默，导致林默面临法律追责。",
         "赵启曾作为警方线人提供情报，导致林默无法确认他的真实动机。",
         "林默私下提交样本，导致顾海生卷入内部审查。",
+        "程远志已监控林涛的通信并警告其行为，使林涛在支持顾行舟时承受被解职的风险，林涛已失去部分行动自由。",
+        "程远志二十年前参与篡改母表并追责顾清岚，已导致顾清岚殉职并背负背叛之名，顾清岚的遗产成为程远志罪行的证据。",
+        "顾行舟已解密姐姐的加密日志并公开其记录，导致顾清岚的牺牲被重新定性为系统缺陷证明，其失踪不再是意外。",
+        "陈伯年已向顾行舟证实顾清岚主动留守的真相，顾行舟因此获得关键证词，陈伯年承担了作证可能带来的报复风险。",
+        "陈伯年已向顾行舟证实顾清岚主动留守的真相，顾行舟因此获得关键证词，陈伯年承担了作证可能被系统报复的风险。",
     ],
 )
 def test_character_relation_accepts_natural_completed_causal_actions(pressure: str) -> None:

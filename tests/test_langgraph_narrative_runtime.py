@@ -29,6 +29,7 @@ from novel_workflow.runtime.graph.branch_service import (
     BranchConflictError,
     NarrativeBranchService,
 )
+from novel_workflow.runtime.graph.stage_executor import StageExecutor
 from novel_workflow.runtime.graph.runtime import (
     NarrativeRuntime,
     _active_interrupts,
@@ -121,6 +122,71 @@ class UnavailableRequiredReviewProvider(FakeNarrativeProvider):
         return StructuredProviderResult(
             payload=ChapterReviewResult(role=request.role).model_dump(mode="json"),
             usage={"total_tokens": 1},
+        )
+
+
+class MalformedRoleDemandReviewOnceProvider(FakeNarrativeProvider):
+    def __init__(self, *, failures: int = 1) -> None:
+        super().__init__()
+        self.failures = failures
+        self.role_demand_review_attempts = 0
+
+    async def generate_proposal(self, request):
+        if request.proposal_type == "role_demand_review":
+            self.proposal_requests.append(request)
+            self.role_demand_review_attempts += 1
+            if self.role_demand_review_attempts <= self.failures:
+                raise ProviderOperationError(
+                    "Provider did not return exactly one complete JSON object",
+                    operation_key=request.operation_key,
+                    usage={"total_tokens": 4074},
+                    diagnostic={
+                        "code": "json_parse_failed",
+                        "finish_reason": "stop",
+                        "structured_parse": {
+                            "selection": "invalid_json",
+                            "parse_error_codes": ["json_decode_error"],
+                        },
+                    },
+                )
+            return StructuredProviderResult(
+                payload={"verdict": "pass", "findings": []},
+                usage={"total_tokens": 3},
+            )
+        return await super().generate_proposal(request)
+
+
+class MalformedDetailSegmentOnceProvider(FakeNarrativeProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.failed_once = False
+
+    async def generate_stage(self, request):
+        is_failed_segment = (
+            request.stage_id == "detail"
+            and request.operation_key.endswith(":volume-1.segment-2")
+            and not self.failed_once
+        )
+        if not is_failed_segment:
+            return await super().generate_stage(request)
+        self.failed_once = True
+        self.stage_requests.append(request)
+        raise ProviderOperationError(
+            "Provider did not return exactly one complete JSON object",
+            operation_key=request.operation_key,
+            usage={
+                "prompt_tokens": 120,
+                "completion_tokens": 40,
+                "total_tokens": 160,
+            },
+            diagnostic={
+                "code": "json_parse_failed",
+                "finish_reason": "stop",
+                "structured_parse": {
+                    "selection": "invalid_json",
+                    "parse_error_codes": ["json_decode_error"],
+                },
+            },
         )
 
 
@@ -343,6 +409,96 @@ class ContractFailingRoleDemandProvider(FakeNarrativeProvider):
                 },
             )
         return await super().generate_proposal(request)
+
+
+class ContractFailingCastRelationOnceProvider(FakeNarrativeProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cast_relation_attempts = 0
+
+    async def generate_proposal(self, request):
+        if request.proposal_type == "cast_relation":
+            self.cast_relation_attempts += 1
+            if self.cast_relation_attempts == 1:
+                self.proposal_requests.append(request)
+                returned = {
+                    "relations": [
+                        {
+                            "a": "subject-1",
+                            "b": "subject-2",
+                            "type": "潜在合作",
+                            "pressure": "双方可能在未来建立联系。",
+                        }
+                    ]
+                }
+                raise ProviderOperationError(
+                    "Relation pressure is unresolved",
+                    operation_key=request.operation_key,
+                    usage={"total_tokens": 5},
+                    diagnostic={"code": "structured_contract_invalid"},
+                    provider_result=returned,
+                )
+        return await super().generate_proposal(request)
+
+
+class ContractThenCoverageFailingCastRelationProvider(FakeNarrativeProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cast_relation_attempts = 0
+
+    async def generate_proposal(self, request):
+        if request.proposal_type == "cast_relation":
+            self.cast_relation_attempts += 1
+            if self.cast_relation_attempts == 1:
+                self.proposal_requests.append(request)
+                raise ProviderOperationError(
+                    "Relation pressure is unresolved",
+                    operation_key=request.operation_key,
+                    usage={"total_tokens": 5},
+                    diagnostic={"code": "structured_contract_invalid"},
+                    provider_result={
+                        "relations": [
+                            {
+                                "a": "subject-1",
+                                "b": "subject-2",
+                                "type": "潜在合作",
+                                "pressure": "双方可能在未来建立联系。",
+                            }
+                        ]
+                    },
+                )
+            if self.cast_relation_attempts == 2:
+                self.proposal_requests.append(request)
+                return StructuredProviderResult(
+                    payload={"relations": []},
+                    usage={"total_tokens": 2},
+                )
+        return await super().generate_proposal(request)
+
+
+class ValidatorUpdatedCastRelationProvider(FakeNarrativeProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cast_relation_attempts = 0
+
+    async def generate_proposal(self, request):
+        if request.proposal_type != "cast_relation":
+            return await super().generate_proposal(request)
+        self.cast_relation_attempts += 1
+        if self.cast_relation_attempts > 1:
+            raise AssertionError("A validator update must not call the Provider again")
+        result = await super().generate_proposal(request)
+        payload = json.loads(json.dumps(result.payload))
+        payload["relations"][0]["pressure"] = (
+            "双方已交换证词，因此共同承担公开材料可能带来的追责风险。"
+        )
+        raise ProviderOperationError(
+            "The previous validator rejected an established risk",
+            operation_key=request.operation_key,
+            usage=result.usage,
+            diagnostic={"code": "structured_contract_invalid"},
+            provider_result=payload,
+        )
 
 
 def _bindings(*, detail_max_tokens: int = 6_000) -> dict[str, ProviderBinding]:
@@ -909,6 +1065,669 @@ async def test_detail_capacity_segments_carry_a_strict_bounded_handoff(tmp_path)
         "unresolved": ["追问删除命令责任"],
         "next_ref": "volume-1.segment-3",
     }
+
+
+@pytest.mark.asyncio
+async def test_detail_debut_requirement_is_not_reapplied_after_earlier_segment(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider(subject_count=2)
+    original_generate_stage = provider.generate_stage
+
+    async def generate_with_early_debut(request):
+        result = await original_generate_stage(request)
+        payload = json.loads(json.dumps(result.payload))
+        if request.stage_id == "cast":
+            for subject in payload["subjects"]:
+                if subject["kind"] != "protagonist":
+                    subject["debut"] = "chapter:1-2"
+        if request.stage_id == "detail":
+            chapter_start = int(
+                request.context["material"]["scale_projection"][
+                    "chapter_number_start"
+                ]
+            )
+            if chapter_start > 1:
+                for chapter in payload["chapters"]:
+                    chapter["cast_ids"] = ["subject-1"]
+                    chapter["pov"] = "subject-1"
+        return result.model_copy(update={"payload": payload})
+
+    provider.generate_stage = generate_with_early_debut
+    _create_run(
+        stores,
+        "run-detail-debut-across-segments",
+        word_target_soft=7_500,
+        detail_max_tokens=2_400,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    projection = await runtime.start("run-detail-debut-across-segments")
+
+    assert projection.status == "completed", projection.failure
+    detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    assert len(detail_requests) == 3
+    assert [
+        requirement["subject_id"]
+        for requirement in detail_requests[0].context["material"][
+            "debut_requirements"
+        ]
+    ] == ["subject-1"]
+    assert detail_requests[0].context["material"]["scale_projection"][
+        "chapter_number_start"
+    ] == 1
+    detail = stores.artifacts.read(
+        projection.run_id,
+        projection.artifact_refs["detail"],
+    ).payload
+    assert "subject-2" in detail["chapters"][0]["cast_ids"]
+    assert all(
+        request.context["material"]["debut_requirements"] == []
+        for request in detail_requests[1:]
+    )
+    assert all(
+        "subject-2" not in chapter["cast_ids"]
+        for chapter in detail["chapters"][1:]
+    )
+
+
+@pytest.mark.asyncio
+async def test_detail_failure_retry_only_regenerates_the_failed_segment(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = MalformedDetailSegmentOnceProvider()
+    run_id = "run-detail-failed-segment-recovery"
+    _create_run(
+        stores,
+        run_id,
+        word_target_soft=7_500,
+        detail_max_tokens=2_400,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    assert paused.active_stage_id == "detail"
+    assert paused.failure is not None
+    assert paused.failure["provider_code"] == "json_parse_failed"
+    assert paused.failure["evidence_ref"].endswith(":volume-1.segment-2")
+    first_layout_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "detail_layout"
+    ]
+    assert len(first_layout_requests) == 1
+
+    decision = dict(paused.pending_decisions[0])
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    counts = {
+        segment: sum(request.operation_key.endswith(segment) for request in detail_requests)
+        for segment in (
+            "volume-1.segment-1",
+            "volume-1.segment-2",
+            "volume-1.segment-3",
+        )
+    }
+    assert counts == {
+        "volume-1.segment-1": 1,
+        "volume-1.segment-2": 2,
+        "volume-1.segment-3": 1,
+    }
+    assert [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "detail_layout"
+    ] == first_layout_requests
+    assert stores.operations.read(
+        run_id,
+        f"{run_id}:detail:generate:1:volume-1.segment-1",
+    ).status == "succeeded"
+    assert stores.operations.read(
+        run_id,
+        f"{run_id}:detail:generate:1:volume-1.segment-2",
+    ).status == "failed"
+    assert stores.operations.read(
+        run_id,
+        f"{run_id}:detail:generate:2:volume-1.segment-2",
+    ).status == "succeeded"
+    assert stores.operations.read(
+        run_id,
+        f"{run_id}:detail:generate:2:volume-1.segment-3",
+    ).status == "succeeded"
+    assert stores.operations.find(
+        run_id,
+        f"{run_id}:detail:generate:2:volume-1.segment-1",
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_detail_preflight_failure_repairs_only_the_source_bound_segment(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+    run_id = "run-detail-preflight-replan"
+
+    async def duplicate_first_attempt(request):
+        result = await original_generate_stage(request)
+        if request.stage_id != "detail" or request.attempt != 1:
+            return result
+        if not request.operation_key.endswith(("segment-1", "segment-3")):
+            return result
+        payload = json.loads(json.dumps(result.payload))
+        payload["chapters"][0].update(
+            {
+                "purpose": "在发布会取得核验并公开母带",
+                "scenes": [
+                    {
+                        "place": "档案室外发布会",
+                        "objective": "从档案室取得母带并提交调查材料",
+                        "conflict": "律师当众否认结论并威胁诉讼",
+                        "turn": "林远向媒体公开母带与调查结论",
+                        "result": "林远从档案室取得母带，媒体随后公开报道",
+                    }
+                ],
+                "handoff": "发布会后林远面临诉讼，警方继续核验材料",
+            }
+        )
+        return result.model_copy(update={"payload": payload})
+
+    provider.generate_stage = duplicate_first_attempt
+    _create_run(
+        stores,
+        run_id,
+        word_target_soft=7_500,
+        detail_max_tokens=2_400,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    assert paused.active_stage_id == "detail"
+    assert paused.failure is not None
+    assert paused.failure["code"] == "DetailPreflightError", paused.failure
+    assert "detail_duplicate_job" in paused.failure["message"]
+    first_layout_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "detail_layout"
+    ]
+    first_detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    assert len(first_detail_requests) == 3
+    assert all(
+        "preflight_feedback" not in request.context["material"]
+        for request in [*first_layout_requests, *first_detail_requests]
+    )
+    rejected_candidate_ref = paused.pending_decisions[0]["artifact_ref"]
+    rejected_candidate = stores.artifacts.read(run_id, rejected_candidate_ref)
+
+    decision = dict(paused.pending_decisions[0])
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    all_layout_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "detail_layout"
+    ]
+    all_detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    second_layout_requests = all_layout_requests[len(first_layout_requests) :]
+    second_detail_requests = all_detail_requests[len(first_detail_requests) :]
+    assert second_layout_requests == []
+    assert [request.operation_key.rsplit(":", 1)[-1] for request in second_detail_requests] == [
+        "volume-1.segment-1",
+        "volume-1.segment-3",
+    ]
+    assert all(request.attempt == 2 for request in second_detail_requests)
+    for request, chapter_ref in zip(
+        second_detail_requests,
+        ("chapter-1", "chapter-3"),
+        strict=True,
+    ):
+        feedback = request.context["material"]["preflight_feedback"]
+        recovery_source = request.context["material"]["recovery_source"]
+        assert feedback["source_attempt"] == 1
+        assert {item["code"] for item in feedback["blockers"]} == {
+            "detail_duplicate_job"
+        }
+        assert recovery_source["source_candidate_ref"] == rejected_candidate_ref
+        assert recovery_source["editable_chapter_refs"] == [chapter_ref]
+        assert recovery_source["preserved_chapter_refs"] == []
+        assert "revision_request" not in request.context["material"]
+    committed = stores.artifacts.read(run_id, completed.artifact_refs["detail"])
+    assert committed.payload["chapters"][1] == rejected_candidate.payload["chapters"][1]
+    assert [
+        chapter["target_characters"] for chapter in committed.payload["chapters"]
+    ] == [
+        chapter["target_characters"]
+        for chapter in rejected_candidate.payload["chapters"]
+    ]
+    assert stores.operations.find(
+        run_id,
+        f"{run_id}:detail:generate:2:volume-1.segment-2",
+    ) is None
+    state = await runtime.state(run_id)
+    operation_refs = set(state["pending_operation_refs"])
+    assert {
+        request.operation_key for request in first_layout_requests
+    } <= operation_refs
+    assert f"{run_id}:detail:generate:1:volume-1.segment-2" in operation_refs
+    assert f"{run_id}:detail:generate:2:volume-1.segment-1" in operation_refs
+    assert f"{run_id}:detail:generate:2:volume-1.segment-3" in operation_refs
+    assert f"{run_id}:detail:generate:2:volume-1.segment-2" not in operation_refs
+
+
+@pytest.mark.asyncio
+async def test_detail_recovery_noop_is_contract_rejected_without_hidden_retry(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+    run_id = "run-detail-recovery-noop"
+
+    async def duplicate_then_echo_recovery_source(request):
+        result = await original_generate_stage(request)
+        material = request.context.get("material") or {}
+        if request.stage_id != "detail":
+            return result
+        if "recovery_source" in material:
+            source = material["recovery_source"]
+            source_by_ref = dict(
+                zip(
+                    source["chapter_refs"],
+                    source["source_segment"]["chapters"],
+                    strict=True,
+                )
+            )
+            return result.model_copy(
+                update={
+                    "payload": {
+                        "chapters": json.loads(
+                            json.dumps(
+                                [
+                                    {
+                                        key: source_by_ref[chapter_ref][key]
+                                        for key in ("purpose", "scenes", "handoff")
+                                    }
+                                    for chapter_ref in source["editable_chapter_refs"]
+                                ]
+                            )
+                        )
+                    }
+                }
+            )
+        if request.attempt != 1 or not request.operation_key.endswith(
+            ("segment-1", "segment-3")
+        ):
+            return result
+        payload = json.loads(json.dumps(result.payload))
+        payload["chapters"][0].update(
+            {
+                "purpose": "在发布会取得核验并公开母带",
+                "scenes": [
+                    {
+                        "place": "档案室外发布会",
+                        "objective": "从档案室取得母带并提交调查材料",
+                        "conflict": "律师当众否认结论并威胁诉讼",
+                        "turn": "林远向媒体公开母带与调查结论",
+                        "result": "林远从档案室取得母带，媒体随后公开报道",
+                    }
+                ],
+                "handoff": "发布会后林远面临诉讼，警方继续核验材料",
+            }
+        )
+        return result.model_copy(update={"payload": payload})
+
+    provider.generate_stage = duplicate_then_echo_recovery_source
+    _create_run(
+        stores,
+        run_id,
+        word_target_soft=7_500,
+        detail_max_tokens=2_400,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+    assert paused.status == "awaiting_decision"
+    assert paused.failure is not None
+    assert paused.failure["code"] == "DetailPreflightError"
+    detail_requests_before = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    usage_before = stores.operations.usage_summary(run_id)
+
+    decision = dict(paused.pending_decisions[0])
+    rejected = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert rejected.status == "awaiting_decision"
+    detail_requests_after = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    recovery_requests = detail_requests_after[len(detail_requests_before) :]
+    assert len(recovery_requests) == 1
+    recovery_request = recovery_requests[0]
+    assert recovery_request.attempt == 2
+    assert "recovery_source" in recovery_request.context["material"]
+
+    receipt = stores.operations.read(run_id, recovery_request.operation_key)
+    assert receipt.status == "contract_rejected"
+    assert receipt.provider_result is not None
+    assert receipt.result is None
+    assert "without materially changing it" in (receipt.error or {})["message"]
+    usage_after = stores.operations.usage_summary(run_id)
+    assert usage_after.provider_operations == usage_before.provider_operations + 1
+    assert (
+        usage_after.contract_rejected_operations
+        == usage_before.contract_rejected_operations + 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_detail_recovery_reuses_a_valid_segment_after_later_contract_rejection(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    original_generate_stage = provider.generate_stage
+    run_id = "run-detail-recovery-cross-attempt"
+
+    async def reject_only_the_second_recovery_segment(request):
+        result = await original_generate_stage(request)
+        material = request.context.get("material") or {}
+        if request.stage_id != "detail":
+            return result
+        if request.attempt == 1 and request.operation_key.endswith(
+            ("segment-1", "segment-3")
+        ):
+            payload = json.loads(json.dumps(result.payload))
+            payload["chapters"][0].update(
+                {
+                    "purpose": "在发布会取得核验并公开母带",
+                    "scenes": [
+                        {
+                            "place": "档案室外发布会",
+                            "objective": "从档案室取得母带并提交调查材料",
+                            "conflict": "律师当众否认结论并威胁诉讼",
+                            "turn": "林远向媒体公开母带与调查结论",
+                            "result": "林远从档案室取得母带，媒体随后公开报道",
+                        }
+                    ],
+                    "handoff": "发布会后林远面临诉讼，警方继续核验材料",
+                }
+            )
+            return result.model_copy(update={"payload": payload})
+        if (
+            request.attempt == 2
+            and request.operation_key.endswith("segment-3")
+            and "recovery_source" in material
+        ):
+            source = material["recovery_source"]
+            source_by_ref = dict(
+                zip(
+                    source["chapter_refs"],
+                    source["source_segment"]["chapters"],
+                    strict=True,
+                )
+            )
+            return result.model_copy(
+                update={
+                    "payload": {
+                        "chapters": json.loads(
+                            json.dumps(
+                                [
+                                    {
+                                        key: source_by_ref[chapter_ref][key]
+                                        for key in ("purpose", "scenes", "handoff")
+                                    }
+                                    for chapter_ref in source["editable_chapter_refs"]
+                                ]
+                            )
+                        )
+                    }
+                }
+            )
+        return result
+
+    provider.generate_stage = reject_only_the_second_recovery_segment
+    _create_run(
+        stores,
+        run_id,
+        word_target_soft=7_500,
+        detail_max_tokens=2_400,
+        include_cover_image=False,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    first_failure = await runtime.start(run_id)
+    source_candidate_ref = first_failure.pending_decisions[0]["artifact_ref"]
+    layout_request_count = len(
+        [
+            request
+            for request in provider.proposal_requests
+            if request.proposal_type == "detail_layout"
+        ]
+    )
+    first_decision = dict(first_failure.pending_decisions[0])
+
+    second_failure = await runtime.resume(
+        run_id,
+        {
+            "decision_id": first_decision["decision_id"],
+            "domain_revision": first_decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert second_failure.status == "awaiting_decision"
+    assert second_failure.pending_decisions[0]["artifact_ref"] == source_candidate_ref
+    assert second_failure.pending_decisions[0]["decision_id"].endswith(
+        "detail:failure-attempt-2"
+    )
+    assert stores.operations.read(
+        run_id,
+        f"{run_id}:detail:generate:2:volume-1.segment-1",
+    ).status == "succeeded"
+    assert stores.operations.read(
+        run_id,
+        f"{run_id}:detail:generate:2:volume-1.segment-3",
+    ).status == "contract_rejected"
+    requests_before_final_recovery = list(provider.stage_requests)
+    second_decision = dict(second_failure.pending_decisions[0])
+
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": second_decision["decision_id"],
+            "domain_revision": second_decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    final_recovery_requests = [
+        request
+        for request in provider.stage_requests[len(requests_before_final_recovery) :]
+        if request.stage_id == "detail"
+    ]
+    assert [request.operation_key for request in final_recovery_requests] == [
+        f"{run_id}:detail:generate:3:volume-1.segment-3"
+    ]
+    assert len(
+        [
+            request
+            for request in provider.proposal_requests
+            if request.proposal_type == "detail_layout"
+        ]
+    ) == layout_request_count
+    assert stores.operations.find(
+        run_id,
+        f"{run_id}:detail:generate:3:volume-1.segment-1",
+    ) is None
+    assert stores.operations.find(
+        run_id,
+        f"{run_id}:detail:generate:3:volume-1.segment-2",
+    ) is None
+    state = await runtime.state(run_id)
+    operation_refs = set(state["pending_operation_refs"])
+    assert f"{run_id}:detail:generate:2:volume-1.segment-1" in operation_refs
+    assert f"{run_id}:detail:generate:1:volume-1.segment-2" in operation_refs
+    assert f"{run_id}:detail:generate:3:volume-1.segment-3" in operation_refs
+
+
+@pytest.mark.asyncio
+async def test_detail_failure_revalidates_the_same_candidate_after_validator_update(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    run_id = "run-detail-validator-update-recovery"
+    _create_run(
+        stores,
+        run_id,
+        word_target_soft=7_500,
+        include_cover_image=False,
+    )
+    original_validate = StageExecutor.validate_candidate
+    raised = False
+
+    class DetailPreflightError(ValueError):
+        pass
+
+    def validate_with_stale_contract(self, state, stage_id):
+        nonlocal raised
+        candidate = original_validate(self, state, stage_id)
+        if stage_id == "detail" and not raised:
+            raised = True
+            raise DetailPreflightError("stale deterministic validator")
+        return candidate
+
+    monkeypatch.setattr(StageExecutor, "validate_candidate", validate_with_stale_contract)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    assert paused.failure is not None
+    assert paused.failure["code"] == "DetailPreflightError"
+    detail_requests_before = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    candidate_ref = paused.pending_decisions[0]["artifact_ref"]
+
+    monkeypatch.setattr(StageExecutor, "validate_candidate", original_validate)
+    decision = paused.pending_decisions[0]
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    detail_requests_after = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    assert detail_requests_after == detail_requests_before
+    assert stores.artifacts.read(run_id, candidate_ref).status == "candidate"
+    committed = stores.artifacts.read(run_id, completed.artifact_refs["detail"])
+    assert committed.payload == stores.artifacts.read(run_id, candidate_ref).payload
+
+
+@pytest.mark.asyncio
+async def test_detail_author_redraft_does_not_reuse_layout_or_segments(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = FakeNarrativeProvider()
+    run_id = "run-detail-author-redraft"
+    _create_run(
+        stores,
+        run_id,
+        quality_mode="balanced",
+        word_target_soft=7_500,
+        detail_max_tokens=2_400,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+    paused = await _advance_to_detail_decision(runtime, run_id)
+
+    first_detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    first_layout_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "detail_layout"
+    ]
+    decision = dict(paused.pending_decisions[0])
+    revised = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+            "direction": "重排每章的调查阻力与跨章交接。",
+        },
+    )
+
+    assert revised.status == "awaiting_decision", revised.failure
+    assert revised.active_stage_id == "detail"
+    detail_requests = [
+        request for request in provider.stage_requests if request.stage_id == "detail"
+    ]
+    layout_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "detail_layout"
+    ]
+    assert len(detail_requests) == len(first_detail_requests) * 2
+    assert len(layout_requests) == len(first_layout_requests) * 2
+    assert all(
+        request.attempt == 2
+        for request in detail_requests[len(first_detail_requests) :]
+    )
+    assert all(
+        request.attempt == 2
+        for request in layout_requests[len(first_layout_requests) :]
+    )
 
 
 @pytest.mark.asyncio
@@ -1495,6 +2314,375 @@ async def test_fast_run_projects_live_read_model_between_checkpoints(tmp_path) -
     assert mid_run.status == "running"
     assert mid_run.stage_status["brief"] == "completed"
     assert mid_run.active_stage_id not in ("", "brief")
+
+
+@pytest.mark.asyncio
+async def test_planning_proposal_format_failure_requires_one_explicit_retry(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = MalformedRoleDemandReviewOnceProvider()
+    run_id = "run-role-demand-review-format-recovery"
+    _create_run(stores, run_id)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    assert paused.active_stage_id == "cast"
+    assert paused.failure is not None
+    assert paused.failure["retryable"] is True
+    assert paused.pending_decisions[0]["type"] == "stage_failure_decision"
+    assert paused.pending_decisions[0]["allowed_actions"] == [
+        "regenerate",
+        "cancel",
+    ]
+    assert provider.role_demand_review_attempts == 1
+    first_key = f"{run_id}:role_demand_review:proposal:1:initial"
+    first = stores.operations.read(run_id, first_key)
+    assert first.status == "failed"
+    assert first.usage["total_tokens"] == 4074
+    assert first.diagnostic["finish_reason"] == "stop"
+
+    decision = paused.pending_decisions[0]
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    assert provider.role_demand_review_attempts == 2
+    role_demand_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "role_demand"
+    ]
+    assert len(role_demand_requests) == 1
+    second_key = f"{run_id}:role_demand_review:proposal:2:initial"
+    second = stores.operations.read(run_id, second_key)
+    assert second.status == "succeeded"
+    assert first.request_signature != second.request_signature
+    required = [
+        event
+        for event in stores.events.read(run_id)
+        if event.type == "decision.required"
+        and event.payload.get("type") == "stage_failure_decision"
+    ]
+    assert len(required) == 1
+
+
+@pytest.mark.asyncio
+async def test_planning_proposal_format_failure_stops_after_explicit_retry(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = MalformedRoleDemandReviewOnceProvider(failures=2)
+    run_id = "run-role-demand-review-format-exhausted"
+    _create_run(stores, run_id)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+    decision = paused.pending_decisions[0]
+    failed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert failed.status == "failed"
+    assert failed.failure is not None
+    assert failed.failure["retryable"] is False
+    assert failed.pending_decisions == []
+    assert provider.role_demand_review_attempts == 2
+    review_keys = [
+        request.operation_key
+        for request in provider.proposal_requests
+        if request.proposal_type == "role_demand_review"
+    ]
+    assert review_keys == [
+        f"{run_id}:role_demand_review:proposal:1:initial",
+        f"{run_id}:role_demand_review:proposal:2:initial",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_cast_relation_retry_reuses_validated_dossier_operations(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = ContractFailingCastRelationOnceProvider()
+    run_id = "run-cast-relation-contract-recovery"
+    _create_run(stores, run_id)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    assert paused.active_stage_id == "cast"
+    assert paused.failure is not None
+    assert paused.failure["evidence_ref"] == f"{run_id}:cast_relation:proposal:1"
+    first_cast_requests = [
+        request for request in provider.stage_requests if request.stage_id == "cast"
+    ]
+    first_cast_reviews = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_review"
+    ]
+    decision = paused.pending_decisions[0]
+
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    assert provider.cast_relation_attempts == 2
+    assert [
+        request for request in provider.stage_requests if request.stage_id == "cast"
+    ] == first_cast_requests
+    assert [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_review"
+    ] == first_cast_reviews
+    assert len(
+        [
+            request
+            for request in provider.proposal_requests
+            if request.proposal_type == "role_demand"
+        ]
+    ) == 1
+    assert stores.operations.read(
+        run_id, f"{run_id}:cast_relation:proposal:1"
+    ).status == "contract_rejected"
+    assert stores.operations.read(
+        run_id, f"{run_id}:cast_relation:proposal:2"
+    ).status == "succeeded"
+    relation_requests = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_relation"
+    ]
+    feedback = relation_requests[1].context["material"]["contract_feedback"]
+    assert feedback["rejected_relations"] == [
+        {
+            "item": 1,
+            "relation": {
+                "a": "subject-1",
+                "b": "subject-2",
+                "type": "潜在合作",
+                "pressure": "双方可能在未来建立联系。",
+            },
+            "errors": [
+                {
+                    "field": "type",
+                    "message": "Value error, type must state an established, concrete relationship pressure",
+                    "ambiguous_markers": ["潜在"],
+                },
+                {
+                    "field": "pressure",
+                    "message": "Value error, pressure must state an established, concrete relationship pressure",
+                    "ambiguous_markers": ["可能", "未来"],
+                },
+            ],
+        }
+    ]
+    second_receipt = stores.operations.read(
+        run_id, f"{run_id}:cast_relation:proposal:2"
+    )
+    second_input = stores.operations.provider_inputs.read(
+        run_id,
+        second_receipt.provider_input_ref,
+    )
+    assert second_input.input.structured_context["material"]["contract_feedback"] == feedback
+    assert not any(
+        receipt.operation_key.startswith(f"{run_id}:cast:generate:2")
+        for receipt in stores.operations.list(run_id)
+    )
+
+
+@pytest.mark.asyncio
+async def test_cast_relation_coverage_retry_reuses_earlier_dossier_operations(tmp_path) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = ContractThenCoverageFailingCastRelationProvider()
+    run_id = "run-cast-relation-coverage-recovery"
+    _create_run(
+        stores,
+        run_id,
+        target_chapter_count=20,
+        word_target_soft=50_000,
+    )
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    first_pause = await runtime.start(run_id)
+    first_cast_requests = [
+        request for request in provider.stage_requests if request.stage_id == "cast"
+    ]
+    first_cast_reviews = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_review"
+    ]
+    first_decision = first_pause.pending_decisions[0]
+
+    second_pause = await runtime.resume(
+        run_id,
+        {
+            "decision_id": first_decision["decision_id"],
+            "domain_revision": first_decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert second_pause.status == "awaiting_decision"
+    assert second_pause.failure is not None
+    assert "missing subjects" in second_pause.failure["message"]
+    second_decision = second_pause.pending_decisions[0]
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": second_decision["decision_id"],
+            "domain_revision": second_decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    assert provider.cast_relation_attempts == 3
+    assert [
+        request for request in provider.stage_requests if request.stage_id == "cast"
+    ] == first_cast_requests
+    assert [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_review"
+    ] == first_cast_reviews
+    third_relation_request = [
+        request
+        for request in provider.proposal_requests
+        if request.proposal_type == "cast_relation"
+    ][2]
+    requirements = third_relation_request.context["material"][
+        "relationship_requirements"
+    ]
+    feedback = third_relation_request.context["material"]["contract_feedback"]
+    assert requirements["required_subject_ids"]
+    assert feedback["missing_required_subject_ids"] == requirements[
+        "required_subject_ids"
+    ]
+    assert not any(
+        receipt.operation_key.startswith(
+            (f"{run_id}:cast:generate:2", f"{run_id}:cast:generate:3")
+        )
+        for receipt in stores.operations.list(run_id)
+    )
+    state = await runtime.state(run_id)
+    operation_refs = set(state["pending_operation_refs"])
+    assert f"{run_id}:cast_relation:proposal:3" in operation_refs
+    assert not any(
+        ref.startswith(
+            (
+                f"{run_id}:cast:generate:2",
+                f"{run_id}:cast:generate:3",
+                f"{run_id}:cast_review:proposal:2",
+                f"{run_id}:cast_review:proposal:3",
+            )
+        )
+        for ref in operation_refs
+    )
+    provider_operation_refs = {
+        operation_ref
+        for operation_ref in operation_refs
+        if operation_ref != f"{run_id}:export:generate:1"
+    }
+    missing_operation_refs = [
+        operation_ref
+        for operation_ref in provider_operation_refs
+        if stores.operations.find(run_id, operation_ref) is None
+    ]
+    assert missing_operation_refs == []
+    for operation_ref in provider_operation_refs:
+        receipt = stores.operations.read(run_id, operation_ref)
+        if receipt.provider_input_ref:
+            stores.operations.provider_inputs.read(
+                run_id,
+                receipt.provider_input_ref,
+            )
+    cast_boundary = next(
+        event
+        for event in stores.events.read(run_id)
+        if event.type == "checkpoint.saved"
+        and event.stage_id == "cast"
+        and event.payload == {"next": ["derive_volume_boundary"]}
+    )
+    branch_run_id = f"{run_id}-cast-branch"
+    branch = await NarrativeBranchService(runtime).create(
+        source_run_id=run_id,
+        target_run_id=branch_run_id,
+        checkpoint_id=cast_boundary.checkpoint_id,
+        branch_mode="stage_boundary",
+    )
+    assert branch.status == "running"
+    assert branch.active_stage_id == "cast"
+    copied_operation_keys = {
+        receipt.operation_key for receipt in stores.operations.list(branch_run_id)
+    }
+    assert f"{branch_run_id}:cast:generate:1:dossier-group-1" in copied_operation_keys
+    assert f"{branch_run_id}:cast_relation:proposal:3" in copied_operation_keys
+    assert not any(
+        operation_key.startswith(
+            (f"{branch_run_id}:cast:generate:2", f"{branch_run_id}:cast:generate:3")
+        )
+        for operation_key in copied_operation_keys
+    )
+
+
+@pytest.mark.asyncio
+async def test_cast_relation_validator_update_reuses_rejected_provider_result(
+    tmp_path,
+) -> None:
+    stores = filesystem_stores(tmp_path / "runtime")
+    provider = ValidatorUpdatedCastRelationProvider()
+    run_id = "run-cast-relation-validator-update"
+    _create_run(stores, run_id)
+    runtime = NarrativeRuntime.create(stores, provider, checkpointer=InMemorySaver())
+
+    paused = await runtime.start(run_id)
+
+    assert paused.status == "awaiting_decision"
+    assert paused.failure is not None
+    assert paused.failure["evidence_ref"] == f"{run_id}:cast_relation:proposal:1"
+    decision = paused.pending_decisions[0]
+    completed = await runtime.resume(
+        run_id,
+        {
+            "decision_id": decision["decision_id"],
+            "domain_revision": decision["domain_revision"],
+            "action": "regenerate",
+        },
+    )
+
+    assert completed.status == "completed", completed.failure
+    assert provider.cast_relation_attempts == 1
+    assert stores.operations.find(
+        run_id,
+        f"{run_id}:cast_relation:proposal:2",
+    ) is None
+    assert any(
+        event.type == "quality.warning"
+        and event.payload == {"code": "cast_relation_candidate_revalidated"}
+        for event in stores.events.read(run_id)
+    )
 
 
 @pytest.mark.asyncio

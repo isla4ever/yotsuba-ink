@@ -1,25 +1,25 @@
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
-  Search,
-  BookOpen,
-  Layers,
-  Users,
-  BarChart3,
-  FileText,
-  Image,
-  Download,
-  BookMarked,
   Activity,
-  Database,
-  Settings,
+  BarChart3,
+  BookMarked,
+  BookOpen,
   Clock,
-  Sun,
-  Moon,
+  Database,
+  Download,
+  FileText,
+  GitBranch,
   Home,
+  Image,
+  Moon,
   Pencil,
+  Search,
+  Settings,
+  Sun,
+  Users,
 } from "lucide-react"
-import { useApp } from "../state/PipelineAppProvider"
 import type { Route } from "../contracts/app"
+import { useApp } from "../state/PipelineAppProvider"
 
 interface Cmd {
   id: string
@@ -32,7 +32,7 @@ interface Cmd {
 }
 
 export default function CommandPalette() {
-  const { setCmdOpen, setRoute, toggleTheme, theme } = useApp()
+  const { activeProject, setCmdOpen, setRoute, toggleTheme, theme } = useApp()
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -40,10 +40,22 @@ export default function CommandPalette() {
     inputRef.current?.focus()
   }, [])
 
-  const goto = (r: Route) => {
-    setRoute(r)
+  const goto = (route: Route) => {
+    setRoute(route)
     setCmdOpen(false)
   }
+
+  const stageCommands: Cmd[] = (activeProject?.stageManifest ?? []).map(
+    (stage) => ({
+      id: `stage-${stage.id}`,
+      label: stage.label,
+      sublabel: `${activeProject?.routeLabel ?? "当前路线"} · 第 ${stage.ordinal + 1} 阶段`,
+      icon: stageIcon(stage.id),
+      action: () => goto(stage.id as Route),
+      group: "制作流程",
+      keywords: `${stage.id} ${stage.label}`,
+    }),
+  )
 
   const commands: Cmd[] = [
     {
@@ -55,78 +67,7 @@ export default function CommandPalette() {
       group: "导航",
       keywords: "创作台 项目库 studio",
     },
-    {
-      id: "brief",
-      label: "简报",
-      sublabel: "冻结前提・承诺・规则・语气・篇幅",
-      icon: <Pencil size={15} />,
-      action: () => goto("brief"),
-      group: "制作流程",
-      keywords: "简报 brief 前提 承诺",
-    },
-    {
-      id: "spine",
-      label: "脊柱",
-      sublabel: "因果转折链与结局",
-      icon: <Layers size={15} />,
-      action: () => goto("spine"),
-      group: "制作流程",
-      keywords: "脊柱 spine 因果 转折",
-    },
-    {
-      id: "cast",
-      label: "角色",
-      sublabel: "命名角色权威来源",
-      icon: <Users size={15} />,
-      action: () => goto("cast"),
-      group: "制作流程",
-      keywords: "角色 cast 人物 人设",
-    },
-    {
-      id: "volumes",
-      label: "卷册",
-      sublabel: "卷合同与边界",
-      icon: <BarChart3 size={15} />,
-      action: () => goto("volumes"),
-      group: "制作流程",
-      keywords: "卷册 volumes 分卷 卷合同",
-    },
-    {
-      id: "detail",
-      label: "细纲",
-      sublabel: "章节场景建构台账",
-      icon: <BookOpen size={15} />,
-      action: () => goto("detail"),
-      group: "制作流程",
-      keywords: "细纲 detail 章节 场景",
-    },
-    {
-      id: "text",
-      label: "正文",
-      sublabel: "稿件阅读器与编辑器",
-      icon: <FileText size={15} />,
-      action: () => goto("text"),
-      group: "制作流程",
-      keywords: "正文 text 稿件 编辑",
-    },
-    {
-      id: "cover",
-      label: "封面",
-      sublabel: "封面视觉简报与候选",
-      icon: <Image size={15} />,
-      action: () => goto("cover"),
-      group: "制作流程",
-      keywords: "封面 cover 图片",
-    },
-    {
-      id: "export",
-      label: "导出",
-      sublabel: "清单验证与下载",
-      icon: <Download size={15} />,
-      action: () => goto("export"),
-      group: "制作流程",
-      keywords: "导出 export 下载",
-    },
+    ...stageCommands,
     {
       id: "story-bible",
       label: "故事圣经",
@@ -139,7 +80,7 @@ export default function CommandPalette() {
     {
       id: "run-monitor",
       label: "运行监控",
-      sublabel: "生成进度与日志",
+      sublabel: "生成进度、调用与日志",
       icon: <Activity size={15} />,
       action: () => goto("run-monitor"),
       group: "工具",
@@ -166,7 +107,7 @@ export default function CommandPalette() {
     {
       id: "settings",
       label: "设置",
-      sublabel: "AI提供商与全局偏好",
+      sublabel: "AI 提供商与全局偏好",
       icon: <Settings size={15} />,
       action: () => goto("settings"),
       group: "工具",
@@ -185,64 +126,65 @@ export default function CommandPalette() {
     },
   ]
 
-  const filtered =
-    query.trim() === ""
-      ? commands
-      : commands.filter(
-          (c) =>
-            c.label.includes(query) ||
-            c.sublabel?.includes(query) ||
-            c.keywords.includes(query.toLowerCase()),
-        )
-
-  const groups = [...new Set(filtered.map((c) => c.group))]
+  const normalizedQuery = query.trim().toLowerCase()
+  const filtered = normalizedQuery
+    ? commands.filter(
+        (command) =>
+          command.label.toLowerCase().includes(normalizedQuery) ||
+          command.sublabel?.toLowerCase().includes(normalizedQuery) ||
+          command.keywords.toLowerCase().includes(normalizedQuery),
+      )
+    : commands
+  const groups = [...new Set(filtered.map((command) => command.group))]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 md:pt-32 px-4">
-      <div
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 md:pt-32">
+      <button
+        type="button"
+        aria-label="关闭命令面板"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => setCmdOpen(false)}
       />
-      <div className="relative w-full max-w-xl bg-elev border border-hairline rounded-lg shadow-2xl overflow-hidden animate-fade-in">
-        <div className="flex items-center gap-3 px-4 h-12 border-b border-hairline">
-          <Search size={16} className="text-fog shrink-0" />
+      <div className="relative w-full max-w-xl overflow-hidden rounded-lg border border-hairline bg-elev shadow-2xl animate-fade-in">
+        <div className="flex h-12 items-center gap-3 border-b border-hairline px-4">
+          <Search size={16} className="shrink-0 text-fog" />
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索命令、路由、模式…"
-            className="flex-1 bg-transparent text-ink text-sm outline-none placeholder:text-fog"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="搜索命令、路线或阶段…"
+            className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-fog"
           />
-          <kbd className="text-[10px] text-fog font-mono bg-hover px-1.5 py-0.5 rounded">
+          <kbd className="rounded bg-hover px-1.5 py-0.5 font-mono text-[10px] text-fog">
             Esc
           </kbd>
         </div>
 
         <div className="max-h-80 overflow-y-auto py-1">
           {filtered.length === 0 && (
-            <div className="px-4 py-8 text-center text-fog text-sm">
+            <div className="px-4 py-8 text-center text-sm text-fog">
               无匹配结果
             </div>
           )}
           {groups.map((group) => (
             <div key={group}>
-              <div className="px-4 py-1.5 text-[10px] text-fog uppercase tracking-wider">
+              <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-fog">
                 {group}
               </div>
               {filtered
-                .filter((c) => c.group === group)
-                .map((cmd) => (
+                .filter((command) => command.group === group)
+                .map((command) => (
                   <button
-                    key={cmd.id}
-                    onClick={cmd.action}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-hover transition-colors text-left"
+                    key={command.id}
+                    onClick={command.action}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-hover"
                   >
-                    <span className="text-fog shrink-0">{cmd.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-ink">{cmd.label}</div>
-                      {cmd.sublabel && (
-                        <div className="text-xs text-fog truncate">
-                          {cmd.sublabel}
+                    <span className="shrink-0 text-fog">{command.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-ink">{command.label}</div>
+                      {command.sublabel && (
+                        <div className="truncate text-xs text-fog">
+                          {command.sublabel}
                         </div>
                       )}
                     </div>
@@ -252,18 +194,25 @@ export default function CommandPalette() {
           ))}
         </div>
 
-        <div className="px-4 py-2 border-t border-hairline flex items-center gap-4 text-[10px] text-fog">
+        <div className="flex items-center gap-4 border-t border-hairline px-4 py-2 text-[10px] text-fog">
           <span>
-            <kbd className="font-mono bg-hover px-1 rounded">↑↓</kbd> 选择
-          </span>
-          <span>
-            <kbd className="font-mono bg-hover px-1 rounded">↵</kbd> 执行
-          </span>
-          <span>
-            <kbd className="font-mono bg-hover px-1 rounded">Esc</kbd> 关闭
+            <kbd className="rounded bg-hover px-1 font-mono">Esc</kbd> 关闭
           </span>
         </div>
       </div>
     </div>
   )
+}
+
+function stageIcon(stageId: string) {
+  if (stageId === "brief") return <Pencil size={15} />
+  if (stageId === "cast") return <Users size={15} />
+  if (stageId === "volumes") return <BarChart3 size={15} />
+  if (stageId === "text" || stageId === "script") return <FileText size={15} />
+  if (stageId === "cover") return <Image size={15} />
+  if (stageId === "export") return <Download size={15} />
+  if (stageId.includes("architecture") || stageId.includes("map")) {
+    return <GitBranch size={15} />
+  }
+  return <BookOpen size={15} />
 }

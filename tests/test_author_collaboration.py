@@ -80,6 +80,17 @@ class BlockingCollaborationProvider:
 
 
 @pytest.mark.asyncio
+async def test_parallel_runtime_open_initializes_one_checkpoint_schema(tmp_path) -> None:
+    root = tmp_path / "runtime"
+
+    async def open_once() -> None:
+        async with open_sqlite_runtime(root, FakeCollaborationProvider()) as runtime:
+            assert runtime.stores.runs is not None
+
+    await asyncio.gather(*(open_once() for _ in range(4)))
+
+
+@pytest.mark.asyncio
 async def test_discussion_turn_is_receipted_and_provider_replay_is_idempotent(tmp_path) -> None:
     root = tmp_path / "runtime"
     stores, source = _deep_run(root)
@@ -124,6 +135,45 @@ async def test_discussion_turn_is_receipted_and_provider_replay_is_idempotent(tm
     assert receipt.status == "succeeded"
     assert receipt.provider_input_ref
     assert stores.artifacts.read("run-collab", source.artifact_id).payload == source.payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("quality_mode", ("fast", "balanced"))
+async def test_non_deep_modes_can_complete_the_same_multi_turn_discussion_flow(
+    tmp_path,
+    quality_mode: str,
+) -> None:
+    root = tmp_path / "runtime"
+    stores, source = _deep_run(root, quality_mode=quality_mode)
+    service = AuthorCollaborationService(stores)
+    thread = service.create_thread(
+        "run-collab",
+        CreateCollaborationThreadRequest(
+            stage_id="spine",
+            source_ref=source.artifact_id,
+            unit_ref="turn-1",
+            label=f"{quality_mode} 转折",
+        ),
+    )
+    preview_request = CollaborationContextPreviewRequest(
+        client_turn_id=f"client-{quality_mode}-discussion",
+        mode="discuss",
+        message="请检查这处转折的因果代价。",
+    )
+    preview = service.preview_context("run-collab", thread.thread_id, preview_request)
+    turn = service.create_turn(
+        "run-collab",
+        thread.thread_id,
+        CreateCollaborationTurnRequest(
+            **preview_request.model_dump(),
+            preview_signature=preview.receipt_hash,
+        ),
+    )
+
+    async with open_sqlite_runtime(root, FakeCollaborationProvider()) as runtime:
+        await runtime.collaborate("run-collab", thread.thread_id, turn.turn_id)
+
+    assert service.read_thread("run-collab", thread.thread_id)["turns"][0].status == "completed"
 
 
 @pytest.mark.asyncio
@@ -686,21 +736,21 @@ async def test_selection_and_patch_bind_to_the_current_pending_draft(tmp_path) -
     assert current_draft.payload["open_questions"] == ["未来电话是否仍会继续？"]
 
 
-def _deep_run(root):
+def _deep_run(root, *, quality_mode: str = "deep"):
     stores = filesystem_stores(root)
     scale = NarrativeScaleProfile(word_target_soft=4_000)
     stores.runs.create(
         run_id="run-collab",
         project_id="project-1",
-        workflow_id="workflow-deep",
+        workflow_id=f"workflow-{quality_mode}",
         workflow_revision="phase31",
         workflow_digest="a" * 64,
-        quality_mode="deep",
+        quality_mode=quality_mode,
         inputs={"genre": "悬疑"},
         scale_profile=scale,
         hierarchical_scale_plan=plan_hierarchical_narrative_scale(
             scale,
-            quality_mode="deep",
+            quality_mode=quality_mode,
         ),
         provider_bindings=_bindings(),
         cover_asset_binding=cover_asset_binding(),

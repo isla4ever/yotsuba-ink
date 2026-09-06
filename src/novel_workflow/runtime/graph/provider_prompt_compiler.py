@@ -24,6 +24,7 @@ def render_structured_prompt(
     template = (
         binding.prompt_template.strip()
         if task_name in _STAGE_ARTIFACT_TASKS
+        and not _is_detail_preflight_recovery(task_name, context)
         else ""
     )
     prefix = f"{template}\n\n" if template else ""
@@ -32,6 +33,7 @@ def render_structured_prompt(
         "Return exactly one JSON object matching the supplied schema. Do not add commentary, defaults, or fields.\n"
         f"{_revision_contract(task_name, context)}"
         f"{_dynamic_task_contract(task_name, context)}"
+        f"{_detail_preflight_recovery_contract(task_name, context)}"
         f"{_proposal_contract(task_name)}"
         f"{_review_contract(task_name)}"
         f"{_evidence_contract(task_name, context)}"
@@ -40,6 +42,19 @@ def render_structured_prompt(
         f"Context:\n{json.dumps(context, ensure_ascii=False, sort_keys=True)}"
         f"{_revision_direction(task_name, context)}"
     )
+
+
+def _is_detail_preflight_recovery(
+    task_name: str,
+    context: dict[str, Any],
+) -> bool:
+    if task_name != "detail":
+        return False
+    material = context.get("material")
+    return isinstance(material, dict) and isinstance(
+        material.get("preflight_feedback"),
+        dict,
+    ) and isinstance(material.get("recovery_source"), dict)
 
 
 def _dynamic_task_contract(task_name: str, context: dict[str, Any]) -> str:
@@ -319,6 +334,84 @@ def _revision_direction(task_name: str, context: dict[str, Any]) -> str:
     return f"\nControlling stage revision direction.{scope_note}\n{direction.strip()}"
 
 
+def _detail_preflight_recovery_contract(
+    task_name: str,
+    context: dict[str, Any],
+) -> str:
+    if task_name != "detail":
+        return ""
+    material = context.get("material")
+    feedback = material.get("preflight_feedback") if isinstance(material, dict) else None
+    source = material.get("recovery_source") if isinstance(material, dict) else None
+    if not isinstance(feedback, dict) or not isinstance(source, dict):
+        return ""
+    blockers = feedback.get("blockers")
+    codes = {
+        str(item.get("code") or "")
+        for item in blockers
+        if isinstance(item, dict)
+    } if isinstance(blockers, list) else set()
+    repair_rules: list[str] = []
+    if "detail_duplicate_job" in codes:
+        repair_rules.append(
+            "For detail_duplicate_job, use each editable chapter's exact chapter_beats.dramatic_job as its local "
+            "ownership boundary. When adjacent chapters share a turn_ref, their whole contiguous sequence completes "
+            "that turn once; remove submission, refusal, publication, verdict, or other endpoints from the chapter "
+            "whose dramatic_job does not own them. recovery_source.required_removed_endpoints is the deterministic "
+            "per-chapter removal contract: remove every named endpoint from that chapter instead of making a cosmetic "
+            "wording change."
+        )
+    if "custody_handoff_conflict" in codes:
+        repair_rules.append(
+            "For custody_handoff_conflict, recovery_source.custody_repair_contracts is the deterministic state "
+            "boundary. Continue from previous_state=free. If target_state=detained, an on-page scene must execute a "
+            "re-arrest or surrender before any custody scene; if target_state=free_or_detained, keep the subject free "
+            "unless an explicit on-page transition occurs. The established institution named allowed_institution may "
+            "perform the transition without entering cast_ids, but never invent a named officer, new authority, or new "
+            "procedure. preserved_dramatic_task is the custody-safe form of the frozen chapter job and is the sole "
+            "creative task after the state transition; preserve its lawyer-mediated information transfer. Every source "
+            "field or scene that assumed custody without that transition is intentionally "
+            "withheld and must not be reconstructed. Never reset custody between chapter boundaries."
+        )
+    if {"clue_source_missing", "clue_lifecycle_incomplete"} & codes:
+        repair_rules.append(
+            "For clue_source_missing or clue_lifecycle_incomplete, do not invent a source, recording, document, or "
+            "custodian merely to preserve an ungrounded label. Remove that invalid label or replace it with the exact "
+            "already-established clue named in the source candidate, established_chapters, or frozen turns; only add "
+            "source or verification actions already entailed by those materials."
+        )
+    code_specific_rules = " ".join(repair_rules)
+    return (
+        "material.preflight_feedback is deterministic feedback rebuilt from the immutable, immediately preceding "
+        "Detail candidate that failed the whole-book preflight. material.recovery_source is a source-bound repair "
+        "projection and the sole revision source. It exposes only editable_source_chapters; preserved chapter content "
+        "and every source scene or field containing a required_removed_endpoint are intentionally withheld to prevent "
+        "copying a known-invalid beat. Never reconstruct or paraphrase withheld content. Rebuild it only from the current "
+        "chapter_beats.dramatic_job, the visible source_patch, frozen_cast_names, and preflight_feedback. Return only the "
+        "chapters named by recovery_source.editable_chapter_refs, in that "
+        "exact order; do not return any preserved_chapter_refs. The runtime deterministically restores every preserved "
+        "chapter from the immutable candidate. Each returned patch must contain only purpose, scenes, and handoff; "
+        "never return title, POV, cast_ids, chapter refs, slot order, or turn ownership because the runtime restores "
+        "all of those frozen fields from the source. Repair only the listed defects instead of resampling unrelated "
+        "story material. A returned editable chapter byte-for-byte identical to its source is a contract failure; every "
+        "returned chapter must materially change. This recovery contract overrides any generic template wording that "
+        "would make every chapter or segment independently complete a repeated turn's full cause/change. Adjacent "
+        "chapters must perform different visible state changes rather than rediscover or reconfirm the same outcome. "
+        "Keep every valid, source-grounded clue label stable, but do not preserve a label that the feedback explicitly "
+        "identifies as lacking a frozen source. Never consume a later turn's climax, final publication, collapse, verdict, or "
+        "resolution in the current turn. Never change a survival, death, custody, ownership, or knowledge state already "
+        "frozen by upstream artifacts or by material.previous_segment_handoff.established_chapters, except for the one "
+        "explicit custody transition required by recovery_source.custody_repair_contracts. A historical subject "
+        "whose status remains unresolved must stay unresolved. The feedback is a diagnosis, not permission to invent a "
+        "new actor, clue, authority, procedure, rule, or macro outcome. Before returning, compare each editable chapter "
+        "against its source and silently verify that every required repair is present and every scene uses only the "
+        "source chapter's frozen POV and cast_ids. material.selected_dossiers and present_actor_ids are exhaustive for "
+        "this repair. A dossier marked reference_only may be mentioned only through the already-visible historical "
+        "record and can never act, speak in the present, or enter cast_ids. "
+        f"{code_specific_rules}\n"
+    )
+
+
 def _bounded_revision_scope(task_name: str) -> str:
     return {
         "cast": "the current subject_refs and matching role_demand_proposals dossier batch",
@@ -386,9 +479,10 @@ def _proposal_contract(task_name: str) -> str:
             "decision that bridges the change. The scale range is dynamically derived from exact chapter capacity, but remains "
             "capacity rather than permission to invent duties; when the frozen minimum cannot "
             "be met by irreducible duties, require an upstream Spine repair rather than fabricated characters. Findings "
-            "must cite the smallest ordered turn_refs. Each finding may cite at most 8 unique turn refs; choose the "
-            "smallest contiguous evidence window that proves the finding and never list the whole Spine or every turn "
-            "where a symptom appears. Cite demand_refs when an existing demand is responsible. Ignore "
+            "must cite the smallest ordered turn_refs. Choose the smallest contiguous evidence window that proves the "
+            "finding and do not list every turn where only a symptom appears. A genuinely whole-arc issue may cite the "
+            "complete supplied Spine instead of truncating its evidence. Cite demand_refs when an existing demand is "
+            "responsible. Ignore "
             "names, prose style, optional complexity, and future scene detail. Return verdict=pass with no findings or "
             "verdict=revise with concrete evidence findings. Findings do not by themselves block or trigger "
             "regeneration.\n"
@@ -471,7 +565,12 @@ def _proposal_contract(task_name: str) -> str:
             "such as 'A 已经施压，迫使 B 转向媒体公开' is valid because it names both the choice and the changed "
             "option; a discovery without a choice or consequence is not. Do not call a future or merely possible harm "
             "an established consequence: phrases like '可能的报复', '可能失去', or '将面临' must be removed or replaced "
-            "with a concrete harm that has already occurred. An empty relations array is valid and is safer than a speculative edge; "
+            "with a concrete harm that has already occurred. When material.contract_feedback is present, it is deterministic feedback "
+            "from the immediately preceding failed relation-only attempt. Return a fresh complete batch, omit or rewrite every listed "
+            "rejected edge, and include every missing required subject without repeating modal, one-way, or incomplete pressure. "
+            "material.relationship_requirements is a deterministic hard contract: every required_subject_id must appear in at least one "
+            "edge, and protagonist_subject_id must connect to at least one required subject. An empty relations array is valid only when "
+            "required_subject_ids is empty; otherwise it will be rejected. "
             "never keep an edge merely to make the graph look connected. "
             "output_budget.item_cap is a ceiling, not a target.\n"
         )
@@ -494,7 +593,8 @@ def _proposal_contract(task_name: str) -> str:
             "forgery, concealment, violation, or a new duty absent from the frozen Brief and Spine just to rationalize a "
             "sanction or reversal; that is an upstream causal gap, not character depth. Every finding must cite subject_refs "
             "and demand_refs; cite only "
-            "the smallest relevant ordered turn_refs when the issue depends on a turn. Return verdict=pass with no findings "
+            "the smallest relevant ordered turn_refs when the issue depends on a turn. A genuinely whole-arc issue may "
+            "cite the complete supplied Spine instead of truncating its evidence. Return verdict=pass with no findings "
             "or verdict=revise with concrete evidence findings. Findings do not by themselves block or trigger "
             "regeneration.\n"
         )
@@ -533,8 +633,11 @@ def _proposal_contract(task_name: str) -> str:
             "material.world_rule_projection is the immutable structured projection of the Brief's world and "
             "professional rules. Preserve its future offsets, fixed times, recurrence, identity, and physical "
             "constraints; periodic or loop recurrence never authorizes repeating the same chapter result. "
-            "material.volume_spine_turns is the exclusive executable story boundary for this segment. Dramatize "
-            "every supplied cause and change without weakening, replacing, or skipping it, and never enact an event, "
+            "material.volume_spine_turns is the exclusive macro story boundary for this segment. Across all contiguous "
+            "chapter_beats that reference the same turn, collectively move from that turn's cause to its change exactly "
+            "once. A repeated turn_ref means phased ownership such as attempt then counteraction or execution then "
+            "consequence; it never requires each chapter or segment to replay the full cause/change. Each chapter must "
+            "execute only its own dramatic_job without weakening or replacing the turn, and never enact an event, "
             "discovery, proof, decision, climax, or closure that belongs to any other turn. volume_contract is a "
             "runtime execution projection, not the full upstream artifact: closing_state is deliberately absent from "
             "non-final segments and, when present for the final segment, may only restate the result already executable "
@@ -556,6 +659,12 @@ def _proposal_contract(task_name: str) -> str:
             "material.historical_record_ids list is a forbidden set: none of those IDs may appear in cast_ids. The "
             "structured material.present_actor_ids list is the only allowed source for present-day cast_ids; a "
             "historical record may be referenced only as a record, memory, or absence, never as an actor. Before "
+            "returning, satisfy every structured material.debut_requirements item: the named subject must physically "
+            "act or speak in cast_ids no later than latest_chapter. A debut window is two-sided: its first chapter is "
+            "the earliest allowed appearance and its last chapter is the mandatory appearance deadline, not a loose "
+            "suggestion. Keep every central document, recording, testimony, or object under the same specific label "
+            "used by volume_spine_turns whenever it reappears; never collapse 实验室报告、漏洞报告、撤离记录 or other "
+            "distinct clues into the generic words 报告、记录、证词. Before "
             "returning JSON, compare every cast_ids array against both structured lists, then compare every proposed "
             "title against reserved_titles and every established chapter title; reserved_titles are exact whole-stage "
             "exclusions, including titles attached to different events. Detail is a compact executable scene card "
@@ -576,6 +685,8 @@ def _proposal_contract(task_name: str) -> str:
             "material.world_rule_projection is the immutable Brief rule projection: recurring or loop rules may "
             "shape repeated forms, but every chapter slot must still create a distinct action, knowledge, relationship, "
             "or risk state. "
+            "Preserve the exact specific label of every document, recording, testimony, or object named by the "
+            "supplied turns when writing dramatic_job; do not replace distinct clues with generic 报告、记录、证词. "
             "When material.previous_window_layout exists, its completed_turn_refs and chapters are already frozen "
             "earlier layout. Continue after them without repeating their turn refs or dramatic jobs. For "
             "The previous_window_layout.completed_dramatic_jobs list is a hard exclusion set: do not return an "
@@ -730,7 +841,9 @@ def _evidence_contract(task_name: str, context: dict[str, Any]) -> str:
         "select one to three span_ids exactly as listed; span_ids has a hard maximum of three entries, so never "
         "return four or more. Do not copy quote text or return character offsets; deterministic runtime code owns "
         "the source spans. Exclude decorative detail, interpretation, and claims not directly supported by the "
-        "selected spans. Every claim must choose exactly one discriminated state object. Use state.type=story when "
+        "selected spans. Every claim.kind must be exactly one of fact, character, relationship, foreshadow, or spine; "
+        "assertion, story, and transition are state.type values and must never be used as claim.kind. Every claim must "
+        "choose exactly one discriminated state object. Use state.type=story when "
         "the claim has no precise frozen subject/property state. Use state.type=assertion only with a subject_id "
         "listed in frozen_state.frozen_subjects (or the literal story for a book-level state) and an explicit "
         "property_key, value, and epistemic_status. Use stable property namespaces when applicable: "

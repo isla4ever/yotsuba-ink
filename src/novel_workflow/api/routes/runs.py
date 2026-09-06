@@ -1,200 +1,420 @@
+"""Authoritative Phase 32 Run HTTP adapter."""
+
 from __future__ import annotations
 
-from typing import Any, Literal
-from uuid import uuid4
+from typing import Any
+from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from pydantic import BaseModel, ConfigDict, Field
 
+from novel_workflow.api.dependencies import phase32_run_envelope
 from novel_workflow.api.sse import observe_run_events
-from novel_workflow.output_contracts.artifacts_vnext import STAGE_ORDER, StageId
-from novel_workflow.orchestration.stage_artifact_editing import (
-    StageArtifactDraftConflict,
-    load_stage_artifact_draft,
-    save_edited_stage_candidate,
-    save_stage_artifact_draft,
+from novel_workflow.orchestration.phase32_artifact_editing import (
+    Phase32ArtifactEditingConflict,
+    Phase32ArtifactEditingError,
+    Phase32ArtifactEditingService,
 )
-from novel_workflow.orchestration.run_preflight import RunPreflightError
-from novel_workflow.runtime.graph.execution_service import RunExecutionConflict
-from novel_workflow.runtime.graph.runtime import (
-    decision_operation_key,
-    decision_signature,
+from novel_workflow.orchestration.phase32_continuity_acceptance import (
+    Phase32ContinuityAdmissionError,
 )
-from novel_workflow.runtime.graph.chapter_decision import save_edited_chapter_candidate
-from novel_workflow.runtime.graph.branch_service import BranchConflictError
-from novel_workflow.runtime.graph.checkpoint_branch import CheckpointBranchError
-from novel_workflow.runtime.graph.state import NarrativeRunState
-from novel_workflow.storage.narrative_run_repository import (
-    BranchBindingOverride,
-    ExportPreferences,
+from novel_workflow.orchestration.phase32_execution_service import (
+    Phase32DecisionCommand,
+    Phase32ExecutionConflict,
+    Phase32FailureRecoveryCommand,
+    Phase32RunAdmissionRequired,
+    Phase32RunExecutionService,
 )
-from novel_workflow.workflows.hierarchical_scale import hierarchical_scale_plan_from_inputs
-from novel_workflow.workflows.narrative_scale import scale_profile_from_inputs
-from novel_workflow.workflows.executable_contract import (
-    WorkflowContractError,
-    require_executable_workflow,
-    workflow_execution_digest,
+from novel_workflow.orchestration.phase32_graph_execution import Phase32ExecutionError
+from novel_workflow.orchestration.phase32_live_candidate_authorization import (
+    Phase32LiveCandidateAuthorizationError,
 )
-from novel_workflow.output_contracts.artifacts_vnext import StoryBriefArtifact
+from novel_workflow.orchestration.phase32_provider_readiness_admission import (
+    Phase32ProviderReadinessAdmissionError,
+)
+from novel_workflow.orchestration.phase32_run_preflight import Phase32PreflightError
+from novel_workflow.storage.export_store import ExportStore
+from novel_workflow.storage.phase32_decision_receipt_store import (
+    Phase32DecisionReceiptConflict,
+)
+from novel_workflow.storage.phase32_event_projection import Phase32EventProjection
+from novel_workflow.storage.phase32_run_budget_store import Phase32RunBudgetStoreError
+from novel_workflow.storage.phase32_run_repository import Phase32PersistenceError
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
-class CreateNarrativeRunRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    run_id: str = Field(default_factory=lambda: f"run-{uuid4().hex[:16]}", min_length=1, max_length=240)
-    project_id: str = Field(min_length=1, max_length=240)
-    workflow_id: str = Field(min_length=1, max_length=240)
-    inputs: dict[str, Any] = Field(default_factory=dict)
-    export_preferences: ExportPreferences
+retired_router = APIRouter(prefix="/api/phase32/runs", tags=["retired-runs"])
 
 
-class DecisionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    action: str = Field(pattern=r"^(accept|regenerate|retry_evidence|cancel)$")
-    domain_revision: int = Field(ge=0)
-    artifact: dict[str, Any] | None = None
-    direction: str = Field(default="", max_length=1000)
-
-    @model_validator(mode="after")
-    def validate_action_payload(self) -> "DecisionRequest":
-        if self.artifact is not None and self.action != "accept":
-            raise ValueError("Only an accept decision may carry an edited Artifact")
-        if self.direction.strip() and self.action != "regenerate":
-            raise ValueError("A revision direction is only valid for regeneration")
-        return self
-
-
-class StageArtifactDraftRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class Phase32DraftWriteCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     domain_revision: int = Field(ge=0)
-    source_artifact_id: str = Field(min_length=1, max_length=240)
-    artifact: dict[str, Any]
+    source_artifact_ref: str = Field(min_length=1, max_length=500)
+    payload: dict[str, Any]
 
 
-class CreateBranchRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    target_run_id: str = Field(
-        default_factory=lambda: f"run-{uuid4().hex[:16]}", min_length=1, max_length=240
-    )
-    checkpoint_id: str = Field(min_length=1, max_length=240)
-    frontier_mode: Literal["active_decision", "stage_boundary"] = "active_decision"
-    binding_override_stages: list[StageId] = Field(default_factory=list, max_length=7)
-
-    @field_validator("binding_override_stages")
-    @classmethod
-    def require_unique_override_stages(cls, value: list[StageId]) -> list[StageId]:
-        if len(value) != len(set(value)):
-            raise ValueError("Binding override stages must be unique")
-        return value
+def _repository(request: Request):
+    return request.app.state.phase32_run_repository
 
 
-def _stores(request: Request):
-    return request.app.state.narrative_stores
+def _execution(request: Request) -> Phase32RunExecutionService:
+    service = getattr(request.app.state, "phase32_execution_service", None)
+    if not isinstance(service, Phase32RunExecutionService):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "phase32_execution_unavailable",
+                "message": "Phase 32 execution is not registered in this process",
+            },
+        )
+    return service
 
 
-def _require_run(request: Request, run_id: str) -> None:
-    if not _stores(request).runs.exists(run_id):
-        raise HTTPException(status_code=404, detail=f"Unknown run: {run_id}")
+def _artifact_editing(request: Request) -> Phase32ArtifactEditingService:
+    service = getattr(request.app.state, "phase32_artifact_editing", None)
+    if not isinstance(service, Phase32ArtifactEditingService):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "phase32_artifact_editing_unavailable",
+                "message": "Phase 32 Artifact editing is not registered in this process",
+            },
+        )
+    return service
+
+
+def _exports(request: Request) -> ExportStore:
+    store = getattr(request.app.state, "phase32_exports", None)
+    if not isinstance(store, ExportStore):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "phase32_exports_unavailable",
+                "message": "Phase 32 delivery storage is not registered in this process",
+            },
+        )
+    return store
+
+
+def _map_execution_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, FileNotFoundError):
+        return HTTPException(status_code=404, detail="Unknown Phase 32 Run")
+    if isinstance(exc, Phase32ProviderReadinessAdmissionError):
+        return HTTPException(
+            status_code=409,
+            detail=_execution_gate_detail(
+                exc,
+                message="Continuity acceptance Provider readiness is not current",
+                retryable=True,
+                retry_condition="after_provider_readiness_refresh",
+                issue_codes=exc.verdict.issue_codes,
+            ),
+        )
+    if isinstance(exc, Phase32ContinuityAdmissionError):
+        return HTTPException(
+            status_code=409,
+            detail=_execution_gate_detail(
+                exc,
+                message="Continuity acceptance authority is not available for this Run",
+                retryable=True,
+                retry_condition="after_continuity_authority_restore",
+            ),
+        )
+    if isinstance(exc, Phase32LiveCandidateAuthorizationError):
+        return HTTPException(
+            status_code=409,
+            detail=_execution_gate_detail(
+                exc,
+                message="Live candidate authorization is not current",
+                retryable=True,
+                retry_condition="after_live_candidate_reauthorization",
+            ),
+        )
+    if isinstance(exc, Phase32RunAdmissionRequired):
+        return HTTPException(
+            status_code=409,
+            detail=_execution_gate_detail(
+                exc,
+                message="Continuity acceptance execution admission is not configured",
+                retryable=False,
+                retry_condition="continuity_admission_service_required",
+            ),
+        )
+    if isinstance(exc, Phase32PreflightError):
+        return HTTPException(
+            status_code=422,
+            detail=_execution_gate_detail(
+                exc,
+                message="Phase 32 Run preflight rejected the current definition or projection",
+                retryable=False,
+                retry_condition="run_definition_or_projection_repair_required",
+            ),
+        )
+    if isinstance(exc, Phase32RunBudgetStoreError):
+        return HTTPException(
+            status_code=409,
+            detail=_execution_gate_detail(
+                exc,
+                message="Continuity acceptance budget authority is inconsistent",
+                retryable=False,
+                retry_condition="budget_authority_repair_required",
+            ),
+        )
+    if isinstance(exc, (Phase32ExecutionConflict, Phase32DecisionReceiptConflict)):
+        return HTTPException(
+            status_code=409,
+            detail={
+                "code": getattr(exc, "code", "phase32_execution_conflict"),
+                "message": str(exc),
+            },
+        )
+    if isinstance(exc, Phase32ExecutionError):
+        return HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": str(exc)},
+        )
+    return HTTPException(status_code=422, detail=str(exc))
+
+
+def _execution_gate_detail(
+    exc: Exception,
+    *,
+    message: str,
+    retryable: bool,
+    retry_condition: str,
+    issue_codes: tuple[str, ...] = (),
+) -> dict[str, object]:
+    detail: dict[str, object] = {
+        "code": getattr(exc, "code", "phase32_execution_gate_failed"),
+        "message": message,
+        "retryable": retryable,
+        "retry_condition": retry_condition,
+    }
+    if issue_codes:
+        detail["issue_codes"] = list(issue_codes)
+    return detail
+
+
+def _map_artifact_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, FileNotFoundError):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, Phase32ArtifactEditingConflict):
+        return HTTPException(
+            status_code=409,
+            detail={"code": exc.code, "message": str(exc)},
+        )
+    if isinstance(exc, Phase32ArtifactEditingError):
+        return HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": str(exc)},
+        )
+    return HTTPException(status_code=422, detail=str(exc))
+
+
+def _delivery_artifact_type(creation_route_id: str) -> str:
+    return "script_delivery" if creation_route_id == "screenplay_sample" else "book_delivery"
+
+
+def _delivery_source_refs(records: list[object]) -> list[str]:
+    """Project immutable source versions without teaching the adapter domain rules."""
+
+    refs: list[str] = []
+    for record in records:
+        for value in (
+            getattr(record, "artifact_ref", ""),
+            *getattr(record, "scene_version_refs", ()),
+            *getattr(record, "chapter_version_refs", ()),
+        ):
+            if value and value not in refs:
+                refs.append(value)
+    return refs
+
+
+def _image_deferred_detail(envelope: dict[str, Any]) -> dict[str, Any]:
+    read_model = envelope["read_model"]
+    refs = [
+        value.get("artifact_ref")
+        for value in read_model.get("artifact_refs", {}).values()
+        if isinstance(value, dict) and value.get("artifact_ref")
+    ]
+    return {
+        "code": "image_deferred",
+        "message": "图片验收尚未启用，当前 Run 仅完成 CoverBrief，暂不可导出成书。",
+        "artifact_type": _delivery_artifact_type(read_model["creation_route_id"]),
+        "dependency_status": "deferred",
+        "deferred_reason": "image_acceptance_not_in_current_wave",
+        "source_artifact_refs": refs,
+        "artifact_ref": "",
+        "artifact_digest": "",
+        "items": [],
+    }
+
+
+def _delivery_not_materialized_detail(envelope: dict[str, Any]) -> dict[str, Any]:
+    read_model = envelope["read_model"]
+    return {
+        "code": "delivery_not_materialized",
+        "message": "Run 已结束但交付文件回执不存在，不能返回空成功。",
+        "artifact_type": _delivery_artifact_type(read_model["creation_route_id"]),
+        "dependency_status": "blocked",
+        "deferred_reason": "delivery_artifact_not_materialized",
+        "source_artifact_refs": [],
+        "artifact_ref": "",
+        "artifact_digest": "",
+        "items": [],
+    }
+
+
+@router.get("")
+async def list_runs(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    project_id: str = Query(default="", max_length=240),
+    status: str = Query(default="", max_length=64),
+) -> dict[str, object]:
+    try:
+        items = request.app.state.phase32_history_projection.list(
+            project_id=project_id,
+            status=status,
+            limit=limit,
+        )
+    except (Phase32PersistenceError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"items": items, "next_cursor": ""}
 
 
 @router.post("")
-async def create_run(request: Request, payload: CreateNarrativeRunRequest) -> dict[str, Any]:
-    try:
-        project = request.app.state.project_store.get(payload.project_id)
-        if project.workflow_id != payload.workflow_id:
-            raise WorkflowContractError(
-                "project_workflow_mismatch",
-                "Run workflow does not match the workflow owned by this project",
-            )
-        workflow = require_executable_workflow(
-            request.app.state.workflow_store.read(payload.workflow_id)
-        )
-        bindings = request.app.state.run_preflight.freeze_workflow(workflow)
-        scale_input = {
-            "length_envelope": payload.inputs.get("length_envelope"),
-            "scale_overrides": payload.inputs.get("scale_overrides"),
-        }
-        scale_profile = scale_profile_from_inputs(
-            {"length_envelope": scale_input["length_envelope"]}
-        )
-        definition = _stores(request).runs.create(
-            run_id=payload.run_id,
-            project_id=payload.project_id,
-            workflow_id=workflow.id,
-            workflow_revision=workflow.version,
-            workflow_digest=workflow_execution_digest(workflow),
-            quality_mode=workflow.quality_mode,
-            inputs=payload.inputs,
-            scale_profile=scale_profile,
-            hierarchical_scale_plan=hierarchical_scale_plan_from_inputs(
-                scale_input,
-                quality_mode=workflow.quality_mode,
-            ),
-            provider_bindings=bindings.provider_bindings,
-            cover_asset_binding=bindings.cover_asset_binding,
-            export_preferences=payload.export_preferences,
-        )
-    except FileExistsError as exc:
-        raise HTTPException(status_code=409, detail=f"Run already exists: {payload.run_id}") from exc
-    except (RunPreflightError, WorkflowContractError) as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={"code": exc.code, "message": str(exc)},
-        ) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Unknown project or workflow") from exc
-    request.app.state.project_store.touch_run(payload.project_id, payload.run_id)
-    return {"run_id": definition.run_id, "thread_id": definition.run_id, "status": "created"}
+async def create_run() -> None:
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "code": "phase27_run_creation_retired",
+            "message": "POST /api/projects is the only Phase 32 Project and Run creation authority.",
+        },
+    )
 
 
 @router.get("/{run_id}")
 async def get_run(request: Request, run_id: str) -> dict[str, Any]:
-    _require_run(request, run_id)
+    return phase32_run_envelope(request, run_id)
+
+
+@router.get("/{run_id}/exports")
+async def list_run_exports(request: Request, run_id: str) -> dict[str, Any]:
+    envelope = phase32_run_envelope(request, run_id)
+    if envelope["read_model"]["status"] == "image_deferred":
+        raise HTTPException(status_code=409, detail=_image_deferred_detail(envelope))
+    creation_route_id = envelope["read_model"]["creation_route_id"]
     try:
-        return {
-            "definition": _stores(request).runs.definition(run_id).model_dump(mode="json"),
-            "read_model": _stores(request).runs.read(run_id).model_dump(mode="json"),
-        }
+        if creation_route_id == "screenplay_sample":
+            records = _exports(request).list_script_delivery(run_id)
+        else:
+            records = _exports(request).list_book_delivery(run_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not records:
+        raise HTTPException(status_code=409, detail=_delivery_not_materialized_detail(envelope))
+    artifact_type = _delivery_artifact_type(creation_route_id)
+    return {
+        "run_id": run_id,
+        "artifact_type": artifact_type,
+        "dependency_status": "ready",
+        "deferred_reason": "",
+        "source_artifact_refs": _delivery_source_refs(records),
+        "artifact_ref": records[0].artifact_ref if records else "",
+        "artifact_digest": records[0].artifact_digest if records else "",
+        "items": [record.model_dump(mode="json") for record in records],
+    }
+
+
+@router.get("/{run_id}/exports/{export_id}")
+async def download_run_export(
+    request: Request,
+    run_id: str,
+    export_id: str,
+) -> Response:
+    envelope = phase32_run_envelope(request, run_id)
+    if envelope["read_model"]["status"] == "image_deferred":
+        raise HTTPException(status_code=409, detail=_image_deferred_detail(envelope))
+    creation_route_id = envelope["read_model"]["creation_route_id"]
+    try:
+        if creation_route_id == "screenplay_sample":
+            record, content = _exports(request).script_delivery_content(run_id, export_id)
+            ascii_stem = "screenplay"
+        else:
+            record, content = _exports(request).book_delivery_content(run_id, export_id)
+            ascii_stem = "book"
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=f"Unknown run: {run_id}") from exc
+        raise HTTPException(status_code=404, detail="Unknown delivery file") from exc
     except ValueError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "run_contract_retired",
-                "message": "该运行不符合当前生产合同，已从主线历史中隔离。",
-            },
-        ) from exc
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    ascii_name = ascii_stem + "." + ("md" if record.format == "markdown" else record.format)
+    disposition = (
+        f'attachment; filename="{ascii_name}"; '
+        f"filename*=UTF-8''{quote(record.filename)}"
+    )
+    return Response(
+        content=content,
+        media_type=record.media_type,
+        headers={
+            "Content-Disposition": disposition,
+            "Content-Length": str(record.size_bytes),
+            "ETag": f'"{record.sha256}"',
+            "X-Content-SHA256": record.sha256,
+        },
+    )
 
 
-@router.post("/{run_id}/start")
-async def start_run(request: Request, run_id: str) -> dict[str, Any]:
-    _require_run(request, run_id)
-    stores = _stores(request)
-    current = stores.runs.read(run_id)
-    if current.status not in {"created"}:
-        raise HTTPException(status_code=409, detail=f"Run cannot start from status {current.status}")
+@router.get("/{run_id}/stages/{stage_id}/artifacts/current")
+async def get_current_stage_artifact(
+    request: Request,
+    run_id: str,
+    stage_id: str,
+    unit_ref: str = Query(default="", max_length=500),
+) -> dict[str, Any]:
     try:
-        stores.runs.executable_definition(run_id)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "run_contract_retired",
-                "message": "该运行仅保留为历史只读记录，不能恢复执行。",
-            },
-        ) from exc
+        current = _artifact_editing(request).current(
+            run_id,
+            stage_id,
+            unit_ref=unit_ref,
+        )
+    except (FileNotFoundError, Phase32ArtifactEditingError, ValueError) as exc:
+        raise _map_artifact_error(exc) from exc
+    return current.model_dump(mode="json")
+
+
+@router.get("/{run_id}/stage-drafts/{decision_id}")
+async def get_stage_draft(
+    request: Request,
+    run_id: str,
+    decision_id: str,
+) -> dict[str, Any]:
     try:
-        request.app.state.narrative_execution.dispatch_start(run_id)
-    except RunExecutionConflict as exc:
-        raise HTTPException(status_code=409, detail="Run execution is already active") from exc
-    return {"run_id": run_id, "thread_id": run_id, "status": "scheduled"}
+        draft = _artifact_editing(request).latest_draft(run_id, decision_id)
+    except (FileNotFoundError, Phase32ArtifactEditingError, ValueError) as exc:
+        raise _map_artifact_error(exc) from exc
+    return {"draft": draft.model_dump(mode="json") if draft else None}
+
+
+@router.put("/{run_id}/stage-drafts/{decision_id}")
+async def put_stage_draft(
+    request: Request,
+    run_id: str,
+    decision_id: str,
+    payload: Phase32DraftWriteCommand,
+) -> dict[str, Any]:
+    try:
+        draft = _artifact_editing(request).save_draft(
+            run_id,
+            decision_id,
+            domain_revision=payload.domain_revision,
+            source_artifact_ref=payload.source_artifact_ref,
+            payload=payload.payload,
+        )
+    except (FileNotFoundError, Phase32ArtifactEditingError, ValueError) as exc:
+        raise _map_artifact_error(exc) from exc
+    return {"draft": draft.model_dump(mode="json")}
 
 
 @router.get("/{run_id}/events")
@@ -203,285 +423,128 @@ async def run_events(
     run_id: str,
     after: int = Query(default=0, ge=0),
 ):
-    _require_run(request, run_id)
-    return observe_run_events(request, _stores(request).events, run_id, after=after)
-
-
-@router.get("/{run_id}/artifacts/{stage_id}")
-async def get_artifact(request: Request, run_id: str, stage_id: StageId) -> dict[str, Any]:
-    _require_run(request, run_id)
+    repository = _repository(request)
     try:
-        record = _stores(request).artifacts.latest(run_id, stage_id)
+        repository.definition(run_id)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=f"No committed artifact for {stage_id}") from exc
-    return record.model_dump(mode="json")
-
-
-@router.get("/{run_id}/artifact-records/{artifact_id}")
-async def get_artifact_record(
-    request: Request,
-    run_id: str,
-    artifact_id: str,
-) -> dict[str, Any]:
-    _require_run(request, run_id)
-    try:
-        record = _stores(request).artifacts.read(run_id, artifact_id)
-    except (FileNotFoundError, ValueError) as exc:
-        raise HTTPException(status_code=404, detail="Unknown artifact record") from exc
-    return record.model_dump(mode="json")
-
-
-@router.get("/{run_id}/context-manifests/{manifest_id}")
-async def get_context_manifest(
-    request: Request,
-    run_id: str,
-    manifest_id: str,
-) -> dict[str, Any]:
-    _require_run(request, run_id)
-    try:
-        record = _stores(request).context_manifests.read(run_id, manifest_id)
-    except (FileNotFoundError, ValueError) as exc:
-        raise HTTPException(status_code=404, detail="Unknown Context Manifest") from exc
-    return record.model_dump(mode="json")
-
-
-@router.get("/{run_id}/chapters")
-async def get_chapters(request: Request, run_id: str) -> dict[str, Any]:
-    _require_run(request, run_id)
-    return {"run_id": run_id, "chapters": [item.model_dump(mode="json") for item in _stores(request).chapters.list(run_id)]}
-
-
-@router.get("/{run_id}/chapters/{chapter_id}/versions/{version_id}")
-async def get_chapter_version(
-    request: Request,
-    run_id: str,
-    chapter_id: str,
-    version_id: str,
-) -> dict[str, Any]:
-    _require_run(request, run_id)
-    try:
-        record = _stores(request).chapters.read(run_id, chapter_id, version_id)
-    except (FileNotFoundError, ValueError) as exc:
-        raise HTTPException(status_code=404, detail="Unknown chapter version") from exc
-    return record.model_dump(mode="json")
-
-
-@router.get("/{run_id}/stage-drafts/{decision_id}")
-def get_stage_artifact_draft(
-    request: Request,
-    run_id: str,
-    decision_id: str,
-) -> dict[str, Any] | None:
-    _require_run(request, run_id)
-    try:
-        record = load_stage_artifact_draft(
-            _stores(request),
-            run_id=run_id,
-            decision_id=decision_id,
-        )
-    except StageArtifactDraftConflict as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return record.model_dump(mode="json") if record is not None else None
-
-
-@router.put("/{run_id}/stage-drafts/{decision_id}")
-def put_stage_artifact_draft(
-    request: Request,
-    run_id: str,
-    decision_id: str,
-    payload: StageArtifactDraftRequest,
-) -> dict[str, Any]:
-    _require_run(request, run_id)
-    try:
-        record = save_stage_artifact_draft(
-            _stores(request),
-            run_id=run_id,
-            decision_id=decision_id,
-            domain_revision=payload.domain_revision,
-            source_artifact_id=payload.source_artifact_id,
-            artifact=payload.artifact,
-        )
-    except StageArtifactDraftConflict as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail=f"Unknown Phase 32 Run: {run_id}") from exc
+    except (Phase32PersistenceError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return record.model_dump(mode="json")
+    projection: Phase32EventProjection = request.app.state.phase32_event_projection
+    return observe_run_events(request, projection, run_id, after=after)
 
 
-@router.post("/{run_id}/decisions/{decision_id}")
+@router.post("/{run_id}/start")
+async def start_run(request: Request, run_id: str) -> dict[str, Any]:
+    try:
+        outcome = await _execution(request).start(run_id)
+    except (
+        FileNotFoundError,
+        Phase32ContinuityAdmissionError,
+        Phase32RunAdmissionRequired,
+        Phase32ExecutionConflict,
+        Phase32ExecutionError,
+        Phase32LiveCandidateAuthorizationError,
+        Phase32PreflightError,
+        Phase32ProviderReadinessAdmissionError,
+        Phase32PersistenceError,
+        Phase32RunBudgetStoreError,
+    ) as exc:
+        raise _map_execution_error(exc) from exc
+    return {
+        "reused": outcome.reused,
+        "run": phase32_run_envelope(request, run_id),
+        "decision": outcome.result.decision,
+    }
+
+
+@router.post("/{run_id}/decisions")
 async def resolve_decision(
     request: Request,
     run_id: str,
-    decision_id: str,
-    payload: DecisionRequest,
+    payload: Phase32DecisionCommand,
 ) -> dict[str, Any]:
-    _require_run(request, run_id)
-    stores = _stores(request)
-    receipt_signature = decision_signature(
-        {"decision_id": decision_id, **payload.model_dump(mode="json")}
-    )
-    operation_key = decision_operation_key(decision_id)
-    existing_receipt = stores.operations.find(run_id, operation_key)
-    if existing_receipt is not None:
-        if existing_receipt.request_signature != receipt_signature:
-            raise HTTPException(
-                status_code=409,
-                detail="Decision was already submitted with different command data",
-            )
-        if existing_receipt.status == "succeeded":
-            return {"run_id": run_id, "decision_id": decision_id, "status": "resolved"}
-
-    current = stores.runs.read(run_id)
-    pending = next(
-        (item for item in current.pending_decisions if item.get("decision_id") == decision_id),
-        None,
-    )
-    if pending is None and existing_receipt is None:
-        raise HTTPException(status_code=409, detail="Decision is not pending on this Run")
-    if pending is not None and payload.domain_revision != int(
-        pending.get("domain_revision", -1)
-    ):
-        raise HTTPException(status_code=409, detail="Decision domain revision is stale")
-    if pending is not None and payload.action == "regenerate":
-        is_failure_retry = pending.get("type") == "stage_failure_decision"
-        direction = payload.direction.strip()
-        if is_failure_retry and direction:
-            raise HTTPException(
-                status_code=422,
-                detail="A failed stage retry must reuse the frozen input without a revision direction",
-            )
-        if not is_failure_retry and not direction:
-            raise HTTPException(
-                status_code=422,
-                detail="A stage redraft requires an explicit revision direction",
-            )
-    decision = {
-        "action": payload.action,
-        "domain_revision": payload.domain_revision,
-        "decision_id": decision_id,
-        **({"direction": payload.direction.strip()} if payload.direction.strip() else {}),
+    try:
+        outcome = await _execution(request).resume(run_id, payload)
+    except (
+        FileNotFoundError,
+        Phase32ContinuityAdmissionError,
+        Phase32DecisionReceiptConflict,
+        Phase32RunAdmissionRequired,
+        Phase32ExecutionConflict,
+        Phase32ExecutionError,
+        Phase32LiveCandidateAuthorizationError,
+        Phase32PreflightError,
+        Phase32ProviderReadinessAdmissionError,
+        Phase32PersistenceError,
+        Phase32RunBudgetStoreError,
+    ) as exc:
+        raise _map_execution_error(exc) from exc
+    return {
+        "reused": outcome.reused,
+        "run": phase32_run_envelope(request, run_id),
+        "decision": outcome.result.decision,
     }
-    if payload.artifact is not None and pending is not None:
-        node_id = str(pending.get("node_id") or "")
-        stage_id = node_id.partition(".")[0]
-        if stage_id == "text":
-            chapter_id = str(pending.get("chapter_id") or "")
-            source_version_id = str(pending.get("artifact_ref") or "")
-            if not chapter_id or not source_version_id:
-                raise HTTPException(status_code=422, detail="The chapter decision is missing its immutable candidate")
-            try:
-                record = save_edited_chapter_candidate(
-                    _stores(request).chapters,
-                    _stores(request).events,
-                    run_id=run_id,
-                    chapter_id=chapter_id,
-                    source_version_id=source_version_id,
-                    payload=payload.artifact,
-                )
-            except (FileNotFoundError, ValueError) as exc:
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
-            decision["candidate_chapter_version_id"] = record.version_id
-        elif stage_id not in STAGE_ORDER:
-            raise HTTPException(status_code=422, detail="This decision does not accept an editable stage Artifact")
-        else:
-            try:
-                record = save_edited_stage_candidate(
-                    _stores(request),
-                    run_id=run_id,
-                    stage_id=stage_id,  # type: ignore[arg-type]
-                    source_artifact_id=str(pending.get("artifact_ref") or ""),
-                    artifact=payload.artifact,
-                    source=f"user-decision:{decision_id}",
-                )
-            except (FileNotFoundError, ValueError) as exc:
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
-            decision["candidate_artifact_id"] = record.artifact_id
-    try:
-        stores.operations.begin(
-            run_id=run_id,
-            operation_key=operation_key,
-            kind="graph_decision",
-            request_signature=receipt_signature,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail="Decision was already submitted with different command data",
-        ) from exc
-    decision["_receipt_signature"] = receipt_signature
-    try:
-        request.app.state.narrative_execution.dispatch_resume(run_id, decision)
-    except RunExecutionConflict as exc:
-        if existing_receipt is None:
-            raise HTTPException(status_code=409, detail="Run execution is already active") from exc
-        return {"run_id": run_id, "decision_id": decision_id, "status": "scheduled"}
-    return {"run_id": run_id, "decision_id": decision_id, "status": "scheduled"}
 
 
-@router.get("/{run_id}/state")
-async def get_graph_state(request: Request, run_id: str) -> dict[str, Any]:
-    _require_run(request, run_id)
-    current = _stores(request).runs.read(run_id)
-    return current.model_dump(mode="json")
-
-
-@router.post("/{run_id}/branches")
-async def create_branch(
+@router.post("/{run_id}/recoveries")
+async def recover_failed_stage(
     request: Request,
     run_id: str,
-    payload: CreateBranchRequest,
+    payload: Phase32FailureRecoveryCommand,
 ) -> dict[str, Any]:
-    _require_run(request, run_id)
     try:
-        provider_binding_overrides = None
-        cover_asset_binding_override = None
-        binding_override = None
-        if payload.binding_override_stages:
-            source = _stores(request).runs.definition(run_id)
-            project = request.app.state.project_store.get(source.project_id)
-            workflow = require_executable_workflow(
-                request.app.state.workflow_store.read(project.workflow_id)
-            )
-            frozen = request.app.state.run_preflight.freeze_stages(
-                workflow,
-                payload.binding_override_stages,
-            )
-            provider_binding_overrides = frozen.provider_bindings
-            cover_asset_binding_override = frozen.cover_asset_binding
-            binding_override = BranchBindingOverride(
-                source_workflow_id=workflow.id,
-                source_workflow_revision=workflow.version,
-                source_workflow_digest=workflow_execution_digest(workflow),
-                stages=payload.binding_override_stages,
-            )
-        projection = await request.app.state.narrative_execution.create_branch(
-            source_run_id=run_id,
-            target_run_id=payload.target_run_id,
-            checkpoint_id=payload.checkpoint_id,
-            provider_binding_overrides=provider_binding_overrides,
-            cover_asset_binding_override=cover_asset_binding_override,
-            binding_override=binding_override,
-            branch_mode=payload.frontier_mode,
-        )
-    except RunExecutionConflict as exc:
-        raise HTTPException(status_code=409, detail="Source or target Run execution is active") from exc
-    except BranchConflictError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except (RunPreflightError, WorkflowContractError) as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={"code": exc.code, "message": str(exc)},
-        ) from exc
-    except (CheckpointBranchError, FileNotFoundError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        outcome = await _execution(request).recover(run_id, payload)
+    except (
+        FileNotFoundError,
+        Phase32ContinuityAdmissionError,
+        Phase32DecisionReceiptConflict,
+        Phase32RunAdmissionRequired,
+        Phase32ExecutionConflict,
+        Phase32ExecutionError,
+        Phase32LiveCandidateAuthorizationError,
+        Phase32PreflightError,
+        Phase32ProviderReadinessAdmissionError,
+        Phase32PersistenceError,
+        Phase32RunBudgetStoreError,
+    ) as exc:
+        raise _map_execution_error(exc) from exc
     return {
-        "run_id": projection.run_id,
-        "thread_id": projection.thread_id,
-        "status": projection.status,
-        "source_run_id": run_id,
-        "source_checkpoint_id": payload.checkpoint_id,
-        "frontier_mode": payload.frontier_mode,
+        "reused": outcome.reused,
+        "run": phase32_run_envelope(request, run_id),
+        "decision": outcome.result.decision,
     }
 
 
-__all__ = ["CreateBranchRequest", "CreateNarrativeRunRequest", "DecisionRequest", "router"]
+@router.post("/{run_id}/resume")
+async def retired_resume(run_id: str) -> None:
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "code": "phase32_resume_alias_retired",
+            "message": f"Run {run_id} decisions must use POST /api/runs/{{run_id}}/decisions.",
+        },
+    )
+
+
+@retired_router.api_route(
+    "",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    include_in_schema=False,
+)
+@retired_router.api_route(
+    "/{retired_path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    include_in_schema=False,
+)
+async def retired_phase32_run_alias(retired_path: str = "") -> None:
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "code": "phase32_run_alias_retired",
+            "message": "Use the authoritative /api/runs contract.",
+        },
+    )
+
+
+__all__ = ["retired_router", "router"]

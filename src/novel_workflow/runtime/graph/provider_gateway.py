@@ -6,6 +6,7 @@ from typing import Any, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from novel_workflow.providers.base import GeneratedImage, ImageProvider, TextProvider
+from novel_workflow.providers.errors import ProviderResponseError
 from novel_workflow.providers.openai_compat import OpenAICompatibleTextProvider
 from novel_workflow.providers.openai_image import OpenAICompatibleImageProvider
 from novel_workflow.providers.usage import provider_usage_snapshot
@@ -303,7 +304,7 @@ class FrozenNarrativeProviderGateway:
                 str(exc),
                 operation_key=operation_key,
                 usage=provider_usage_snapshot(provider),
-                diagnostic=_provider_diagnostic(provider),
+                diagnostic=_structured_failure_diagnostic(provider, exc),
             ) from exc
         if not isinstance(result, dict):
             raise ProviderOperationError(
@@ -366,6 +367,16 @@ def _build_image_provider(binding: CoverAssetBinding, secret: str) -> ImageProvi
 def _provider_diagnostic(provider: Any) -> dict[str, Any]:
     value = getattr(provider, "last_response_diagnostic", None)
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _structured_failure_diagnostic(
+    provider: Any,
+    error: Exception,
+) -> dict[str, Any]:
+    diagnostic = _provider_diagnostic(provider)
+    if isinstance(error, ProviderResponseError):
+        diagnostic["code"] = error.code
+    return diagnostic
 
 
 def validate_review_result_contract(

@@ -1,541 +1,371 @@
+import { useMemo, useState } from "react"
+import "../../../styles/phase32-cast.css"
 import {
-  useEffect,
-  useMemo,
-  useState,
-  type ComponentType,
-} from "react"
-import {
+  AlertTriangle,
   CheckCircle2,
-  ChevronRight,
-  Filter,
-  Focus,
-  GitBranch,
-  User,
+  CircleStop,
+  FilePenLine,
+  Lock,
+  Play,
+  Sparkles,
+  UsersRound,
 } from "lucide-react"
+import { BookLoader } from "../layout/BookLoader"
+import { useLoadingPresence } from "../layout/useLoadingPresence"
+import { castRoutePresentation, parsePhase32Cast } from "../lib/phase32Cast"
+import { isProductionStageRoute } from "../lib/routes"
+import { resolvePhase32RunDecision } from "../services/runApi"
 import { useApp } from "../state/PipelineAppProvider"
+import { useArtifactEditMode } from "../state/useArtifactEditMode"
+import { usePhase32ArtifactDraft } from "../state/usePhase32ArtifactDraft"
+import { usePlanningArtifactAmendment } from "../state/usePlanningArtifactAmendment"
+import { ArtifactAmendmentPanel } from "./ArtifactAmendmentPanel"
+import { ArtifactModeSwitch } from "./ArtifactModeSwitch"
+import { CastArtifactEditor } from "./CastArtifactEditor"
 import {
-  parseCharacterBibleArtifact,
-  type CharacterBibleArtifact,
-  type CharacterKind,
-  type CharacterRelation,
-  type CharacterSubject,
-} from "@/features/pipeline/contracts/artifacts"
-import {
-  CHARACTER_KIND_META,
-  relationPresentation,
-} from "@/features/pipeline/lib/characterGraph"
-import { stageDecisionFor } from "@/features/pipeline/lib/stageDecision"
-import { BookLoader } from "@/features/pipeline/layout/BookLoader"
-import { useLoadingPresence } from "@/features/pipeline/layout/useLoadingPresence"
-import { StageCandidateActions } from "@/features/pipeline/running/StageCandidateActions"
-import { useStageArtifactDraft } from "@/features/pipeline/state/useStageArtifactDraft"
+  Phase32StageDecisionDialog,
+  type Phase32DecisionDialogKind,
+} from "./Phase32StageDecisionDialog"
 
-type CharacterGraphComponent = ComponentType<{
-  artifact: CharacterBibleArtifact
-  onSelect: (subjectId: string | null) => void
-  selectedId: string | null
-}>
+type ActionState = "idle" | "accepting" | "regenerating" | "cancelling"
 
 export default function CastStageView() {
   const {
     activeProject,
     activeRun,
+    reconnectRun,
     refreshRun,
-    runArtifactError,
-    runArtifactLoading,
-    runArtifacts,
-    runCandidateArtifacts,
+    runError,
     runLoading,
-    selectedChar,
     setRoute,
-    setSelectedChar,
   } = useApp()
-  const [filterKind, setFilterKind] = useState<CharacterKind | "all">("all")
-  const [CharacterGraph3D, setCharacterGraph3D] =
-    useState<CharacterGraphComponent | null>(null)
-  const [graphLoadError, setGraphLoadError] = useState("")
-  const decision = useMemo(
-    () => stageDecisionFor(activeRun, "cast"),
-    [activeRun],
-  )
-  const committed = runArtifacts.cast
-  const candidate = runCandidateArtifacts.cast
-  const source = decision ? candidate : committed
+  const [dialog, setDialog] = useState<Phase32DecisionDialogKind | null>(null)
+  const [direction, setDirection] = useState("")
+  const [actionState, setActionState] = useState<ActionState>("idle")
+  const [actionError, setActionError] = useState("")
   const runId = activeRun?.definition.run_id ?? ""
-  const draft = useStageArtifactDraft(runId, decision, source)
+  const artifactAvailable = Boolean(
+    activeRun?.read_model.artifact_refs.cast ||
+      activeRun?.read_model.pending_decisions.some(
+        (decision) => decision.stage_id === "cast",
+      ),
+  )
+  const draft = usePhase32ArtifactDraft(
+    runId,
+    "cast",
+    activeRun?.read_model.updated_at ?? "",
+    artifactAvailable,
+  )
+  const amendment = usePlanningArtifactAmendment("cast", draft.current)
+  const amendmentActive = amendment.flow.phase !== "idle"
+  const editMode = useArtifactEditMode(
+    Boolean(
+      draft.current?.editable || amendment.flow.canStart || amendmentActive,
+    ),
+    draft.current?.artifact_ref ?? "",
+  )
+  const workingPayload = amendment.flow.payload ?? draft.payload
   const parsed = useMemo(
-    () => parseCharacterBibleArtifact(draft.artifact ?? source?.payload),
-    [draft.artifact, source],
+    () => parsePhase32Cast(workingPayload),
+    [workingPayload],
   )
-  const artifact = parsed.artifact
-  const subjectSignature =
-    artifact?.subjects.map((subject) => subject.id).join("|") ?? ""
+  const loading = useLoadingPresence(runLoading || draft.loading)
+  const editArtifact = () => {
+    if (!draft.current?.editable && amendment.flow.phase === "idle")
+      amendment.flow.begin()
+    editMode.edit()
+  }
+  const changeArtifact = amendmentActive ? amendment.flow.change : draft.change
 
-  useEffect(() => {
-    if (!artifact?.subjects.length) return
-    if (!artifact.subjects.some((subject) => subject.id === selectedChar))
-      setSelectedChar(artifact.subjects[0].id)
-  }, [artifact, selectedChar, setSelectedChar, subjectSignature])
-
-  useEffect(() => {
-    let active = true
-    void import("@/features/pipeline/running/CharacterGraph3D")
-      .then((module) => {
-        if (active) setCharacterGraph3D(() => module.default)
-      })
-      .catch(() => {
-        if (active) setGraphLoadError("3D 人物关系图谱加载失败，请刷新后重试。")
-      })
-    return () => {
-      active = false
-    }
-  }, [])
-
-  const initialLoad = useLoadingPresence(runLoading || runArtifactLoading)
-  const graphLoad = useLoadingPresence(
-    !CharacterGraph3D && !graphLoadError,
-  )
-
-  if (initialLoad.visible) {
+  if (!activeProject) return null
+  if (loading.visible) {
     return (
       <BookLoader
-        phase={initialLoad.exiting ? "exit" : "enter"}
+        detail="读取人物身份、关系聚合与当前作者草稿"
+        label="正在同步人物圣经"
+        phase={loading.exiting ? "exit" : "enter"}
         variant="panel"
-        label="正在同步人物编排"
-        detail="读取 Character Bible 与正式关系"
       />
     )
   }
-
-  if (!activeProject?.latestRunId || !activeRun) {
+  if (!activeRun) {
     return (
-      <CastEmpty
-        title="当前作品尚未启动创作 Run"
-        detail="人物编排会在故事脊柱确认后生成。"
-        onBack={() => setRoute("studio")}
+      <CastEmptyState
+        actionLabel="返回作品库"
+        detail={runError || "作品已创建，但当前 Run 还没有可读取的权威状态。"}
+        onAction={() => setRoute("studio")}
+        title="Run 尚未就绪"
       />
     )
   }
 
-  if (runArtifactError || !source) {
-    return (
-      <CastEmpty
-        title="尚未取得人物编排 Artifact"
-        detail={runArtifactError || "请先完成故事脊柱，并等待人物阶段生成。"}
-        onBack={() => setRoute("spine")}
-      />
-    )
-  }
-
-  if (!artifact) {
-    return (
-      <CastEmpty
-        title="人物编排合同校验失败"
-        detail={parsed.error}
-        onBack={() => setRoute("run-monitor")}
-      />
-    )
-  }
-
-  const subject =
-    artifact.subjects.find((item) => item.id === selectedChar) ??
-    artifact.subjects[0]
-  const filtered =
-    filterKind === "all"
-      ? artifact.subjects
-      : artifact.subjects.filter((item) => item.kind === filterKind)
-  const subjectRelations = artifact.relations
-    .map((relation, relationIndex) => ({ ...relation, relationIndex }))
-    .filter((relation) => relation.a === subject.id || relation.b === subject.id)
-  const relationLegend = Array.from(
-    new Map(
-      artifact.relations.map((relation) => {
-        const presentation = relationPresentation(relation.type)
-        return [relation.type, presentation] as const
-      }),
-    ).entries(),
+  const routeId = activeRun.definition.route_contract.creation_route_id
+  const status = activeRun.read_model.stage_status.cast ?? "locked"
+  const decision = draft.current?.pending_decision ?? null
+  const canDecide = Boolean(
+    draft.current?.editable && decision?.domain_revision !== null,
   )
-  const editable = Boolean(decision && candidate)
+  const busy = actionState !== "idle"
+  const activeTarget = activeRun.read_model.stage_manifest.find(
+    (item) => item.stage_id === activeRun.read_model.active_stage_id,
+  )
+  const routeCopy = castRoutePresentation(routeId)
+
+  const submitDecision = async (action: "accept" | "regenerate" | "cancel") => {
+    if (!decision || decision.domain_revision === null || busy) return
+    if (action === "accept" && (!parsed.artifact || parsed.error)) {
+      setActionError(parsed.error || "当前人物圣经未通过界面合同校验")
+      return
+    }
+    if (action === "regenerate" && !direction.trim()) {
+      setActionError("请先填写本次定向换稿的具体要求")
+      return
+    }
+    setActionState(
+      action === "accept"
+        ? "accepting"
+        : action === "regenerate"
+          ? "regenerating"
+          : "cancelling",
+    )
+    setActionError("")
+    try {
+      const draftRef = action === "accept" ? await draft.flush() : ""
+      const resolved = await resolvePhase32RunDecision(
+        activeRun.definition.run_id,
+        {
+          decisionId: decision.decision_id,
+          action,
+          domainRevision: decision.domain_revision,
+          direction: action === "regenerate" ? direction : undefined,
+          draftRef: draftRef || undefined,
+        },
+      )
+      setDialog(null)
+      setDirection("")
+      await refreshRun()
+      reconnectRun()
+      if (action === "accept") {
+        const nextStageId = resolved.read_model.active_stage_id
+        if (nextStageId !== "cast" && isProductionStageRoute(nextStageId))
+          setRoute(nextStageId)
+      }
+    } catch (reason) {
+      setActionError(
+        reason instanceof Error ? reason.message : "人物圣经决策提交失败",
+      )
+    } finally {
+      setActionState("idle")
+    }
+  }
+
+  if (draft.status === "empty" || !draft.current || !parsed.artifact) {
+    const generating = status === "running"
+    return generating ? (
+      <BookLoader
+        detail="候选稿通过人物合同校验后会进入作者决策"
+        label="正在生成人物圣经"
+        variant="compact"
+      />
+    ) : (
+      <CastEmptyState
+        actionLabel="前往运行监控"
+        detail={
+          draft.error ||
+          parsed.error ||
+          runError ||
+          "请先完成当前路线的人物上游规划阶段。"
+        }
+        onAction={() => setRoute("run-monitor")}
+        title="人物圣经尚未生成"
+      />
+    )
+  }
+
+  const revisionLabel = decision
+    ? `Revision ${decision.domain_revision ?? "历史"} · 换稿 ${decision.redraft_used ?? "-"}/${decision.redraft_limit ?? "-"}`
+    : "已确认版本"
+  const suggestions =
+    routeId === "screenplay_sample"
+      ? [
+          "让每个人物目标都能在屏幕行动中被看见。",
+          "拉开主要人物的对白声纹与应激反应。",
+          "强化关系压力如何触发下一次可见选择。",
+        ]
+      : routeId === "long_novel"
+        ? [
+            "区分人物在全书、Part 与卷册中的长期职责。",
+            "让关系变化条件能够跨卷持续推进而不提前兑现。",
+            "检查人物限制是否足以支撑长期冲突而非一次性障碍。",
+          ]
+        : [
+            "删除不承担戏剧任务的人物，集中有限篇幅。",
+            "让欲望、代价与单体弧线形成明确差异。",
+            "强化关键关系在结尾前必须发生的变化触发。",
+          ]
 
   return (
-    <div className="cast-screen page-in">
-      <header className="cast-stage-bar stage-aura">
-        <div className="cast-stage-status">
-          <CheckCircle2
-            size={13}
-            className={decision ? "text-action" : "text-mint"}
-          />
-          <strong className={decision ? "text-action" : "text-mint"}>
-            {decision ? "人物候选待确认" : "人物已定稿"}
-          </strong>
+    <div className="phase32-cast-page page-in">
+      <header className="phase32-cast-toolbar">
+        <div className="phase32-cast-toolbar-state">
+          {draft.current.status === "committed" ? (
+            <CheckCircle2 size={13} />
+          ) : (
+            <FilePenLine size={13} />
+          )}
           <span>
-            · {artifact.subjects.length} 个登记主体 ·{" "}
-            {artifact.relations.length} 条正式关系
+            {draft.current.status === "committed"
+              ? "人物圣经已定稿"
+              : canDecide
+                ? "候选聚合等待作者决策"
+                : "历史决策只读"}
           </span>
+          <small>{draftStatusLabel(draft.status)}</small>
         </div>
-        {decision ? (
-          <StageCandidateActions
-            acceptLabel="确认人物编排"
-            artifact={artifact as unknown as Record<string, unknown>}
-            decision={decision}
-            disabled={!editable}
-            draftStatus={draft.status}
-            onResolved={refreshRun}
-            regenerateDescription="只调整人物文学字段与既有关系压力；主体身份、登场范围和关系端点继续使用冻结合同。"
-            regeneratePlaceholder="例如：让主角与导师的冲突更具体，并强化两人在中段决裂的行动代价。"
-            regenerateTitle="定向重做人物编排"
-            runId={runId}
+        <div className="phase32-cast-actions">
+          <ArtifactModeSwitch
+            canEdit={Boolean(
+              draft.current.editable ||
+                amendment.flow.canStart ||
+                amendmentActive,
+            )}
+            editLabel={draft.current.editable ? "编辑" : "修订"}
+            editTitle={
+              draft.current.editable ? "编辑候选稿" : "正式修订已提交版本"
+            }
+            editing={editMode.editing}
+            onEdit={editArtifact}
+            onShow={editMode.show}
           />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setRoute("volumes")}
-            className="btn btn-primary text-xs"
-          >
-            查看分卷架构 <ChevronRight size={14} />
-          </button>
-        )}
+          <ArtifactAmendmentPanel
+            flow={amendment.flow}
+            manifest={activeRun.read_model.stage_manifest}
+            onEnterSuccessor={amendment.enterSuccessor}
+            sourceRunId={runId}
+          />
+          {canDecide && decision?.allowed_actions.includes("regenerate") ? (
+            <button
+              className="btn btn-secondary text-xs"
+              disabled={busy}
+              onClick={() => setDialog("regenerate")}
+              type="button"
+            >
+              <Sparkles size={12} /> 定向换稿
+            </button>
+          ) : null}
+          {canDecide && decision?.allowed_actions.includes("cancel") ? (
+            <button
+              className="btn btn-ghost text-risk text-xs"
+              disabled={busy}
+              onClick={() => setDialog("cancel")}
+              type="button"
+            >
+              <CircleStop size={12} /> 取消
+            </button>
+          ) : null}
+          {canDecide && decision?.allowed_actions.includes("accept") ? (
+            <button
+              className="btn btn-primary text-xs"
+              disabled={
+                busy || draft.status === "error" || Boolean(parsed.error)
+              }
+              onClick={() => void submitDecision("accept")}
+              type="button"
+            >
+              <Lock size={12} />
+              {actionState === "accepting" ? "正在定稿…" : "确认人物圣经"}
+            </button>
+          ) : amendment.flow.phase === "idle" &&
+            activeTarget &&
+            activeTarget.stage_id !== "cast" &&
+            draft.current.status === "committed" ? (
+            <button
+              className="btn btn-primary text-xs"
+              onClick={() => {
+                if (isProductionStageRoute(activeTarget.stage_id))
+                  setRoute(activeTarget.stage_id)
+              }}
+              type="button"
+            >
+              进入{activeTarget.label} <Play size={12} />
+            </button>
+          ) : null}
+        </div>
       </header>
 
-      {(draft.error || runArtifactError) && (
-        <div className="mx-4 md:mx-5 mt-3 banner-warning" role="alert">
-          {draft.error || runArtifactError}
+      {(actionError || draft.error || parsed.error || runError) && (
+        <div className="phase32-cast-alert" role="alert">
+          <AlertTriangle size={13} />
+          <span>{actionError || draft.error || parsed.error || runError}</span>
         </div>
       )}
 
-      <div className="cast-workbench">
-        <aside className="cast-roster" aria-label="人物名册">
-          <div className="cast-roster-filter">
-            <Filter size={12} />
-            <select
-              value={filterKind}
-              onChange={(event) =>
-                setFilterKind(event.target.value as CharacterKind | "all")
-              }
-              aria-label="筛选人物类型"
-            >
-              <option value="all">全部主体</option>
-              {Object.entries(CHARACTER_KIND_META).map(([kind, meta]) => (
-                <option key={kind} value={kind}>
-                  {meta.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <nav>
-            {filtered.map((item) => {
-              const meta = CHARACTER_KIND_META[item.kind]
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={item.id === subject.id ? "active" : ""}
-                  onClick={() => setSelectedChar(item.id)}
-                >
-                  <span
-                    className="cast-roster-node"
-                    style={
-                      { "--subject-color": meta.color } as React.CSSProperties
-                    }
-                  />
-                  <span>
-                    <strong>{item.name}</strong>
-                    <small>
-                      {meta.label} · {formatDebut(item.debut)}
-                    </small>
-                  </span>
-                </button>
-              )
-            })}
-          </nav>
-        </aside>
-
-        <CharacterDossier
-          artifact={artifact}
-          editable={editable}
-          onArtifactChange={draft.change}
-          onSelect={setSelectedChar}
-          relations={subjectRelations}
-          subject={subject}
-        />
-
-        <section className="cast-graph-stage" aria-label="人物关系图谱">
-          <header className="cast-graph-toolbar">
-            <div>
-              <GitBranch size={13} />
-              <strong>关系图谱</strong>
-              <span>3D</span>
-            </div>
-            {selectedChar && (
-              <button type="button" onClick={() => setSelectedChar(null)}>
-                <Focus size={12} />
-                取消聚焦
-              </button>
-            )}
-          </header>
-          <div className="cast-graph-viewport">
-            {graphLoad.visible ? (
-              <BookLoader
-                phase={graphLoad.exiting ? "exit" : "enter"}
-                variant="compact"
-                label="正在建立人物星图"
-                detail="加载 3D 关系投影"
-              />
-            ) : CharacterGraph3D ? (
-              <CharacterGraph3D
-                artifact={artifact}
-                selectedId={selectedChar}
-                onSelect={setSelectedChar}
-              />
-            ) : (
-              <div className="h-full grid place-items-center p-6 text-xs text-fog">
-                {graphLoadError}
-              </div>
-            )}
-            <div className="cast-relation-legend" aria-label="关系类型图例">
-              {relationLegend.map(([type, meta]) => (
-                <span key={type}>
-                  <i style={{ backgroundColor: meta.color }} />
-                  {meta.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  )
-}
-
-function CharacterDossier({
-  artifact,
-  editable,
-  onArtifactChange,
-  onSelect,
-  relations,
-  subject,
-}: {
-  artifact: CharacterBibleArtifact
-  editable: boolean
-  onArtifactChange: (artifact: Record<string, unknown>) => void
-  onSelect: (id: string | null) => void
-  relations: Array<CharacterRelation & { relationIndex: number }>
-  subject: CharacterSubject
-}) {
-  const meta = CHARACTER_KIND_META[subject.kind]
-  const subjectIndex = artifact.subjects.findIndex(
-    (item) => item.id === subject.id,
-  )
-  const updateSubject = (
-    field: CharacterTextField,
-    value: string,
-  ) => {
-    if (!editable || subjectIndex < 0) return
-    onArtifactChange({
-      ...artifact,
-      subjects: artifact.subjects.map((item, index) =>
-        index === subjectIndex ? { ...item, [field]: value } : item,
-      ),
-    } as unknown as Record<string, unknown>)
-  }
-  const updateRelation = (
-    relationIndex: number,
-    patch: Partial<Pick<CharacterRelation, "pressure" | "type">>,
-  ) => {
-    if (!editable || relationIndex < 0) return
-    onArtifactChange({
-      ...artifact,
-      relations: artifact.relations.map((relation, index) =>
-        index === relationIndex ? { ...relation, ...patch } : relation,
-      ),
-    } as unknown as Record<string, unknown>)
-  }
-  return (
-    <aside className="cast-dossier" aria-label={`${subject.name}人物档案`}>
-      <header>
-        <div
-          className="cast-dossier-avatar"
-          style={{ "--subject-color": meta.color } as React.CSSProperties}
-        >
-          <User size={16} />
-        </div>
-        <div>
-          <strong>{subject.name}</strong>
-          <small>{subject.id}</small>
-        </div>
-        <span className={`badge ${meta.badge}`}>{meta.label}</span>
-      </header>
-      <div className="cast-dossier-scroll">
-        <DossierField editable={editable} field="function" label="叙事职责" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.function} />
-        <DossierField editable={editable} field="background" label="故事前史" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.background} />
-        <DossierField editable={editable} field="conflict_history" label="冲突历史" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.conflict_history} />
-        <DossierField editable={editable} field="present_stakes" label="当下利害" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.present_stakes} />
-        <DossierField editable={editable} field="temperament" label="性格反应" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.temperament} />
-        <DossierField editable={editable} field="speech_style" label="说话方式" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.speech_style} />
-        <DossierField editable={editable} field="drive" label="行动驱力" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.drive} />
-        <DossierField editable={editable} field="change" label="人物变化" onChange={updateSubject} subjectIndex={subjectIndex} unitRef={subject.id} value={subject.change} />
-        <div className="cast-dossier-field">
-          <span>首次登场</span>
-          <p>{formatDebut(subject.debut)}</p>
-        </div>
-        <div className="cast-dossier-field">
-          <span>边界限制</span>
-          <div className="cast-limit-list">
-            {subject.limits.map((limit) => (
-              <em key={limit}>{limit}</em>
-            ))}
-          </div>
-        </div>
-        <div className="cast-dossier-field">
-          <span>关系邻域 · {relations.length}</span>
-          <div className="cast-relation-list">
-            {relations.map((relation) => {
-              const targetId =
-                relation.a === subject.id ? relation.b : relation.a
-              const target = artifact.subjects.find(
-                (item) => item.id === targetId,
-              )
-              const presentation = relationPresentation(relation.type)
-              return editable ? (
-                <div
-                  className="cast-relation-editor"
-                  key={`${relation.a}-${relation.b}`}
-                >
-                  <i style={{ backgroundColor: presentation.color }} />
-                  <button
-                    type="button"
-                    className="cast-relation-target"
-                    onClick={() => onSelect(targetId)}
-                  >
-                    <strong>{target?.name ?? targetId}</strong>
-                    <ChevronRight size={12} />
-                  </button>
-                  <label>
-                    <span>关系类型</span>
-                    <input
-                      aria-label={`${target?.name ?? targetId} 关系类型`}
-                      data-collaboration-field-path={`relations.${relation.relationIndex}.type`}
-                      data-collaboration-unit={subject.id}
-                      value={relation.type}
-                      onChange={(event) =>
-                        updateRelation(relation.relationIndex, {
-                          type: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>关系压力</span>
-                    <textarea
-                      aria-label={`${target?.name ?? targetId} 关系压力`}
-                      data-collaboration-field-path={`relations.${relation.relationIndex}.pressure`}
-                      data-collaboration-unit={subject.id}
-                      rows={3}
-                      value={relation.pressure}
-                      onChange={(event) =>
-                        updateRelation(relation.relationIndex, {
-                          pressure: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                </div>
-              ) : (
-                <button
-                  key={`${relation.a}-${relation.b}`}
-                  type="button"
-                  onClick={() => onSelect(targetId)}
-                >
-                  <i style={{ backgroundColor: presentation.color }} />
-                  <span>
-                    <strong>{target?.name ?? targetId}</strong>
-                    <small>
-                      {presentation.label} · {relation.pressure}
-                    </small>
-                  </span>
-                  <ChevronRight size={12} />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </aside>
-  )
-}
-
-type CharacterTextField =
-  | "function"
-  | "background"
-  | "conflict_history"
-  | "present_stakes"
-  | "temperament"
-  | "speech_style"
-  | "drive"
-  | "change"
-
-function DossierField({
-  editable,
-  field,
-  label,
-  onChange,
-  subjectIndex,
-  unitRef,
-  value,
-}: {
-  editable: boolean
-  field: CharacterTextField
-  label: string
-  onChange: (field: CharacterTextField, value: string) => void
-  subjectIndex: number
-  unitRef: string
-  value: string
-}) {
-  return (
-    <div className="cast-dossier-field">
-      <span>{label}</span>
-      <textarea
-        aria-label={`${unitRef} ${label}`}
-        data-collaboration-field-path={`subjects.${subjectIndex}.${field}`}
-        data-collaboration-unit={unitRef}
-        onChange={(event) => onChange(field, event.target.value)}
-        readOnly={!editable}
-        rows={3}
-        value={value}
+      <CastArtifactEditor
+        artifact={parsed.artifact}
+        artifactRef={draft.current.artifact_ref}
+        editable={editMode.editing}
+        onChange={changeArtifact}
+        revisionLabel={revisionLabel}
+        routeId={routeId}
       />
+
+      {dialog ? (
+        <Phase32StageDecisionDialog
+          busy={busy}
+          direction={direction}
+          error={actionError}
+          id="phase32-cast-dialog"
+          kind={dialog}
+          onClose={() => !busy && setDialog(null)}
+          onDirectionChange={setDirection}
+          onSubmit={() =>
+            void submitDecision(dialog === "cancel" ? "cancel" : "regenerate")
+          }
+          placeholder="例如：保留现有人物身份，让两位核心人物的欲望更冲突，并把关系变化触发落到一次可见选择。"
+          regenerateDescription={`只重写人物文学字段与关系内容；subject ref 与人物集合保持冻结，新关系只能引用已登记人物。${routeCopy.nextUse}`}
+          suggestions={suggestions}
+        />
+      ) : null}
     </div>
   )
 }
 
-function CastEmpty({
+function CastEmptyState({
+  actionLabel,
   detail,
-  onBack,
+  onAction,
   title,
 }: {
+  actionLabel: string
   detail: string
-  onBack: () => void
+  onAction: () => void
   title: string
 }) {
   return (
-    <div className="flex-1 grid place-items-center p-6 page-in">
-      <div className="max-w-md text-center">
-        <User size={22} className="text-fog mx-auto mb-3" />
-        <h1 className="text-sm font-semibold text-ink mb-1">{title}</h1>
-        <p className="text-xs text-fog mb-4">{detail}</p>
-        <button
-          type="button"
-          className="btn btn-secondary text-xs"
-          onClick={onBack}
-        >
-          返回
-        </button>
-      </div>
+    <div className="phase32-cast-empty page-in">
+      <UsersRound size={22} />
+      <h1>{title}</h1>
+      <p>{detail}</p>
+      <button
+        className="btn btn-secondary text-xs"
+        onClick={onAction}
+        type="button"
+      >
+        {actionLabel} <Play size={12} />
+      </button>
     </div>
   )
 }
 
-function formatDebut(value: string) {
-  const match = /^chapter:(\d+)(?:-(\d+))?$/.exec(value)
-  if (!match) return value
-  return match[2] ? `第 ${match[1]}–${match[2]} 章` : `第 ${match[1]} 章`
+function draftStatusLabel(status: string) {
+  return (
+    ({
+      clean: "原始候选",
+      dirty: "等待自动保存",
+      saving: "正在保存",
+      saved: "草稿已保存",
+      readonly: "权威版本",
+      error: "草稿异常",
+    } as Record<string, string>)[status] ?? ""
+  )
 }

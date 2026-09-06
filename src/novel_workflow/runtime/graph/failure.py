@@ -69,13 +69,21 @@ def guarded_node(
                 evidence_ref = exc.operation_key
             if not evidence_ref and operation_refs:
                 evidence_ref = str(operation_refs[-1])
+            provider_code = _provider_failure_code(exc)
             failure: GraphFailure = {
                 "node_id": node_id,
                 "code": type(exc).__name__,
-                "retryable": _is_retryable_stage_failure(node_id, stage_id),
+                "retryable": _is_retryable_stage_failure(
+                    node_id,
+                    stage_id,
+                    state,
+                    provider_code=provider_code,
+                ),
                 "evidence_ref": evidence_ref,
                 "message": str(exc),
             }
+            if provider_code:
+                failure["provider_code"] = provider_code
             return {
                 "failure": failure,
                 "status": "failed",
@@ -85,13 +93,34 @@ def guarded_node(
     return guarded
 
 
-def _is_retryable_stage_failure(node_id: str, stage_id: StageId) -> bool:
+def _is_retryable_stage_failure(
+    node_id: str,
+    stage_id: StageId,
+    state: NarrativeRunState,
+    *,
+    provider_code: str = "",
+) -> bool:
     if stage_id == "export":
         return False
+    if node_id in {
+        "cast.derive_role_demand",
+        "cast.derive_volume_boundary",
+    }:
+        return (
+            provider_code == "json_parse_failed"
+            and int((state.get("stage_attempts") or {}).get(stage_id) or 1) < 2
+        )
     return node_id in {
         f"{stage_id}.generate_candidate",
         f"{stage_id}.validate_contract",
     }
+
+
+def _provider_failure_code(error: Exception) -> str:
+    if not isinstance(error, ProviderOperationError):
+        return ""
+    value = error.diagnostic.get("code")
+    return str(value) if isinstance(value, str) else ""
 
 
 def _node_occurrence_id(state: NarrativeRunState, node_id: str) -> str:

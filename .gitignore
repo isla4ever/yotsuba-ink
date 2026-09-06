@@ -52,6 +52,7 @@ runtime/novel_workflow/native_runtime/
 runtime/novel_workflow/acceptance-preflight/
 runtime/novel_workflow/preference_calibration_runs/
 runtime/novel_workflow/preference_calibration_wiki/
+runtime/novel_workflow/phase32_runtime/
 runtime/novel_workflow/workflows/wf-*.json
 runtime/novel_workflow/*.sqlite*
 runtime/novel_workflow/project-order.json

@@ -1,8 +1,8 @@
-import type { GraphRunEnvelope, GraphStageStatus } from "../contracts/run"
+import type { Phase32RunEnvelope, Phase32StageStatus } from "../contracts/run"
 import type { StageStatus } from "@/features/pipeline/contracts/app"
 
 export function runStageStatuses(
-  envelope: GraphRunEnvelope | null,
+  envelope: Phase32RunEnvelope | null,
   fallback: Record<string, StageStatus>,
 ) {
   if (!envelope) return fallback
@@ -16,16 +16,10 @@ export function runStageStatuses(
   ) as Record<string, StageStatus>
 }
 
-export function activeRunModel(envelope: GraphRunEnvelope | null) {
-  if (!envelope) return ""
-  const stageId = envelope.read_model.active_stage_id
-  if (stageId === "export") return "系统任务"
-  return envelope.definition.provider_bindings[stageId]?.model ?? ""
-}
-
-function stageStatus(status: GraphStageStatus, active: boolean): StageStatus {
+function stageStatus(status: Phase32StageStatus, active: boolean): StageStatus {
   if (status === "completed") return "committed"
   if (status === "failed") return "failed"
+  if (status === "stale") return "blocked"
   if (status === "awaiting_decision") return "warning"
   if (status === "running" || (active && status === "available"))
     return "active"

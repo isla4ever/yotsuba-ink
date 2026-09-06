@@ -1,15 +1,14 @@
-import { Sparkles } from "lucide-react"
-import { useEffect, useMemo, useRef } from "react"
-import type { RefObject } from "react"
+import { AlertCircle, Sparkles } from "lucide-react"
+import { useMemo } from "react"
+import type { ReactNode, RefObject } from "react"
 import { useApp } from "@/features/pipeline/state/PipelineAppProvider"
-import type { CollaborationStageId } from "../../contracts/authorCollaboration"
 import {
   defaultCollaborationUnit,
+  isCollaborationStageId,
   type CollaborationUnitScope,
 } from "../../lib/authorCollaborationProjection"
-import { stageDecisionFor } from "../../lib/stageDecision"
-import { announceStageDraftUpdated } from "../../state/stageDraftEvents"
 import { useAuthorCollaboration } from "../../state/useAuthorCollaboration"
+import { usePhase32CollaborationSource } from "../../state/usePhase32CollaborationSource"
 import { useProjectKnowledge } from "../../state/useProjectKnowledge"
 import { useStageSelectionCapture } from "../../state/useStageSelectionCapture"
 import { AuthorCollaborationPanel } from "./AuthorCollaborationPanel"
@@ -20,116 +19,83 @@ type Props = {
 }
 
 export function AuthorCollaborationDock({ onClose, workbenchRef }: Props) {
-  const handledPatchRef = useRef("")
-  const {
-    activeProjectId,
-    activeRun,
-    refreshRun,
-    route,
-    runArtifacts,
-    runCandidateArtifacts,
-    runChapters,
-    selectedChapter,
-    selectedChar,
-    selectedVolumeId,
-    setRoute,
-    spineSelectedId,
-  } = useApp()
-  const stageId = isCollaborationStage(route) ? route : "spine"
-  const source = useMemo(() => {
-    if (stageId === "text") {
-      const chapter =
-        runChapters.find((item) => item.chapter_id === selectedChapter) ??
-        runChapters.at(-1)
-      return chapter
-        ? {
-            artifactText: JSON.stringify(chapter.artifact),
-            sourceRef: chapter.version_id,
-            unit: {
-              label: chapter.artifact.title || chapter.chapter_id,
-              unitRef: chapter.chapter_id,
-            },
-          }
-        : null
-    }
-    const record = runCandidateArtifacts[stageId] ?? runArtifacts[stageId]
-    if (!record) return null
-    const artifactText = JSON.stringify(record.payload)
+  const { activeProjectId, activeRun, route, setRoute } = useApp()
+  const stageId = isCollaborationStageId(route) ? route : null
+  const stage = activeRun?.read_model.stage_manifest.find(
+    (item) => item.stage_id === stageId,
+  )
+  const enabled = Boolean(
+    activeRun &&
+      stageId &&
+      stage?.collaboration_enabled &&
+      activeRun.read_model.stage_status[stageId] !== "locked",
+  )
+  const activeUnitRef =
+    stage?.unitization === "sequential_units" &&
+    activeRun?.read_model.active_stage_id === stageId
+      ? activeRun.read_model.active_unit_ref
+      : ""
+  const source = usePhase32CollaborationSource({
+    enabled,
+    runId: activeRun?.definition.run_id ?? "",
+    stageId: stageId ?? "",
+    unitRef: activeUnitRef,
+  })
+  const artifactText = useMemo(
+    () => (source.artifact ? JSON.stringify(source.artifact.payload) : ""),
+    [source.artifact],
+  )
+  const activeUnit = useMemo<CollaborationUnitScope | undefined>(() => {
+    if (!source.artifact || !stageId) return undefined
+    if (!source.artifact.unit_ref)
+      return defaultCollaborationUnit(stageId, artifactText)
     return {
-      artifactText,
-      sourceRef: record.artifact_id,
-      unit: activeUnit(stageId, record.payload, {
-        selectedChapter,
-        selectedChar,
-        selectedVolumeId,
-        spineSelectedId,
-      }) ?? defaultCollaborationUnit(stageId, artifactText),
+      label: artifactLabel(source.artifact.payload, source.artifact.unit_ref),
+      unitRef: source.artifact.unit_ref,
     }
-  }, [
-    route,
-    runArtifacts,
-    runCandidateArtifacts,
-    runChapters,
-    selectedChapter,
-    selectedChar,
-    selectedVolumeId,
-    spineSelectedId,
-    stageId,
-  ])
-  const knowledge = useProjectKnowledge(activeProjectId ?? "", true)
+  }, [artifactText, source.artifact, stageId])
+  const knowledge = useProjectKnowledge(activeProjectId ?? "", enabled)
   const collaboration = useAuthorCollaboration({
-    activeUnit: source?.unit,
-    artifactText: source?.artifactText ?? "",
-    enabled: Boolean(activeRun && source),
+    activeUnit,
+    artifactText,
+    enabled: Boolean(enabled && source.artifact),
     knowledgeDocuments: knowledge.documents,
     runId: activeRun?.definition.run_id ?? "",
-    sourceRef: source?.sourceRef ?? "",
-    stageId,
+    sourceRef: source.artifact?.artifact_ref ?? "",
+    stageId: stageId ?? "cast",
   })
   const selection = useStageSelectionCapture({
-    enabled: Boolean(activeRun && source),
+    enabled: Boolean(enabled && source.artifact),
     rootRef: workbenchRef,
     sourceRef: collaboration.sourceRef,
-    stageId,
+    stageId: stageId ?? "cast",
   })
-  const canRevise = stageId === "text"
-    ? activeRun?.read_model.pending_decisions.some((item) =>
-        String(item.node_id ?? "").startsWith("text."),
-      ) ?? false
-    : Boolean(stageDecisionFor(activeRun, stageId))
 
-  useEffect(() => {
-    if (!collaboration.acceptedPatchRef || !activeRun) return
-    const patchRefreshKey = `${activeRun.definition.run_id}:${stageId}:${collaboration.acceptedPatchRef}`
-    if (handledPatchRef.current === patchRefreshKey) return
-    handledPatchRef.current = patchRefreshKey
-    announceStageDraftUpdated({
-      runId: activeRun.definition.run_id,
-      stageId,
-    })
-    void refreshRun()
-    selection.clearSelection()
-  }, [
-    activeRun,
-    collaboration.acceptedPatchRef,
-    refreshRun,
-    selection.clearSelection,
-    stageId,
-  ])
-
-  if (!activeRun || !source) {
+  if (!stageId || !enabled) {
     return (
-      <aside aria-label="作者协作" className="author-collaboration-panel collaboration-panel-loading">
-        <Sparkles size={18} />
-        <strong>当前阶段还没有可绑定的正式内容</strong>
-        <span>等待 Artifact 或章节版本就绪后再开始协作。</span>
-      </aside>
+      <DockState
+        icon={<AlertCircle size={18} />}
+        title="当前阶段未开放作者协作"
+      >
+        作者协作只在路线合同声明的文学创作阶段可用。
+      </DockState>
+    )
+  }
+
+  if (source.loading || !source.artifact) {
+    return (
+      <DockState
+        icon={source.error ? <AlertCircle size={18} /> : <Sparkles size={18} />}
+        title={source.error ? "当前内容读取失败" : "正在绑定当前创作内容"}
+      >
+        {source.error || "读取本阶段 Artifact 与单元版本，请稍候。"}
+      </DockState>
     )
   }
 
   return (
     <AuthorCollaborationPanel
-      canRevise={canRevise}
+      canRevise={source.artifact.editable}
       collaboration={collaboration}
       knowledgeDocuments={knowledge.documents}
       onClearSelection={selection.clearSelection}
@@ -144,58 +110,32 @@ export function AuthorCollaborationDock({ onClose, workbenchRef }: Props) {
   )
 }
 
-function activeUnit(
-  stageId: CollaborationStageId,
-  payload: Record<string, unknown>,
-  selection: {
-    selectedChapter: string
-    selectedChar: string | null
-    selectedVolumeId: string
-    spineSelectedId: string
-  },
-): CollaborationUnitScope | null {
-  if (stageId === "spine" && selection.spineSelectedId) {
-    const item = findUnit(payload.turns, selection.spineSelectedId)
-    return item
-      ? { label: text(item.title) || text(item.change) || item.id, unitRef: item.id }
-      : null
-  }
-  if (stageId === "cast" && selection.selectedChar) {
-    const item = findUnit(payload.subjects, selection.selectedChar)
-    return item
-      ? { label: text(item.name) || item.id, unitRef: item.id }
-      : null
-  }
-  if (stageId === "volumes" && selection.selectedVolumeId) {
-    const item = findUnit(payload.volumes, selection.selectedVolumeId)
-    return item
-      ? { label: text(item.title) || item.id, unitRef: item.id }
-      : null
-  }
-  if (stageId === "detail" && selection.selectedChapter) {
-    const item = findUnit(payload.chapters, selection.selectedChapter)
-    return item
-      ? { label: text(item.title) || item.id, unitRef: item.id }
-      : null
-  }
-  return null
-}
-
-function findUnit(value: unknown, id: string) {
-  if (!Array.isArray(value)) return null
-  const item = value.find(
-    (candidate) =>
-      candidate &&
-      typeof candidate === "object" &&
-      String((candidate as Record<string, unknown>).id ?? "") === id,
+function DockState({
+  children,
+  icon,
+  title,
+}: {
+  children: string
+  icon: ReactNode
+  title: string
+}) {
+  return (
+    <aside
+      aria-label="作者协作"
+      className="author-collaboration-panel collaboration-panel-loading"
+    >
+      {icon}
+      <strong>{title}</strong>
+      <span>{children}</span>
+    </aside>
   )
-  return item ? (item as Record<string, unknown> & { id: string }) : null
 }
 
-function text(value: unknown) {
-  return typeof value === "string" ? value : ""
+function artifactLabel(payload: Record<string, unknown>, fallback: string) {
+  for (const key of ["title", "display_name", "scene_heading"]) {
+    if (typeof payload[key] === "string" && payload[key]) return payload[key]
+  }
+  return fallback
 }
 
-export function isCollaborationStage(value: string): value is CollaborationStageId {
-  return ["spine", "cast", "volumes", "detail", "text"].includes(value)
-}
+export { isCollaborationStageId as isCollaborationStage }

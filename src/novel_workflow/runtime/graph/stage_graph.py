@@ -249,6 +249,19 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
                 "status": "cancelled",
             }
 
+        if executor.revalidate_failed_candidate(state, stage_id, dict(failure)):
+            return {
+                "decision_actions": copy_stage_mapping(
+                    state, "decision_actions", stage_id, "accept"
+                ),
+                "decision_ids": copy_stage_mapping(
+                    state, "decision_ids", stage_id, decision_id
+                ),
+                "failure": None,
+                "stage_status": copy_stage_status(state, stage_id, "running"),
+                "status": "running",
+            }
+
         attempts = dict(state.get("stage_attempts") or {})
         attempts[stage_id] = attempt + 1
         return {
@@ -302,11 +315,19 @@ def build_stage_graph(stage_id: StageId, executor: StageExecutor):
     builder.add_conditional_edges(
         "fail_stage",
         lambda state: (
-            "regenerate"
+            (
+                "revalidated"
+                if (state.get("decision_actions") or {}).get(stage_id) == "accept"
+                else "regenerate"
+            )
             if state.get("failure") is None and state.get("status") == "running"
             else "done"
         ),
-        {"regenerate": "generate_candidate", "done": END},
+        {
+            "revalidated": "validate_contract",
+            "regenerate": "generate_candidate",
+            "done": END,
+        },
     )
     return builder.compile(name=f"yotsuba_{stage_id}_stage")
 

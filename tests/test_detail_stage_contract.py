@@ -203,6 +203,72 @@ def test_detail_scene_counts_may_change_with_each_chapters_dramatic_load() -> No
     _validate_stage_unit("detail", "volume-1.segment-1", context, payload)
 
 
+def test_detail_unit_must_stage_each_subject_by_the_frozen_debut_deadline() -> None:
+    context = {
+        "material": {
+            "selected_dossiers": [
+                {"id": "subject-1", "kind": "protagonist"},
+                {"id": "subject-2", "kind": "major"},
+            ],
+            "debut_requirements": [
+                {
+                    "subject_id": "subject-2",
+                    "name": "苏婉",
+                    "debut": "chapter:1-2",
+                    "latest_chapter": 2,
+                }
+            ],
+            "scale_projection": {
+                "volume_ref": "volume-1",
+                "segment_ref": "volume-1.segment-1",
+                "segment_index": 1,
+                "segment_count": 1,
+                "chapter_target": 3,
+                "chapter_beats": [
+                    chapter_beat(1, ["turn-1"], "确认异常记录"),
+                    chapter_beat(2, ["turn-1"], "迫使证人作出选择"),
+                    chapter_beat(3, ["turn-2"], "承担公开风险"),
+                ],
+                "scenes_per_chapter_min": 1,
+                "scenes_per_chapter_max": 2,
+                "chapter_number_start": 1,
+            },
+        },
+        "output_budget": {"scene_cap": 2},
+    }
+
+    def chapter(title: str, cast_ids: list[str]) -> dict[str, object]:
+        return {
+            "title": title,
+            "purpose": f"推进{title}",
+            "pov": "subject-1",
+            "cast_ids": cast_ids,
+            "scenes": [
+                {
+                    "place": "档案室",
+                    "objective": "核对记录",
+                    "conflict": "程序阻力",
+                    "turn": "作出选择",
+                    "result": "风险上升",
+                }
+            ],
+            "handoff": "把新状态交给下一章",
+        }
+
+    payload = {
+        "chapters": [
+            chapter("异常记录", ["subject-1"]),
+            chapter("证人选择", ["subject-1"]),
+            chapter("公开风险", ["subject-1", "subject-2"]),
+        ]
+    }
+    with pytest.raises(ValueError, match="deadline chapter-2"):
+        _validate_stage_unit("detail", "volume-1.segment-1", context, payload)
+
+    payload["chapters"][1]["cast_ids"] = ["subject-1", "subject-2"]
+    _validate_stage_unit("detail", "volume-1.segment-1", context, payload)
+
+
 def test_detail_script_contract_rejects_prose_scale_chapter_cards() -> None:
     scene = {
         "place": "档案室" * 20,

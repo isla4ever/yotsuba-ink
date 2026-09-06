@@ -1,67 +1,89 @@
 import type {
-  ResolvedStoryConflict,
-  StoryBibleEvidenceSource,
-  StoryBibleFactEntry,
-  StoryBibleForeshadowEntry,
+  StoryBibleEntry,
+  StoryBibleEntryKind,
+  StoryBibleEntryStatus,
   StoryBiblePage,
   StoryBibleSection,
+  StoryBibleSource,
   StoryBibleSummary,
-  StoryEpistemicStatus,
-  StoryFactLifecycle,
+  StoryBibleWritebackStatus,
 } from "../contracts/storyBible"
+import type { CreationRouteId } from "../contracts/run"
 import { RunApiError } from "./runApi"
 
-const EPISTEMIC = new Set<StoryEpistemicStatus>([
-  "fact",
-  "rumour",
-  "belief",
-  "reveal",
-  "refutation",
+const ROUTES = new Set<CreationRouteId>([
+  "screenplay_sample",
+  "short_novel",
+  "long_novel",
 ])
-const LIFECYCLES = new Set<StoryFactLifecycle>([
-  "active",
-  "supersedes",
-  "resolves",
-  "contradicted",
+const SECTIONS = new Set<StoryBibleSection>([
+  "overview",
+  "cast",
+  "structure",
+  "units",
+  "continuity",
 ])
-const EVIDENCE_KINDS = new Set([
-  "fact",
+const KINDS = new Set<StoryBibleEntryKind>([
+  "brief_field",
+  "world_rule",
   "character",
   "relationship",
-  "foreshadow",
-  "spine",
+  "beat",
+  "scene",
+  "story_anchor",
+  "section_unit",
+  "part",
+  "volume",
+  "detail_window",
+  "chapter_plan",
+  "accepted_unit",
+  "promise",
+  "open_question",
+  "handoff",
+  "ending_condition",
+  "formal_fact",
 ])
-const WRITEBACK_STATUSES = new Set([
-  "evidence_only",
-  "canon_committed",
-  "wiki_projected",
+const STATUSES = new Set<StoryBibleEntryStatus>([
+  "committed",
+  "accepted",
+  "tracked",
+  "open",
+  "planned",
+  "verified",
+])
+const WRITEBACK_STATUSES = new Set<StoryBibleWritebackStatus>([
+  "not_started",
+  "in_progress",
+  "recovery_required",
+  "committed",
 ])
 
-export async function getStoryBiblePage<T extends StoryBibleSection>(
+export async function getStoryBiblePage(
   runId: string,
-  section: T,
+  section: StoryBibleSection,
   cursor?: string,
   signal?: AbortSignal,
-): Promise<StoryBiblePage<T extends "facts" ? StoryBibleFactEntry : StoryBibleForeshadowEntry>> {
+): Promise<StoryBiblePage> {
   const query = new URLSearchParams({ section, limit: "50" })
   if (cursor) query.set("cursor", cursor)
   const url = `/api/runs/${encodeURIComponent(runId)}/story-bible?${query}`
   const response = await fetch(url, { signal })
   if (!response.ok) throw await storyBibleResponseError(response)
-  return parseStoryBiblePage(await response.json(), runId, section) as StoryBiblePage<
-    T extends "facts" ? StoryBibleFactEntry : StoryBibleForeshadowEntry
-  >
+  return parseStoryBiblePage(await response.json(), runId, section)
 }
 
-function parseStoryBiblePage(
+export function parseStoryBiblePage(
   value: unknown,
   runId: string,
   section: StoryBibleSection,
-): StoryBiblePage<StoryBibleFactEntry | StoryBibleForeshadowEntry> {
+): StoryBiblePage {
   const record = requireRecord(value)
+  const route = requiredString(record.creation_route_id) as CreationRouteId
   if (
+    record.architecture_version !== "phase32-routes-v1" ||
     record.run_id !== runId ||
     record.section !== section ||
+    !ROUTES.has(route) ||
     !Array.isArray(record.items) ||
     !isNonNegativeInteger(record.total) ||
     !isPositiveInteger(record.limit) ||
@@ -69,17 +91,21 @@ function parseStoryBiblePage(
     !isNullableString(record.next_cursor)
   )
     throw invalidProjection()
-  const summary = parseSummary(record.summary)
-  const items =
-    section === "facts"
-      ? record.items.map(parseFact)
-      : record.items.map(parseForeshadow)
-  if (items.length > Number(record.limit) || items.length > Number(record.total))
+  const items = record.items.map(parseEntry)
+  if (
+    items.length > Number(record.limit) ||
+    items.length > Number(record.total)
+  )
     throw invalidProjection()
   return {
+    architecture_version: "phase32-routes-v1",
     run_id: runId,
+    project_id: requiredString(record.project_id),
+    creation_route_id: route,
+    route_revision: requiredString(record.route_revision),
+    definition_digest: digest(record.definition_digest),
     section,
-    summary,
+    summary: parseSummary(record.summary),
     items,
     total: record.total as number,
     limit: record.limit as number,
@@ -89,120 +115,101 @@ function parseStoryBiblePage(
 
 function parseSummary(value: unknown): StoryBibleSummary {
   const record = requireRecord(value)
+  const availableSections = stringArray(record.available_sections)
   if (
-    !isNonNegativeInteger(record.evidence_count) ||
-    !isNonNegativeInteger(record.canon_fact_count) ||
-    !isNonNegativeInteger(record.current_fact_count) ||
-    !isNonNegativeInteger(record.wiki_projected_fact_count) ||
-    !isNonNegativeInteger(record.foreshadow_count) ||
-    !isNonNegativeInteger(record.foreshadow_tracking_count) ||
-    !isNonNegativeInteger(record.foreshadow_resolved_count) ||
-    !isNullableNonNegativeInteger(record.as_of_chapter) ||
-    !Array.isArray(record.conflicts)
+    availableSections.some(
+      (item) => !SECTIONS.has(item as StoryBibleSection),
+    ) ||
+    new Set(availableSections).size !== availableSections.length ||
+    !isCounters(record) ||
+    !WRITEBACK_STATUSES.has(
+      record.formal_writeback_status as StoryBibleWritebackStatus,
+    )
   )
     throw invalidProjection()
   return {
-    evidence_count: record.evidence_count as number,
-    canon_fact_count: record.canon_fact_count as number,
-    current_fact_count: record.current_fact_count as number,
-    wiki_projected_fact_count: record.wiki_projected_fact_count as number,
-    foreshadow_count: record.foreshadow_count as number,
-    foreshadow_tracking_count: record.foreshadow_tracking_count as number,
-    foreshadow_resolved_count: record.foreshadow_resolved_count as number,
-    as_of_chapter: record.as_of_chapter as number | null,
-    conflicts: record.conflicts.map(parseConflict),
+    title: requiredString(record.title),
+    route_label: requiredString(record.route_label),
+    run_status: requiredString(record.run_status),
+    active_stage_id: requiredString(record.active_stage_id),
+    updated_at: requiredString(record.updated_at),
+    projection_revision: digest(record.projection_revision),
+    available_sections: availableSections as StoryBibleSection[],
+    source_artifact_count: record.source_artifact_count as number,
+    character_count: record.character_count as number,
+    relationship_count: record.relationship_count as number,
+    structure_count: record.structure_count as number,
+    accepted_unit_count: record.accepted_unit_count as number,
+    continuity_count: record.continuity_count as number,
+    tracked_promise_count: record.tracked_promise_count as number,
+    open_question_count: record.open_question_count as number,
+    formal_fact_count: record.formal_fact_count as number,
+    formal_writeback_status:
+      record.formal_writeback_status as StoryBibleWritebackStatus,
   }
 }
 
-function parseFact(value: unknown): StoryBibleFactEntry {
+function parseEntry(value: unknown): StoryBibleEntry {
   const record = requireRecord(value)
-  const effectiveFrom = nullablePositiveInteger(record.effective_from_chapter)
-  const effectiveTo = nullablePositiveInteger(record.effective_to_chapter)
+  const kind = requiredString(record.kind) as StoryBibleEntryKind
+  const status = requiredString(record.status) as StoryBibleEntryStatus
   if (
-    typeof record.is_current !== "boolean" ||
-    !Array.isArray(record.evidence_sources)
+    !KINDS.has(kind) ||
+    !STATUSES.has(status) ||
+    (record.authority !== "committed_artifact" &&
+      record.authority !== "accepted_unit" &&
+      record.authority !== "canon") ||
+    record.confidence !== "direct"
   )
     throw invalidProjection()
   return {
-    fact_id: requiredString(record.fact_id),
-    claim: requiredString(record.claim),
-    chapter_version_id: requiredString(record.chapter_version_id),
-    subject_id: stringValue(record.subject_id),
-    property_key: stringValue(record.property_key),
-    value: stringValue(record.value),
-    epistemic_status: epistemic(record.epistemic_status),
-    lifecycle: lifecycle(record.lifecycle),
-    effective_from_chapter: effectiveFrom,
-    effective_to_chapter: effectiveTo,
-    supersedes_fact_ids: stringArray(record.supersedes_fact_ids),
-    resolves_fact_ids: stringArray(record.resolves_fact_ids),
-    evidence_refs: nonEmptyStringArray(record.evidence_refs),
-    evidence_sources: record.evidence_sources.map(parseEvidenceSource),
-    missing_evidence_refs: stringArray(record.missing_evidence_refs),
-    wiki_transaction_ids: stringArray(record.wiki_transaction_ids),
-    is_current: record.is_current,
+    entry_ref: requiredString(record.entry_ref),
+    kind,
+    title: requiredString(record.title),
+    body: stringValue(record.body),
+    detail: stringValue(record.detail),
+    status,
+    ordinal: nullablePositiveInteger(record.ordinal),
+    parent_ref: stringValue(record.parent_ref),
+    unit_ref: stringValue(record.unit_ref),
+    subject_refs: stringArray(record.subject_refs),
+    promise_refs: stringArray(record.promise_refs),
+    tags: stringArray(record.tags),
+    authority: record.authority,
+    confidence: "direct",
+    source: parseSource(record.source),
   }
 }
 
-function parseEvidenceSource(value: unknown): StoryBibleEvidenceSource {
+function parseSource(value: unknown): StoryBibleSource {
   const record = requireRecord(value)
-  const kind = requiredString(record.kind)
-  if (!EVIDENCE_KINDS.has(kind)) throw invalidProjection()
   return {
-    evidence_id: requiredString(record.evidence_id),
-    chapter_id: requiredString(record.chapter_id),
-    chapter_version_id: requiredString(record.chapter_version_id),
-    kind: kind as StoryBibleEvidenceSource["kind"],
-    claim: requiredString(record.claim),
-    quotes: stringArray(record.quotes),
-    created_at: requiredString(record.created_at),
+    stage_id: requiredString(record.stage_id),
+    artifact_kind: requiredString(record.artifact_kind),
+    artifact_ref: requiredString(record.artifact_ref),
+    payload_digest: digest(record.payload_digest),
+    source_path: requiredString(record.source_path),
+    committed_at: requiredString(record.committed_at),
   }
 }
 
-function parseConflict(value: unknown): ResolvedStoryConflict {
-  const record = requireRecord(value)
-  const factIds = nonEmptyStringArray(record.fact_ids)
-  const values = nonEmptyStringArray(record.values)
-  if (factIds.length < 2 || values.length < 2) throw invalidProjection()
-  return {
-    subject_id: requiredString(record.subject_id),
-    property_key: requiredString(record.property_key),
-    fact_ids: factIds,
-    values,
-  }
+function isCounters(record: Record<string, unknown>) {
+  return [
+    "source_artifact_count",
+    "character_count",
+    "relationship_count",
+    "structure_count",
+    "accepted_unit_count",
+    "continuity_count",
+    "tracked_promise_count",
+    "open_question_count",
+    "formal_fact_count",
+  ].every((key) => isNonNegativeInteger(record[key]))
 }
 
-function parseForeshadow(value: unknown): StoryBibleForeshadowEntry {
-  const record = requireRecord(value)
-  const writeback = requiredString(record.writeback_status)
-  if (!WRITEBACK_STATUSES.has(writeback)) throw invalidProjection()
-  return {
-    evidence_id: requiredString(record.evidence_id),
-    claim: requiredString(record.claim),
-    chapter_id: requiredString(record.chapter_id),
-    chapter_version_id: requiredString(record.chapter_version_id),
-    quotes: stringArray(record.quotes),
-    epistemic_status: epistemic(record.epistemic_status),
-    lifecycle: lifecycle(record.lifecycle),
-    effective_from_chapter: nullablePositiveInteger(record.effective_from_chapter),
-    effective_to_chapter: nullablePositiveInteger(record.effective_to_chapter),
-    supersedes_fact_ids: stringArray(record.supersedes_fact_ids),
-    resolves_fact_ids: stringArray(record.resolves_fact_ids),
-    fact_ids: stringArray(record.fact_ids),
-    wiki_transaction_ids: stringArray(record.wiki_transaction_ids),
-    writeback_status: writeback as StoryBibleForeshadowEntry["writeback_status"],
-  }
-}
-
-function epistemic(value: unknown): StoryEpistemicStatus {
-  const result = requiredString(value) as StoryEpistemicStatus
-  if (!EPISTEMIC.has(result)) throw invalidProjection()
-  return result
-}
-
-function lifecycle(value: unknown): StoryFactLifecycle {
-  const result = requiredString(value) as StoryFactLifecycle
-  if (!LIFECYCLES.has(result)) throw invalidProjection()
+function digest(value: unknown) {
+  const result = requiredString(value)
+  if (!/^[a-f0-9]{64}$/.test(result)) throw invalidProjection()
   return result
 }
 
@@ -222,21 +229,10 @@ function stringArray(value: unknown) {
   return value as string[]
 }
 
-function nonEmptyStringArray(value: unknown) {
-  const result = stringArray(value)
-  if (!result.length || result.some((item) => !item.trim()))
-    throw invalidProjection()
-  return result
-}
-
 function nullablePositiveInteger(value: unknown) {
   if (value === null) return null
   if (!Number.isInteger(value) || Number(value) < 1) throw invalidProjection()
   return value as number
-}
-
-function isNullableNonNegativeInteger(value: unknown) {
-  return value === null || isNonNegativeInteger(value)
 }
 
 function isPositiveInteger(value: unknown) {
@@ -268,12 +264,15 @@ async function storyBibleResponseError(response: Response) {
     const payload = (await response.json()) as { detail?: unknown }
     if (typeof payload.detail === "string") message = payload.detail
     else if (payload.detail && typeof payload.detail === "object") {
-      const detail = payload.detail as { code?: unknown; message?: unknown }
+      const detail = payload.detail as {
+        code?: unknown
+        message?: unknown
+      }
       if (typeof detail.code === "string") code = detail.code
       if (typeof detail.message === "string") message = detail.message
     }
   } catch {
-    // Keep the stable user-facing fallback for non-JSON errors.
+    // Preserve the stable fallback when the server returns a non-JSON error.
   }
   return new RunApiError(message, response.status, code)
 }

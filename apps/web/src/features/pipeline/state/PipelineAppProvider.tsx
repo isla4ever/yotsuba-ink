@@ -7,14 +7,9 @@ import {
   useRef,
   type ReactNode,
 } from "react"
-import type { Route, Mode, Theme, Project } from "../contracts/app"
-import type {
-  ChapterVersionRecord,
-  GraphRunEnvelope,
-  NarrativeStageId,
-  RunArtifactRecord,
-  RunEvent,
-} from "../contracts/run"
+import type { Route, Theme, Project } from "../contracts/app"
+import type { CreationIntentDraft } from "../contracts/creationWizard"
+import type { Phase32RunEnvelope, Phase32RunEvent } from "../contracts/run"
 import type { RunConnectionState } from "./useActiveRun"
 import {
   pathForRoute,
@@ -24,17 +19,13 @@ import {
 } from "../lib/routes"
 import { projectPresentation } from "../lib/projectPresentation"
 import { getProjectSummary } from "../services/projectApi"
-import { getWorkflowDefinition } from "../services/workflowApi"
 import { useActiveRun } from "./useActiveRun"
-import { useRunArtifacts } from "./useRunArtifacts"
 
 interface AppCtx {
   route: Route
   setRoute: (r: Route) => void
   theme: Theme
   toggleTheme: () => void
-  mode: Mode
-  setMode: (m: Mode) => void
   sidebarCollapsed: boolean
   toggleSidebar: () => void
   cmdOpen: boolean
@@ -48,18 +39,14 @@ interface AppCtx {
   projectLoading: boolean
   activeProjectId: string | null
   activeProject: Project | null
-  activeRun: GraphRunEnvelope | null
+  activeRun: Phase32RunEnvelope | null
   runConnection: RunConnectionState
   runError: string
-  runEvents: RunEvent[]
+  runEvents: Phase32RunEvent[]
   runLoading: boolean
-  runArtifactLoading: boolean
-  runArtifactError: string
-  runArtifacts: Partial<Record<NarrativeStageId, RunArtifactRecord>>
-  runCandidateArtifacts: Partial<Record<NarrativeStageId, RunArtifactRecord>>
-  runChapters: ChapterVersionRecord[]
-  acceptedRunChapters: ChapterVersionRecord[]
-  refreshRun: () => Promise<GraphRunEnvelope | null>
+  refreshRun: () => Promise<Phase32RunEnvelope | null>
+  refreshActiveProject: () => Promise<Project | null>
+  reconnectRun: () => void
   openProject: (project: Project, startRoute?: Route) => void
   closeProject: () => void
   mobileDrawerOpen: boolean
@@ -67,9 +54,8 @@ interface AppCtx {
   /* Workflow template selection (wizard pre-select) */
   selectedTemplateId: string | null
   setSelectedTemplateId: (id: string | null) => void
-  /* Spine workbench selection */
-  spineSelectedId: string
-  setSpineSelectedId: (id: string) => void
+  creationWizardDraft: CreationIntentDraft | null
+  setCreationWizardDraft: (draft: CreationIntentDraft | null) => void
   /* Volume workbench selection */
   selectedVolumeId: string
   setSelectedVolumeId: (id: string) => void
@@ -88,11 +74,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     routeFromLocation(window.location),
   )
   const [theme, setTheme] = useState<Theme>("dark")
-  const [mode, setModeState] = useState<Mode>("balanced")
-  const modeRef = useRef<Mode>("balanced")
-  const modeTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  )
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
   const [selectedChapter, setSelectedChapter] = useState("ch-001")
@@ -112,32 +93,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedTemplateId, setSelectedTemplateIdState] =
     useState<string | null>(initialTemplateId)
   const selectedTemplateIdRef = useRef<string | null>(initialTemplateId)
-  const [spineSelectedId, setSpineSelectedId] = useState("")
   const [selectedVolumeId, setSelectedVolumeId] = useState("")
+  const [creationWizardDraft, setCreationWizardDraft] =
+    useState<CreationIntentDraft | null>(null)
   const activeRunState = useActiveRun(activeProject?.latestRunId || null)
-  const latestCommittedChapterEvent = activeRunState.events
-    .filter(
-      (event) =>
-        event.type === "artifact.committed" && event.stage_id === "text",
-    )
-    .reduce((latest, event) => Math.max(latest, event.sequence), 0)
-  const activeArtifactState = useRunArtifacts(
-    activeRunState.envelope,
-    latestCommittedChapterEvent,
-  )
-
-  const setMode = useCallback((nextMode: Mode) => {
-    if (modeRef.current === nextMode) return
-    modeRef.current = nextMode
-    document.documentElement.classList.add("mode-switching")
-    setModeState(nextMode)
-    if (modeTransitionTimerRef.current)
-      clearTimeout(modeTransitionTimerRef.current)
-    modeTransitionTimerRef.current = setTimeout(() => {
-      document.documentElement.classList.remove("mode-switching")
-      modeTransitionTimerRef.current = null
-    }, 200)
-  }, [])
 
   const setSelectedTemplateId = useCallback((workflowId: string | null) => {
     selectedTemplateIdRef.current = workflowId
@@ -170,6 +129,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     window.history.pushState(null, "", pathForRoute(startRoute, project.id))
     setMobileDrawerOpen(false)
   }
+
+  const refreshActiveProject = useCallback(async () => {
+    const projectId = activeProjectIdRef.current
+    if (!projectId) return null
+    const summary = await getProjectSummary(projectId)
+    const project = projectPresentation(summary.project, summary)
+    setActiveProject(project)
+    setProjectLoading(false)
+    return project
+  }, [])
 
   const closeProject = () => {
     setProjectOpen(false)
@@ -216,31 +185,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [activeProject, activeProjectId])
 
   useEffect(() => {
-    if (activeRunState.envelope) {
-      setMode(activeRunState.envelope.definition.quality_mode)
-      return
-    }
-    if (activeProject?.latestRunId) return
-    if (!activeProject?.workflowId) return
-    const controller = new AbortController()
-    void getWorkflowDefinition(activeProject.workflowId, controller.signal)
-      .then((workflow) => setMode(workflow.quality_mode))
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [
-    activeProject?.latestRunId,
-    activeProject?.workflowId,
-    activeRunState.envelope,
-    setMode,
-  ])
-
-  useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark")
   }, [theme])
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-mode", mode)
-  }, [mode])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -256,14 +202,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handler)
   }, [])
 
-  useEffect(
-    () => () => {
-      if (modeTransitionTimerRef.current)
-        clearTimeout(modeTransitionTimerRef.current)
-    },
-    [],
-  )
-
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"))
   const toggleSidebar = () => setSidebarCollapsed((c) => !c)
 
@@ -274,8 +212,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRoute,
         theme,
         toggleTheme,
-        mode,
-        setMode,
         sidebarCollapsed,
         toggleSidebar,
         cmdOpen,
@@ -295,19 +231,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         runError: activeRunState.error,
         runEvents: activeRunState.events,
         runLoading: activeRunState.loading,
-        runArtifactLoading: activeArtifactState.loading,
-        runArtifactError: activeArtifactState.error,
-        runArtifacts: activeArtifactState.artifacts,
-        runCandidateArtifacts: activeArtifactState.candidateArtifacts,
-        runChapters: activeArtifactState.chapters,
-        acceptedRunChapters: activeArtifactState.acceptedChapters,
         refreshRun: () => activeRunState.refresh(),
+        refreshActiveProject,
+        reconnectRun: activeRunState.reconnect,
         mobileDrawerOpen,
         setMobileDrawerOpen,
         selectedTemplateId,
         setSelectedTemplateId,
-        spineSelectedId,
-        setSpineSelectedId,
+        creationWizardDraft,
+        setCreationWizardDraft,
         selectedVolumeId,
         setSelectedVolumeId,
       }}

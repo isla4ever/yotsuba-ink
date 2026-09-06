@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from novel_workflow.output_contracts.artifacts_vnext import DetailScene
+
 
 def _normalize_turn_refs(value: list[str], *, label: str) -> list[str]:
     if len(value) != len(set(value)):
@@ -27,7 +29,10 @@ class SpineSemanticFinding(BaseModel):
         "premature_resolution",
         "ending_derivation",
     ]
-    turn_refs: list[str] = Field(min_length=1, max_length=6)
+    # A global finding may legitimately span the complete frozen Spine. Keep
+    # this aligned with StorySpineArtifact.turns; runtime validation still
+    # rejects every ref that is not part of the current candidate.
+    turn_refs: list[str] = Field(min_length=1, max_length=120)
     claim: str = Field(min_length=1, max_length=800)
     required_fix: str = Field(min_length=1, max_length=800)
 
@@ -64,7 +69,7 @@ class RoleDemandSemanticFinding(BaseModel):
         "historical_subject_misuse",
     ]
     demand_refs: list[str] = Field(max_length=6)
-    turn_refs: list[str] = Field(min_length=1, max_length=8)
+    turn_refs: list[str] = Field(min_length=1, max_length=120)
     claim: str = Field(min_length=1, max_length=800)
     required_fix: str = Field(min_length=1, max_length=800)
 
@@ -111,7 +116,7 @@ class CastDossierSemanticFinding(BaseModel):
     ]
     subject_refs: list[str] = Field(min_length=1, max_length=6)
     demand_refs: list[str] = Field(min_length=1, max_length=6)
-    turn_refs: list[str] = Field(max_length=8)
+    turn_refs: list[str] = Field(max_length=120)
     claim: str = Field(min_length=1, max_length=800)
     required_fix: str = Field(min_length=1, max_length=800)
 
@@ -152,6 +157,24 @@ class CastDossierSemanticReviewResult(BaseModel):
         if self.verdict == "revise" and not self.findings:
             raise ValueError("A Cast dossier revision verdict requires at least one finding")
         return self
+
+
+class DetailRecoveryChapterPatch(BaseModel):
+    """Provider-owned mutable fields for one source-bound Detail chapter."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    purpose: str = Field(min_length=1, max_length=1000)
+    scenes: list[DetailScene] = Field(min_length=1, max_length=12)
+    handoff: str = Field(min_length=1, max_length=800)
+
+
+class DetailRecoveryPatch(BaseModel):
+    """Ordered patches matching recovery_source.editable_chapter_refs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    chapters: list[DetailRecoveryChapterPatch] = Field(min_length=1, max_length=200)
 
 
 class ReviewFinding(BaseModel):
@@ -232,6 +255,8 @@ __all__ = [
     "CastDossierSemanticReviewResult",
     "ChapterEvidenceResult",
     "ChapterReviewResult",
+    "DetailRecoveryChapterPatch",
+    "DetailRecoveryPatch",
     "EvidenceClaimProposal",
     "EvidenceStateAssertionProposal",
     "EvidenceStateTransitionProposal",

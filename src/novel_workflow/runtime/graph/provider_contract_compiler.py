@@ -14,6 +14,7 @@ from novel_workflow.output_contracts.artifacts_vnext import (
 from novel_workflow.providers.frozen_contract import schema_digest
 from novel_workflow.output_contracts.provider_tasks import (
     CastDossierSemanticReviewResult,
+    DetailRecoveryPatch,
     RoleDemandSemanticReviewResult,
     SpineSemanticReviewResult,
 )
@@ -182,6 +183,23 @@ def schema_with_frozen_context_bounds(
             "chapter_target",
             task_name,
         )
+        recovery_source = material.get("recovery_source")
+        chapter_definition = "DetailSegmentChapter"
+        if recovery_source is not None:
+            if not isinstance(recovery_source, dict):
+                raise ValueError("Detail recovery source must be structured")
+            editable_refs = _required_list(
+                recovery_source,
+                "editable_chapter_refs",
+                "detail recovery",
+            )
+            if not editable_refs or len(editable_refs) != len(set(editable_refs)):
+                raise ValueError(
+                    "Detail recovery requires distinct editable chapter refs"
+                )
+            chapter_target = len(editable_refs)
+            effective = DetailRecoveryPatch.model_json_schema()
+            chapter_definition = "DetailRecoveryChapterPatch"
         scene_min = _required_positive_int(
             scale_projection,
             "scenes_per_chapter_min",
@@ -202,7 +220,7 @@ def schema_with_frozen_context_bounds(
         )
         _set_array_bounds(
             effective,
-            ("$defs", "DetailSegmentChapter", "properties", "scenes"),
+            ("$defs", chapter_definition, "properties", "scenes"),
             scene_min,
             scene_max,
         )

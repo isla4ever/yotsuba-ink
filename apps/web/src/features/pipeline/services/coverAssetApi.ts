@@ -28,10 +28,7 @@ export async function getCoverAssets(
   }
 }
 
-export function coverAssetContentUrl(
-  runId: string,
-  asset: CoverAssetRecord,
-) {
+export function coverAssetContentUrl(runId: string, asset: CoverAssetRecord) {
   return (
     asset.content_url ||
     `/api/runs/${encodeURIComponent(runId)}/cover-assets/${encodeURIComponent(asset.asset_id)}`
@@ -62,8 +59,7 @@ function parseCoverAsset(value: unknown): CoverAssetRecord {
   if (
     strings.some((key) => typeof value[key] !== "string") ||
     numbers.some(
-      (key) =>
-        typeof value[key] !== "number" || !Number.isFinite(value[key]),
+      (key) => typeof value[key] !== "number" || !Number.isFinite(value[key]),
     ) ||
     !/^[a-f0-9]{64}$/i.test(String(value.sha256))
   ) {

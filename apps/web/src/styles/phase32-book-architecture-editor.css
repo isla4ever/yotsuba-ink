@@ -1,0 +1,157 @@
+.book-architecture-root {
+  border-block: 1px solid var(--border-hl); display: grid; gap: 14px; padding: 17px 0 20px;
+}
+.book-architecture-section-label,
+.book-architecture-ending-ledger > header,
+.book-architecture-obligations > header { align-items: center; display: flex; justify-content: space-between; }
+.book-architecture-section-label {
+  color: var(--text-ash); font-size: 10.5px; font-weight: 600; gap: 7px; justify-content: flex-start;
+}
+.book-architecture-section-label svg,
+.book-architecture-ending-ledger > header svg,
+.book-architecture-obligations > header svg { color: var(--action-primary); }
+.book-architecture-field { display: grid; gap: 6px; min-width: 0; }
+.book-architecture-field > span { color: var(--text-fog); font-size: 9.5px; }
+.book-architecture-field textarea,
+.book-architecture-ending-ledger textarea,
+.book-architecture-obligations textarea,
+.book-architecture-composer input {
+  background: color-mix(in srgb, var(--bg-surface) 86%, var(--bg-base));
+  border: 1px solid var(--border-gh); border-radius: 4px; color: var(--text-ash);
+  font-family: var(--font-sans); font-size: 11px; line-height: 1.65; min-width: 0;
+  outline: none; padding: 8px 9px;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+  width: 100%;
+}
+.book-architecture-field textarea { min-height: 78px; resize: vertical; }
+.book-architecture-field.is-emphasized textarea {
+  border-left-color: color-mix(in srgb, var(--action-primary) 52%, var(--border-hl));
+  font-family: var(--font-serif); font-size: 12.5px;
+}
+.book-architecture-field textarea:focus,
+.book-architecture-ending-ledger textarea:focus,
+.book-architecture-obligations textarea:focus,
+.book-architecture-composer input:focus {
+  background: var(--bg-surface); border-color: color-mix(in srgb, var(--action-primary) 48%, var(--border-hl));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--action-primary) 8%, transparent); color: var(--text-ink);
+}
+.book-architecture-field textarea[readonly],
+.book-architecture-ending-ledger textarea[readonly],
+.book-architecture-obligations textarea[readonly] {
+  background: color-mix(in srgb, var(--bg-surface) 62%, transparent); cursor: default;
+}
+.book-architecture-ending-ledger,
+.book-architecture-obligations { display: grid; gap: 8px; }
+.book-architecture-ending-ledger > header > div,
+.book-architecture-obligations > header > div {
+  align-items: center; color: var(--text-ash); display: flex; font-size: 10px; font-weight: 600; gap: 7px;
+}
+.book-architecture-ending-ledger > header small,
+.book-architecture-obligations > header small { color: var(--text-fog); font-size: 9px; }
+.book-architecture-ending-ledger > div:nth-child(2),
+.book-architecture-obligations > div:nth-child(2) { display: grid; gap: 6px; }
+.book-architecture-ending-ledger label,
+.book-architecture-obligations label {
+  align-items: start; display: grid; gap: 7px; grid-template-columns: 24px minmax(0, 1fr) 26px;
+}
+.book-architecture-ending-ledger label > span,
+.book-architecture-obligations label > span {
+  color: var(--text-fog); font-family: var(--font-mono); font-size: 9px; padding-top: 9px;
+}
+.book-architecture-ending-ledger label > button,
+.book-architecture-obligations label > button,
+.book-architecture-order-actions button {
+  align-items: center; border: 1px solid transparent; border-radius: 4px; color: var(--text-fog);
+  display: inline-flex; height: 26px; justify-content: center; margin-top: 5px; width: 26px;
+}
+.book-architecture-ending-ledger label > button:hover:not(:disabled),
+.book-architecture-obligations label > button:hover,
+.book-architecture-ending-ledger label > button:focus-visible,
+.book-architecture-obligations label > button:focus-visible {
+  background: var(--color-risk-bg); color: var(--color-risk); outline: none;
+}
+.book-architecture-ending-ledger button:disabled,
+.book-architecture-order-actions button:disabled { cursor: not-allowed; opacity: .28; }
+.book-architecture-composer { display: grid; gap: 7px; grid-template-columns: minmax(0, 1fr) auto; }
+.book-architecture-composer input { height: 34px; }
+.book-architecture-composer button {
+  align-items: center; border: 1px dashed var(--border-hl); border-radius: 4px; color: var(--text-fog);
+  display: flex; font-size: 9.5px; gap: 5px; justify-content: center; padding: 0 10px;
+}
+.book-architecture-composer button:hover:not(:disabled),
+.book-architecture-composer button:focus-visible {
+  border-color: color-mix(in srgb, var(--action-primary) 38%, var(--border-hl));
+  color: var(--action-primary); outline: none;
+}
+.book-architecture-composer button:disabled { cursor: not-allowed; opacity: .4; }
+.book-architecture-part-sheet {
+  border-bottom: 1px solid var(--border-hl); display: grid; gap: 15px; padding: 22px 0 26px;
+}
+.book-architecture-part-sheet > header {
+  align-items: center; display: flex; gap: 12px; justify-content: space-between;
+}
+.book-architecture-part-sheet > header > div:first-child {
+  align-items: center; display: flex; gap: 10px; min-width: 0;
+}
+.book-architecture-part-sheet > header > div:first-child > span {
+  color: var(--action-primary); font-family: var(--font-mono); font-size: 18px;
+}
+.book-architecture-part-sheet > header > div:first-child > div { display: grid; gap: 1px; min-width: 0; }
+.book-architecture-part-sheet > header strong { color: var(--text-ash); font-size: 10px; font-weight: 600; }
+.book-architecture-part-sheet > header code { color: var(--text-fog); font-family: var(--font-mono); font-size: 8.5px; }
+.book-architecture-order-actions { align-items: center; display: flex; gap: 3px; }
+.book-architecture-order-actions button { margin-top: 0; }
+.book-architecture-order-actions button:hover:not(:disabled),
+.book-architecture-order-actions button:focus-visible {
+  background: var(--bg-hover); border-color: var(--border-hl); color: var(--action-primary); outline: none;
+}
+.book-architecture-state-handoff {
+  align-items: stretch; display: grid; gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
+}
+.book-architecture-handoff-mark {
+  align-items: center; color: var(--action-primary); display: grid;
+  grid-template-rows: minmax(10px, 1fr) auto minmax(10px, 1fr); justify-items: center; padding-top: 22px;
+}
+.book-architecture-handoff-mark span {
+  background: color-mix(in srgb, var(--action-primary) 34%, var(--border-gh)); width: 1px;
+}
+.book-architecture-ref-ledgers {
+  border-block: 1px solid var(--border-gh); display: grid; gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.book-architecture-ref-ledgers > section { display: grid; gap: 8px; min-width: 0; padding: 12px 0; }
+.book-architecture-ref-ledgers > section + section {
+  border-left: 1px solid var(--border-gh); padding-left: 14px;
+}
+.book-architecture-ref-ledgers span {
+  align-items: center; color: var(--text-fog); display: flex; font-size: 9px; gap: 5px;
+}
+.book-architecture-ref-ledgers span svg { color: var(--action-primary); }
+.book-architecture-ref-ledgers section > div { display: flex; flex-wrap: wrap; gap: 5px; }
+.book-architecture-ref-ledgers code {
+  background: var(--action-primary-bg); border: 1px solid color-mix(in srgb, var(--action-primary) 24%, transparent);
+  border-radius: 3px; color: var(--action-primary); font-family: var(--font-mono); font-size: 8.5px; padding: 3px 5px;
+}
+.book-architecture-obligations > p { color: var(--text-fog); font-size: 9.5px; margin: 0; }
+
+@media (max-width: 767px) {
+  .book-architecture-state-handoff { grid-template-columns: minmax(0, 1fr); }
+  .book-architecture-handoff-mark { display: none; }
+  .book-architecture-ref-ledgers { grid-template-columns: minmax(0, 1fr); }
+  .book-architecture-ref-ledgers > section + section {
+    border-left: 0; border-top: 1px solid var(--border-gh); padding-left: 0;
+  }
+}
+
+@media (max-width: 440px) {
+  .book-architecture-ending-ledger label,
+  .book-architecture-obligations label { grid-template-columns: 20px minmax(0, 1fr) 25px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-architecture-field textarea,
+  .book-architecture-ending-ledger textarea,
+  .book-architecture-obligations textarea,
+  .book-architecture-composer input { transition: none; }
+}

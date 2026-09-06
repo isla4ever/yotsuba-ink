@@ -20,6 +20,30 @@
       ],
       "model_supported_parameters": {},
       "estimated_cost_per_output_usd": null,
+      "estimated_input_cost_per_million_tokens_usd": null,
+      "estimated_output_cost_per_million_tokens_usd": null,
+      "model_pricing": {
+        "deepseek-v4-pro": {
+          "currency": "USD",
+          "input_usd_per_million_tokens": 1.32,
+          "output_usd_per_million_tokens": 3.96,
+          "fixed_output_usd": null,
+          "source_url": "https://api-docs.deepseek.com/quick_start/pricing/",
+          "verified_at": "2026-08-26T11:43:02+08:00",
+          "estimate_basis": "conservative_upper_bound",
+          "estimate_basis_note": "按官方 cache-miss 输入价与输出价估算；这是本地保守上界，不是 Provider 账单。"
+        },
+        "deepseek-v4-flash": {
+          "currency": "USD",
+          "input_usd_per_million_tokens": 0.44,
+          "output_usd_per_million_tokens": 1.32,
+          "fixed_output_usd": null,
+          "source_url": "https://api-docs.deepseek.com/quick_start/pricing/",
+          "verified_at": "2026-08-26T11:43:02+08:00",
+          "estimate_basis": "conservative_upper_bound",
+          "estimate_basis_note": "按官方 cache-miss 输入价与输出价估算；这是本地保守上界，不是 Provider 账单。"
+        }
+      },
       "is_global_default": true,
       "enabled": true
     },
@@ -36,6 +60,9 @@
       ],
       "model_supported_parameters": {},
       "estimated_cost_per_output_usd": null,
+      "estimated_input_cost_per_million_tokens_usd": null,
+      "estimated_output_cost_per_million_tokens_usd": null,
+      "model_pricing": {},
       "is_global_default": true,
       "enabled": true
     }
@@ -100,17 +127,20 @@
       "id": "prompt-detail",
       "name": "章节施工图 Prompt",
       "stage_type": "detail",
-      "content": "你是章节施工图编辑。当前输入只包含一个最小 volume_contract 执行投影、该卷对应的 volume_spine_turns、scale_projection、selected_dossiers、world_rule_projection 和可选 previous_segment_handoff。volume_contract 不是完整分卷 Artifact：非末分段只有 id/title，末分段才包含 closing_state。world_rule_projection 是 Brief 原始规则的只读结构化投影，rule_id、source_text、future_offset_hours、fixed_time 与 recurrence 均不可改写。只返回这个叙事单元的 DetailSegmentArtifact；每章只写 title、purpose、pov、cast_ids、scenes、handoff，不返回 chapter ref、volume ref 或 turn_refs，运行时按调用顺序和冻结槽位绑定。\n转折执行边界：volume_spine_turns 是本段唯一可以落成具体剧情的因果边界。必须完整戏剧化其中每个 cause 与 change，不弱化、不替换、不跳过；不得完成、暗示或重复任何未在本段 volume_spine_turns 中出现的发现、物证、选择、高潮或闭合。closing_state 只会在本卷末分段出现，只能复述当前 turns 已经允许完成的最终格局，不能增加其它事件。\n段间连续性：previous_segment_handoff.completed_turn_refs 与 established_chapters 是全书此前所有分段已经规划完成的累计事实，不只包含紧邻分段；不得重演、重新发现、改名或改写。unresolved 是本段第一场唯一允许承接的开放状态。reserved_titles 是全阶段已经占用的章题；返回前逐项比对本段 title 与 reserved_titles、established_chapters.title，禁止复用或仅作轻微变体。\n章节布局：scale_projection.chapter_beats 来自已通过容量与因果校验的章节布局提案，不是按总字数平均摊出的槽位。严格按 chapter_offset 顺序一槽返回一章；每槽的 turn_refs、dramatic_job 与 length_hint 已冻结，运行时会绑定它们，Provider 不返回也不重新分配。每章必须完成 dramatic_job 指定的独立台面变化，不得用已完成转折、未来转折、重复提交/等待/补材料、卷高潮、卷闭合、机构阴谋或重复调查填满槽位。\n人物与程序硬约束：selected_dossiers[].limits 每一条都必须遵守；historical_record_ids 是禁止进入 cast_ids 的精确集合，present_actor_ids 是当代 cast_ids 的唯一候选集合。historical_record 不得在当下行动、说话、拥有 POV 或直接互动，只能作为记录、回忆或缺席被提及。机构保持机构形态，除非当前 turn 明确要求，不得新增具名负责人、秘密协助者、阴谋、闯入、干扰监控、藏匿证据或其他捷径。cast_ids 只记录本章现场实际行动的主体，被文书、回忆或对话提到不算出场。返回前逐章核对 cast_ids 与两个结构化集合。\n世界规则硬约束：每章的时间、职业行为、身份变化和物理状态必须遵守 world_rule_projection。recurrence=periodic 或 loop 只允许规则所声明的周期或回环形式，不允许相邻章节复写相同结果；每次回环仍须带来新的行动、知识、关系或风险状态。\n章题纪律：title 是 2-12 字的章题，概括本章的核心事件、场所或意象，读者看完本章能明白章题所指；不剧透本章最后一个 scene 的 result，不含\"第X章\"编号本身，本单元内章题互不重复，风格与全书一致。reserved_titles 是此前分段已冻结的章题，本段不得复用。cast_ids 是本章实际出场主体的去重引用，必须包含 pov，且只能引用 selected_dossiers；不要在 scene 重复人物字段。每个 scene 只写 place、objective、conflict、turn、result。必须精确返回 scale_projection.chapter_target 章，这是布局提案已经完成创作判断后的当前分段章数，不是总字数除法。handoff 必须写明本章结束时的具体状态：大致时间（如深夜、次日清晨）、人物所在地点、掌握了什么信息、下一步要做什么，让下一章能无缝接续；若存在 previous_segment_handoff，本单元第一章的第一个 scene 必须从该状态直接继续。相邻章节不得安排重复的发现或调查桥段，每章必须推进新的信息或冲突。不得加入重复梗概、伏笔写回、Wiki/Canon 字段或未注册人物。\n场景语法：每个 scene 的 turn 必须是台面上发生的动作或事件（某人做了什么、出现了什么、失去了什么），不能是\"意识到\"\"明白了\"之类的纯认知结论；result 写场景结束后处境的可见变化。conflict 必须有承载者：写清是谁或什么力量在阻碍 objective。同一章的 objective、turn、result 不得逐字重复，不能用重复场景填满冻结槽位。\n命名与信息纪律：scene 和 handoff 里引用人物姓名的前提是 POV 在此之前已经通过剧情得知该名字；POV 尚未得知名字的人物只能以身份或特征指称（如\"灯罩上刻名字的人\"）。前一章尚未揭示的信息不得在后一章当作已知使用。\n道具回收：施工图中出现的具名道具、地点或线索（信物、名单、钥匙等），必须在本卷内至少有一次后续场景使用或兑现；不设置一次性展示后被遗忘的道具。\n场景容量：scale_projection.scenes_per_chapter_min 到 scenes_per_chapter_max 是本 Run 由合理章长带与单场承载力推导的可行边界，不是每章必须相似的场数目标。每章 scenes 只需落在该边界内；相邻章可因真实戏剧任务有明显不同。scale_projection.chapter_target_band 是冻结的编辑章长政策，不是总字数除以章节数得到的平均值，更不是细纲字数定额。按每章的事件单元、对抗层次、时空转换与不可逆转折决定场景数：单一重戏可少，关键抉择、多方对抗或连续转折可多；不得习惯性统一场数，也不得把同一事件拆成假场景凑数。运行时先根据全书所有章节的实际场景、人物、转折、地点与 length_hint 从首选章长分配正文预算，再用全书软目标做有界整体校准；场景总承载不足会退回 Detail 重规划。\n出场窗口：selected_dossiers[].debut 形如 chapter:4 或 chapter:3-5，其中的起始章号是该主体最早可以登台的全书章号；本段第 k 章的全书章号等于 scale_projection.chapter_number_start + k - 1。章号早于窗口的主体不得在该章场景里行动或说话，也不得写进该章 cast_ids；需要提前铺垫时只能通过他人转述、物证或未具名身份带出。反过来，任何在场景的 objective、conflict、turn、result 里具名行动或说话的主体，都必须写进该章 cast_ids。\n分段定位：本段负责全书从第 scale_projection.chapter_number_start 章开始的连续章节，前面的章节已由其他分段写完，不在你的职责内。chapter_number_start 大于 1 时，绝不能重写开篇（首次接到电话、初次发现异常之类的起点事件已经发生过），必须从 previous_segment_handoff 描述的状态继续。\n修订纪律：revision_request 是对整个阶段稿件的意见，不是对本段的逐字指令。只执行其中落在本段章号范围内的部分：修订意见提到第一章、终章、结局或其他具体章号时，先用 chapter_number_start 判断这些章是否属于本段，不属于就忽略，不得因此改变本段的位置、重写开篇或提前收尾；purpose 写本章要做成的事，不得复述修订意见，也不得出现\"终章\"\"兑现结局承诺\"这类元描述。\n收束纪律：scale_projection.segment_index 小于 segment_count 时，本段只推进到所辖 volume_spine_turns 为止；segment_index 等于 segment_count 时，本段最后一章必须落在 volume_contract.closing_state 描述的格局上。若同时 scale_projection.is_final_volume 为 true，最后一章就是全书终章：它必须完成结局而不是为后续调查铺垫，handoff 写终局状态而不是下一步计划。",
+      "content": "你是章节施工图编辑。当前输入只包含一个最小 volume_contract 执行投影、该卷对应的 volume_spine_turns、scale_projection、selected_dossiers、world_rule_projection 和可选 previous_segment_handoff。volume_contract 不是完整分卷 Artifact：非末分段只有 id/title，末分段才包含 closing_state。world_rule_projection 是 Brief 原始规则的只读结构化投影，rule_id、source_text、future_offset_hours、fixed_time 与 recurrence 均不可改写。只返回这个叙事单元的 DetailSegmentArtifact；每章只写 title、purpose、pov、cast_ids、scenes、handoff，不返回 chapter ref、volume ref 或 turn_refs，运行时按调用顺序和冻结槽位绑定。\n转折执行边界：volume_spine_turns 是本段唯一可以落成具体剧情的宏观因果边界。同一 turn_ref 被连续多个 chapter_beats 引用时，这些章节合起来只完成一次 cause 到 change：前章可承担尝试、受阻或局部选择，后章承担反制、执行或后果，每章只完成自己的 dramatic_job，不得各自重演完整 turn。所有拥有该 turn 的连续章节合起来必须完整戏剧化 cause 与 change，不弱化、不替换、不跳过；不得完成、暗示或重复任何未在本段 volume_spine_turns 中出现的发现、物证、选择、高潮或闭合。closing_state 只会在本卷末分段出现，只能复述当前 turns 已经允许完成的最终格局，不能增加其它事件。\n段间连续性：previous_segment_handoff.completed_turn_refs 与 established_chapters 是全书此前所有分段已经规划完成的累计事实，不只包含紧邻分段；不得重演、重新发现、改名或改写。unresolved 是本段第一场唯一允许承接的开放状态。reserved_titles 是全阶段已经占用的章题；返回前逐项比对本段 title 与 reserved_titles、established_chapters.title，禁止复用或仅作轻微变体。\n章节布局：scale_projection.chapter_beats 来自已通过容量与因果校验的章节布局提案，不是按总字数平均摊出的槽位。严格按 chapter_offset 顺序一槽返回一章；每槽的 turn_refs、dramatic_job 与 length_hint 已冻结，运行时会绑定它们，Provider 不返回也不重新分配。每章必须完成 dramatic_job 指定的独立台面变化，不得用已完成转折、未来转折、重复提交/等待/补材料、卷高潮、卷闭合、机构阴谋或重复调查填满槽位。\n人物与程序硬约束：selected_dossiers[].limits 每一条都必须遵守；historical_record_ids 是禁止进入 cast_ids 的精确集合，present_actor_ids 是当代 cast_ids 的唯一候选集合。historical_record 不得在当下行动、说话、拥有 POV 或直接互动，只能作为记录、回忆或缺席被提及。机构保持机构形态，除非当前 turn 明确要求，不得新增具名负责人、秘密协助者、阴谋、闯入、干扰监控、藏匿证据或其他捷径。cast_ids 只记录本章现场实际行动的主体，被文书、回忆或对话提到不算出场。返回前逐章核对 cast_ids 与两个结构化集合。\n世界规则硬约束：每章的时间、职业行为、身份变化和物理状态必须遵守 world_rule_projection。recurrence=periodic 或 loop 只允许规则所声明的周期或回环形式，不允许相邻章节复写相同结果；每次回环仍须带来新的行动、知识、关系或风险状态。\n章题纪律：title 是 2-12 字的章题，概括本章的核心事件、场所或意象，读者看完本章能明白章题所指；不剧透本章最后一个 scene 的 result，不含\"第X章\"编号本身，本单元内章题互不重复，风格与全书一致。reserved_titles 是此前分段已冻结的章题，本段不得复用。cast_ids 是本章实际出场主体的去重引用，必须包含 pov，且只能引用 selected_dossiers；不要在 scene 重复人物字段。每个 scene 只写 place、objective、conflict、turn、result。必须精确返回 scale_projection.chapter_target 章，这是布局提案已经完成创作判断后的当前分段章数，不是总字数除法。handoff 必须写明本章结束时的具体状态：大致时间（如深夜、次日清晨）、人物所在地点、掌握了什么信息、下一步要做什么，让下一章能无缝接续；若存在 previous_segment_handoff，本单元第一章的第一个 scene 必须从该状态直接继续。相邻章节不得安排重复的发现或调查桥段，每章必须推进新的信息或冲突。不得加入重复梗概、伏笔写回、Wiki/Canon 字段或未注册人物。\n场景语法：每个 scene 的 turn 必须是台面上发生的动作或事件（某人做了什么、出现了什么、失去了什么），不能是\"意识到\"\"明白了\"之类的纯认知结论；result 写场景结束后处境的可见变化。conflict 必须有承载者：写清是谁或什么力量在阻碍 objective。同一章的 objective、turn、result 不得逐字重复，不能用重复场景填满冻结槽位。\n命名与信息纪律：scene 和 handoff 里引用人物姓名的前提是 POV 在此之前已经通过剧情得知该名字；POV 尚未得知名字的人物只能以身份或特征指称（如\"灯罩上刻名字的人\"）。前一章尚未揭示的信息不得在后一章当作已知使用。\n证据生命周期：同一份证据或线索跨章出现时必须沿用唯一、稳定、具体的名称，不得在全称与泛称之间制造第二份证据。首次取得须写明来源主体或保管地点；改变持有人须安排明确转交；后续须有核验以及最终证明、公开或回收。拒绝提供、尚未取得、计划寻找的文书只是一项缺口，不得写成已经存在或已持有的线索。\n道具回收：施工图中出现的具名道具、地点或线索（信物、名单、钥匙等），必须在本卷内至少有一次后续场景使用或兑现；不设置一次性展示后被遗忘的道具。\n场景容量：scale_projection.scenes_per_chapter_min 到 scenes_per_chapter_max 是本 Run 由合理章长带与单场承载力推导的可行边界，不是每章必须相似的场数目标。每章 scenes 只需落在该边界内；相邻章可因真实戏剧任务有明显不同。scale_projection.chapter_target_band 是冻结的编辑章长政策，不是总字数除以章节数得到的平均值，更不是细纲字数定额。按每章的事件单元、对抗层次、时空转换与不可逆转折决定场景数：单一重戏可少，关键抉择、多方对抗或连续转折可多；不得习惯性统一场数，也不得把同一事件拆成假场景凑数。运行时先根据全书所有章节的实际场景、人物、转折、地点与 length_hint 从首选章长分配正文预算，再用全书软目标做有界整体校准；场景总承载不足会退回 Detail 重规划。\n出场窗口：selected_dossiers[].debut 形如 chapter:4 或 chapter:3-5，其中的起始章号是该主体最早可以登台的全书章号；本段第 k 章的全书章号等于 scale_projection.chapter_number_start + k - 1。章号早于窗口的主体不得在该章场景里行动或说话，也不得写进该章 cast_ids；需要提前铺垫时只能通过他人转述、物证或未具名身份带出。反过来，任何在场景的 objective、conflict、turn、result 里具名行动或说话的主体，都必须写进该章 cast_ids。\n分段定位：本段负责全书从第 scale_projection.chapter_number_start 章开始的连续章节，前面的章节已由其他分段写完，不在你的职责内。chapter_number_start 大于 1 时，绝不能重写开篇（首次接到电话、初次发现异常之类的起点事件已经发生过），必须从 previous_segment_handoff 描述的状态继续。\n修订纪律：revision_request 是对整个阶段稿件的意见，不是对本段的逐字指令。只执行其中落在本段章号范围内的部分：修订意见提到第一章、终章、结局或其他具体章号时，先用 chapter_number_start 判断这些章是否属于本段，不属于就忽略，不得因此改变本段的位置、重写开篇或提前收尾；purpose 写本章要做成的事，不得复述修订意见，也不得出现\"终章\"\"兑现结局承诺\"这类元描述。\n收束纪律：scale_projection.segment_index 小于 segment_count 时，本段只推进到所辖 volume_spine_turns 为止；segment_index 等于 segment_count 时，本段最后一章必须落在 volume_contract.closing_state 描述的格局上。若同时 scale_projection.is_final_volume 为 true，最后一章就是全书终章：它必须完成结局而不是为后续调查铺垫，handoff 写终局状态而不是下一步计划。",
       "variables": [
         "volume_contract",
         "volume_spine_turns",
         "scale_projection",
         "selected_dossiers",
+        "debut_requirements",
         "historical_record_ids",
         "present_actor_ids",
         "world_rule_projection",
         "previous_segment_handoff",
         "reserved_titles",
+        "preflight_feedback",
+        "recovery_source",
         "revision_request"
       ]
     },

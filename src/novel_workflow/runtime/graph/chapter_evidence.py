@@ -145,7 +145,7 @@ async def extract_evidence(
                 operation_key,
                 status="retryable",
                 attempt=1,
-                contract_error=visible_error,
+                contract_error=failure.message[:2000],
                 provider_receipt_ref=receipt_key,
             )
             continue

@@ -126,6 +126,31 @@ def test_api_and_graph_do_not_import_deleted_production_paths() -> None:
         "author_collaboration.py",
         "collaboration_settings.py",
         "planning_aggregate_commit.py",
+        "phase32_amendment_branch.py",
+        "phase32_artifact_amendment.py",
+        "phase32_artifact_editing.py",
+        "phase32_artifact_impact.py",
+        "phase32_author_collaboration.py",
+        "phase32_continuity_acceptance.py",
+        "phase32_contract_repair.py",
+        "phase32_contract_repair_execution.py",
+        "phase32_creation_service.py",
+        "phase32_execution_service.py",
+        "phase32_failure_projection.py",
+        "phase32_graph_execution.py",
+        "phase32_live_candidate_authorization.py",
+        "phase32_live_candidate_preflight.py",
+        "phase32_project_service.py",
+        "phase32_provider_readiness.py",
+        "phase32_provider_readiness_admission.py",
+        "phase32_quality_review.py",
+        "phase32_release_evidence.py",
+        "phase32_release_evidence_validation.py",
+        "phase32_release_harness.py",
+        "phase32_run_fixture.py",
+        "phase32_run_preflight.py",
+        "phase32_stage_reference_validation.py",
+        "phase32_writeback.py",
         "run_preflight.py",
         "stage_artifact_editing.py",
     }
@@ -198,6 +223,7 @@ def test_phase27_production_authorities_have_no_retired_stage_identifiers() -> N
 def test_phase27_execution_code_does_not_relabel_the_brief_as_info() -> None:
     production_paths = (
         SRC / "runtime" / "graph" / "stage_executor.py",
+        SRC / "api" / "routes" / "artifact_amendments.py",
         SRC / "api" / "routes" / "runs.py",
     )
     production = "\n".join(path.read_text(encoding="utf-8") for path in production_paths)
@@ -242,7 +268,13 @@ def test_workflow_configuration_does_not_duplicate_runtime_or_artifact_authoriti
 
 
 def test_production_run_routes_do_not_read_the_archive() -> None:
-    source = (SRC / "api" / "routes" / "runs.py").read_text(encoding="utf-8")
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            SRC / "api" / "routes" / "artifact_amendments.py",
+            SRC / "api" / "routes" / "runs.py",
+        )
+    )
     assert "legacy_run_viewer" not in source
     assert "archived_run_read_only" not in source
 

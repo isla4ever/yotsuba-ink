@@ -3,6 +3,7 @@ from __future__ import annotations
 from novel_workflow.workflows.schemas import (
     InputField,
     ModelSettings,
+    ProviderModelPricing,
     ProviderProfile,
     GenerationBudget,
     CanvasLayout,
@@ -26,6 +27,8 @@ IMAGE_PROVIDER_ID = "openai-compatible-image"
 DEEPSEEK_FLASH_MODEL = "deepseek-v4-flash"
 DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
 DEFAULT_IMAGE_MODEL = "gpt-image-2"
+DEEPSEEK_PRICING_SOURCE_URL = "https://api-docs.deepseek.com/quick_start/pricing/"
+DEEPSEEK_PRICING_VERIFIED_AT = "2026-08-26T11:43:02+08:00"
 SPINE_PLANNING_TEMPERATURE = 0.45
 CAST_PLANNING_TEMPERATURE = 0.55
 STAGE_GENERATION_BUDGETS: dict[str, GenerationBudget] = {
@@ -275,6 +278,30 @@ def default_provider_profiles() -> list[ProviderProfile]:
             api_key_env="DEEPSEEK_API_KEY",
             default_model=DEEPSEEK_PRO_MODEL,
             model_options=[DEEPSEEK_PRO_MODEL, DEEPSEEK_FLASH_MODEL],
+            model_pricing={
+                DEEPSEEK_PRO_MODEL: ProviderModelPricing(
+                    input_usd_per_million_tokens=1.32,
+                    output_usd_per_million_tokens=3.96,
+                    source_url=DEEPSEEK_PRICING_SOURCE_URL,
+                    verified_at=DEEPSEEK_PRICING_VERIFIED_AT,
+                    estimate_basis="conservative_upper_bound",
+                    estimate_basis_note=(
+                        "按官方 cache-miss 输入价与输出价估算；"
+                        "这是本地保守上界，不是 Provider 账单。"
+                    ),
+                ),
+                DEEPSEEK_FLASH_MODEL: ProviderModelPricing(
+                    input_usd_per_million_tokens=0.44,
+                    output_usd_per_million_tokens=1.32,
+                    source_url=DEEPSEEK_PRICING_SOURCE_URL,
+                    verified_at=DEEPSEEK_PRICING_VERIFIED_AT,
+                    estimate_basis="conservative_upper_bound",
+                    estimate_basis_note=(
+                        "按官方 cache-miss 输入价与输出价估算；"
+                        "这是本地保守上界，不是 Provider 账单。"
+                    ),
+                )
+            },
             is_global_default=True,
         ),
         ProviderProfile(

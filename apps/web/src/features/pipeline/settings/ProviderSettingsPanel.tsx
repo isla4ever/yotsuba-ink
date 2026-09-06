@@ -23,7 +23,10 @@ import { useProviderSettings } from "../state/useProviderSettings"
 import { BookLoader } from "../layout/BookLoader"
 import { useLoadingPresence } from "../layout/useLoadingPresence"
 
-const KIND_META: Record<ProviderKind, { label: string; icon: ReactNode }> = {
+const KIND_META: Record<ProviderKind, {
+  label: string
+  icon: ReactNode
+}> = {
   "openai-compatible": { label: "文本服务", icon: <CloudCog size={13} /> },
   "openai-compatible-image": {
     label: "图片服务",

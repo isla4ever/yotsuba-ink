@@ -1,6 +1,6 @@
 # Phase 28：Yotsuba Ink v1.1 文学可靠性与作者控制计划
 
-状态：实施中；Wave 28.0 已批准，Wave 28.1-28.4 已通过各自退出门，Wave 28.5 保留为历史真实 Provider 验收记录，Wave 28.6 正在进行不调用 Provider 的全链路合同修复
+状态：实施中；Wave 28.0 已批准，Wave 28.1-28.4 已通过各自退出门，Wave 28.5 保留为历史真实 Provider 验收记录，Wave 28.6 已通过离线全链路合同门，Wave 28.7 正在以全新极速 5 万字 Run 验收
 
 日期：2026-08-17
 
@@ -694,3 +694,115 @@ canon_facts
 
 - 本节证明的是唯一生产链路的离线合同、fake Provider 全链、API 决策、前端投影和静态构建门；不等于真实 Provider、5 万字稳定性、文学连续性、真实服务浏览器、Cover 图片、Export 内容或发布验收。
 - 本轮没有启动服务、调用 DeepSeek 或其他真实 Provider、恢复或改写历史 Run、执行 5 万字重跑、提交或推送。真实重试保持暂停，后续必须由用户重新授权并使用全新 Run 分级验收。
+
+## 22. Wave 28.7 极速 5 万字真实验收（进行中，2026-08-22）
+
+### 22.1 当前唯一 Run 与冻结账本
+
+- 当前验收 Run 为全新 `fast-50k-v11-r2-20260822-155054`，Project 为 `proj-0e32d764a7`，质量模式为 `fast`，冻结目标 `50,000` 字、20 章、1 卷；历史 `fast-50k-v11-20260822-085317` 继续只读，不参与恢复或写回。
+- 当前状态为 `awaiting_decision / detail / failure-attempt-8`，唯一待提交动作是 `regenerate`；checkpoint 继续绑定 attempt 3 候选 `detail-candidate-ac11b3e71c400fe9b4bd-6352b726`，Run read model 的 `domain_revision=4`。
+- 当前 Provider 账本冻结为 `47` 次 operations、`39` 成功、`8` 次合同拒绝、`0` 次传输失败、`306,604` tokens。22.11 的修复只改代码、测试和本文，没有提交 `failure-attempt-8`，也没有修改 Run、candidate、checkpoint 或既有 operation receipt。
+
+### 22.2 Detail 根因与 source-bound 恢复合同
+
+- attempt 2 候选经当前确定性代码只读重算后只剩四条 blocker：`chapter-6/7` 重复“提交证据、上级拒绝、决定公开”端点；`chapter-12/13` 从获释无过渡回到拘留；`chapter-16/20` 的“日记录音”缺少唯一来源与核验。单次出现的名单不再升级为全书核心线索，“可能已不在人世”、计划公开、隐藏地点等旧误报均已退出报告。
+- 失败恢复不再重新生成 Detail layout 或整卷施工图。运行时必须读取上一失败候选及其 attempt 2 的四个不可变 layout receipts，按 blocker 的精确 `chapter_refs` 切出 source segment，只把 `preflight_feedback`、`recovery_source`、`editable_chapter_refs` 与 `preserved_chapter_refs` 发送给命中分段。
+- 未命中章节逐字段复用源候选；命中章节仍冻结章题、POV、出场主体、章槽、卷归属、turn ownership 与全书正文预算。局部修复后重新聚合不得因场景负载变化重算其它章节的 `target_characters`。
+- 当前七个分段分别覆盖 `1-3 / 4-6 / 7-9 / 10-12 / 13-15 / 16-18 / 19-20` 章。预计只调用 segment `2/3/5/6/7`，segment `1/4` 完整复用，layout 新调用为 `0`；一次恢复最多新增 `5` 次 Detail Provider operations，不允许退回 4 次 layout + 7 次整卷 segment 重排。
+- `pending_operation_refs` 必须记录实际构成候选的旧 layout receipt、复用 segment receipt 与新修复 receipt，不得投影不存在的 attempt 3 operation。malformed `chapter_ref` 在数值解析前按 `chapter-N` 合同拒绝；`preflight_feedback` 与 `recovery_source` 必须成对且绑定同一候选和 attempt。
+
+### 22.3 恢复前离线证据
+
+- source-bound 三分段回归证明只调用命中的 segment 1/3，segment 2 没有新 operation，源 layout 没有新请求，未命中章节及全书 `target_characters` 均与失败候选逐字段相同；相关 Detail 恢复定向集 `4 passed`，malformed ref 与候选来源边界 `2 passed`。
+- Planning、Prompt compiler 与 LangGraph 扩大回归 `135 passed`。后端全量 `.venv/bin/pytest -q` 为 `762 passed, 1 warning`；唯一告警仍是第三方 Starlette/httpx 弃用提示。
+- `.venv/bin/python -m compileall -q src tests`、`git diff --check` 通过；production closure audit 无 legacy runtime marker、无异常 pipeline 顶层目录。大文件继续列入责任审查，本轮不为行数机械拆分。
+
+### 22.4 attempt 3 真实恢复结果
+
+- attempt 3 严格复用了 attempt 2 的四个 layout receipts，没有新增 layout 调用；只调用 segment `2/3/5/6/7`，segment `1/4` 逐字段复用。Provider 新增 `5` 次调用与 `44,686` tokens，source-bound 调度和预算边界本身符合预期。
+- attempt 3 候选与 attempt 2 候选的 SHA-256 均为 `40e064eca020ae8a00f792c5622b318caa25dce704cf558698e2bae457b0e8aa`。五个命中 segment 全部原样回显，旧运行时代码仍把它们记为成功，导致新增成本没有产生任何候选变化。
+- 四条 blocker 原样保留：`chapter-6/7` 重复“提交证据、上级拒绝、决定公开”；`chapter-12/13` 从获释状态无过渡返回拘留；`chapter-16/20` 的“日记录音”既无冻结来源，也无核验生命周期。
+- Provider 输入快照证明每个命中请求都收到了对应 `preflight_feedback` 和完整 `recovery_source`；因此最低责任层不是额度、传输、JSON 解析、上下文丢失或 source-bound 路由，而是 Prompt 职责冲突与 operation 接受门缺失 no-op 校验。
+
+### 22.5 Prompt 根因与最新离线门
+
+- chapter 6 的冻结 `dramatic_job` 只拥有“核对并决定提交”，chapter 7 才拥有“上级拒绝、决定公开”；旧通用 Detail Prompt 却要求每个持有同一 `turn_ref` 的单元独立完整戏剧化 cause/change，迫使相邻章节重复同一完整端点。当前合同改为由连续 chapter beats 合计完成一次 turn，每章只执行自己的 `dramatic_job`。
+- “日记录音”是未登记的新线索，正确修法是删除该坏标签或回退到已建立的“顾清岚日记/日志副本”；旧恢复纪律要求所有 clue label 保持不变，禁止了正确修复。当前 code-specific 指令允许删除反馈明确判定为无来源的标签，或替换为冻结上下文中已有的精确线索；拘留冲突则必须在台面上执行逮捕/自首转换，不能跨章重置状态。
+- `validate_detail_recovery_result()` 现在进入 stage unit 的 Provider 合同接受门。命中章节全部原样回显会在 `provider_returned` 后确定性转为 `contract_rejected`，保留真实 usage 与 Provider 返回，不记为成功，也不触发隐藏第二次调用。
+- Prompt compiler、Planning 与 LangGraph 扩大回归为 `137 passed`；新增 operation-level 测试证明 no-op 只调用一次、收据为 `contract_rejected`、账本计数准确。后端全量为 `764 passed, 1 warning`；`.venv/bin/python -m compileall -q src tests`、`git diff --check`、production closure audit 均通过，独立 `prompt-detail.json` 与 `default_prompt_templates()` 精确一致。
+
+### 22.6 attempt 4 真实恢复结果
+
+- 提交了唯一一次 `failure-attempt-3`。attempt 4 继续零新增 layout；segment 2 返回后被旧接受门记为 `succeeded`，使用 `9,032 tokens`，但实际只把“顾行舟核对潮位数据”改成“顾行舟破解密钥后核对潮位数据”，仍保留不属于 chapter 6 的上级拒绝与公开决定，属于语义 no-op。
+- segment 3 原样回显，被 no-op 门正确记为 `contract_rejected`，使用 `8,354 tokens`；同一 attempt 的 segment 5/6/7 没有继续调用，没有隐藏重试。Run 正确停在 `failure-attempt-4`，账本由 `41 / 260,383` 增至 `43 / 277,769`。
+- attempt 4 当时的 endpoint ownership 合同从每章冻结 `dramatic_job` 投影 `required_removed_endpoints`：chapter 6 被要求移除 `authority_refusal/public_decision`，chapter 7 被要求移除 `evidence_submission`。22.11 已证明该投影把“决定提交”误当作“已经提交”，因此只保留为历史失败证据，不再代表当前合同。
+- attempt 4 的两个不可变 Provider input 均绑定 `source_candidate_ref=detail-candidate-ac11b3e71c400fe9b4bd-6352b726`、`source_attempt=3`，且 `preflight_feedback` 与 `recovery_source` 成对存在；因此最低责任层不是 source context 丢失，而是恢复结果未完成精确端点职责。
+
+### 22.7 跨 attempt 连续性与下一退出门
+
+- 技术恢复可以在保存新候选前被合同拒绝，所以候选权威不能机械等于 `current_attempt - 1`。运行时现在从 checkpoint 当前候选的不可变 `source` 解析真正 `source_attempt`；只接受同 Run、Detail、Provider generation 且早于当前 attempt 的候选，作者编辑候选与未来/同 attempt 来源仍被拒绝。
+- 下一次恢复会在同一 source-bound 候选上继续，并按完整冻结 Provider input 复用此前合法成功的 segment。回归覆盖“第一个恢复 segment 成功、后续 segment `contract_rejected`、再次恢复”的连续路径，证明 layout 新调用为 `0`、合法旧 segment 不重调、未解决 segment 只调用一次、最终 `pending_operation_refs` 精确引用真实组成收据。
+- attempt 4 segment 2 是旧 endpoint 合同下的伪成功，其冻结输入不含最新 `required_removed_endpoints`，因此不会被当前完整输入匹配错误复用。真实 attempt 5 仍最多调用命中 blocker 的 segment `2/3/5/6/7`，layout 为 `0`；任何 segment 被拒绝即停止，不继续后续调用。
+- 离线门：定向回归 `3 passed`，Prompt compiler、Planning 与 LangGraph 扩大回归 `140 passed`，后端全量 `767 passed, 1 warning`；`compileall`、`git diff --check`、production closure audit 和 `prompt-detail.json` 镜像一致性均通过。唯一 warning 仍是第三方 Starlette/httpx 弃用提示。
+- 下一步必须先停止旧 PID `2022` 并加载当前代码重启后端，再确认账本仍为 `43 / 277,769`，才可提交唯一 `failure-attempt-4`。Detail 通过后才按顺序生成 20 章正文并完成每章 review、Evidence、Outbox、Canon/Wiki；随后执行全书终检、Cover、Export、真实监控台和 UI 阶段投影验证。工程通过、Provider 稳定性、内容连续性与人工文学冷读分别记录，不互相替代。
+
+### 22.8 attempt 5 与窄章节 patch 合同
+
+- 加载 22.7 代码后只提交了一次 `failure-attempt-4`。attempt 5 没有新增 layout；segment 2 单次调用使用 `9,087 tokens`，Provider 又返回完整三章，operation 正确转为 `contract_rejected`。segment `3/5/6/7` 均未调用，没有隐藏重试。Run 停在 `failure-attempt-5`，账本由 `43 / 277,769` 增至 `44 / 286,856`。
+- segment 2 的冻结输入已包含 `source_candidate_ref=detail-candidate-ac11b3e71c400fe9b4bd-6352b726`、`source_attempt=3`、`editable_chapter_refs=[chapter-6]`、`preserved_chapter_refs=[chapter-4, chapter-5]`，且 chapter 6 必须移除 `authority_refusal/public_decision`。因此最低责任层不是额度、上下文丢失、候选来源漂移或路由错误，而是旧 Provider 输出仍要求返回完整三章，并强迫其中两章逐字复制，形成强原文锚定。
+- 当前恢复调用改为窄 patch：Provider Schema 的 `chapters.minItems/maxItems` 精确等于 `editable_chapter_refs` 数量，Prompt 明确禁止返回 preserved chapters，输出预算也只按可编辑章节计算。operation receipt 保留原始 Provider patch；执行器从不可变 source candidate 确定性恢复 preserved chapters，合并后再执行身份字段、no-op、越权 endpoint、场景质量、完整章节数量和 turn 绑定合同。
+- `succeeded`、`provider_returned`、新 Provider 响应和跨 attempt 合法复用四条路径均经过同一归一化边界。三章源 segment 只返回一个 editable chapter 的回归证明 chapter 4/5 类保留章节逐字段来自 source，Provider 无需再复述它们；原样 patch 和保留越权 endpoint 仍会被拒绝。
+- 当前定向/扩大回归为 `162 passed`；后端全量为 `770 passed, 1 warning`，唯一 warning 仍是第三方 Starlette/httpx 弃用提示。`compileall`、`git diff --check`、production closure audit 与 7 份运行时 Prompt 镜像一致性均通过；audit 无 legacy runtime marker、无异常 pipeline 顶层目录。
+- 以上只证明离线恢复合同，不证明 DeepSeek 已按窄 Schema 完成修复。加载当前代码并只读确认 `failure-attempt-5`、候选与 `44 / 286,856` 均未漂移后，才提交了 22.9 记录的唯一一次恢复决定。
+
+### 22.9 attempt 6 与 mutable-only patch 合同
+
+- attempt 6 只新增 segment 2 一次调用，使用 `8,277 tokens`（prompt `7,971`、completion `306`），随后立即停止；segment `3/5/6/7` 未调用，没有隐藏重试。Run 停在 `failure-attempt-6`，账本为 `45 / 295,133`。
+- 窄数组合同已经生效：冻结 Schema 的 `chapters.minItems=maxItems=1`，只返回 chapter 6。但 Provider 把源章题“数据铁证”改成“密钥之争”，把 `cast_ids` 从 `subject-1/subject-4` 改成 `subject-1/subject-3`，并重新发明“私下破解文件”路线；operation 因 `Detail recovery changed frozen identity fields for chapter-6` 正确记为 `contract_rejected`。
+- 最低责任层继续上移到窄调用的字段所有权：章题、POV 和 cast_ids 本来是代码冻结身份，却仍被放进 Provider 必须回传的 `DetailSegmentChapter`，迫使模型在修正文案时重新采样这些不可编辑字段。继续追加 Prompt 禁令不能消除该错误自由度。
+- 当前动态恢复 Schema 改为独立 `DetailRecoveryPatch`：每个 editable chapter 只允许返回 `purpose/scenes/handoff`，`extra=forbid`；章题、POV、cast_ids、chapter ref、slot 和 turn ownership 均不再属于 Provider 输出。运行时按 `editable_chapter_refs` 顺序把 mutable patch 合入不可变 source chapter，再执行 no-op、越权 endpoint、场景、完整 segment 和 turn 绑定合同。Fake Provider 也已改为遵守同一合同，不保留测试专用的完整章节返回捷径。
+- 恢复调用不再拼接与局部修补相冲突的通用 Detail 首稿模板，只保留专用 recovery contract、动态 Schema、冻结 source/context 与预算；普通 Detail 首稿仍使用冻结模板。合并门同时拒绝 patch 新引入源章未出现且不在冻结 cast_ids 中的已注册人物，避免代码恢复旧 cast_ids 后把文本中的越权行动者掩盖过去。
+- 最新窄集 `13 passed`，Planning、Prompt、动态 Schema、预算、Provider task 与 LangGraph 扩大集 `171 passed`；后端全量 `771 passed, 1 warning`。`compileall`、`git diff --check`、production closure audit 与 7 份运行时 Prompt 镜像一致性均通过，`8787` 已关闭。
+- 当前仍未提交 `failure-attempt-6`。下一步必须加载当前代码重启并只读确认 `failure-attempt-6`、同一候选、`domain_revision=4` 与 `45 / 295,133` 未漂移，才允许再提交唯一一次恢复决定。Detail 通过后才继续 20 章正文、全书门、Cover、Export、监控台和阶段 UI 验收；任何新的确定性拒绝都继续立即停止，不自动重复。
+
+### 22.10 attempt 7 与 Provider 可见修补投影
+
+- 加载 22.9 代码并只读确认状态后只提交一次 `failure-attempt-6`。attempt 7 仍只调用 segment 2，使用 `6,290 tokens`（prompt `6,011`、completion `279`），随后立即停止；segment `3/5/6/7` 未调用。Run 停在 `failure-attempt-7`，账本为 `46 / 301,423`。
+- mutable-only Schema 与专用 Prompt 已生效：Provider 只返回 chapter 6 的 `purpose/scenes/handoff`，没有再返回身份字段，prompt token 比 attempt 6 减少 `1,960`。但返回内容仍逐字保留源章第二场“郑明远拒绝重启调查”和“顾行舟决定公开数据”，因此 endpoint 门正确拒绝 `authority_refusal/public_decision`。
+- 最低责任层不是 Schema、身份字段或检测误报，而是 Provider 输入仍把完整 source segment 作为模型可见上下文：虽然输出只允许一章，模型仍能看到 preserved chapters 和 chapter 6 的已知坏场景，局部修补继续受到原文锚定。
+- 当前 `provider_input_compiler` 将运行时私有 source 与模型可见 repair projection 分开。`StageGenerationRequest.context` 仍保留完整不可变 source，供 operation 合并、no-op 和审计；签名 `ProviderInputPayload.structured_context/rendered_prompt` 只包含 editable chapters。对每章，代码投影冻结 title/POV/cast ids/cast names、合法 source patch、被有意省略的字段和场景索引；任何命中 `required_removed_endpoints` 的源字段或场景正文、全部 preserved chapter 正文均不发送给 Provider。
+- Provider-visible projection 同时移除包含整段宏 change 的 `volume_spine_turns`，只保留当前 editable chapter 对应的 `scale_projection.chapter_beats`；`preflight_feedback` 只投影 `code/chapter_refs/required_fix`，不回传逐字 evidence。完整 Spine 与反馈证据仍留在运行时私有 context 和既有 operation receipt 中，不丢失审计来源。
+- 专用 Prompt 明确禁止重构或改写被省略的坏场景，只能依据当前 `dramatic_job`、合法 source patch、冻结 cast 名单和 preflight feedback 补齐 mutable patch。operation input 仍绑定 source candidate ref、source attempt、segment/chapter refs 与 required endpoint，跨 attempt 复用不会失去候选身份。
+- 最新窄集 `14 passed`、扩大集 `172 passed`、后端全量 `772 passed, 1 warning`；`compileall`、`git diff --check`、production closure audit 与 7 份 Prompt 镜像一致性均通过。回归直接证明 preserved chapter 题名和违规第二场文本不出现在编译 Prompt，而合法第一场、冻结 cast 名单与 omitted scene index 仍可见。
+- 以 attempt 7 的冻结 context 离线编译 attempt 8 输入，确认 preserved chapters、违规第二场、宏 turn change 与 feedback evidence 中四个污染短语全部缺席；只剩 chapter 6 的 `dramatic_job`、一个合法源场、`frozen_cast_names=[顾行舟, 陈伯年]` 与 `omitted_source_scene_indexes=[2]`，Prompt 从 attempt 7 的请求进一步缩到 `15,809` 字符。
+- 随后按准入门只提交了一次 `failure-attempt-7`；attempt 8 结果与进一步修复见 22.11。任何新拒绝继续停住，不进行自动重复。
+
+### 22.11 attempt 8、端点因果所有权与最小人物可见集
+
+- attempt 8 只调用 `volume-1.segment-2` 一次，使用 `5,181 tokens`（prompt `4,858`、completion `323`）；segment `3/5/6/7` 未调用，没有隐藏重试。Provider 返回的 chapter 6 patch 新引入沈立诚，同时还使用了源章冻结 cast 之外的郑明远和程远航；合并门以 `Detail recovery introduced subjects outside the frozen chapter cast for chapter-6: ['沈立诚']` 拒绝。Run 停在 `failure-attempt-8`，账本为 `47 / 306,604`。
+- attempt 8 已证明污染源不再是 preserved chapters、违规第二场、完整 Spine change 或 feedback evidence，而是 Provider-visible `selected_dossiers/present_actor_ids` 仍携带整卷全部人物；同时 chapter 6 的 handoff 仍包含未冻结人物与提前公开计划。只在合并门继续追加人名黑名单会让模型反复从同一错误可见集采样，不能解决根因。
+- 冻结 Spine `turn-4` 的宏观 change 顺序为“提交证据 -> 上级拒绝 -> 决定公开”，冻结 chapter 6 beat 只到“核对数据并决定提交”，chapter 7 beat 承担“上级拒绝并决定公开”。质量合同现在以真正的 `提交/递交/出示` 动作位置区分意图与执行；“决定/准备/计划提交”不再被算作已执行 `evidence_submission`。当同一重复端点没有更早的明确 owner 时归到较晚章节；`authority_refusal` 同章确定性携带其必要的 `evidence_submission` 因果前置。因此 chapter 6 必须移除 `evidence_submission/authority_refusal/public_decision`，chapter 7 保留完整“提交 -> 拒绝 -> 决定公开”并直接复用，不再发起无意义修补。
+- Provider 输入编译器只向恢复调用暴露 editable source chapters 的冻结 cast union；`selected_dossiers`、`present_actor_ids`、`historical_record_ids` 与 `debut_requirements` 同步裁剪。历史主体只有在合法可见 source patch 确有名称引用时才以 `reference_only` dossier 保留，不能行动、当下发言或进入 `cast_ids`。运行时私有 context 仍保存完整 dossiers，供越权名字检测、合并和审计，不牺牲确定性门。
+- 以当前真实 Run 的不可变 layout、attempt 3 候选和 checkpoint state 离线重建 attempt 9 输入：segment 2 只有 `editable_chapter_refs=[chapter-6]` 与三个 required removals，Prompt 为 `14,220` 字符，`selected_dossiers=[顾行舟, 陈伯年]`、`present_actor_ids=[subject-1, subject-4]`，沈立诚、郑明远、程远航、顾清岚均不可见；segment 3 的 `local_feedback=None`，会逐字段复用 chapter 7-9，不调用 Provider。segment 2 通过后才按剩余 blocker 继续 segment `5/6/7`，任何首个合同拒绝仍立即停止。
+- 最新定向集 `10 passed`，Planning、Detail、Prompt、动态 Schema、预算、Provider task 与 LangGraph 扩大集 `181 passed`；后端全量 `.venv/bin/pytest -q` 为 `773 passed, 1 warning`。`.venv/bin/python -m compileall -q src tests`、`git diff --check`、production closure audit 与 `7` 份 Prompt 镜像一致性均通过；audit 无 legacy runtime marker、无异常 pipeline 顶层目录，唯一 warning 仍是第三方 Starlette/httpx 弃用提示。
+- 当前仍未提交 `failure-attempt-8`，`8787` 已关闭。加载当前代码重启并只读确认 `failure-attempt-8`、同一候选、`domain_revision=4` 与 `47 / 306,604` 未漂移后，才允许唯一一次 attempt 9 决定；不能批量循环重试。Detail 通过后才继续 20 章正文、Evidence/Outbox/Canon/Wiki、全书终检、Cover、Export、监控台和各阶段 UI 验收。
+
+### 22.12 attempt 9、拘留状态投影与 attempt 10 准入门
+
+- 加载 22.11 代码并只读确认冻结状态后只提交了一次 `failure-attempt-8`。attempt 9 的 segment 2 单次调用使用 `4,566 tokens`，修正为“决定提交但尚未提交”并成功；segment 3 继续逐字段复用。随后 segment 5 单次调用使用 `5,466 tokens`，原样返回 chapter 13 的非法拘留内容，被 no-op 门记为 `contract_rejected`；segment `6/7` 未调用，没有隐藏重试。Run 停在 `failure-attempt-9`，账本从 `47 / 306,604` 增至 `49 / 316,636`。
+- attempt 9 的 chapter 13 返回仍为“顾行舟被拘留，通过律师程远航获得姐姐留下的最后信息”，场景仍在“拘留所探视室”，handoff 仍以“深夜，顾行舟在拘留所”开头。当前代码重算证明人物最小可见集、mutable-only Schema、preserved chapter 遮蔽和窄 patch 均已生效；最低责任层是恢复投影仍把冻结 `chapter_beats.dramatic_job` 中的非法既成拘留状态发送给 Provider，使被遮蔽的源 `purpose/scenes/handoff` 又从上游任务文本重建。
+- Detail recovery 现在按命中章节冻结 `custody_repair_contracts`：chapter 13 的 `previous_state=free`、`target_state=detained`、`transition_timing=on_page_before_custody`、`allowed_institution=警方`，并把戏剧任务安全投影为“顾行舟通过律师程远航获得姐姐留下的最后信息，发现她可能仍在旧港区”。Provider-visible beat 只使用这份无拘留前提的任务；源 `purpose/handoff` 与拘留场景继续全部遮蔽。
+- 合并门要求从自由态进入拘留前必须先在非拘留地点台面执行逮捕或主动自首，之后才允许进入拘留场景。既有机构“警方”可以执行状态迁移而不进入人物 `cast_ids`，但 Prompt 明确禁止新增具名警员、新权限或新程序；质量合同同步识别“向警方自首/主动自首/投案自首”为合法迁移，不再把显式自首误判为跨章状态跳跃。
+- 使用 attempt 9 不可变 input、attempt 3 候选与冻结 checkpoint 离线重编译 attempt 10 segment 5：`editable_chapter_refs=[chapter-13]`、`preserved_chapter_refs=[chapter-14, chapter-15]`、`source_patch={scenes: []}`、`omitted_source_fields=[purpose, handoff]`、`omitted_source_scene_indexes=[1]`。新 Prompt 为 `17,049` 字符；上述三段非法拘留原文均不可见，只有安全戏剧任务、冻结 cast 和状态迁移合同可见。
+- 最终代码定向回归 `7 passed`；Planning、Detail、动态 Schema、输出预算、Provider task、Prompt compiler 与 LangGraph 扩大回归 `185 passed`；后端全量 `.venv/bin/pytest -q` 为 `777 passed, 1 warning`，唯一 warning 仍是第三方 Starlette/httpx 弃用提示。`.venv/bin/python -m compileall -q src tests`、`git diff --check`、production closure audit 与 `7` 份运行时 Prompt 镜像一致性均通过；audit 无 legacy runtime marker、无异常 pipeline 顶层目录。
+- 当前真实 Run 仍为 `awaiting_decision / detail / failure-attempt-9`，候选仍是 `detail-candidate-ac11b3e71c400fe9b4bd-6352b726`，`domain_revision=4`；Provider 账本为 `49` 次调用、`40` 成功、`9` 次合同拒绝、`0` 次传输失败、`316,636 tokens`。`8787` 已关闭。只有加载当前代码重启并再次只读确认这些值完全未漂移后，才允许提交唯一一次 attempt 10；出现任何新合同拒绝立即停止，不能自动继续 attempt 11。
+
+### 22.13 attempt 10、冲突上下文权威与停止门
+
+- 加载 22.12 代码后只读确认 `failure-attempt-9`、同一候选、`domain_revision=4` 与 `49 / 316,636` 均未漂移，随后只提交了一次 `failure-attempt-9`。attempt 10 复用/确认 segment 2，新增一次 `4,577 tokens` 的成功 operation；segment 5 单次调用使用 `5,401 tokens`，随后立即停止，segment `6/7` 未调用。Run 停在 `failure-attempt-10`，Provider 账本为 `51` 次调用、`41` 成功、`10` 次合同拒绝、`0` 次传输失败、`326,614 tokens`。
+- attempt 10 的 chapter 13 输出仍直接以“顾行舟在拘留所”开场，唯一场景仍为“拘留所探视室”，没有在台面执行逮捕或自首；合并门以 `Detail recovery for chapter-13 must execute the free-to-custody transition on page` 正确拒绝。该返回取得一个完整 JSON object、Schema 精确匹配且 `transport_attempts=1`，因此最低责任层不是额度、网络、解析、Schema、no-op 检测或合并门。
+- 不再把问题归结为“Prompt 还不够强”。attempt 10 的不可变输入同时暴露四个相互冲突的上游信号：`custody_repair_contracts.previous_state=free` 是当前权威；累计 chapter 11 摘要仍写“顾行舟被逮捕”；冻结 chapter 13 章题为“拘留所来客”；程远航 dossier.function 又写“在拘留期间传递信息并促成释放”。通用纪律还写着不得改变已冻结 custody state。模型在这些高权重叙事信号下复原既成拘留场景，说明最低修复层是 Provider 可见上下文权威，而不是再加一次拒绝后的重试。
+- 当前 custody recovery 投影只在 Provider 视图中隐藏带有既成拘留前提的冻结章题和 dossier 字段；运行时私有 source、核心 Character Bible、冻结标题和合并身份边界均不改。累计 established chapters 继续保留完整章序、turn 与合法事实，只删除已被最新自由态覆盖的旧拘留子句：chapter 11 仍明确保留“证据已公开，城市陷入对系统的质疑”，chapter 12 的当前地点、行动与自由态交接保持原样。通用状态纪律也显式声明唯一例外只能是 `custody_repair_contracts` 要求的那一次迁移。
+- 标记投影回归曾暴露“拘留后”先于“被拘留后”删除会留下“林远被通过律师”的残字；当前完整长短语按长度优先匹配，失败夹具已转绿，没有通过放宽断言掩盖。真实 attempt 10 input、attempt 3 候选与冻结 binding 离线重编译假设的 attempt 11 segment 5 后，Prompt 为 `17,154` 字符；“拘留所来客”、律师拘留职责、chapter 11 旧逮捕、attempt 9/10 两版非法 purpose 均不可见，chapter 11 的公开事实和 chapter 12 相邻交接仍可见。
+- 最新定向回归 `4 passed`，Planning、Detail、动态 Schema、输出预算、Provider task、Prompt compiler 与 LangGraph 扩大回归 `185 passed`；后端全量 `.venv/bin/pytest -q` 为 `777 passed, 1 warning`，唯一 warning 仍是第三方 Starlette/httpx 弃用提示。`.venv/bin/python -m compileall -q src tests`、`git diff --check`、production closure audit 与 `7` 份 Prompt 镜像一致性均通过；audit 无 legacy runtime marker、无异常 pipeline 顶层目录。
+- `8787` 已关闭，当前 Run 保持 `awaiting_decision / detail / failure-attempt-10`，候选仍为 `detail-candidate-ac11b3e71c400fe9b4bd-6352b726`，`domain_revision=4`。本节只完成失败定位、上游投影修复和离线门，不授权自动提交 attempt 11。下一次真实决定必须重新加载当前代码、只读确认 `51 / 326,614` 与所有冻结引用未漂移，并单独记录新的成本门；Detail 通过前不进入正文。

@@ -1,11 +1,19 @@
-import type { Route } from "@/features/pipeline/contracts/app"
+import type {
+  ProductionStageRoute,
+  Route,
+} from "@/features/pipeline/contracts/app"
 
-const stageRoutes = new Set<Route>([
+const stageRoutes = new Set<ProductionStageRoute>([
   "brief",
-  "spine",
   "cast",
+  "beat_board",
+  "scene_deck",
+  "script",
+  "story_map",
+  "section_plan",
+  "book_architecture",
   "volumes",
-  "detail",
+  "rolling_detail",
   "text",
   "cover",
   "export",
@@ -24,8 +32,8 @@ export function routeFromLocation(location: Pick<Location, "pathname">): Route {
   if (path.startsWith("/bible/")) return "story-bible"
   if (path === "/knowledge") return "knowledge"
   if (path.startsWith("/run/")) {
-    const stage = path.slice("/run/".length) as Route
-    if (stageRoutes.has(stage)) return stage
+    const stage = path.slice("/run/".length)
+    if (isProductionStageRoute(stage)) return stage
   }
   return "studio"
 }
@@ -60,8 +68,14 @@ export function pathForRoute(
   if (route === "settings") return "/settings"
   if (route === "book-settings") return `/settings/project${projectQuery}`
   if (route === "run-monitor") return `/monitor${projectQuery}`
-  if (route === "story-bible") return `/bible/cast${projectQuery}`
+  if (route === "story-bible") return `/bible/overview${projectQuery}`
   if (route === "knowledge") return `/knowledge${projectQuery}`
-  if (stageRoutes.has(route)) return `/run/${route}${projectQuery}`
+  if (isProductionStageRoute(route)) return `/run/${route}${projectQuery}`
   return "/studio"
+}
+
+export function isProductionStageRoute(
+  value: string,
+): value is ProductionStageRoute {
+  return stageRoutes.has(value as ProductionStageRoute)
 }

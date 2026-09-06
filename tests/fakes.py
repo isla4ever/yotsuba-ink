@@ -278,12 +278,27 @@ class FakeNarrativeProvider:
                 item["id"]
                 for item in request.context["material"]["selected_dossiers"]
             ]
-            payload = {
-                "chapters": [
-                    _fake_detail_chapter(start + offset, cast_ids)
-                    for offset in range(count)
-                ]
+            generated = {
+                f"chapter-{start + offset}": _fake_detail_chapter(
+                    start + offset,
+                    cast_ids,
+                )
+                for offset in range(count)
             }
+            recovery_source = request.context["material"].get("recovery_source")
+            if isinstance(recovery_source, dict):
+                payload = {
+                    "chapters": [
+                        {
+                            key: value
+                            for key, value in generated[chapter_ref].items()
+                            if key in {"purpose", "scenes", "handoff"}
+                        }
+                        for chapter_ref in recovery_source["editable_chapter_refs"]
+                    ]
+                }
+            else:
+                payload = {"chapters": list(generated.values())}
         elif request.stage_id == "cover":
             payload = {"concept": "雾港中的旧录音", "image_prompt": "雾港、旧录音带、克制悬疑", "palette": ["深蓝", "锈红"], "negative_constraints": ["无文字"]}
         else:

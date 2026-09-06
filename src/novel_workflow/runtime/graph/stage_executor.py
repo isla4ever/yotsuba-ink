@@ -41,6 +41,8 @@ from novel_workflow.output_contracts.artifacts_vnext import (
 )
 from novel_workflow.output_contracts.prompt_materials import (
     DetailEstablishedChapter,
+    DetailPreflightFeedback,
+    DetailRecoverySource,
     DetailSegmentHandoff,
 )
 from novel_workflow.output_contracts.provider_tasks import (
@@ -56,9 +58,14 @@ from novel_workflow.runtime.graph.provider_gateway import (
     StageGenerationRequest,
     compile_provider_input,
 )
+from novel_workflow.runtime.graph.cast_relation_recovery import (
+    cast_relation_retry_feedback,
+    reusable_cast_relation_result,
+)
 from novel_workflow.runtime.graph.context_compiler import NarrativeContextCompiler
 from novel_workflow.quality.narrative_contracts import build_cast_identity_findings
 from novel_workflow.runtime.graph.detail_preflight import (
+    DetailPreflightError,
     build_detail_preflight,
     require_detail_preflight,
 )
@@ -68,6 +75,17 @@ from novel_workflow.runtime.graph.detail_planning import (
     detail_layout_turn_windows,
     validate_detail_layout_proposal,
     validate_detail_layout_turn_window_proposal,
+)
+from novel_workflow.runtime.graph.detail_failure_recovery import (
+    build_detail_recovery_source,
+    failed_detail_generation_attempt,
+    merge_detail_recovery_patch,
+    preserve_detail_recovery_metadata,
+    previous_detail_preflight_feedback,
+    prior_attempts,
+    reusable_detail_layout_proposal,
+    reusable_detail_segment_result,
+    source_bound_detail_layout_proposal,
 )
 from novel_workflow.runtime.graph.output_budget import (
     OutputBudgetPlanner,
@@ -241,38 +259,80 @@ def _validate_cast_relationship_coverage(
     subjects before Volumes or Detail can consume the graph.
     """
 
+    requirements = _cast_relationship_requirements(
+        {subject.id: list(subject.demand_refs) for subject in subjects},
+        demands,
+        spine,
+    )
+    _validate_cast_relation_projection(
+        relations,
+        requirements=requirements,
+        known_subject_ids={subject.id for subject in subjects},
+    )
+
+
+def _cast_relationship_requirements(
+    subject_demand_refs: dict[str, list[str]],
+    demands: RoleDemandProposalBatch,
+    spine: StorySpineArtifact,
+) -> dict[str, Any]:
     if len(spine.turns) < 6:
-        return
+        return {
+            "relationship_turn_refs": [],
+            "required_subject_ids": [],
+            "protagonist_subject_id": "",
+        }
     relationship_turns = _relationship_turn_ids(spine)
-    if not relationship_turns:
-        return
     demand_by_key = {item.demand_key: item for item in demands.proposals}
-    subject_by_demand = {
-        demand_ref: subject
-        for subject in subjects
-        for demand_ref in subject.demand_refs
+    subject_id_by_demand = {
+        demand_ref: subject_id
+        for subject_id, demand_refs in subject_demand_refs.items()
+        for demand_ref in demand_refs
     }
-    protagonist = next(
+    protagonist_subject_id = next(
         (
-            subject
-            for subject in subjects
+            subject_id
+            for subject_id, demand_refs in subject_demand_refs.items()
             if any(
                 demand_by_key[ref].narrative_role == "protagonist"
-                for ref in subject.demand_refs
+                for ref in demand_refs
                 if ref in demand_by_key
             )
         ),
-        None,
+        "",
     )
     required_subjects = {
-        subject_by_demand[ref].id
+        subject_id_by_demand[ref]
         for demand in demands.proposals
         if demand.narrative_role != "protagonist"
         and relationship_turns.intersection(demand.active_turn_refs)
         for ref in [demand.demand_key]
-        if ref in subject_by_demand
+        if ref in subject_id_by_demand
     }
-    if not required_subjects or protagonist is None:
+    return {
+        "relationship_turn_refs": sorted(relationship_turns),
+        "required_subject_ids": sorted(required_subjects),
+        "protagonist_subject_id": protagonist_subject_id,
+    }
+
+
+def _validate_cast_relation_projection(
+    relations: list[CharacterRelation],
+    *,
+    requirements: dict[str, Any],
+    known_subject_ids: set[str],
+) -> None:
+    unknown = {
+        ref
+        for relation in relations
+        for ref in (relation.a, relation.b)
+        if ref not in known_subject_ids
+    }
+    if unknown:
+        raise ValueError(f"Cast relation proposal references unknown subjects: {sorted(unknown)}")
+    required_subjects = set(requirements["required_subject_ids"])
+    protagonist_subject_id = str(requirements["protagonist_subject_id"])
+    if not required_subjects or not protagonist_subject_id:
         return
     linked: set[str] = set()
     for relation in relations:
@@ -284,9 +344,9 @@ def _validate_cast_relationship_coverage(
             f"a relationship turn; missing subjects: {missing}"
         )
     protagonist_links = {
-        relation.b if relation.a == protagonist.id else relation.a
+        relation.b if relation.a == protagonist_subject_id else relation.a
         for relation in relations
-        if protagonist.id in {relation.a, relation.b}
+        if protagonist_subject_id in {relation.a, relation.b}
     }
     if not protagonist_links.intersection(required_subjects):
         raise ValueError(
@@ -355,21 +415,77 @@ class StageExecutor:
                 detail_chapter_count = 0
                 completed_detail_turn_refs: list[str] = []
                 established_detail_chapters: list[DetailEstablishedChapter] = []
+                appeared_detail_subject_ids: set[str] = set()
                 taken_cast_names: list[str] = []
                 taken_volume_titles: list[str] = []
                 taken_chapter_titles: list[str] = []
                 detail_layout: DetailLayoutProposalBatch | None = None
+                detail_recovery_attempt: int | None = None
+                detail_segment_reuse_attempt: int | None = None
+                detail_preflight_feedback: DetailPreflightFeedback | None = None
+                detail_recovery_candidate: DetailArtifact | None = None
                 if stage_id == "detail":
-                    layout_keys = self.detail_layout_operation_keys(state)
-                    if layout_keys:
+                    detail_preflight_feedback = previous_detail_preflight_feedback(
+                        self.artifacts,
+                        state,
+                    )
+                    if detail_preflight_feedback is not None:
+                        candidate = self.artifacts.read(
+                            run_id,
+                            detail_preflight_feedback.source_candidate_ref,
+                        )
+                        detail_recovery_candidate = DetailArtifact.model_validate(
+                            candidate.payload
+                        )
+                        reused_layout = self._source_bound_detail_layout_proposal(
+                            state,
+                            source_attempt=detail_preflight_feedback.source_attempt,
+                        )
+                        if reused_layout is None:
+                            raise ValueError(
+                                "Detail source-bound recovery cannot reconstruct the rejected "
+                                "candidate layout from immutable Provider receipts"
+                            )
+                        detail_segment_reuse_attempt = attempt - 1
+                    else:
+                        detail_recovery_attempt = failed_detail_generation_attempt(
+                            self.operations,
+                            state,
+                        )
+                        detail_segment_reuse_attempt = detail_recovery_attempt
+                        reused_layout = (
+                            self._reusable_detail_layout_proposal(
+                                state,
+                                failed_attempt=detail_recovery_attempt,
+                            )
+                            if detail_recovery_attempt is not None
+                            else None
+                        )
+                    if reused_layout is not None:
+                        detail_layout, layout_keys = reused_layout
                         last_operation_key = layout_keys[0]
-                    detail_layout = await self.generate_detail_layout_proposal(state)
+                    else:
+                        detail_recovery_attempt = None
+                        detail_segment_reuse_attempt = None
+                        layout_keys = self.detail_layout_operation_keys(state)
+                        if layout_keys:
+                            last_operation_key = layout_keys[0]
+                        detail_layout = await self.generate_detail_layout_proposal(state)
                 stage_units = self.context_compiler().stage_units(
                     state,
                     stage_id,
                     detail_layout=detail_layout,
                 )
                 for unit_index, (unit_id, context) in enumerate(stage_units):
+                    if stage_id == "detail":
+                        context["material"]["debut_requirements"] = [
+                            requirement
+                            for requirement in (
+                                context["material"].get("debut_requirements") or []
+                            )
+                            if requirement.get("subject_id")
+                            not in appeared_detail_subject_ids
+                        ]
                     if stage_id == "detail" and previous_segment_handoff is not None:
                         context["material"]["previous_segment_handoff"] = (
                             previous_segment_handoff.model_dump(mode="json")
@@ -391,30 +507,94 @@ class StageExecutor:
                         context["material"]["previous_volume_handoff"] = previous_volume_handoff
                     if stage_id == "detail" and taken_chapter_titles:
                         context["material"]["reserved_titles"] = list(taken_chapter_titles)
+                    detail_recovery_source: DetailRecoverySource | None = None
+                    local_detail_feedback: DetailPreflightFeedback | None = None
+                    if (
+                        stage_id == "detail"
+                        and detail_recovery_candidate is not None
+                        and detail_preflight_feedback is not None
+                    ):
+                        detail_recovery_source, local_detail_feedback = (
+                            build_detail_recovery_source(
+                                detail=detail_recovery_candidate,
+                                feedback=detail_preflight_feedback,
+                                unit_id=unit_id,
+                                provider_context=context,
+                            )
+                        )
+                        if local_detail_feedback is not None:
+                            context["material"]["preflight_feedback"] = (
+                                local_detail_feedback.model_dump(mode="json")
+                            )
+                            context["material"]["recovery_source"] = (
+                                detail_recovery_source.model_dump(mode="json")
+                            )
                     planner = self.output_budget_planner(state)
                     budget = planner.for_stage(stage_id, binding, context)
                     context = planner.attach(context, budget)
                     unit_operation_key = f"{operation_key}:{unit_id}" if unit_id else operation_key
                     last_operation_key = unit_operation_key
-                    payload = await self._generate_stage_unit(
-                        run_id=run_id,
-                        stage_id=stage_id,
-                        attempt=attempt,
-                        operation_key=unit_operation_key,
-                        binding=budget.bind(binding),
-                        context=context,
-                        unit_id=unit_id,
-                    )
-                    if stage_id == "cast":
-                        payload, last_operation_key = await self._preflight_cast_dossier_unit(
+                    reused_cast_unit = (
+                        self._reusable_cast_dossier_unit(
                             state,
-                            payload,
-                            binding=binding,
-                            provider_context=context,
-                            generation_operation_key=unit_operation_key,
                             unit_id=unit_id,
-                            attempt=attempt,
+                            provider_context=context,
                         )
+                        if stage_id == "cast"
+                        else None
+                    )
+                    reused_detail_unit = (
+                        self._reusable_detail_segment_unit(
+                            state,
+                            failed_attempt=detail_segment_reuse_attempt,
+                            unit_id=unit_id,
+                            operation_key=unit_operation_key,
+                            binding=budget.bind(binding),
+                            provider_context=context,
+                        )
+                        if stage_id == "detail"
+                        and detail_segment_reuse_attempt is not None
+                        else None
+                    )
+                    source_bound_detail_payload = (
+                        detail_recovery_source.source_segment.model_dump(mode="json")
+                        if detail_recovery_source is not None
+                        and local_detail_feedback is None
+                        else None
+                    )
+                    if reused_cast_unit is not None:
+                        payload, last_operation_key = reused_cast_unit
+                    elif reused_detail_unit is not None:
+                        payload, last_operation_key = reused_detail_unit
+                    elif source_bound_detail_payload is not None:
+                        payload = _bind_detail_segment_turn_refs(
+                            source_bound_detail_payload,
+                            context,
+                        )
+                        last_operation_key = (
+                            f"{run_id}:detail:generate:"
+                            f"{detail_recovery_source.source_attempt}:{unit_id}"
+                        )
+                    else:
+                        payload = await self._generate_stage_unit(
+                            run_id=run_id,
+                            stage_id=stage_id,
+                            attempt=attempt,
+                            operation_key=unit_operation_key,
+                            binding=budget.bind(binding),
+                            context=context,
+                            unit_id=unit_id,
+                        )
+                        if stage_id == "cast":
+                            payload, last_operation_key = await self._preflight_cast_dossier_unit(
+                                state,
+                                payload,
+                                binding=binding,
+                                provider_context=context,
+                                generation_operation_key=unit_operation_key,
+                                unit_id=unit_id,
+                                attempt=attempt,
+                            )
                     unit_payloads.append((unit_id, payload))
                     if stage_id == "cast":
                         taken_cast_names.extend(
@@ -465,6 +645,11 @@ class StageExecutor:
                             )
                         taken_chapter_titles.extend(
                             item.title for item in segment_chapters
+                        )
+                        appeared_detail_subject_ids.update(
+                            subject_id
+                            for chapter in segment_chapters
+                            for subject_id in chapter.cast_ids
                         )
                         last = segment_chapters[-1]
                         detail_chapter_count += len(segment_chapters)
@@ -521,6 +706,11 @@ class StageExecutor:
                         definition.scale_profile,
                         detail_layout,
                     )
+                    if detail_recovery_candidate is not None:
+                        payload = preserve_detail_recovery_metadata(
+                            payload,
+                            detail_recovery_candidate,
+                        )
                 if stage_id == "cover":
                     brief = CoverBrief.model_validate(payload)
                     include_image = definition.export_preferences.include_cover_image
@@ -726,8 +916,21 @@ class StageExecutor:
         pending_operation_refs: list[str] = []
         spine = StorySpineArtifact.model_validate(base_context["material"]["story_spine"])
         repair_error: ValueError | None = None
-        batch: RoleDemandProposalBatch | None = None
-        for scope_ref in ("", "contract-repair-1"):
+        batch = self._reusable_role_demand_batch(
+            state,
+            spine=spine,
+            context=base_context,
+        )
+        if batch is not None:
+            previous_state = self._with_previous_stage_attempt(state, "cast")
+            pending_operation_refs.append(
+                proposal_operation_key(
+                    previous_state,
+                    proposal_type="role_demand",
+                    binding_stage="cast",
+                )
+            )
+        for scope_ref in (() if batch is not None else ("", "contract-repair-1")):
             context = base_context
             if repair_error is not None:
                 context = {
@@ -806,6 +1009,41 @@ class StageExecutor:
             "subject_refs": subject_refs,
             "pending_operation_refs": pending_operation_refs,
         }
+
+    def _reusable_role_demand_batch(
+        self,
+        state: NarrativeRunState,
+        *,
+        spine: StorySpineArtifact,
+        context: dict[str, Any],
+    ) -> RoleDemandProposalBatch | None:
+        attempt = int((state.get("stage_attempts") or {}).get("cast") or 1)
+        revision_direction = str(
+            (state.get("stage_revision_directions") or {}).get("cast") or ""
+        ).strip()
+        if attempt <= 1 or revision_direction:
+            return None
+        previous_state = self._with_previous_stage_attempt(state, "cast")
+        operation_key = proposal_operation_key(
+            previous_state,
+            proposal_type="role_demand",
+            binding_stage="cast",
+        )
+        receipt = self.operations.find(state["run_id"], operation_key)
+        if receipt is None or receipt.status != "succeeded":
+            return None
+        batch = RoleDemandProposalBatch.model_validate(receipt.result)
+        self._validate_role_demand_batch(batch, spine, context)
+        return batch
+
+    @staticmethod
+    def _with_previous_stage_attempt(
+        state: NarrativeRunState,
+        stage_id: StageId,
+    ) -> NarrativeRunState:
+        attempts = dict(state.get("stage_attempts") or {})
+        attempts[stage_id] = int(attempts.get(stage_id) or 1) - 1
+        return {**state, "stage_attempts": attempts}
 
     def _validate_role_demand_batch(
         self,
@@ -1048,6 +1286,94 @@ class StageExecutor:
             raise StageArtifactValidationError(last_operation_key, exc) from exc
         return batch
 
+    def _reusable_detail_layout_proposal(
+        self,
+        state: NarrativeRunState,
+        *,
+        failed_attempt: int,
+    ) -> tuple[DetailLayoutProposalBatch, list[str]] | None:
+        return reusable_detail_layout_proposal(
+            self.operations,
+            self.artifacts,
+            self.context_compiler(),
+            state=state,
+            profile=self.runs.definition(state["run_id"]).scale_profile,
+            failed_attempt=failed_attempt,
+            current_input=lambda context, scope_ref: compile_provider_input(
+                self._proposal_request(
+                    state,
+                    proposal_type="detail_layout",
+                    binding_stage="detail",
+                    context=context,
+                    scope_ref=scope_ref,
+                )
+            ),
+        )
+
+    def _source_bound_detail_layout_proposal(
+        self,
+        state: NarrativeRunState,
+        *,
+        source_attempt: int,
+    ) -> tuple[DetailLayoutProposalBatch, list[str]] | None:
+        return source_bound_detail_layout_proposal(
+            self.operations,
+            self.artifacts,
+            self.context_compiler(),
+            state=state,
+            profile=self.runs.definition(state["run_id"]).scale_profile,
+            source_attempt=source_attempt,
+            current_input=lambda context, scope_ref: compile_provider_input(
+                self._proposal_request(
+                    state,
+                    proposal_type="detail_layout",
+                    binding_stage="detail",
+                    context=context,
+                    scope_ref=scope_ref,
+                )
+            ),
+        )
+
+    def _reusable_detail_segment_unit(
+        self,
+        state: NarrativeRunState,
+        *,
+        failed_attempt: int,
+        unit_id: str,
+        operation_key: str,
+        binding: ProviderBinding,
+        provider_context: dict[str, Any],
+    ) -> tuple[dict[str, Any], str] | None:
+        request = StageGenerationRequest(
+            operation_key=operation_key,
+            run_id=state["run_id"],
+            stage_id="detail",
+            attempt=int((state.get("stage_attempts") or {}).get("detail") or 1),
+            binding=binding,
+            context=provider_context,
+        )
+        reusable = reusable_detail_segment_result(
+            self.operations,
+            state=state,
+            failed_attempt=failed_attempt,
+            unit_id=unit_id,
+            current_input=compile_provider_input(request),
+        )
+        if reusable is None:
+            return None
+        result, source_operation_key = reusable
+        try:
+            payload = _normalize_stage_unit_payload(
+                "detail",
+                provider_context,
+                result,
+            )
+            _validate_stage_unit("detail", unit_id, provider_context, payload)
+            payload = _bind_detail_segment_turn_refs(payload, provider_context)
+        except (KeyError, TypeError, ValueError):
+            return None
+        return payload, source_operation_key
+
     async def _preflight_cast_dossier_unit(
         self,
         state: NarrativeRunState,
@@ -1068,6 +1394,96 @@ class StageExecutor:
             scope_ref=f"{unit_id}:initial",
         )
         return current, source_operation_key
+
+    def _reusable_cast_dossier_unit(
+        self,
+        state: NarrativeRunState,
+        *,
+        unit_id: str,
+        provider_context: dict[str, Any],
+    ) -> tuple[dict[str, Any], str] | None:
+        """Reuse paid dossier work only after the relation-only contract failed."""
+
+        attempt = int((state.get("stage_attempts") or {}).get("cast") or 1)
+        revision_direction = str(
+            (state.get("stage_revision_directions") or {}).get("cast") or ""
+        ).strip()
+        if attempt <= 1 or revision_direction:
+            return None
+        if not self._previous_cast_failure_is_relation_only(state, attempt=attempt):
+            return None
+
+        for source_attempt in range(attempt - 1, 0, -1):
+            generation_base = f"{state['run_id']}:cast:generate:{source_attempt}"
+            generation_key = f"{generation_base}:{unit_id}" if unit_id else generation_base
+            generation_receipt = self.operations.find(state["run_id"], generation_key)
+            review_key = (
+                f"{state['run_id']}:cast_review:proposal:{source_attempt}:{unit_id}:initial"
+            )
+            review_receipt = self.operations.find(state["run_id"], review_key)
+            if (
+                generation_receipt is None
+                or generation_receipt.status != "succeeded"
+                or review_receipt is None
+                or review_receipt.status != "succeeded"
+                or not generation_receipt.provider_input_ref
+            ):
+                continue
+            try:
+                snapshot = self.operations.provider_inputs.read(
+                    state["run_id"],
+                    generation_receipt.provider_input_ref,
+                )
+                if snapshot.input.structured_context != provider_context:
+                    continue
+                payload = CharacterDossierBatch.model_validate(
+                    generation_receipt.result
+                ).model_dump(mode="json")
+                CastDossierSemanticReviewResult.model_validate(review_receipt.result)
+            except (FileNotFoundError, TypeError, ValueError):
+                continue
+            return payload, generation_key
+        return None
+
+    def _previous_cast_failure_is_relation_only(
+        self,
+        state: NarrativeRunState,
+        *,
+        attempt: int,
+    ) -> bool:
+        previous_attempt = attempt - 1
+        relation_key = f"{state['run_id']}:cast_relation:proposal:{previous_attempt}"
+        receipt = self.operations.find(state["run_id"], relation_key)
+        if receipt is None:
+            return False
+        if receipt.status == "contract_rejected":
+            return True
+        if receipt.status != "succeeded":
+            return False
+        try:
+            relations = CharacterRelationBatch.model_validate(receipt.result)
+            material = self.context_compiler().stage(state, "cast")["material"]
+            demands = RoleDemandProposalBatch.model_validate(
+                {"proposals": material["role_demand_proposals"]}
+            )
+            spine = StorySpineArtifact.model_validate(material["story_spine"])
+            subject_demand_refs = {
+                str(subject_ref["id"]): [str(subject_ref["demand_key"])]
+                for subject_ref in material["subject_refs"]
+            }
+            requirements = _cast_relationship_requirements(
+                subject_demand_refs,
+                demands,
+                spine,
+            )
+            _validate_cast_relation_projection(
+                relations.relations,
+                requirements=requirements,
+                known_subject_ids=set(subject_demand_refs),
+            )
+        except (KeyError, TypeError, ValueError):
+            return True
+        return False
 
     async def _review_cast_dossier_unit(
         self,
@@ -1156,11 +1572,12 @@ class StageExecutor:
         material = cast_context["material"]
         spine = StorySpineArtifact.model_validate(material["story_spine"])
         turn_positions = {turn.id: index for index, turn in enumerate(spine.turns, start=1)}
+        demand_batch = RoleDemandProposalBatch.model_validate(
+            {"proposals": material["role_demand_proposals"]}
+        )
         demands = {
             proposal.demand_key: proposal
-            for proposal in RoleDemandProposalBatch.model_validate(
-                {"proposals": material["role_demand_proposals"]}
-            ).proposals
+            for proposal in demand_batch.proposals
         }
         scale_plan = material.get("scale_plan")
         chapter_target = (
@@ -1227,6 +1644,20 @@ class StageExecutor:
         relation_material: dict[str, Any] = {
             "subjects": [item.model_dump(mode="json") for item in subjects],
         }
+        relationship_requirements = _cast_relationship_requirements(
+            {subject.id: list(subject.demand_refs) for subject in subjects},
+            demand_batch,
+            spine,
+        )
+        relation_material["relationship_requirements"] = relationship_requirements
+        contract_feedback = cast_relation_retry_feedback(
+            self.operations,
+            state,
+            requirements=relationship_requirements,
+            known_subject_ids={subject.id for subject in subjects},
+        )
+        if contract_feedback is not None:
+            relation_material["contract_feedback"] = contract_feedback
         if "revision_request" in cast_context["material"]:
             relation_material["revision_request"] = cast_context["material"][
                 "revision_request"
@@ -1236,28 +1667,31 @@ class StageExecutor:
             "sources": cast_context["sources"],
             "material": relation_material,
         }
-        relation_payload = await self._generate_proposal(
-            state,
-            proposal_type="cast_relation",
-            binding_stage="cast",
-            context=relation_context,
-        )
+        reusable_relation = reusable_cast_relation_result(self.operations, state)
+        if reusable_relation is None:
+            relation_payload = await self._generate_proposal(
+                state,
+                proposal_type="cast_relation",
+                binding_stage="cast",
+                context=relation_context,
+            )
+        else:
+            relation_payload, source_operation_key = reusable_relation
+            self.events.append(
+                state["run_id"],
+                event_id=f"{source_operation_key}:validator-revalidated",
+                type="quality.warning",
+                stage_id="cast",
+                node_id="cast.generate_candidate",
+                status="revalidated",
+                payload={"code": "cast_relation_candidate_revalidated"},
+                payload_ref=source_operation_key,
+            )
         relations = CharacterRelationBatch.model_validate(relation_payload)
-        known = {subject.id for subject in subjects}
-        unknown = {
-            ref
-            for relation in relations.relations
-            for ref in (relation.a, relation.b)
-            if ref not in known
-        }
-        if unknown:
-            raise ValueError(f"Cast relation proposal references unknown subjects: {sorted(unknown)}")
         _validate_cast_relationship_coverage(
             subjects,
             relations.relations,
-            RoleDemandProposalBatch.model_validate(
-                {"proposals": material["role_demand_proposals"]}
-            ),
+            demand_batch,
             spine,
         )
         artifact = CharacterBibleArtifact(
@@ -1280,35 +1714,20 @@ class StageExecutor:
         scope_ref: str = "",
     ) -> dict[str, Any]:
         run_id = state["run_id"]
-        attempt = int((state.get("stage_attempts") or {}).get(binding_stage) or 1)
-        operation_key = proposal_operation_key(
+        request = self._proposal_request(
             state,
             proposal_type=proposal_type,
             binding_stage=binding_stage,
+            context=context,
             scope_ref=scope_ref,
         )
-        binding = self.runs.definition(run_id).provider_bindings.get(binding_stage)
-        if binding is None:
-            raise ProviderOperationError(
-                f"No frozen Provider binding for {binding_stage} proposal"
-            )
-        planner = self.output_budget_planner(state)
-        budget = planner.for_proposal(proposal_type, binding, context)
-        request = ProposalGenerationRequest(
-            operation_key=operation_key,
-            run_id=run_id,
-            stage_id=binding_stage,
-            proposal_type=proposal_type,  # type: ignore[arg-type]
-            attempt=attempt,
-            binding=budget.bind(binding),
-            context=planner.attach(context, budget),
-        )
+        operation_key = request.operation_key
         receipt = self.operations.begin_provider(
             run_id=run_id,
             operation_key=operation_key,
             kind=f"{proposal_type}_proposal",
-            provider_profile_id=binding.provider_profile_id,
-            model=binding.model,
+            provider_profile_id=request.binding.provider_profile_id,
+            model=request.binding.model,
             provider_input=compile_provider_input(request),
         )
         if receipt.status == "failed":
@@ -1389,6 +1808,40 @@ class StageExecutor:
         )
         return response.payload
 
+    def _proposal_request(
+        self,
+        state: NarrativeRunState,
+        *,
+        proposal_type: str,
+        binding_stage: StageId,
+        context: dict[str, Any],
+        scope_ref: str = "",
+    ) -> ProposalGenerationRequest:
+        run_id = state["run_id"]
+        attempt = int((state.get("stage_attempts") or {}).get(binding_stage) or 1)
+        operation_key = proposal_operation_key(
+            state,
+            proposal_type=proposal_type,
+            binding_stage=binding_stage,
+            scope_ref=scope_ref,
+        )
+        binding = self.runs.definition(run_id).provider_bindings.get(binding_stage)
+        if binding is None:
+            raise ProviderOperationError(
+                f"No frozen Provider binding for {binding_stage} proposal"
+            )
+        planner = self.output_budget_planner(state)
+        budget = planner.for_proposal(proposal_type, binding, context)
+        return ProposalGenerationRequest(
+            operation_key=operation_key,
+            run_id=run_id,
+            stage_id=binding_stage,
+            proposal_type=proposal_type,  # type: ignore[arg-type]
+            attempt=attempt,
+            binding=budget.bind(binding),
+            context=planner.attach(context, budget),
+        )
+
     def detail_layout_operation_keys(
         self,
         state: NarrativeRunState,
@@ -1447,63 +1900,126 @@ class StageExecutor:
         base = f"{state['run_id']}:{stage_id}:generate:{attempt}"
         detail_layout: DetailLayoutProposalBatch | None = None
         layout_operation_keys: list[str] = []
+        detail_recovery_attempt: int | None = None
         if stage_id == "detail":
             layout_windows = self.detail_layout_windows(state)
-            layout_operation_keys = [
-                proposal_operation_key(
+            preflight_feedback = previous_detail_preflight_feedback(
+                self.artifacts,
+                state,
+            )
+            if preflight_feedback is not None:
+                detail_recovery_attempt = max(
+                    preflight_feedback.source_attempt,
+                    attempt - 1,
+                )
+                reused_layout = self._source_bound_detail_layout_proposal(
                     state,
-                    proposal_type="detail_layout",
-                    binding_stage="detail",
-                    scope_ref=window.scope_ref,
+                    source_attempt=preflight_feedback.source_attempt,
                 )
-                for window in layout_windows
-            ]
-            completed_layout_keys: list[str] = []
-            chapters_by_volume: dict[str, list[Any]] = {}
-            for window, operation_key in zip(
-                layout_windows,
-                layout_operation_keys,
-                strict=True,
-            ):
-                receipt = self.operations.find(state["run_id"], operation_key)
-                if receipt is None or receipt.status != "succeeded":
-                    return [*completed_layout_keys, operation_key]
-                batch = DetailLayoutProposalBatch.model_validate(receipt.result)
-                completed_layout_keys.append(operation_key)
-                if batch.status != "sufficient" or len(batch.volumes) != 1:
+            else:
+                detail_recovery_attempt = failed_detail_generation_attempt(
+                    self.operations,
+                    state,
+                )
+                reused_layout = (
+                    self._reusable_detail_layout_proposal(
+                        state,
+                        failed_attempt=detail_recovery_attempt,
+                    )
+                    if detail_recovery_attempt is not None
+                    else None
+                )
+            if reused_layout is not None:
+                detail_layout, layout_operation_keys = reused_layout
+            else:
+                detail_recovery_attempt = None
+                layout_operation_keys = [
+                    proposal_operation_key(
+                        state,
+                        proposal_type="detail_layout",
+                        binding_stage="detail",
+                        scope_ref=window.scope_ref,
+                    )
+                    for window in layout_windows
+                ]
+                completed_layout_keys: list[str] = []
+                chapters_by_volume: dict[str, list[Any]] = {}
+                for window, operation_key in zip(
+                    layout_windows,
+                    layout_operation_keys,
+                    strict=True,
+                ):
+                    receipt = self.operations.find(state["run_id"], operation_key)
+                    if receipt is None or receipt.status != "succeeded":
+                        return [*completed_layout_keys, operation_key]
+                    batch = DetailLayoutProposalBatch.model_validate(receipt.result)
+                    completed_layout_keys.append(operation_key)
+                    if batch.status != "sufficient" or len(batch.volumes) != 1:
+                        return completed_layout_keys
+                    if batch.volumes[0].volume_ref != window.volume_ref:
+                        return completed_layout_keys
+                    chapters_by_volume.setdefault(window.volume_ref, []).extend(
+                        batch.volumes[0].chapters
+                    )
+                architecture_ref = (state.get("artifact_refs") or {}).get("volumes")
+                if not architecture_ref:
                     return completed_layout_keys
-                if batch.volumes[0].volume_ref != window.volume_ref:
-                    return completed_layout_keys
-                chapters_by_volume.setdefault(window.volume_ref, []).extend(
-                    batch.volumes[0].chapters
+                architecture = VolumeArchitectureArtifact.model_validate(
+                    self.artifacts.read(state["run_id"], architecture_ref).payload
                 )
-            architecture_ref = (state.get("artifact_refs") or {}).get("volumes")
-            if not architecture_ref:
-                return completed_layout_keys
-            architecture = VolumeArchitectureArtifact.model_validate(
-                self.artifacts.read(state["run_id"], architecture_ref).payload
-            )
-            volume_layouts = [
-                DetailLayoutVolumeProposal(
-                    volume_ref=volume.id,
-                    chapters=chapters_by_volume.get(volume.id, []),
+                detail_layout = DetailLayoutProposalBatch(
+                    status="sufficient",
+                    diagnosis="",
+                    volumes=[
+                        DetailLayoutVolumeProposal(
+                            volume_ref=volume.id,
+                            chapters=chapters_by_volume.get(volume.id, []),
+                        )
+                        for volume in architecture.volumes
+                    ],
                 )
-                for volume in architecture.volumes
-            ]
-            detail_layout = DetailLayoutProposalBatch(
-                status="sufficient",
-                diagnosis="",
-                volumes=volume_layouts,
-            )
         stage_units = self.context_compiler().stage_units(
             state,
             stage_id,
             detail_layout=detail_layout,
         )
-        operation_keys = [
-            f"{base}:{unit_id}" if unit_id else base
-            for unit_id, _ in stage_units
-        ]
+        cast_unit_operation_keys = (
+            {
+                unit_id: self._cast_dossier_receipt_keys(state, unit_id=unit_id)
+                for unit_id, _ in stage_units
+            }
+            if stage_id == "cast"
+            else {}
+        )
+        operation_keys = []
+        for unit_id, _ in stage_units:
+            current_key = f"{base}:{unit_id}" if unit_id else base
+            if stage_id == "cast":
+                operation_keys.append(cast_unit_operation_keys[unit_id][0])
+                continue
+            if stage_id != "detail" or detail_recovery_attempt is None:
+                operation_keys.append(current_key)
+                continue
+            current_receipt = self.operations.find(state["run_id"], current_key)
+            if current_receipt is not None:
+                operation_keys.append(current_key)
+                continue
+            source_key = next(
+                (
+                    key
+                    for source_attempt in prior_attempts(detail_recovery_attempt)
+                    for key in [
+                        f"{state['run_id']}:detail:generate:{source_attempt}:{unit_id}"
+                    ]
+                    if (
+                        (receipt := self.operations.find(state["run_id"], key))
+                        is not None
+                        and receipt.status == "succeeded"
+                    )
+                ),
+                current_key,
+            )
+            operation_keys.append(source_key)
         if stage_id == "spine":
             operation_keys.append(
                 proposal_operation_key(
@@ -1546,23 +2062,53 @@ class StageExecutor:
             if self.operations.find(state["run_id"], repair_key) is not None:
                 operation_keys.append(repair_key)
             for unit_id, _ in stage_units:
-                unit_operation_key = f"{base}:{unit_id}" if unit_id else base
-                operation_keys.append(
-                    proposal_operation_key(
-                        state,
-                        proposal_type="cast_review",
-                        binding_stage="cast",
-                        scope_ref=f"{unit_id}:initial",
-                    )
-                )
-            operation_keys.append(
-                proposal_operation_key(
-                    state,
-                    proposal_type="cast_relation",
-                    binding_stage="cast",
-                )
-            )
+                operation_keys.append(cast_unit_operation_keys[unit_id][1])
+            operation_keys.append(self._cast_relation_receipt_key(state))
         return operation_keys
+
+    def _cast_relation_receipt_key(self, state: NarrativeRunState) -> str:
+        current_key = proposal_operation_key(
+            state,
+            proposal_type="cast_relation",
+            binding_stage="cast",
+        )
+        if self.operations.find(state["run_id"], current_key) is not None:
+            return current_key
+        reusable = reusable_cast_relation_result(self.operations, state)
+        if reusable is not None:
+            return reusable[1]
+        raise ValueError("Cast candidate has no relation Provider provenance")
+
+    def _cast_dossier_receipt_keys(
+        self,
+        state: NarrativeRunState,
+        *,
+        unit_id: str,
+    ) -> tuple[str, str]:
+        """Resolve the paid dossier/review receipts actually used by this candidate."""
+
+        run_id = state["run_id"]
+        attempt = int((state.get("stage_attempts") or {}).get("cast") or 1)
+        for source_attempt in range(attempt, 0, -1):
+            generation_base = f"{run_id}:cast:generate:{source_attempt}"
+            generation_key = (
+                f"{generation_base}:{unit_id}" if unit_id else generation_base
+            )
+            review_key = (
+                f"{run_id}:cast_review:proposal:{source_attempt}:{unit_id}:initial"
+            )
+            generation = self.operations.find(run_id, generation_key)
+            review = self.operations.find(run_id, review_key)
+            if (
+                generation is not None
+                and generation.status == "succeeded"
+                and review is not None
+                and review.status == "succeeded"
+            ):
+                return generation_key, review_key
+        raise ValueError(
+            f"Cast candidate has no successful dossier provenance for {unit_id}"
+        )
 
     async def _generate_stage_unit(
         self,
@@ -1627,14 +2173,22 @@ class StageExecutor:
                 f"{stored.get('type', '')}: {stored.get('message', operation_key)}",
             )
         if receipt.status == "succeeded":
-            payload = receipt.result
+            payload = _normalize_stage_unit_payload(
+                stage_id,
+                context,
+                receipt.result,
+            )
             _validate_stage_unit(stage_id, unit_id, context, payload)
             if stage_id == "detail":
                 payload = _bind_detail_segment_turn_refs(payload, context)
             return payload
         if receipt.status == "provider_returned":
-            payload = receipt.provider_result
             try:
+                payload = _normalize_stage_unit_payload(
+                    stage_id,
+                    context,
+                    receipt.provider_result,
+                )
                 _validate_stage_unit(stage_id, unit_id, context, payload)
                 if stage_id == "detail":
                     payload = _bind_detail_segment_turn_refs(payload, context)
@@ -1697,8 +2251,12 @@ class StageExecutor:
                 "transport_attempts": transport_attempts,
             },
         )
-        payload = response.payload
         try:
+            payload = _normalize_stage_unit_payload(
+                stage_id,
+                context,
+                response.payload,
+            )
             _validate_stage_unit(stage_id, unit_id, context, payload)
             if stage_id == "detail":
                 payload = _bind_detail_segment_turn_refs(payload, context)
@@ -1872,6 +2430,32 @@ class StageExecutor:
             )
             require_detail_preflight(report)
         return candidate
+
+    def revalidate_failed_candidate(
+        self,
+        state: NarrativeRunState,
+        stage_id: StageId,
+        failure: dict[str, Any],
+    ) -> bool:
+        """Reuse an immutable Detail candidate when a newer contract accepts it.
+
+        A deterministic validator fix can make the exact candidate that raised
+        the active interrupt valid after a service restart. Rechecking that
+        candidate prevents an otherwise identical paid regeneration. Other
+        failure classes still follow their existing bounded recovery path.
+        """
+
+        if (
+            stage_id != "detail"
+            or failure.get("node_id") != "detail.validate_contract"
+            or failure.get("code") != "DetailPreflightError"
+        ):
+            return False
+        try:
+            self.validate_candidate(state, stage_id)
+        except DetailPreflightError:
+            return False
+        return True
 
     def commit_candidate(
         self,
@@ -2283,6 +2867,41 @@ def _validate_stage_unit(
             for count in scene_counts
         ):
             raise ValueError("Detail unit returned a scene load outside its frozen capacity range")
+        segment_start = scale.chapter_number_start
+        for requirement in context["material"].get("debut_requirements") or []:
+            subject_id = str(requirement.get("subject_id") or "")
+            latest_chapter = requirement.get("latest_chapter")
+            if not subject_id or not isinstance(latest_chapter, int):
+                raise ValueError("Detail debut requirement is malformed")
+            local_deadline = latest_chapter - segment_start + 1
+            eligible_chapters = segment.chapters[: max(0, local_deadline)]
+            if not any(subject_id in chapter.cast_ids for chapter in eligible_chapters):
+                raise ValueError(
+                    f"Detail unit omitted {subject_id} before its frozen debut "
+                    f"deadline chapter-{latest_chapter}"
+                )
+
+
+def _normalize_stage_unit_payload(
+    stage_id: StageId,
+    context: dict[str, Any],
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Restore a complete stage unit from any narrow Provider call result."""
+
+    if stage_id != "detail":
+        return payload
+    material = context.get("material")
+    recovery_payload = (
+        material.get("recovery_source") if isinstance(material, dict) else None
+    )
+    if recovery_payload is None:
+        return payload
+    return merge_detail_recovery_patch(
+        payload,
+        DetailRecoverySource.model_validate(recovery_payload),
+        selected_dossiers=list(material.get("selected_dossiers") or []),
+    )
 
 
 def _bind_detail_segment_turn_refs(

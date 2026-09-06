@@ -19,7 +19,11 @@ export default function SettingsPage() {
     useState<SettingsSection>("providers")
   const sections = [
     { id: "providers" as const, label: "AI 服务", icon: <Bot size={13} /> },
-    { id: "collaboration" as const, label: "作者协作", icon: <MessagesSquare size={13} /> },
+    {
+      id: "collaboration" as const,
+      label: "作者协作",
+      icon: <MessagesSquare size={13} />,
+    },
     { id: "interface" as const, label: "界面", icon: <MonitorCog size={13} /> },
   ]
 

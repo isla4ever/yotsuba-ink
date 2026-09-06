@@ -1,0 +1,200 @@
+.phase32-cover-page {
+  background: var(--bg-base);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.phase32-cover-toolbar {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  border-bottom: 1px solid var(--border-hl);
+  display: flex;
+  flex: none;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 50px;
+  padding: 8px clamp(12px, 2vw, 22px);
+}
+
+.phase32-cover-toolbar-state,
+.phase32-cover-actions {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+}
+
+.phase32-cover-toolbar-state > svg {
+  color: var(--action-primary);
+  flex: none;
+}
+
+.phase32-cover-toolbar-state > span {
+  color: var(--text-ash);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.phase32-cover-toolbar-state > small {
+  border-left: 1px solid var(--border-hl);
+  color: var(--text-fog);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding-left: 9px;
+}
+
+.phase32-cover-actions {
+  flex: none;
+}
+
+.phase32-cover-alert {
+  align-items: center;
+  background: color-mix(in srgb, var(--semantic-danger) 7%, var(--bg-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--semantic-danger) 22%, var(--border-gh));
+  color: var(--semantic-danger);
+  display: flex;
+  flex: none;
+  font-size: 10.5px;
+  gap: 7px;
+  padding: 8px clamp(14px, 2.2vw, 24px);
+}
+
+.phase32-cover-workbench {
+  display: grid;
+  flex: 1;
+  grid-template-columns: var(--stage-secondary-width) minmax(0, 1fr) 250px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.phase32-cover-rail {
+  background: color-mix(in srgb, var(--bg-surface) 90%, var(--bg-base));
+  border-right: 1px solid var(--border-hl);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+  width: var(--stage-secondary-width);
+}
+
+.phase32-cover-rail > header,
+.phase32-cover-rail > footer {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding: 11px 12px;
+}
+
+.phase32-cover-rail > header {
+  border-bottom: 1px solid var(--border-gh);
+  justify-content: space-between;
+}
+
+.phase32-cover-rail > header > div {
+  align-items: center;
+  color: var(--text-ash);
+  display: flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 7px;
+}
+
+.phase32-cover-rail > header svg,
+.phase32-cover-rail > footer svg {
+  color: var(--action-primary);
+  flex: none;
+}
+
+.phase32-cover-rail > header strong {
+  color: var(--text-fog);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.phase32-cover-rail > footer {
+  border-top: 1px solid var(--border-gh);
+  color: var(--text-fog);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.phase32-cover-empty {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 320px;
+  padding: 28px;
+  text-align: center;
+}
+
+.phase32-cover-empty > svg {
+  color: var(--action-primary);
+  margin-bottom: 10px;
+}
+
+.phase32-cover-empty h1 {
+  color: var(--text-ink);
+  font-size: 14px;
+  margin: 0 0 7px;
+}
+
+.phase32-cover-empty p {
+  font-size: 10px;
+  line-height: 1.65;
+  margin: 0 0 14px;
+  max-width: 430px;
+}
+
+@media (max-width: 1120px) {
+  .phase32-cover-workbench {
+    grid-template-columns: var(--stage-secondary-width) minmax(0, 1fr) 220px;
+  }
+}
+
+@media (max-width: 820px) {
+  .phase32-cover-page {
+    overflow: auto;
+  }
+  .phase32-cover-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .phase32-cover-actions {
+    margin-left: auto;
+  }
+  .phase32-cover-workbench {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-height: auto;
+    overflow: visible;
+  }
+  .phase32-cover-rail {
+    border-bottom: 1px solid var(--border-hl);
+    border-right: 0;
+    display: block;
+    min-height: auto;
+    width: 100%;
+  }
+  .phase32-cover-rail > footer {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .phase32-cover-toolbar-state > small {
+    display: none;
+  }
+  .phase32-cover-actions {
+    overflow-x: auto;
+    width: 100%;
+  }
+}

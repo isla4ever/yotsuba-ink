@@ -207,7 +207,13 @@ def _nesting_depth(value: Any, depth: int = 0) -> int:
 
 
 def _example_value(schema: dict[str, Any], *, root: dict[str, Any], depth: int) -> Any:
-    if depth > 4:
+    # Route artifacts can legitimately nest object references several levels
+    # deep (window -> chapter -> scene).  Stopping at four levels turns a
+    # nested object into the misleading `"value"` string in the prompt
+    # example, which encourages providers to return refs instead of objects.
+    # Keep the example bounded, but deep enough to show the shape of one
+    # complete nested unit.
+    if depth > 12:
         return "value"
     reference = schema.get("$ref")
     if isinstance(reference, str) and reference.startswith("#/$defs/"):
@@ -227,10 +233,12 @@ def _example_value(schema: dict[str, Any], *, root: dict[str, Any], depth: int) 
     value_type = schema.get("type")
     if value_type == "object" or isinstance(schema.get("properties"), dict):
         properties = schema.get("properties", {})
+        required = schema.get("required")
+        required_keys = set(required) if isinstance(required, list) else set(properties)
         return {
             key: _example_value(item, root=root, depth=depth + 1)
             for key, item in list(properties.items())[:24]
-            if isinstance(item, dict)
+            if key in required_keys and isinstance(item, dict)
         }
     if value_type == "array":
         item = schema.get("items")

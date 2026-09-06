@@ -439,10 +439,6 @@ class AuthorCollaborationService:
 
     def _definition(self, run_id: str):
         definition = self.stores.runs.executable_definition(run_id)
-        if definition.quality_mode != "deep":
-            raise AuthorCollaborationUnavailable(
-                "Author collaboration is available only in deep mode"
-            )
         return definition
 
     def _active_thread(self, run_id: str, thread_id: str) -> CollaborationThread:

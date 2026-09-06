@@ -38,6 +38,9 @@ _PERSON_NAME = re.compile(
     r"车侯全班仲宁栾甘厉祖武符刘景詹龙叶黎白怀蒲容向易廖耿满文寇广师聂"
     r"冷辛简饶曾沙鞠关查游权益公][\u4e00-\u9fff]{1,2}"
 )
+# Public alias for validators that need the same conservative Chinese-name
+# boundary without copying or drifting the surname corpus.
+CHINESE_PERSON_NAME_PATTERN = _PERSON_NAME
 _PERSON_INTRODUCTION_PATTERNS = (
     re.compile(rf"(?:名叫|叫作|自称|署名为)(?P<name>{_PERSON_NAME.pattern})"),
     re.compile(rf"(?P<name>{_PERSON_NAME.pattern})(?:说|问|答|喊|承认|表示)(?:道|着)?"),
@@ -84,6 +87,12 @@ _CAREER_ROLES = (
 _CAREER_HISTORY = re.compile(
     rf"(?P<name>{_PERSON_NAME.pattern}).{{0,8}}(?:曾是|曾任|曾担任|曾经担任|此前是|"
     rf"过去是|原本是|从前是).{{0,8}}(?P<role>{'|'.join(_CAREER_ROLES)})"
+)
+_NON_PERSON_ENTITY_MARKERS = (
+    *_ACCESS_MARKERS,
+    *_DOCUMENT_MARKERS,
+    *_SOURCE_INSTITUTIONS,
+    *_CAREER_ROLES,
 )
 
 
@@ -375,6 +384,7 @@ def _explicit_person_names(sentence: str) -> tuple[str, ...]:
         match.group("name")
         for pattern in _PERSON_INTRODUCTION_PATTERNS
         for match in pattern.finditer(sentence)
+        if not _is_non_person_entity(match.group("name"))
     )
 
 
@@ -383,7 +393,12 @@ def _durable_person_names(sentence: str) -> tuple[str, ...]:
         match.group("name")
         for pattern in _DURABLE_PERSON_PATTERNS
         for match in pattern.finditer(sentence)
+        if not _is_non_person_entity(match.group("name"))
     )
+
+
+def _is_non_person_entity(candidate: str) -> bool:
+    return any(candidate in marker for marker in _NON_PERSON_ENTITY_MARKERS)
 
 
 def _sentences(content: str) -> tuple[str, ...]:
@@ -444,6 +459,7 @@ def _evidence_excerpt(sentence: str, marker: str) -> str:
 
 
 __all__ = [
+    "CHINESE_PERSON_NAME_PATTERN",
     "PersistentFactViolation",
     "QuantifiedFactRepairWindow",
     "apply_quantified_fact_repair",

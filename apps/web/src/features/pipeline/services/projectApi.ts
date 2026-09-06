@@ -1,4 +1,5 @@
 import type { ProjectRecord, ProjectSummary } from "../contracts/project"
+import type { CreationIntentDraft } from "../contracts/creationWizard"
 
 export class ProjectApiError extends Error {
   constructor(
@@ -21,19 +22,26 @@ export async function listProjects(
 }
 
 export async function createProject(input: {
-  idea: string
-  templateWorkflowId?: string
-  consumeWorkflowDraft?: boolean
+  intent: CreationIntentDraft
+  workflowId: string
+  idempotencyKey: string
 }): Promise<ProjectRecord> {
   const response = await fetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      idea: input.idea,
-      ...(input.templateWorkflowId
-        ? { template_workflow_id: input.templateWorkflowId }
-        : {}),
-      ...(input.consumeWorkflowDraft ? { consume_workflow_draft: true } : {}),
+      idempotency_key: input.idempotencyKey,
+      selection: {
+        intent: {
+          creative_intent: input.intent.creativeIntent.trim(),
+          creation_language: "zh-CN",
+          creation_kind: input.intent.creationKind,
+          novel_length_class: input.intent.novelLengthClass,
+          requested_target: input.intent.requestedTarget,
+        },
+        mode: "existing",
+        workflow_id: input.workflowId,
+      },
     }),
   })
   if (!response.ok) throw await projectApiError(response, "/api/projects")
@@ -44,59 +52,24 @@ export async function getProjectSummary(
   projectId: string,
   signal?: AbortSignal,
 ): Promise<ProjectSummary> {
-  const url = `/api/projects/${encodeURIComponent(projectId)}/summary`
+  const url = `/api/projects/${encodeURIComponent(projectId)}`
   const response = await fetch(url, { signal })
   if (!response.ok) throw await projectApiError(response, url)
-  const payload: unknown = await response.json()
-  if (!payload || typeof payload !== "object") throw invalidProjectContract(url)
-  const record = payload as Partial<ProjectSummary>
-  if (
-    typeof record.title !== "string" ||
-    typeof record.status !== "string" ||
-    !record.current_stage ||
-    typeof record.current_stage !== "object" ||
-    !Array.isArray(record.completed_stage_ids) ||
-    !record.completed_stage_ids.every((item) => typeof item === "string") ||
-    typeof record.words !== "number" ||
-    !Number.isFinite(record.words) ||
-    typeof record.updated_at !== "string"
-  )
-    throw invalidProjectContract(url)
+  const project = parseProject(await response.json(), url)
   return {
-    project: parseProject(record.project, url),
-    latest_run: record.latest_run ?? null,
-    title: record.title,
-    status: record.status,
-    current_stage: record.current_stage,
-    completed_stage_ids: record.completed_stage_ids,
-    words: record.words,
-    updated_at: record.updated_at,
-  }
-}
-
-export async function getProjectSummaries(
-  projects: ProjectRecord[],
-  signal?: AbortSignal,
-  concurrency = 4,
-): Promise<Record<string, ProjectSummary>> {
-  const summaries: Record<string, ProjectSummary> = {}
-  let nextIndex = 0
-  const workers = Array.from(
-    { length: Math.min(concurrency, projects.length) },
-    async () => {
-      while (nextIndex < projects.length) {
-        const project = projects[nextIndex]
-        nextIndex += 1
-        try {
-          summaries[project.id] = await getProjectSummary(project.id, signal)
-        } catch (reason) {
-          if (signal?.aborted) throw reason
-        }
-      }
+    project,
+    latest_run: null,
+    title: project.title,
+    status: project.run_status,
+    current_stage: {
+      id: project.active_stage.stage_id,
+      label: project.active_stage.label,
+      type: project.active_stage.stage_id,
     },
-  )
-  await Promise.all(workers)
-  return summaries
+    completed_stage_ids: project.completed_stage_ids,
+    words: project.words,
+    updated_at: project.updated_at,
+  }
 }
 
 export async function reorderProjects(
@@ -118,6 +91,7 @@ function parseProject(value: unknown, url: string): ProjectRecord {
   if (!value || typeof value !== "object") throw invalidProjectContract(url)
   const record = value as Partial<ProjectRecord>
   if (
+    record.architecture_version !== "phase32-routes-v1" ||
     typeof record.id !== "string" ||
     !record.id ||
     typeof record.title !== "string" ||
@@ -131,10 +105,69 @@ function parseProject(value: unknown, url: string): ProjectRecord {
     (record.status !== "active" && record.status !== "archived") ||
     typeof record.created_at !== "string" ||
     typeof record.updated_at !== "string" ||
-    typeof record.latest_run_id !== "string"
+    typeof record.latest_run_id !== "string" ||
+    !record.latest_run_id ||
+    !isCreationRouteId(record.creation_route_id) ||
+    typeof record.route_revision !== "string" ||
+    typeof record.route_label !== "string" ||
+    typeof record.deliverable_kind !== "string" ||
+    typeof record.run_status !== "string" ||
+    !isActiveStage(record.active_stage) ||
+    !Array.isArray(record.stage_manifest) ||
+    !record.stage_manifest.every(isStageManifest) ||
+    !record.stage_status ||
+    typeof record.stage_status !== "object" ||
+    !Array.isArray(record.completed_stage_ids) ||
+    !record.completed_stage_ids.every((item) => typeof item === "string") ||
+    !record.progress ||
+    typeof record.progress.completed !== "number" ||
+    typeof record.progress.total !== "number" ||
+    typeof record.progress.ratio !== "number" ||
+    typeof record.target !== "number" ||
+    (record.target_unit !== "minutes" && record.target_unit !== "characters") ||
+    typeof record.words !== "number" ||
+    !record.provider_usage ||
+    typeof record.provider_usage !== "object" ||
+    !Array.isArray(record.pending_decisions)
   )
     throw invalidProjectContract(url)
   return record as ProjectRecord
+}
+
+function isCreationRouteId(value: unknown) {
+  return (
+    value === "screenplay_sample" ||
+    value === "short_novel" ||
+    value === "long_novel"
+  )
+}
+
+function isActiveStage(value: unknown) {
+  if (!value || typeof value !== "object") return false
+  const stage = value as Record<string, unknown>
+  return (
+    typeof stage.stage_id === "string" &&
+    typeof stage.label === "string" &&
+    typeof stage.ordinal === "number" &&
+    typeof stage.total === "number"
+  )
+}
+
+function isStageManifest(value: unknown) {
+  if (!value || typeof value !== "object") return false
+  const stage = value as Record<string, unknown>
+  return (
+    typeof stage.ordinal === "number" &&
+    typeof stage.stage_id === "string" &&
+    typeof stage.label === "string" &&
+    typeof stage.artifact_kind === "string" &&
+    typeof stage.workbench_kind === "string" &&
+    (typeof stage.provider_task_kind === "string" ||
+      stage.provider_task_kind === null) &&
+    Array.isArray(stage.upstream_stage_ids) &&
+    Array.isArray(stage.downstream_stage_ids) &&
+    typeof stage.collaboration_enabled === "boolean"
+  )
 }
 
 function invalidProjectContract(url: string) {

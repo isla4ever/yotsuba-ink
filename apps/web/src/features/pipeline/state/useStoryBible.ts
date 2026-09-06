@@ -1,194 +1,195 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type {
-  StoryBibleFactEntry,
-  StoryBibleForeshadowEntry,
+  StoryBibleEntry,
+  StoryBibleSection,
   StoryBibleSummary,
 } from "../contracts/storyBible"
 import { getStoryBiblePage } from "../services/storyBibleApi"
 
-export type StoryBiblePageStatus =
-  | "idle"
-  | "loading"
-  | "loading-more"
-  | "ready"
-  | "error"
+export type StoryBiblePageStatus = "idle" | "loading" | "refreshing" | "loading-more" | "ready" | "error"
 
-type PageState<T> = {
+type StoryBiblePageState = {
   error: string
-  items: T[]
+  items: StoryBibleEntry[]
   nextCursor: string | null
   status: StoryBiblePageStatus
+  summary: StoryBibleSummary | null
   total: number
 }
 
 type StoryBibleState = {
-  facts: PageState<StoryBibleFactEntry>
-  foreshadows: PageState<StoryBibleForeshadowEntry>
-  summary: StoryBibleSummary | null
+  pages: Record<StoryBibleSection, StoryBiblePageState>
+  runId: string
 }
 
-const emptyPage = <T,>(status: StoryBiblePageStatus = "idle"): PageState<T> => ({
-  error: "",
-  items: [],
-  nextCursor: null,
-  status,
-  total: 0,
-})
+const SECTIONS: StoryBibleSection[] = [
+  "overview",
+  "cast",
+  "structure",
+  "units",
+  "continuity",
+]
 
-const emptyState = (): StoryBibleState => ({
-  facts: emptyPage(),
-  foreshadows: emptyPage(),
-  summary: null,
-})
-
-export function useStoryBible(runId: string, revision: string) {
-  const [state, setState] = useState<StoryBibleState>(emptyState)
+export function useStoryBible(
+  runId: string,
+  section: StoryBibleSection,
+  authorityRevision: string,
+) {
+  const [state, setState] = useState<StoryBibleState>(() => emptyState(runId))
+  const current = state.runId === runId ? state.pages[section] : emptyPage()
 
   useEffect(() => {
     if (!runId) {
-      setState(emptyState())
+      setState(emptyState(""))
       return undefined
     }
     const controller = new AbortController()
-    setState({
-      facts: emptyPage("loading"),
-      foreshadows: emptyPage("loading"),
-      summary: null,
-    })
-    void Promise.allSettled([
-      getStoryBiblePage(runId, "facts", undefined, controller.signal),
-      getStoryBiblePage(runId, "foreshadow", undefined, controller.signal),
-    ]).then(([factsResult, foreshadowResult]) => {
-      if (controller.signal.aborted) return
-      const facts =
-        factsResult.status === "fulfilled"
-          ? pageState(factsResult.value)
-          : failedPage<StoryBibleFactEntry>(factsResult.reason)
-      const foreshadows =
-        foreshadowResult.status === "fulfilled"
-          ? pageState(foreshadowResult.value)
-          : failedPage<StoryBibleForeshadowEntry>(foreshadowResult.reason)
-      setState({
-        facts,
-        foreshadows,
-        summary:
-          factsResult.status === "fulfilled"
-            ? factsResult.value.summary
-            : foreshadowResult.status === "fulfilled"
-              ? foreshadowResult.value.summary
-              : null,
+    setState((previous) => {
+      const base = previous.runId === runId ? previous : emptyState(runId)
+      const existing = base.pages[section]
+      return updatePage(base, section, {
+        ...existing,
+        error: "",
+        status: existing.items.length ? "refreshing" : "loading",
       })
     })
+    void getStoryBiblePage(runId, section, undefined, controller.signal)
+      .then((page) => {
+        if (controller.signal.aborted) return
+        setState((previous) =>
+          previous.runId === runId
+            ? updatePage(previous, section, pageState(page))
+            : previous,
+        )
+      })
+      .catch((reason) => {
+        if (controller.signal.aborted) return
+        setState((previous) => {
+          if (previous.runId !== runId) return previous
+          const existing = previous.pages[section]
+          return updatePage(previous, section, {
+            ...existing,
+            error: errorMessage(reason),
+            status: "error",
+          })
+        })
+      })
     return () => controller.abort()
-  }, [revision, runId])
+  }, [authorityRevision, runId, section])
 
-  const loadMoreFacts = useCallback(async () => {
-    const cursor = state.facts.nextCursor
-    if (!runId || !cursor || state.facts.status === "loading-more") return
-    setState((current) => ({
-      ...current,
-      facts: { ...current.facts, error: "", status: "loading-more" },
-    }))
-    try {
-      const page = await getStoryBiblePage(runId, "facts", cursor)
-      setState((current) => ({
-        ...current,
-        facts: appendPage(current.facts, page, (item) => item.fact_id),
-        summary: page.summary,
-      }))
-    } catch (reason) {
-      setState((current) => ({
-        ...current,
-        facts: failedAppend(current.facts, reason),
-      }))
-    }
-  }, [runId, state.facts.nextCursor, state.facts.status])
-
-  const loadMoreForeshadows = useCallback(async () => {
-    const cursor = state.foreshadows.nextCursor
-    if (!runId || !cursor || state.foreshadows.status === "loading-more") return
-    setState((current) => ({
-      ...current,
-      foreshadows: {
-        ...current.foreshadows,
+  const loadMore = useCallback(async () => {
+    const snapshot = state.runId === runId ? state.pages[section] : emptyPage()
+    if (!runId || !snapshot.nextCursor || snapshot.status === "loading-more")
+      return
+    setState((previous) =>
+      updatePage(previous, section, {
+        ...previous.pages[section],
         error: "",
         status: "loading-more",
-      },
-    }))
+      }),
+    )
     try {
-      const page = await getStoryBiblePage(runId, "foreshadow", cursor)
-      setState((current) => ({
-        ...current,
-        foreshadows: appendPage(
-          current.foreshadows,
-          page,
-          (item) => item.evidence_id,
-        ),
-        summary: page.summary,
-      }))
+      const page = await getStoryBiblePage(runId, section, snapshot.nextCursor)
+      setState((previous) =>
+        previous.runId === runId
+          ? updatePage(
+              previous,
+              section,
+              appendPage(previous.pages[section], page),
+            )
+          : previous,
+      )
     } catch (reason) {
-      setState((current) => ({
-        ...current,
-        foreshadows: failedAppend(current.foreshadows, reason),
-      }))
+      setState((previous) =>
+        updatePage(previous, section, {
+          ...previous.pages[section],
+          error: errorMessage(reason),
+          status: "error",
+        }),
+      )
     }
-  }, [runId, state.foreshadows.nextCursor, state.foreshadows.status])
+  }, [runId, section, state])
 
-  const error = useMemo(
-    () => [state.facts.error, state.foreshadows.error].filter(Boolean).join(" "),
-    [state.facts.error, state.foreshadows.error],
+  const summary = useMemo(
+    () =>
+      current.summary ??
+      SECTIONS.map((item) => state.pages[item].summary).find(Boolean) ??
+      null,
+    [current.summary, state.pages],
   )
 
   return {
-    ...state,
-    error,
-    loadMoreFacts,
-    loadMoreForeshadows,
+    ...current,
+    loadMore,
+    refreshing: current.status === "refreshing",
+    summary,
   }
 }
 
-function pageState<T>(page: {
-  items: T[]
+function emptyPage(): StoryBiblePageState {
+  return {
+    error: "",
+    items: [],
+    nextCursor: null,
+    status: "idle",
+    summary: null,
+    total: 0,
+  }
+}
+
+function emptyState(runId: string): StoryBibleState {
+  return {
+    runId,
+    pages: Object.fromEntries(
+      SECTIONS.map((section) => [section, emptyPage()]),
+    ) as Record<StoryBibleSection, StoryBiblePageState>,
+  }
+}
+
+function updatePage(
+  state: StoryBibleState,
+  section: StoryBibleSection,
+  page: StoryBiblePageState,
+) {
+  return { ...state, pages: { ...state.pages, [section]: page } }
+}
+
+function pageState(page: {
+  items: StoryBibleEntry[]
   next_cursor: string | null
+  summary: StoryBibleSummary
   total: number
-}): PageState<T> {
+}): StoryBiblePageState {
   return {
     error: "",
     items: page.items,
     nextCursor: page.next_cursor,
     status: "ready",
+    summary: page.summary,
     total: page.total,
   }
 }
 
-function appendPage<T>(
-  current: PageState<T>,
-  page: { items: T[]; next_cursor: string | null; total: number },
-  identity: (item: T) => string,
-): PageState<T> {
-  const seen = new Set(current.items.map(identity))
-  const appended = page.items.filter((item) => !seen.has(identity(item)))
+function appendPage(
+  current: StoryBiblePageState,
+  page: {
+    items: StoryBibleEntry[]
+    next_cursor: string | null
+    summary: StoryBibleSummary
+    total: number
+  },
+): StoryBiblePageState {
+  const seen = new Set(current.items.map((item) => item.entry_ref))
   return {
     error: "",
-    items: [...current.items, ...appended],
+    items: [
+      ...current.items,
+      ...page.items.filter((item) => !seen.has(item.entry_ref)),
+    ],
     nextCursor: page.next_cursor,
     status: "ready",
+    summary: page.summary,
     total: page.total,
-  }
-}
-
-function failedPage<T>(reason: unknown): PageState<T> {
-  return {
-    ...emptyPage<T>("error"),
-    error: errorMessage(reason),
-  }
-}
-
-function failedAppend<T>(current: PageState<T>, reason: unknown): PageState<T> {
-  return {
-    ...current,
-    error: errorMessage(reason),
-    status: "error",
   }
 }
 

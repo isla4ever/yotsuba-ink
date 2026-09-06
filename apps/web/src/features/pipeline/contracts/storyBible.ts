@@ -1,89 +1,70 @@
-export type StoryEpistemicStatus =
-  | "fact"
-  | "rumour"
-  | "belief"
-  | "reveal"
-  | "refutation"
+import type { CreationRouteId } from "./run"
 
-export type StoryFactLifecycle =
-  | "active"
-  | "supersedes"
-  | "resolves"
-  | "contradicted"
+export type StoryBibleSection = "overview" | "cast" | "structure" | "units" | "continuity"
 
-export type StoryBibleEvidenceSource = {
-  evidence_id: string
-  chapter_id: string
-  chapter_version_id: string
-  kind: "fact" | "character" | "relationship" | "foreshadow" | "spine"
-  claim: string
-  quotes: string[]
-  created_at: string
+export type StoryBibleEntryKind = "brief_field" | "world_rule" | "character" | "relationship" | "beat" | "scene" | "story_anchor" | "section_unit" | "part" | "volume" | "detail_window" | "chapter_plan" | "accepted_unit" | "promise" | "open_question" | "handoff" | "ending_condition" | "formal_fact"
+
+export type StoryBibleEntryStatus = "committed" | "accepted" | "tracked" | "open" | "planned" | "verified"
+
+export type StoryBibleWritebackStatus = "not_started" | "in_progress" | "recovery_required" | "committed"
+
+export type StoryBibleSource = {
+  stage_id: string
+  artifact_kind: string
+  artifact_ref: string
+  payload_digest: string
+  source_path: string
+  committed_at: string
 }
 
-export type StoryBibleFactEntry = {
-  fact_id: string
-  claim: string
-  chapter_version_id: string
-  subject_id: string
-  property_key: string
-  value: string
-  epistemic_status: StoryEpistemicStatus
-  lifecycle: StoryFactLifecycle
-  effective_from_chapter: number | null
-  effective_to_chapter: number | null
-  supersedes_fact_ids: string[]
-  resolves_fact_ids: string[]
-  evidence_refs: string[]
-  evidence_sources: StoryBibleEvidenceSource[]
-  missing_evidence_refs: string[]
-  wiki_transaction_ids: string[]
-  is_current: boolean
+export type StoryBibleEntry = {
+  entry_ref: string
+  kind: StoryBibleEntryKind
+  title: string
+  body: string
+  detail: string
+  status: StoryBibleEntryStatus
+  ordinal: number | null
+  parent_ref: string
+  unit_ref: string
+  subject_refs: string[]
+  promise_refs: string[]
+  tags: string[]
+  authority: "committed_artifact" | "accepted_unit" | "canon"
+  confidence: "direct"
+  source: StoryBibleSource
 }
-
-export type ResolvedStoryConflict = {
-  subject_id: string
-  property_key: string
-  fact_ids: string[]
-  values: string[]
-}
-
-export type StoryBibleForeshadowEntry = {
-  evidence_id: string
-  claim: string
-  chapter_id: string
-  chapter_version_id: string
-  quotes: string[]
-  epistemic_status: StoryEpistemicStatus
-  lifecycle: StoryFactLifecycle
-  effective_from_chapter: number | null
-  effective_to_chapter: number | null
-  supersedes_fact_ids: string[]
-  resolves_fact_ids: string[]
-  fact_ids: string[]
-  wiki_transaction_ids: string[]
-  writeback_status: "evidence_only" | "canon_committed" | "wiki_projected"
-}
-
-export type StoryBibleSection = "facts" | "foreshadow"
 
 export type StoryBibleSummary = {
-  evidence_count: number
-  canon_fact_count: number
-  current_fact_count: number
-  wiki_projected_fact_count: number
-  foreshadow_count: number
-  foreshadow_tracking_count: number
-  foreshadow_resolved_count: number
-  as_of_chapter: number | null
-  conflicts: ResolvedStoryConflict[]
+  title: string
+  route_label: string
+  run_status: string
+  active_stage_id: string
+  updated_at: string
+  projection_revision: string
+  available_sections: StoryBibleSection[]
+  source_artifact_count: number
+  character_count: number
+  relationship_count: number
+  structure_count: number
+  accepted_unit_count: number
+  continuity_count: number
+  tracked_promise_count: number
+  open_question_count: number
+  formal_fact_count: number
+  formal_writeback_status: StoryBibleWritebackStatus
 }
 
-export type StoryBiblePage<T> = {
+export type StoryBiblePage = {
+  architecture_version: "phase32-routes-v1"
   run_id: string
+  project_id: string
+  creation_route_id: CreationRouteId
+  route_revision: string
+  definition_digest: string
   section: StoryBibleSection
   summary: StoryBibleSummary
-  items: T[]
+  items: StoryBibleEntry[]
   total: number
   limit: number
   next_cursor: string | null

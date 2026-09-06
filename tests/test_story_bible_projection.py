@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,7 +15,7 @@ from novel_workflow.memory.story_bible_read_model import (
 )
 from novel_workflow.memory.wiki_projection import WikiProjectionStore
 from novel_workflow.storage.evidence_store import EvidenceRecord, EvidenceSpan, EvidenceStore
-from tests.phase27_api import configure_phase27_providers
+from tests.test_phase32_project_api import project_payload
 
 
 def test_empty_story_bible_projection_is_explicit(tmp_path) -> None:
@@ -165,46 +165,35 @@ def test_foreshadow_projection_exposes_lifecycle_and_writeback_state(tmp_path) -
     assert by_id[evidence_only.evidence_id].fact_ids == []
 
 
-def test_story_bible_api_uses_current_run_guard(tmp_path, monkeypatch) -> None:
+def test_phase32_run_uses_phase32_story_bible_api(
+    tmp_path,
+    monkeypatch,
+) -> None:
     monkeypatch.chdir(tmp_path)
     client = TestClient(create_app())
-    configure_phase27_providers(client)
-    project = client.post("/api/projects", json={"idea": "故事圣经接口验证。"}).json()
-    created = client.post(
-        "/api/runs",
-        json={
-            "run_id": "story-bible-run",
-            "project_id": project["id"],
-            "workflow_id": project["workflow_id"],
-            "inputs": {"length_envelope": {"word_target_soft": 12_000}},
-            "export_preferences": {"format": "zip"},
-        },
+    project = client.post(
+        "/api/projects",
+        json=project_payload(key="story-bible-phase32-boundary"),
     )
-    assert created.status_code == 200
+    run_id = project.json()["latest_run_id"]
 
-    response = client.get("/api/runs/story-bible-run/story-bible")
+    response = client.get(f"/api/runs/{run_id}/story-bible")
     assert response.status_code == 200
-    assert response.json()["run_id"] == "story-bible-run"
-    assert response.json()["section"] == "facts"
-    assert response.json()["items"] == []
+    assert response.json()["architecture_version"] == "phase32-routes-v1"
+    assert response.json()["run_id"] == run_id
+    assert response.json()["section"] == "overview"
     assert client.get("/api/runs/missing/story-bible").status_code == 404
+    assert client.get(f"/api/runs/{run_id}").status_code == 200
 
-    definition_path = (
-        tmp_path
-        / "runtime"
-        / "novel_workflow"
-        / "native_runtime"
-        / "runs"
-        / "story-bible-run"
-        / "definition.json"
-    )
-    definition = json.loads(definition_path.read_text(encoding="utf-8"))
-    definition["scale_profile"]["chapter_min_reasonable"] = 1
-    definition_path.write_text(json.dumps(definition), encoding="utf-8")
 
-    retired = client.get("/api/runs/story-bible-run/story-bible")
-    assert retired.status_code == 409
-    assert retired.json()["detail"]["code"] == "run_contract_retired"
+def test_story_bible_api_source_has_no_phase27_store_fallback() -> None:
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src/novel_workflow/api/routes/story_bible.py"
+    ).read_text(encoding="utf-8")
+    assert "narrative_stores" not in source
+    assert "StoryBibleReadModelStore" not in source
+    assert "canon_store" not in source
 
 
 def test_read_model_pages_in_stable_order_without_duplicates(tmp_path) -> None:

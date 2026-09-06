@@ -92,6 +92,8 @@ _TERMINAL_OUTCOME_MARKERS = (
     "真相全部公开",
     "最终真相公开",
     "核心谜题彻底解决",
+    "公开所有证据",
+    "系统因数据矛盾崩溃",
 )
 
 
@@ -361,9 +363,14 @@ def _terminal_marker(chapter: object) -> str:
             index = text.find(marker, start)
             if index < 0:
                 break
-            prefix = text[max(0, index - 14) : index]
+            clause_start = max(
+                (text.rfind(delimiter, 0, index) for delimiter in "，。；：！？、"),
+                default=-1,
+            )
+            prefix = text[clause_start + 1 : index]
             if not re.search(
-                r"(?:等待|即将|将要|准备|尚未|未曾|未能|未作出|未宣布|可能|面临|考虑)\s*$",
+                r"(?:等待|即将|将要|准备|计划|打算|决定|试图|尚未|未曾|未能|未作出|未宣布|可能|面临|考虑)"
+                r"[^，。；：！？、]{0,20}$",
                 prefix,
             ):
                 return marker

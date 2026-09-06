@@ -98,15 +98,15 @@ async def test_first_evidence_contract_failure_gets_one_bounded_correction(
     correction_identity = correction_request.context["evidence_operation"]
     assert first_identity == correction_identity
     assert "contract_correction" not in first_request.context
-    assert correction_request.context["contract_correction"]["previous_error"].startswith(
-        "contract_invalid:"
-    )
     first_receipt = stores.operations.read(run_id, first_request.operation_key)
     correction_receipt = stores.operations.read(
         run_id,
         correction_request.operation_key,
     )
     assert first_receipt.status == "contract_rejected"
+    assert correction_request.context["contract_correction"]["previous_error"] == (
+        first_receipt.error["message"]
+    )
     assert first_receipt.provider_result is not None
     assert first_receipt.usage["total_tokens"] == 1
     assert correction_receipt.status == "succeeded"

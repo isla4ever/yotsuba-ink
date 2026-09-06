@@ -16,7 +16,11 @@ const idleState: CoverAssetState = {
   status: "idle",
 }
 
-export function useCoverAssets(runId: string, enabled = true) {
+export function useCoverAssets(
+  runId: string,
+  enabled = true,
+  authorityRevision = "",
+) {
   const [state, setState] = useState<CoverAssetState>(idleState)
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export function useCoverAssets(runId: string, enabled = true) {
         })
       })
     return () => controller.abort()
-  }, [enabled, runId])
+  }, [authorityRevision, enabled, runId])
 
   return state
 }

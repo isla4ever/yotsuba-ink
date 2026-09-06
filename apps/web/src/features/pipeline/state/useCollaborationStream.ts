@@ -8,7 +8,10 @@ import { observeAuthorCollaboration } from "../services/authorCollaborationStrea
 type Params = {
   activeThreadId: string
   enabled: boolean
-  refreshDetail: (threadId?: string, signal?: AbortSignal) => Promise<CollaborationThreadDetail | null>
+  refreshDetail: (
+    threadId?: string,
+    signal?: AbortSignal,
+  ) => Promise<CollaborationThreadDetail | null>
   refreshThreads: (signal?: AbortSignal) => Promise<CollaborationThread[]>
   runId: string
 }

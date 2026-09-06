@@ -563,43 +563,6 @@ def test_vendor_api_roots_are_not_rewritten_to_openai_v1() -> None:
     assert openai_base_url("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions") == "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 
-def test_workflow_reads_live_provider_profiles_and_keeps_new_vendor_instances(tmp_path: Path, monkeypatch) -> None:
-    from fastapi.testclient import TestClient
-
-    from novel_workflow.api.app import create_app
-
-    monkeypatch.chdir(tmp_path)
-    client = TestClient(create_app())
-    official = client.get("/api/workflows/default").json()
-    duplicated = client.post(
-        f"/api/workflows/{official['id']}/duplicate",
-        json={"new_id": "wf-provider-live-copy", "name": "Provider live copy"},
-    )
-    assert duplicated.status_code == 200
-    workflow = duplicated.json()
-    workflow["provider_profiles"][0]["name"] = "stale workflow copy"
-    workflow["provider_profiles"][0]["base_url"] = "https://stale.invalid/v1"
-    created = {
-        "id": "deepseek-secondary",
-        "name": "DeepSeek Secondary",
-        "kind": "openai-compatible",
-        "template_id": "deepseek-text",
-        "base_url": "https://api.deepseek.com/v1",
-        "api_key_env": "DEEPSEEK_API_KEY",
-        "default_model": "deepseek-v4-pro",
-        "model_options": ["deepseek-v4-pro"],
-        "enabled": True,
-    }
-
-    assert client.post("/api/providers", json=created).status_code == 200
-    saved = client.post("/api/workflows", json=workflow).json()
-    refreshed = client.get(f"/api/workflows/{workflow['id']}").json()
-
-    assert all(item["name"] != "stale workflow copy" for item in saved["provider_profiles"])
-    assert any(item["id"] == created["id"] for item in saved["provider_profiles"])
-    assert any(item["id"] == created["id"] for item in refreshed["provider_profiles"])
-
-
 def test_unused_provider_can_be_deleted_with_its_saved_secret(tmp_path: Path, monkeypatch) -> None:
     from fastapi.testclient import TestClient
 

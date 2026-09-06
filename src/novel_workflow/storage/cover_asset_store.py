@@ -6,7 +6,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from novel_workflow.providers.base import GeneratedImage
 from novel_workflow.storage.atomic_json import atomic_write_json, read_json, require_safe_id
@@ -29,7 +29,22 @@ class CoverAssetRecord(BaseModel):
     size_bytes: int = Field(gt=0)
     provider_asset_id: str = ""
     revised_prompt: str = ""
+    usage: dict[str, int] = Field(default_factory=dict)
     created_at: str
+
+    @field_validator("usage")
+    @classmethod
+    def validate_usage(cls, value: dict[str, int]) -> dict[str, int]:
+        if any(
+            not isinstance(key, str)
+            or not key.strip()
+            or isinstance(amount, bool)
+            or not isinstance(amount, int)
+            or amount < 0
+            for key, amount in value.items()
+        ):
+            raise ValueError("Cover asset usage must contain non-negative integer values")
+        return value
 
 
 class CoverAssetStore:
@@ -74,6 +89,15 @@ class CoverAssetStore:
             size_bytes=len(image.content),
             provider_asset_id=image.provider_asset_id,
             revised_prompt=image.revised_prompt,
+            usage={
+                str(key): int(value)
+                for key, value in image.usage.items()
+                if isinstance(key, str)
+                and key.strip()
+                and not isinstance(value, bool)
+                and isinstance(value, int)
+                and value >= 0
+            },
             created_at=_now(),
         )
         with self._lock:
@@ -109,6 +133,25 @@ class CoverAssetStore:
         require_safe_id(run_id, label="run_id")
         require_safe_id(asset_id, label="asset_id")
         record = CoverAssetRecord.model_validate(read_json(self._record_path(run_id, asset_id)))
+        self._validate_content(record)
+        return record
+
+    def find_by_operation(
+        self,
+        run_id: str,
+        operation_key: str,
+    ) -> CoverAssetRecord | None:
+        """Recover bytes written before the Provider receipt transition completed."""
+
+        require_safe_id(run_id, label="run_id")
+        if not operation_key.strip():
+            raise ValueError("Cover operation key is required")
+        path = self._operation_path(run_id, operation_key)
+        if not path.exists():
+            return None
+        record = CoverAssetRecord.model_validate(read_json(path))
+        if record.run_id != run_id or record.operation_key != operation_key:
+            raise ValueError("Cover operation receipt does not match its storage identity")
         self._validate_content(record)
         return record
 
@@ -151,6 +194,7 @@ class CoverAssetStore:
                     mime_type=record.mime_type,
                     provider_asset_id=record.provider_asset_id,
                     revised_prompt=record.revised_prompt,
+                    usage=record.usage,
                 ),
                 expected_ratio=record.width / record.height,
             )

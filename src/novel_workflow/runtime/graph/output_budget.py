@@ -186,6 +186,16 @@ class OutputBudgetPlanner:
             basis = context.get("budget_basis")
             expected = int(basis.get("expected_chapters") or 1) if isinstance(basis, dict) else 1
             material = context.get("material")
+            recovery = material.get("recovery_source") if isinstance(material, dict) else None
+            if recovery is not None:
+                if not isinstance(recovery, dict):
+                    raise ValueError("Detail recovery output budget requires structured source")
+                editable_refs = recovery.get("editable_chapter_refs")
+                if not isinstance(editable_refs, list) or not editable_refs:
+                    raise ValueError(
+                        "Detail recovery output budget requires editable chapter refs"
+                    )
+                expected = len(editable_refs)
             scale = material.get("scale_projection") if isinstance(material, dict) else None
             scene_cap = (
                 int(scale.get("scenes_per_chapter_max") or 0)

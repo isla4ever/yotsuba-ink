@@ -153,7 +153,7 @@ function StatsStrip({ books }: { books: Project[] }) {
 
       {/* 总字数 with line sparkline */}
       <div className="flex items-center gap-2">
-        <TrendingUp size={11} className="text-fast shrink-0" />
+        <TrendingUp size={11} className="text-blue shrink-0" />
         <span className="text-[10px] text-fog">总字数</span>
         <LineSpark data={trend} color="var(--color-mint)" />
         <span className="text-[11px] font-mono font-semibold text-ink">
@@ -163,9 +163,9 @@ function StatsStrip({ books }: { books: Project[] }) {
 
       {/* 本月生成 with bar sparkline */}
       <div className="flex items-center gap-2">
-        <Zap size={11} className="text-balanced shrink-0" />
+        <Zap size={11} className="text-mint shrink-0" />
         <span className="text-[10px] text-fog">本月生成</span>
-        <BarSpark data={bars} color="var(--mode-primary)" />
+        <BarSpark data={bars} color="var(--action-primary)" />
         <span className="text-[11px] font-mono font-semibold text-ink">
           {formatWords(totalWords)}
         </span>
@@ -332,8 +332,8 @@ function BookSpine(props: SpineProps) {
         <div
           className="absolute left-0 top-0 bottom-0 w-0.5 z-30 rounded-full"
           style={{
-            background: "var(--mode-primary)",
-            boxShadow: "0 0 8px var(--mode-primary)",
+            background: "var(--action-primary)",
+            boxShadow: "0 0 8px var(--action-primary)",
           }}
         />
       )}
@@ -461,8 +461,8 @@ function NewBookSlot({
         className="rounded-t-sm border border-dashed flex items-center justify-center"
         style={{
           height: bh,
-          borderColor: hovered ? "var(--mode-primary)" : "var(--border-hl)",
-          background: hovered ? "var(--mode-primary-bg)" : "rgba(0,0,0,0.12)",
+          borderColor: hovered ? "var(--action-primary)" : "var(--border-hl)",
+          background: hovered ? "var(--action-primary-bg)" : "rgba(0,0,0,0.12)",
           transform: hovered ? `translateY(-${LIFT}px)` : "none",
           transition:
             "transform 200ms cubic-bezier(0.25,0.46,0.45,0.94), background 200ms ease, border-color 200ms ease",
@@ -471,7 +471,7 @@ function NewBookSlot({
         <Plus
           size={bw >= 64 ? 16 : 13}
           style={{
-            color: hovered ? "var(--mode-primary)" : "var(--text-fog)",
+            color: hovered ? "var(--action-primary)" : "var(--text-fog)",
             transition: "color 200ms ease",
           }}
         />
@@ -691,7 +691,12 @@ function Bookshelf({ books, setBooks, onOpen, onNewBook, mobile }: ShelfProps) {
 
 /* ─── Main Studio view ───────────────────────────────────────────────────── */
 export default function StudioPage() {
-  const { setRoute, openProject } = useApp()
+  const {
+    setCreationWizardDraft,
+    setRoute,
+    setSelectedTemplateId,
+    openProject,
+  } = useApp()
   const { error, loading, projects, refresh, reorder } = useStudioProjects()
   const [books, setBooks] = useState<Project[]>([])
   const shelfLoad = useLoadingPresence(loading && books.length === 0)
@@ -702,7 +707,11 @@ export default function StudioPage() {
     (p: Project) => openProject(p, p.currentStage),
     [openProject],
   )
-  const newBook = useCallback(() => setRoute("planning"), [setRoute])
+  const newBook = useCallback(() => {
+    setSelectedTemplateId(null)
+    setCreationWizardDraft(null)
+    setRoute("planning")
+  }, [setCreationWizardDraft, setRoute, setSelectedTemplateId])
   const orderBooks = useCallback(
     (next: Project[]) => {
       setBooks(next)
@@ -719,10 +728,12 @@ export default function StudioPage() {
           <h1 className="text-sm font-semibold text-ink leading-tight">
             创作台 · 作品库
           </h1>
-          <p className="text-[11px] text-fog">管理你的长篇小说制作项目</p>
+          <p className="text-[11px] text-fog">
+            管理剧本样片、短中篇与长篇创作项目
+          </p>
         </div>
         <button className="btn btn-action text-xs shrink-0" onClick={newBook}>
-          <Plus size={13} /> 新建小说
+          <Plus size={13} /> 新建作品
         </button>
       </div>
 

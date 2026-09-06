@@ -1,5 +1,16 @@
 export type ProviderKind = "openai-compatible" | "openai-compatible-image"
 
+export type ProviderModelPricing = {
+  currency: "USD"
+  input_usd_per_million_tokens: number | null
+  output_usd_per_million_tokens: number | null
+  fixed_output_usd: number | null
+  source_url: string
+  verified_at: string
+  estimate_basis: "published_rates" | "conservative_upper_bound" | "fixed_output_estimate"
+  estimate_basis_note: string
+}
+
 export type ProviderProfile = {
   id: string
   name: string
@@ -11,6 +22,9 @@ export type ProviderProfile = {
   model_options: string[]
   model_supported_parameters: Record<string, string[]>
   estimated_cost_per_output_usd: number | null
+  estimated_input_cost_per_million_tokens_usd: number | null
+  estimated_output_cost_per_million_tokens_usd: number | null
+  model_pricing: Record<string, ProviderModelPricing>
   is_global_default: boolean
   has_saved_secret: boolean
   has_env_secret: boolean

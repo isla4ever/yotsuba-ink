@@ -95,7 +95,10 @@ export async function deleteProviderProfile(providerId: string) {
   const url = `/api/providers/${encodeURIComponent(providerId)}`
   const response = await fetch(url, { method: "DELETE" })
   if (!response.ok) throw await providerApiError(response, url)
-  return response.json() as Promise<{ ok: boolean; provider_id: string }>
+  return response.json() as Promise<{
+    ok: boolean
+    provider_id: string
+  }>
 }
 
 function profilePayload(provider: ProviderProfile) {
@@ -110,6 +113,11 @@ function profilePayload(provider: ProviderProfile) {
     model_options: provider.model_options,
     model_supported_parameters: provider.model_supported_parameters,
     estimated_cost_per_output_usd: provider.estimated_cost_per_output_usd,
+    estimated_input_cost_per_million_tokens_usd:
+      provider.estimated_input_cost_per_million_tokens_usd,
+    estimated_output_cost_per_million_tokens_usd:
+      provider.estimated_output_cost_per_million_tokens_usd,
+    model_pricing: provider.model_pricing,
     is_global_default: provider.is_global_default,
     enabled: provider.enabled,
   }

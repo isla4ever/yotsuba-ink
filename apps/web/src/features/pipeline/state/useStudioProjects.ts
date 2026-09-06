@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { Project } from "@/features/pipeline/contracts/app"
-import type { ProjectRecord, ProjectSummary } from "../contracts/project"
+import type { ProjectRecord } from "../contracts/project"
 import { projectPresentation } from "../lib/projectPresentation"
-import {
-  getProjectSummaries,
-  listProjects,
-  reorderProjects,
-} from "../services/projectApi"
+import { listProjects, reorderProjects } from "../services/projectApi"
 
 export function useStudioProjects() {
   const [records, setRecords] = useState<ProjectRecord[]>([])
-  const [summaries, setSummaries] = useState<Record<string, ProjectSummary>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -20,7 +15,6 @@ export function useStudioProjects() {
       const projects = await listProjects(signal)
       setRecords(projects)
       setError("")
-      setSummaries(await getProjectSummaries(projects, signal))
     } catch (reason) {
       if (signal?.aborted) return
       setError(reason instanceof Error ? reason.message : "作品库暂时不可用")
@@ -36,11 +30,8 @@ export function useStudioProjects() {
   }, [refresh])
 
   const projects = useMemo(
-    () =>
-      records.map((project) =>
-        projectPresentation(project, summaries[project.id]),
-      ),
-    [records, summaries],
+    () => records.map((project) => projectPresentation(project)),
+    [records],
   )
 
   const reorder = useCallback(

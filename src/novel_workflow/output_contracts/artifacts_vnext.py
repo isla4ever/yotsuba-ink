@@ -250,6 +250,30 @@ _RELATION_OUTCOME_MARKERS = (
     "涉入",
     "进入",
 )
+_RELATION_CAUSAL_MARKERS = (
+    "导致",
+    "造成",
+    "使得",
+    "使",
+    "令",
+    "迫使",
+    "逼迫",
+    "威胁",
+    "要挟",
+    "引发",
+    "触发",
+    "从而",
+    "因此",
+)
+_RELATION_ESTABLISHED_STATE_MARKERS = (
+    *_RELATION_OUTCOME_MARKERS,
+    "已",
+    "曾",
+    "被",
+    "不再",
+    "成为",
+    "最终",
+)
 _HISTORICAL_PRESENT_ACTION_MARKERS = (
     "当下行动",
     "当下说话",
@@ -348,26 +372,57 @@ def _visible_scene_action(value: str, *, label: str) -> str:
 
 def _resolved_relation_type(value: str, *, label: str) -> str:
     cleaned = _resolved_planning_text(value, label=label)
-    normalized = re.sub(r"[\W_]+", "", cleaned.casefold())
-    if any(marker in normalized for marker in _AMBIGUOUS_RELATION_MARKERS):
+    if ambiguous_relation_markers(cleaned):
         raise ValueError(
             f"{label} must state an established, concrete relationship pressure"
         )
     return cleaned
+
+
+def ambiguous_relation_markers(value: str) -> tuple[str, ...]:
+    """Return the exact modal/future markers rejected by relation contracts."""
+
+    normalized = re.sub(r"[\W_]+", "", value.casefold())
+    selected: list[str] = []
+    for marker in sorted(_AMBIGUOUS_RELATION_MARKERS, key=len, reverse=True):
+        if marker not in normalized or any(marker in item for item in selected):
+            continue
+        selected.append(marker)
+    return tuple(selected)
 
 
 def _resolved_relation_pressure(value: str, *, label: str) -> str:
-    cleaned = _resolved_relation_type(value, label=label)
-    normalized = re.sub(r"[\W_]+", "", cleaned.casefold())
-    if not any(marker in normalized for marker in _RELATION_ACTION_MARKERS):
+    cleaned = _resolved_planning_text(value, label=label)
+    if _unresolved_relation_pressure_markers(cleaned):
         raise ValueError(
             f"{label} must state an established, concrete relationship pressure"
         )
-    if not any(marker in normalized for marker in _RELATION_OUTCOME_MARKERS):
+    normalized = re.sub(r"[\W_]+", "", cleaned.casefold())
+    has_action_consequence = any(
+        marker in normalized for marker in _RELATION_ACTION_MARKERS
+    ) and any(marker in normalized for marker in _RELATION_OUTCOME_MARKERS)
+    has_established_causal_structure = any(
+        marker in normalized for marker in _RELATION_CAUSAL_MARKERS
+    ) and any(
+        marker in normalized for marker in _RELATION_ESTABLISHED_STATE_MARKERS
+    )
+    if not (has_action_consequence or has_established_causal_structure):
         raise ValueError(
             f"{label} must state an established, concrete relationship pressure"
         )
     return cleaned
+
+
+def _unresolved_relation_pressure_markers(value: str) -> tuple[str, ...]:
+    normalized = re.sub(r"[\W_]+", "", value.casefold())
+    # A risk can be established now even though the threatened retaliation has
+    # not happened yet. Speculative relationship actions remain invalid.
+    without_established_risk = re.sub(
+        r"可能(?:带来|引发|造成|遭受|面临|被).{0,16}风险",
+        "风险",
+        normalized,
+    )
+    return ambiguous_relation_markers(without_established_risk)
 
 
 def _validate_historical_role_demand_text(value: str, *, label: str) -> str:

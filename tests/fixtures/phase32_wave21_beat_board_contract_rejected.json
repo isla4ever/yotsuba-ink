@@ -1,0 +1,84 @@
+{
+  "source": {
+    "run_id": "p32-screenplay-brief-cast-beat-live-20260823-105907",
+    "stage_id": "beat_board",
+    "response_sha256": "178b8bccaaaac6d39775af7b57039c013ec91d430a727ab70ca202883c426a57",
+    "canonical_payload_sha256": "8d21c4fb94e1317f82b07a76500472b144e0428c516e54a037ead88be9eb5339"
+  },
+  "payload": {
+    "beats": [
+      {
+        "beat_ref": "beat_1",
+        "dramatic_job": "确立林晚被降职后的压抑工作状态，并引入异常信号",
+        "visible_pressure": "控制室内，林晚独自值守，监控屏显示正常。突然，一个无编号的检修车信号出现在封锁区间，且正在倒行。倒计时提示音响起：12分钟。",
+        "character_decision": "林晚决定立即核查异常信号，并尝试联系检修车。",
+        "outcome": "信号确认异常，林晚试图通过车载通话联系，但只听到杂音。",
+        "setup_or_payoff_refs": [
+          "setup: 异常信号",
+          "setup: 倒计时"
+        ],
+        "timing_hint": "0-2分钟"
+      },
+      {
+        "beat_ref": "beat_2",
+        "dramatic_job": "引入周涛的对抗压力，确立规程冲突",
+        "visible_pressure": "周涛通过电话要求林晚维持封锁，不得干预。林晚指出检修车无编号且倒行，周涛坚持按规程处理。",
+        "character_decision": "林晚表面服从，但内心开始质疑，决定继续追踪信号。",
+        "outcome": "周涛挂断电话，林晚继续监控，发现检修车速度加快。",
+        "setup_or_payoff_refs": [
+          "setup: 周涛的规程压力"
+        ],
+        "timing_hint": "2-4分钟"
+      },
+      {
+        "beat_ref": "beat_3",
+        "dramatic_job": "陈默的求救信号建立情感与伦理 stakes",
+        "visible_pressure": "车载通话突然接通，传来陈默虚弱的求救声，他自称是失踪证人，并提到当年事故的真相。信号不稳定，断断续续。",
+        "character_decision": "林晚决定与陈默保持通话，并试图获取更多信息。",
+        "outcome": "陈默透露他掌握关键证据，但通话中断。林晚意识到他是唯一能证明自己清白的人。",
+        "setup_or_payoff_refs": [
+          "payoff: 陈默出现",
+          "setup: 证据线索"
+        ],
+        "timing_hint": "4-6分钟"
+      },
+      {
+        "beat_ref": "beat_4",
+        "dramatic_job": "林晚尝试合法途径救援，但受阻",
+        "visible_pressure": "林晚尝试通过系统重新打开维护通道，但权限不足，需要主管授权。她再次联系周涛，请求开放通道，周涛严厉拒绝，并警告她不要违规。",
+        "character_decision": "林晚决定绕过权限，尝试物理操作，但发现钥匙被收回。",
+        "outcome": "林晚陷入困境，时间仅剩6分钟，她必须做出选择。",
+        "setup_or_payoff_refs": [
+          "payoff: 权限受限",
+          "setup: 倒计时压力"
+        ],
+        "timing_hint": "6-8分钟"
+      },
+      {
+        "beat_ref": "beat_5",
+        "dramatic_job": "林晚发现周涛的隐瞒，信任崩塌",
+        "visible_pressure": "陈默再次接通通话，透露周涛可能掩盖了当年事故的真相。周涛的电话同时打入，要求林晚立即封锁所有通讯。",
+        "character_decision": "林晚选择相信陈默，决定违抗周涛。",
+        "outcome": "林晚挂断周涛电话，开始寻找解锁维护通道的方法。",
+        "setup_or_payoff_refs": [
+          "payoff: 周涛的隐瞒",
+          "setup: 信任崩塌"
+        ],
+        "timing_hint": "8-10分钟"
+      },
+      {
+        "beat_ref": "beat_6",
+        "dramatic_job": "林晚做出不可逆的选择，付出职业代价",
+        "visible_pressure": "倒计时进入最后两分钟，林晚找到紧急解锁键，但按下会触发警报并记录日志。周涛在电话中怒吼，警告她将被停职。",
+        "character_decision": "林晚在监控画面中看着陈默的检修车，毅然按下解锁键。",
+        "outcome": "警报响起，维护通道开启，陈默的检修车驶入安全区域。周涛宣布林晚被停职，警方将介入。林晚对着通话器向陈默暴露了自己违规营救的事实。",
+        "setup_or_payoff_refs": [
+          "payoff: 不可逆选择",
+          "payoff: 职业代价",
+          "setup: 后续疑问"
+        ],
+        "timing_hint": "10-12分钟"
+      }
+    ]
+  }
+}

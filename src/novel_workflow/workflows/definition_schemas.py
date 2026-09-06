@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from datetime import datetime
+from typing import Any, Literal, Optional, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 NodeType = Literal[
@@ -21,6 +22,11 @@ ProviderTemplateId = str
 FieldType = Literal["text", "textarea", "number", "select", "tags", "boolean"]
 QualityMode = Literal["fast", "balanced", "deep"]
 QualityContractVersion = Literal["phase26-vnext"]
+PricingEstimateBasis = Literal[
+    "published_rates",
+    "conservative_upper_bound",
+    "fixed_output_estimate",
+]
 
 
 class ModelSettings(BaseModel):
@@ -43,6 +49,42 @@ class InputField(BaseModel):
     options: list[str] = Field(default_factory=list)
 
 
+class ProviderModelPricing(BaseModel):
+    """One model-specific, traceable pricing declaration."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    currency: Literal["USD"] = "USD"
+    input_usd_per_million_tokens: float | None = Field(default=None, ge=0)
+    output_usd_per_million_tokens: float | None = Field(default=None, ge=0)
+    fixed_output_usd: float | None = Field(default=None, ge=0)
+    source_url: str = Field(min_length=1, max_length=2_000)
+    verified_at: str = Field(min_length=1, max_length=80)
+    estimate_basis: PricingEstimateBasis
+    estimate_basis_note: str = Field(min_length=1, max_length=1_000)
+
+    @model_validator(mode="after")
+    def validate_provenance(self) -> Self:
+        if not any(
+            value is not None
+            for value in (
+                self.input_usd_per_million_tokens,
+                self.output_usd_per_million_tokens,
+                self.fixed_output_usd,
+            )
+        ):
+            raise ValueError("Provider model pricing requires at least one rate")
+        if not self.source_url.startswith(("https://", "http://")):
+            raise ValueError("Provider pricing source URL must use HTTP(S)")
+        try:
+            verified = datetime.fromisoformat(self.verified_at)
+        except ValueError as exc:
+            raise ValueError("Provider pricing verification time must be ISO 8601") from exc
+        if verified.tzinfo is None:
+            raise ValueError("Provider pricing verification time must include a timezone")
+        return self
+
+
 class ProviderProfile(BaseModel):
     id: str
     name: str
@@ -54,6 +96,15 @@ class ProviderProfile(BaseModel):
     model_options: list[str] = Field(default_factory=list)
     model_supported_parameters: dict[str, list[str]] = Field(default_factory=dict)
     estimated_cost_per_output_usd: Optional[float] = Field(default=None, ge=0)
+    estimated_input_cost_per_million_tokens_usd: Optional[float] = Field(
+        default=None,
+        ge=0,
+    )
+    estimated_output_cost_per_million_tokens_usd: Optional[float] = Field(
+        default=None,
+        ge=0,
+    )
+    model_pricing: dict[str, ProviderModelPricing] = Field(default_factory=dict)
     is_global_default: bool = False
     enabled: bool = True
 

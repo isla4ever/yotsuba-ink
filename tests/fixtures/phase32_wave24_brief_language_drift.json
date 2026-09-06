@@ -1,0 +1,43 @@
+{
+  "run_id": "p32-screenplay-r2-beat-v3-live-20260823-121830",
+  "project_id": "p32-screenplay-r2-beat-v3-project-20260823-121830",
+  "definition_digest": "0324249d063af7889bb239ba5acc047999fc63e1492668268b060f2f31d25b7b",
+  "creation_route_id": "screenplay_sample",
+  "route_revision": "r2",
+  "stage_id": "brief",
+  "prompt_template_id": "prompt.phase32.screenplay_sample.brief.v2",
+  "frozen_inputs": {
+    "creation_route_id": "screenplay_sample",
+    "creation_kind": "screenplay",
+    "novel_length_class": null,
+    "requested_target": 12,
+    "creative_intent": "当代城市悬疑剧本样片，目标约12分钟。末班地铁停运后的封闭控制室里，一名被降职的女信号员发现一列无乘客编号的检修车正在封锁区间内倒行。"
+  },
+  "provider_calls": 1,
+  "provider_profile_id": "provider-deepseek-text",
+  "provider_template_id": "deepseek-text",
+  "model_id": "deepseek-v4-flash",
+  "transport_attempts": 1,
+  "usage": {
+    "prompt_tokens": 867,
+    "completion_tokens": 508,
+    "total_tokens": 1375
+  },
+  "estimated_cost_usd": 0.00026362,
+  "response_sha256": "2304f378ebffffae2b839586e9fb8b669ab73303a438cc0af7766d3fef974011",
+  "artifact_payload": {
+    "sample_type": "single-location real-time thriller excerpt",
+    "target_minutes": 12,
+    "premise": "A demoted female signal operator discovers a maintenance train reversing inside a blocked section while a missing witness calls for help over its radio.",
+    "audience_promise": "The audience experiences a real-time moral dilemma between protocol and humanity.",
+    "visible_conflict": "The operator must choose whether to keep the maintenance passage locked or violate protocol before the section loses power.",
+    "ending_effect": "She opens the passage, loses her career, exposes a cover-up, and leaves the wider conspiracy unresolved.",
+    "tone": "tense, claustrophobic, morally charged"
+  },
+  "observation": "all_author_facing_natural_language_returned_in_english",
+  "run_state": {
+    "status": "awaiting_decision",
+    "stage_id": "brief",
+    "domain_revision": 0
+  }
+}

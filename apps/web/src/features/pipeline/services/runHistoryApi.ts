@@ -7,14 +7,18 @@ import { verifyExportBlob } from "../lib/exportIntegrity"
 import { RunApiError } from "./runApi"
 
 export async function listRunHistory(
-  params: { limit?: number; projectId?: string; status?: string } = {},
+  params: {
+    limit?: number
+    projectId?: string
+    status?: string
+  } = {},
   signal?: AbortSignal,
 ): Promise<RunHistoryResponse> {
   const query = new URLSearchParams()
   if (params.limit) query.set("limit", String(params.limit))
   if (params.projectId) query.set("project_id", params.projectId)
   if (params.status) query.set("status", params.status)
-  const url = `/api/runs/history${query.size ? `?${query}` : ""}`
+  const url = `/api/runs${query.size ? `?${query}` : ""}`
   const response = await fetch(url, { signal })
   if (!response.ok) throw await responseError(response, url)
   const payload: unknown = await response.json()
@@ -56,7 +60,10 @@ export async function downloadRunExportReceipt(
     expectedSizeBytes?: number
     signal?: AbortSignal
   } = {},
-): Promise<{ blob: Blob; filename: string }> {
+): Promise<{
+  blob: Blob
+  filename: string
+}> {
   const url = exportDownloadUrl(runId, exportId)
   const response = await fetch(url, { signal: options.signal })
   if (!response.ok) throw await responseError(response, url)
@@ -72,42 +79,66 @@ export async function downloadRunExportReceipt(
 }
 
 function parseRunHistoryItem(value: unknown): RunHistoryItem {
-  if (!isRecord(value) || !isRecord(value.current_stage)) throw invalidHistory()
+  if (
+    !isRecord(value) ||
+    !isRecord(value.active_stage) ||
+    !isRecord(value.progress) ||
+    !isRecord(value.provider_usage)
+  )
+    throw invalidHistory()
   const status = value.status
   if (
     ![
       "created",
       "running",
       "awaiting_decision",
+      "image_deferred",
       "failed",
       "completed",
       "cancelled",
     ].includes(String(status))
   )
     throw invalidHistory()
-  if (!["fast", "balanced", "deep"].includes(String(value.quality_mode)))
-    throw invalidHistory()
   if (
     !requiredStrings(value, [
       "run_id",
       "project_id",
-      "title",
+      "creation_route_id",
+      "route_revision",
+      "route_label",
+      "deliverable_kind",
+      "active_unit_ref",
       "created_at",
       "updated_at",
-      "completed_at",
-      "summary",
       "checkpoint_id",
     ])
   )
     throw invalidHistory()
-  if (!requiredStrings(value.current_stage, ["id", "label", "type"]))
+  if (!requiredStrings(value.active_stage, ["stage_id", "label"]))
     throw invalidHistory()
   if (
     !Array.isArray(value.completed_stage_ids) ||
     !value.completed_stage_ids.every((item) => typeof item === "string")
   )
     throw invalidHistory()
-  if (!requiredNumbers(value, ["words", "total_tokens", "export_count"]))
+  if (!requiredNumbers(value.active_stage, ["ordinal", "total"]))
+    throw invalidHistory()
+  if (!requiredNumbers(value.progress, ["completed", "total", "ratio"]))
+    throw invalidHistory()
+  if (
+    !requiredNumbers(value.provider_usage, [
+      "provider_operations",
+      "returned_operations",
+      "succeeded_operations",
+      "contract_rejected_operations",
+      "failed_operations",
+      "pending_operations",
+      "prompt_tokens",
+      "completion_tokens",
+      "total_tokens",
+      "reasoning_tokens",
+    ])
+  )
     throw invalidHistory()
   if (
     typeof value.can_branch !== "boolean" ||
@@ -115,15 +146,17 @@ function parseRunHistoryItem(value: unknown): RunHistoryItem {
   )
     throw invalidHistory()
   if (
-    value.estimated_cost_usd !== null &&
-    typeof value.estimated_cost_usd !== "number"
+    value.provider_usage.estimated_cost_usd !== null &&
+    typeof value.provider_usage.estimated_cost_usd !== "number"
   )
     throw invalidHistory()
-  const latestExport =
-    value.latest_export === null
-      ? null
-      : parseExportReceipt(value.latest_export)
-  return { ...value, latest_export: latestExport } as RunHistoryItem
+  if (
+    !Array.isArray(value.pending_decisions) ||
+    !Array.isArray(value.provider_usage.by_provider) ||
+    (value.failure !== null && !isRecord(value.failure))
+  )
+    throw invalidHistory()
+  return value as RunHistoryItem
 }
 
 function parseExportReceipt(value: unknown): ExportReceipt {

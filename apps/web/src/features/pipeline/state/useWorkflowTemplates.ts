@@ -1,22 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import type { WorkflowDefinition } from "../contracts/workflow"
-import { workflowSort } from "../lib/workflowPresentation"
-import {
-  deleteWorkflowDefinition,
-  listWorkflowDefinitions,
-} from "../services/workflowApi"
+import type { CreationWorkflowCatalogItem } from "../contracts/creationWizard"
+import { listCreationWorkflowCatalog } from "../services/creationCatalogApi"
+
+const ROUTE_ORDER = ["screenplay_sample", "short_novel", "long_novel"]
 
 export function useWorkflowTemplates() {
-  const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([])
+  const [workflows, setWorkflows] = useState<CreationWorkflowCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const loaded = await listWorkflowDefinitions(signal)
+      const loaded = await listCreationWorkflowCatalog(signal)
       setWorkflows(
-        loaded.filter((workflow) => workflow.is_template).sort(workflowSort),
+        loaded
+          .filter((workflow) => workflow.available)
+          .sort(
+            (left, right) =>
+              ROUTE_ORDER.indexOf(left.routeId) -
+                ROUTE_ORDER.indexOf(right.routeId) ||
+              Number(right.source === "official") -
+                Number(left.source === "official") ||
+              left.name.localeCompare(right.name, "zh-CN"),
+          ),
       )
       setError("")
     } catch (reason) {
@@ -35,20 +42,8 @@ export function useWorkflowTemplates() {
     return () => controller.abort()
   }, [refresh])
 
-  const remove = useCallback(async (workflowId: string) => {
-    try {
-      await deleteWorkflowDefinition(workflowId)
-      setWorkflows((current) =>
-        current.filter((workflow) => workflow.id !== workflowId),
-      )
-      setError("")
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "删除工作流失败")
-    }
-  }, [])
-
   return useMemo(
-    () => ({ error, loading, refresh, remove, workflows }),
-    [error, loading, refresh, remove, workflows],
+    () => ({ error, loading, refresh, workflows }),
+    [error, loading, refresh, workflows],
   )
 }

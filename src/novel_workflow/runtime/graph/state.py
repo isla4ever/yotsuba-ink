@@ -21,6 +21,7 @@ class GraphFailure(TypedDict):
     node_id: str
     code: str
     retryable: bool
+    provider_code: NotRequired[str]
     evidence_ref: NotRequired[str]
     message: NotRequired[str]
 

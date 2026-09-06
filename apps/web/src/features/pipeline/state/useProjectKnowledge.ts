@@ -20,9 +20,7 @@ export function useProjectKnowledge(projectId: string, enabled: boolean) {
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted)
-          setError(
-            reason instanceof Error ? reason.message : "知识库读取失败",
-          )
+          setError(reason instanceof Error ? reason.message : "知识库读取失败")
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)

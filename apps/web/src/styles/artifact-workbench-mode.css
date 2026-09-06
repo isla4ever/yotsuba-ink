@@ -1,0 +1,196 @@
+.artifact-mode-switch {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-base) 72%, transparent);
+  border: 1px solid var(--border-hl);
+  border-radius: 5px;
+  display: inline-flex;
+  flex: none;
+  height: 29px;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.artifact-mode-switch button {
+  align-items: center;
+  border-radius: 3px;
+  color: var(--text-fog);
+  display: inline-flex;
+  font-size: 9.5px;
+  gap: 5px;
+  height: 23px;
+  justify-content: center;
+  min-width: 58px;
+  padding: 0 8px;
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.artifact-mode-switch button:hover:not(:disabled),
+.artifact-mode-switch button:focus-visible {
+  color: var(--text-ink);
+  outline: none;
+}
+
+.artifact-mode-switch button.is-active {
+  background: var(--bg-elev);
+  color: var(--action-primary);
+}
+
+.artifact-mode-switch button:disabled {
+  cursor: not-allowed;
+  opacity: .34;
+}
+
+.artifact-mode-surface.is-viewing {
+  animation: artifact-view-enter 180ms ease both;
+}
+
+.artifact-mode-surface.is-editing {
+  animation: artifact-edit-enter 180ms ease both;
+}
+
+.artifact-mode-surface.is-viewing .artifact-readable-field {
+  padding-block: 3px 9px;
+}
+
+.artifact-readable-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.artifact-readable-field > span {
+  color: var(--text-fog);
+  font-size: 8.5px;
+}
+
+.artifact-readable-value {
+  color: var(--text-ash);
+  font-size: 11.5px;
+  line-height: 1.78;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.artifact-readable-field.is-emphasized .artifact-readable-value {
+  color: var(--text-ink);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.artifact-mode-surface.is-editing input,
+.artifact-mode-surface.is-editing select {
+  background: color-mix(in srgb, var(--bg-elev) 70%, var(--bg-base));
+  border-color: var(--border-hl);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--action-primary) 18%, transparent);
+}
+
+.artifact-mode-surface.is-editing textarea {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border-hl);
+  border-radius: 0;
+  box-shadow: none;
+  field-sizing: content;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px 2px 8px;
+  resize: none;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.artifact-mode-surface.is-editing textarea:hover {
+  background: color-mix(in srgb, var(--bg-elev) 34%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--action-primary) 34%, var(--border-hl));
+}
+
+.artifact-mode-surface.is-editing input:focus,
+.artifact-mode-surface.is-editing select:focus {
+  background: var(--bg-elev);
+  border-color: color-mix(in srgb, var(--action-primary) 46%, var(--border-hl));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--action-primary) 8%, transparent);
+  outline: none;
+}
+
+.artifact-mode-surface.is-editing textarea:focus {
+  background: color-mix(in srgb, var(--bg-elev) 56%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--action-primary) 62%, var(--border-hl));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--action-primary) 42%, transparent);
+  outline: none;
+}
+
+.artifact-section-tabs {
+  align-items: center;
+  border-bottom: 1px solid var(--border-hl);
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.artifact-section-tabs button {
+  align-items: center;
+  border-bottom: 2px solid transparent;
+  color: var(--text-fog);
+  display: inline-flex;
+  flex: none;
+  font-size: 9.5px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.artifact-section-tabs button:hover,
+.artifact-section-tabs button:focus-visible {
+  color: var(--text-ash);
+  outline: none;
+}
+
+.artifact-section-tabs button.is-active {
+  border-bottom-color: var(--action-primary);
+  color: var(--action-primary);
+}
+
+.artifact-section-tabs button > span {
+  border-left: 1px solid var(--border-hl);
+  color: currentColor;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1;
+  opacity: .78;
+  padding-left: 6px;
+}
+
+@keyframes artifact-view-enter {
+  from { opacity: .45; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes artifact-edit-enter {
+  from { opacity: .55; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 560px) {
+  .artifact-mode-switch button {
+    min-width: 34px;
+    padding-inline: 7px;
+  }
+
+  .artifact-mode-switch button span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artifact-mode-switch button {
+    transition: none;
+  }
+
+  .artifact-mode-surface.is-viewing,
+  .artifact-mode-surface.is-editing {
+    animation: none;
+  }
+}

@@ -1,0 +1,470 @@
+.section-plan-sheet {
+  background: color-mix(in srgb, var(--bg-surface) 92%, var(--bg-base));
+  border: 1px solid var(--border-hl);
+  box-shadow: 0 18px 42px color-mix(in srgb, #000 19%, transparent);
+  min-height: 510px;
+}
+
+.section-plan-sheet-header {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-elev) 62%, transparent);
+  border-bottom: 1px solid var(--border-hl);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 74px;
+  padding: 11px 15px;
+}
+
+.section-plan-sheet-identity {
+  align-items: center;
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.section-plan-sheet-identity > span {
+  align-items: center;
+  border-right: 1px solid var(--border-hl);
+  color: var(--action-primary);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  height: 40px;
+}
+
+.section-plan-sheet-identity > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.section-plan-sheet-identity > div > div {
+  display: grid;
+  gap: 3px;
+}
+
+.section-plan-sheet-identity label {
+  display: grid;
+  gap: 3px;
+}
+
+.section-plan-sheet-identity label > span,
+.section-plan-sheet-identity > div > div > span {
+  color: var(--text-fog);
+  font-size: 8px;
+}
+
+.section-plan-sheet-identity input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border-hl);
+  color: var(--text-ink);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  min-height: 27px;
+  min-width: 0;
+  outline: 0;
+  padding: 2px 0 4px;
+  width: min(420px, 100%);
+}
+
+.section-plan-sheet-identity strong {
+  color: var(--text-ink);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.section-plan-sheet-identity code {
+  color: var(--text-fog);
+  font-size: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-plan-sheet-controls {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.section-plan-sheet-controls > div:last-child {
+  border: 1px solid var(--border-gh);
+  display: flex;
+}
+
+.section-plan-sheet-controls > div:last-child button {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  height: 29px;
+  justify-content: center;
+  width: 29px;
+}
+
+.section-plan-sheet-controls > div:last-child button + button {
+  border-left: 1px solid var(--border-gh);
+}
+
+.section-plan-sheet-controls > div:last-child button:hover:not(:disabled),
+.section-plan-sheet-controls > div:last-child button:focus-visible {
+  background: var(--bg-hover);
+  color: var(--action-primary);
+  outline: none;
+}
+
+.section-plan-sheet-controls > div:last-child button:disabled {
+  opacity: .28;
+}
+
+.section-plan-budget-editor,
+.section-plan-budget-readout {
+  align-items: center;
+  border: 1px solid var(--border-gh);
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8.5px;
+  gap: 6px;
+  height: 31px;
+  padding: 0 8px;
+}
+
+.section-plan-budget-editor svg,
+.section-plan-budget-readout svg {
+  color: var(--action-primary);
+}
+
+.section-plan-budget-editor input {
+  background: transparent;
+  border: 0;
+  color: var(--text-ink);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  outline: 0;
+  padding: 0;
+  text-align: right;
+  width: 62px;
+}
+
+.section-plan-budget-readout strong {
+  color: var(--text-ash);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.section-plan-scope-strip {
+  border-bottom: 1px solid var(--border-gh);
+  display: grid;
+  grid-template-columns: minmax(150px, .55fr) minmax(0, 1.45fr);
+  min-height: 47px;
+}
+
+.section-plan-scope-strip > div {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+  padding: 7px 14px;
+}
+
+.section-plan-scope-strip > div + div {
+  border-left: 1px solid var(--border-gh);
+}
+
+.section-plan-scope-strip > div > span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  flex: none;
+  font-size: 8px;
+  gap: 5px;
+}
+
+.section-plan-scope-strip strong,
+.section-plan-scope-strip select {
+  color: var(--text-ash);
+  font-size: 9.5px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.section-plan-scope-strip select {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-hl);
+  height: 28px;
+  max-width: 180px;
+  outline: none;
+  padding: 0 7px;
+}
+
+.section-plan-promise-list {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.section-plan-promise-list code {
+  background: color-mix(in srgb, var(--action-primary) 7%, var(--bg-elev));
+  border: 1px solid color-mix(in srgb, var(--action-primary) 19%, var(--border-gh));
+  color: var(--text-ash);
+  flex: none;
+  font-size: 8px;
+  padding: 3px 5px;
+}
+
+.section-plan-promise-list em {
+  color: var(--text-fog);
+  font-size: 8.5px;
+  font-style: normal;
+}
+
+.section-plan-sheet > .artifact-section-tabs {
+  margin: 0 15px 18px;
+}
+
+.section-plan-engine,
+.section-plan-load,
+.section-plan-handoff {
+  animation: section-plan-section-enter 160ms ease both;
+  padding: 0 18px 24px;
+}
+
+.section-plan-engine {
+  display: grid;
+  gap: 21px;
+}
+
+.section-plan-continuity-flow {
+  align-items: stretch;
+  background: color-mix(in srgb, var(--bg-base) 56%, transparent);
+  border-block: 1px solid var(--border-gh);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1.25fr) 18px minmax(0, 1fr);
+}
+
+.section-plan-continuity-flow > article {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 13px 12px;
+}
+
+.section-plan-continuity-flow > article.is-active {
+  background: color-mix(in srgb, var(--action-primary) 6%, transparent);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--action-primary) 45%, transparent);
+}
+
+.section-plan-continuity-flow > article > span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8px;
+  gap: 5px;
+}
+
+.section-plan-continuity-flow > article.is-active > span {
+  color: var(--action-primary);
+}
+
+.section-plan-continuity-flow > article p {
+  color: var(--text-ash);
+  font-size: 9.5px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.section-plan-continuity-flow > svg {
+  align-self: center;
+  color: var(--border-hl);
+  justify-self: center;
+}
+
+.section-plan-text-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.section-plan-text-field > span {
+  align-items: center;
+  color: var(--text-fog);
+  display: flex;
+  font-size: 8.5px;
+  gap: 6px;
+}
+
+.section-plan-text-field.is-emphasized .artifact-readable-value {
+  color: var(--text-ink);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.section-plan-text-field textarea {
+  color: var(--text-ash);
+  font-size: 11.5px;
+  line-height: 1.75;
+  min-height: 76px;
+  width: 100%;
+}
+
+.section-plan-text-field.is-emphasized textarea {
+  color: var(--text-ink);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.section-plan-load {
+  display: grid;
+  gap: 18px;
+}
+
+.section-plan-load > header {
+  align-items: center;
+  border-bottom: 1px solid var(--border-gh);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 9px;
+}
+
+.section-plan-load > header > div {
+  align-items: center;
+  color: var(--text-ash);
+  display: flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 6px;
+}
+
+.section-plan-load > header svg {
+  color: var(--action-primary);
+}
+
+.section-plan-load > header small {
+  color: var(--text-fog);
+  font-size: 8.5px;
+}
+
+.section-plan-load-ledger {
+  border-block: 1px solid var(--border-gh);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.section-plan-load-ledger > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.section-plan-load-ledger > div + div {
+  border-left: 1px solid var(--border-gh);
+}
+
+.section-plan-load-ledger span {
+  color: var(--text-fog);
+  font-size: 8px;
+}
+
+.section-plan-load-ledger strong {
+  color: var(--text-ash);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+}
+
+.section-plan-handoff {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(190px, .8fr);
+}
+
+.section-plan-handoff > aside {
+  border-left: 2px solid color-mix(in srgb, var(--action-primary) 48%, var(--border-hl));
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 6px 13px;
+}
+
+.section-plan-handoff > aside span {
+  color: var(--action-primary);
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+
+.section-plan-handoff > aside strong {
+  color: var(--text-ash);
+  font-size: 10.5px;
+}
+
+.section-plan-handoff > aside p {
+  color: var(--text-fog);
+  font-size: 9px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+@keyframes section-plan-section-enter {
+  from { opacity: .45; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 767px) {
+  .section-plan-continuity-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section-plan-continuity-flow > svg {
+    display: none;
+  }
+
+  .section-plan-handoff {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .section-plan-sheet-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .section-plan-sheet-controls {
+    justify-content: space-between;
+  }
+
+  .section-plan-scope-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section-plan-scope-strip > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--border-gh);
+  }
+
+  .section-plan-load-ledger {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section-plan-load-ledger > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--border-gh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-plan-engine,
+  .section-plan-load,
+  .section-plan-handoff {
+    animation: none;
+  }
+}

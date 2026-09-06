@@ -466,7 +466,7 @@ export function parseDetailArtifact(
     if (
       chapter.target_characters !== null &&
       (!Number.isInteger(chapter.target_characters) ||
-        (chapter.target_characters as number) < 1)
+        chapter.target_characters as number < 1)
     ) {
       return invalid(`${chapterLabel} 的 target_characters 无效`)
     }

@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 
+class ProviderProfileStoreConflict(ValueError):
+    code = "provider_profile_store_conflict"
+
+
 class ProviderProfileStore:
     def __init__(self, path: Path) -> None:
         self.path = path
@@ -51,6 +55,40 @@ class ProviderProfileStore:
                 ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
                 """,
                 (item_id, payload, updated_at),
+            )
+        return data
+
+    def write_if_current(
+        self,
+        item_id: str,
+        *,
+        expected: dict[str, Any],
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Atomically replace one profile only when its full payload is unchanged."""
+
+        payload = json.dumps(data, ensure_ascii=False)
+        updated_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT payload FROM provider_profiles WHERE id = ?",
+                (item_id,),
+            ).fetchone()
+            if row is None:
+                raise FileNotFoundError(item_id)
+            current = json.loads(str(row[0]))
+            if current != expected:
+                raise ProviderProfileStoreConflict(
+                    "Provider profile changed before compare-and-swap"
+                )
+            connection.execute(
+                """
+                UPDATE provider_profiles
+                SET payload = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (payload, updated_at, item_id),
             )
         return data
 

@@ -1,16 +1,19 @@
-import type {
-  CharacterBibleArtifact,
-  CharacterKind,
-  CharacterRelation,
-  CharacterSubject,
-} from "../contracts/artifacts"
+import type { CharacterBibleDraft, CastRelationshipDraft } from "./phase32Cast"
+import type { CharacterKind } from "../contracts/artifacts"
 
-export type CharacterGraphNode = CharacterSubject & {
+export type CharacterGraphTier = "anchor" | "hub" | "linked" | "isolated"
+
+export type CharacterGraphNode = {
+  id: string
+  name: string
+  role: string
+  tier: CharacterGraphTier
   color: string
   val: number
 }
 
-export type CharacterGraphEdge = CharacterRelation & {
+export type CharacterGraphEdge = CastRelationshipDraft & {
+  edgeId: string
   source: string | CharacterGraphNode
   target: string | CharacterGraphNode
   color: string
@@ -21,6 +24,16 @@ export type CharacterGraphEdge = CharacterRelation & {
 export type CharacterGraph = {
   nodes: CharacterGraphNode[]
   links: CharacterGraphEdge[]
+}
+
+export const CHARACTER_GRAPH_TIER_META: Record<CharacterGraphTier, {
+  label: string
+  value: number
+}> = {
+  anchor: { label: "关系锚点", value: 6.2 },
+  hub: { label: "关系枢纽", value: 5.2 },
+  linked: { label: "关联人物", value: 4.4 },
+  isolated: { label: "独立人物", value: 3.9 },
 }
 
 export const CHARACTER_KIND_META: Record<CharacterKind, {
@@ -42,81 +55,90 @@ export const CHARACTER_KIND_META: Record<CharacterKind, {
     value: 5.2,
   },
   functional: {
-    badge: "badge-fast",
+    badge: "badge-blue",
     color: "#6f98dc",
     label: "功能角色",
     value: 4.4,
   },
   npc: { badge: "badge-ash", color: "#9a9590", label: "辅助角色", value: 3.8 },
   historical_record: {
-    badge: "badge-deep",
+    badge: "badge-violet",
     color: "#9a75c9",
     label: "历史主体",
     value: 4.1,
   },
 }
 
-const RELATION_META: Record<string, { color: string; label: string }> = {
-  adversarial: { color: "#cb5549", label: "对抗" },
-  betrayal: { color: "#c76b55", label: "背叛" },
-  captor_captive: { color: "#a875ca", label: "控制" },
-  familial_bond: { color: "#45bda2", label: "家族羁绊" },
-  familial_conflict: { color: "#d18d3e", label: "家庭冲突" },
-  friendship_obligation: { color: "#5f8fd9", label: "友情责任" },
-  mentor_student: { color: "#d5a13f", label: "师生" },
-  romantic: { color: "#c56f99", label: "情感" },
-  rivalry: { color: "#cc654f", label: "竞争" },
-}
-
-const FALLBACK_RELATION_COLORS = [
-  "#4fbba4",
-  "#d29243",
-  "#6f98dc",
-  "#a77ac9",
-  "#c86755",
+const NODE_COLORS = [
+  "#55cbb2",
+  "#e0a34b",
+  "#72a1ea",
+  "#be82da",
+  "#e06f62",
+  "#7dc2d4",
+  "#d48baa",
+  "#a7bd66",
 ]
 
+const EDGE_COLORS = ["#5fc6b0", "#d69a4a", "#739fe2", "#b77fd2", "#d66e61"]
+
 export function projectCharacterGraph(
-  artifact: CharacterBibleArtifact,
+  artifact: CharacterBibleDraft,
 ): CharacterGraph {
+  const degrees = new Map(
+    artifact.characters.map((character) => [character.subject_ref, 0]),
+  )
+  artifact.relationships.forEach((relationship) => {
+    degrees.set(
+      relationship.from_subject_ref,
+      (degrees.get(relationship.from_subject_ref) ?? 0) + 1,
+    )
+    degrees.set(
+      relationship.to_subject_ref,
+      (degrees.get(relationship.to_subject_ref) ?? 0) + 1,
+    )
+  })
+  const maximumDegree = Math.max(0, ...degrees.values())
+  const anchorRef =
+    artifact.characters.find(
+      (character) => degrees.get(character.subject_ref) === maximumDegree,
+    )?.subject_ref ?? artifact.characters[0]?.subject_ref
+
   return {
-    nodes: artifact.subjects.map((subject) => ({
-      ...subject,
-      color: CHARACTER_KIND_META[subject.kind].color,
-      val: CHARACTER_KIND_META[subject.kind].value,
-    })),
-    links: artifact.relations.map((relation) => {
-      const presentation = relationPresentation(relation.type)
+    nodes: artifact.characters.map((character) => {
+      const degree = degrees.get(character.subject_ref) ?? 0
+      const tier: CharacterGraphTier =
+        character.subject_ref === anchorRef
+          ? "anchor"
+          : degree >= 2
+            ? "hub"
+            : degree === 1
+              ? "linked"
+              : "isolated"
       return {
-        ...relation,
-        color: presentation.color,
-        label: presentation.label,
-        source: relation.a,
-        strength: relationStrength(relation.pressure),
-        target: relation.b,
+        id: character.subject_ref,
+        name: character.display_name,
+        role: character.role,
+        tier,
+        color:
+          NODE_COLORS[stableHash(character.subject_ref) % NODE_COLORS.length],
+        val: CHARACTER_GRAPH_TIER_META[tier].value,
       }
     }),
-  }
-}
-
-export function relationPresentation(type: string) {
-  const normalized = type.trim().toLowerCase()
-  if (RELATION_META[normalized]) return RELATION_META[normalized]
-  if (/家|亲|family/.test(type)) return { color: "#45bda2", label: "家庭关系" }
-  if (/敌|对抗|rival|advers|hostile/.test(type))
-    return { color: "#cb5549", label: "对抗" }
-  if (/友|盟|friend|ally/.test(type)) return { color: "#5f8fd9", label: "盟友" }
-  if (/师|mentor/.test(type)) return { color: "#d5a13f", label: "师生" }
-  if (/背叛|betray/.test(type)) return { color: "#c76b55", label: "背叛" }
-  if (/控制|囚|captor|control/.test(type))
-    return { color: "#a875ca", label: "控制" }
-  const label = /[\u3400-\u9fff]/.test(type) ? type : "人物关系"
-  return {
-    color:
-      FALLBACK_RELATION_COLORS[
-        stableHash(normalized) % FALLBACK_RELATION_COLORS.length
-      ],
-    label,
+    links: artifact.relationships.map((relationship) => ({
+      ...relationship,
+      edgeId: `${relationship.from_subject_ref}:${relationship.to_subject_ref}`,
+      color:
+        EDGE_COLORS[
+          stableHash(
+            `${relationship.from_subject_ref}:${relationship.to_subject_ref}`,
+          ) % EDGE_COLORS.length
+        ],
+      label: "关系压力",
+      source: relationship.from_subject_ref,
+      strength: Math.min(1, 0.56 + relationship.pressure.trim().length / 220),
+      target: relationship.to_subject_ref,
+    })),
   }
 }
 
@@ -143,14 +165,13 @@ export function connectedSubjectIds(graph: CharacterGraph, subjectId: string) {
   return ids
 }
 
-function relationStrength(pressure: string) {
-  return Math.min(1, 0.56 + pressure.trim().length / 220)
+export function graphColorForSubject(subjectRef: string) {
+  return NODE_COLORS[stableHash(subjectRef) % NODE_COLORS.length]
 }
 
 function stableHash(value: string) {
   let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
+  for (let index = 0; index < value.length; index += 1)
     hash = (hash * 31 + value.charCodeAt(index)) >>> 0
-  }
   return hash
 }

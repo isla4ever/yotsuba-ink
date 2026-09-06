@@ -1,20 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { GraphRunEnvelope, RunEvent } from "../contracts/run"
-import { getRun, streamExistingRun } from "../services/runApi"
+import type { Phase32RunEnvelope, Phase32RunEvent } from "../contracts/run"
+import { getRun, streamRunEvents } from "../services/runApi"
 import { consumeRunEventStream } from "../services/runStream"
 
 export type RunConnectionState = "idle" | "connecting" | "live" | "reconnecting" | "closed" | "error"
 
-const terminalStatuses = new Set(["completed", "failed", "cancelled"])
-const terminalEvents = new Set(["run.completed", "run.failed"])
+const quietStatuses = new Set([
+  "awaiting_decision",
+  "image_deferred",
+  "completed",
+  "failed",
+  "cancelled",
+])
+const quietEvents = new Set([
+  "decision.required",
+  "stage.failed",
+  "unit.failed",
+  "evidence.recovery_required",
+  "writeback.failed",
+  "export.ready",
+  "image.deferred",
+])
 
 export function useActiveRun(runId: string | null) {
-  const [envelope, setEnvelope] = useState<GraphRunEnvelope | null>(null)
-  const [events, setEvents] = useState<RunEvent[]>([])
+  const [envelope, setEnvelope] = useState<Phase32RunEnvelope | null>(null)
+  const [events, setEvents] = useState<Phase32RunEvent[]>([])
   const [connection, setConnection] = useState<RunConnectionState>("idle")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const envelopeRef = useRef<GraphRunEnvelope | null>(null)
+  const [streamRevision, setStreamRevision] = useState(0)
+  const envelopeRef = useRef<Phase32RunEnvelope | null>(null)
 
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
@@ -22,6 +37,7 @@ export function useActiveRun(runId: string | null) {
       const loaded = await getRun(runId, signal)
       envelopeRef.current = loaded
       setEnvelope(loaded)
+      setError("")
       return loaded
     },
     [runId],
@@ -57,14 +73,14 @@ export function useActiveRun(runId: string | null) {
       try {
         const initial = await refresh(controller.signal)
         terminal = Boolean(
-          initial && terminalStatuses.has(initial.read_model.status),
+          initial && quietStatuses.has(initial.read_model.status),
         )
         setLoading(false)
 
         while (!controller.signal.aborted) {
           setConnection(reconnectAttempt === 0 ? "connecting" : "reconnecting")
           try {
-            const response = await streamExistingRun(
+            const response = await streamRunEvents(
               runId,
               controller.signal,
               lastSequence,
@@ -78,7 +94,7 @@ export function useActiveRun(runId: string | null) {
                   lastSequence,
                   ...batch.map((event) => event.sequence),
                 )
-                if (batch.some((event) => terminalEvents.has(event.type)))
+                if (batch.some((event) => quietEvents.has(event.type)))
                   terminal = true
                 setEvents((current) => {
                   const bySequence = new Map(
@@ -94,9 +110,10 @@ export function useActiveRun(runId: string | null) {
                 scheduleRefresh()
               },
             })
+            const latest = await refresh(controller.signal)
             if (
               terminal ||
-              terminalStatuses.has(envelopeRef.current?.read_model.status ?? "")
+              quietStatuses.has(latest?.read_model.status ?? "")
             ) {
               setConnection("closed")
               return
@@ -128,9 +145,13 @@ export function useActiveRun(runId: string | null) {
       controller.abort()
       if (refreshTimer) clearTimeout(refreshTimer)
     }
-  }, [refresh, runId])
+  }, [refresh, runId, streamRevision])
 
-  return { connection, envelope, error, events, loading, refresh }
+  const reconnect = useCallback(() => {
+    setStreamRevision((value) => value + 1)
+  }, [])
+
+  return { connection, envelope, error, events, loading, reconnect, refresh }
 }
 
 function waitForReconnect(delay: number, signal: AbortSignal) {

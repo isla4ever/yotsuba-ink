@@ -14,7 +14,11 @@ export type SpatialCharacterNode = CharacterGraphNode & {
 
 export type CharacterCameraFrame = {
   distance: number
-  target: { x: number; y: number; z: number }
+  target: {
+    x: number
+    y: number
+    z: number
+  }
 }
 
 const GOLDEN_ANGLE = 2.399963229728653
@@ -30,10 +34,10 @@ export function initialCharacterLayout(
   let peripheralIndex = 0
 
   return nodes.map((node) => {
-    if (node.kind === "protagonist") {
+    if (node.tier === "anchor") {
       const angle = protagonistIndex * GOLDEN_ANGLE - Math.PI / 2
       const radius =
-        nodes.filter((item) => item.kind === "protagonist").length > 1 ? 44 : 0
+        nodes.filter((item) => item.tier === "anchor").length > 1 ? 44 : 0
       protagonistIndex += 1
       return anchored(
         node,
